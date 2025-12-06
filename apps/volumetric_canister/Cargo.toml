@@ -1,0 +1,5 @@
+[workspace]
+members = [
+    "src/volumetric_canister_backend"
+]
+resolver = "2"

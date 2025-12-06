@@ -1,0 +1,27 @@
+{
+  "canisters": {
+    "volumetric_canister_backend": {
+      "candid": "src/volumetric_canister_backend/volumetric_canister_backend.did",
+      "package": "volumetric_canister_backend",
+      "type": "rust"
+    },
+    "volumetric_canister_frontend": {
+      "dependencies": [
+        "volumetric_canister_backend"
+      ],
+      "source": [
+        "src/volumetric_canister_frontend/dist"
+      ],
+      "type": "assets",
+      "workspace": "volumetric_canister_frontend"
+    }
+  },
+  "defaults": {
+    "build": {
+      "args": "",
+      "packtool": ""
+    }
+  },
+  "output_env_file": ".env",
+  "version": 1
+}
