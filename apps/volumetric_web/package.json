@@ -3,12 +3,16 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev --port 4200",
     "build": "next build",
-    "start": "next start",
+    "start": "next start --port 4200",
     "lint": "eslint"
   },
   "dependencies": {
+    "@dfinity/agent": "^2.2.0",
+    "@dfinity/candid": "^2.2.0",
+    "@dfinity/principal": "^2.2.0",
+    "@volumetric/canister-types": "workspace:*",
     "next": "16.0.7",
     "react": "19.2.0",
     "react-dom": "19.2.0"
