@@ -164,3 +164,52 @@ graph TB
 
     style O2 stroke:#ff0000,stroke-width:2px
 ```
+
+## Option Execution/Settlement Flow
+
+This diagram shows the automatic settlement process at option expiry, including both In-The-Money (ITM) and Out-of-The-Money (OTM) scenarios.
+
+```mermaid
+sequenceDiagram
+    participant Oracle as BTC/USD Oracle
+    participant Canister as Core Canister
+    participant Writer
+    participant Buyer
+
+    Note over Oracle,Buyer: Settlement Triggered at Expiry
+
+    Canister->>Oracle: Query BTC/USD price at expiry
+    Oracle->>Canister: Return settlement price (S)
+
+    Canister->>Canister: Get option details<br/>(Strike K, Size q, Premium)
+
+    alt Out of The Money (S ≤ K)
+        Note over Canister: S ≤ K: Option expires worthless
+
+        Canister->>Canister: Calculate payout = 0
+        Canister->>Canister: Unlock writer's collateral
+        Canister->>Canister: Update writer's available balance
+
+        Canister->>Writer: Notify settlement<br/>Keep premium + collateral unlocked
+        Canister->>Buyer: Notify settlement<br/>Option expired worthless
+
+        Note over Writer,Buyer: Writer keeps premium<br/>Buyer loses premium
+    else In The Money (S > K)
+        Note over Canister: S > K: Calculate intrinsic value
+
+        Canister->>Canister: Calculate USD intrinsic:<br/>(S - K) × q
+        Canister->>Canister: Calculate BTC payout:<br/>((S - K) / S) × q
+
+        Canister->>Canister: Debit writer's collateral
+        Canister->>Buyer: Transfer payout in ckBTC
+        Canister->>Canister: Update writer's available balance
+
+        Canister->>Buyer: Notify settlement<br/>Payout transferred
+        Canister->>Writer: Notify settlement<br/>Collateral debited, premium kept
+
+        Note over Writer,Buyer: Buyer receives payout<br/>Writer keeps premium, loses payout amount
+    end
+
+    Canister->>Canister: Mark option as settled
+    Canister->>Canister: Update offer status if needed
+```
