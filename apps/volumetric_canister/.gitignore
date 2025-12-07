@@ -26,3 +26,6 @@ dist/
 
 # canister IDs (use canister_ids.example.json as template)
 canister_ids.json
+
+# built wasm files
+*.wasm
