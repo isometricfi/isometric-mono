@@ -1,6 +1,6 @@
-.PHONY: build release deploy deploy-wasm reinstall-local verify info clean start stop help
+.PHONY: build release deploy reinstall-local verify info clean start stop help
 
-TARGET ?= dev
+TARGET ?= local
 
 ifeq ($(TARGET),prod)
     CANISTER = volumetric_prod
@@ -32,21 +32,17 @@ release:
 	docker run --rm -v "$(PWD)":/canister $(DOCKER_IMAGE)
 
 deploy:
-	@echo "Deploying to $(TARGET) ($(NETWORK))..."
 ifeq ($(TARGET),local)
+	@echo "Deploying to local..."
 	dfx deploy $(CANISTER)
 else
-	dfx deploy $(CANISTER) --network $(NETWORK)
-endif
-	@echo "Deployment complete."
-
-deploy-wasm:
 	@echo "Deploying $(WASM_RELEASE) to $(CANISTER) on $(NETWORK)..."
 	@if [ ! -f "$(WASM_RELEASE)" ]; then \
 		echo "Error: $(WASM_RELEASE) not found. Run 'make release' first."; \
 		exit 1; \
 	fi
 	dfx canister install $(CANISTER) --network $(NETWORK) --mode upgrade --wasm $(WASM_RELEASE) --yes
+endif
 	@echo "Deploy complete."
 
 reinstall-local:
@@ -79,8 +75,7 @@ help:
 	@echo "Targets:"
 	@echo "  build           - Build locally (fast, outputs volumetric.local.wasm)"
 	@echo "  release         - Build with Docker (reproducible, outputs volumetric.wasm)"
-	@echo "  deploy          - Deploy canister via dfx (builds from source)"
-	@echo "  deploy-wasm     - Deploy volumetric.wasm (Docker build)"
+	@echo "  deploy          - Deploy canister (local: dfx, mainnet: uses volumetric.wasm)"
 	@echo "  reinstall-local - Reinstall local canister (wipes state)"
 	@echo "  verify          - Verify local build matches on-chain"
 	@echo "  info            - Show canister info"
@@ -90,6 +85,6 @@ help:
 	@echo "  clean           - Remove build artifacts"
 	@echo ""
 	@echo "Examples:"
-	@echo "  make release                  # Build reproducible wasm"
-	@echo "  make deploy-wasm TARGET=dev  # Deploy Docker-built wasm"
-	@echo "  make deploy TARGET=local     # Deploy to local replica"
+	@echo "  make release              # Build reproducible wasm"
+	@echo "  make deploy TARGET=dev    # Deploy to dev (uses volumetric.wasm)"
+	@echo "  make deploy TARGET=local  # Deploy to local replica (dfx builds)"
