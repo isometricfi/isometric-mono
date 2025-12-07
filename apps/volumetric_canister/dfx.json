@@ -1,8 +1,8 @@
 {
   "canisters": {
-    "volumetric_canister_backend": {
-      "candid": "src/volumetric_canister_backend/volumetric_canister_backend.did",
-      "package": "volumetric_canister_backend",
+    "volumetric_dev": {
+      "candid": "src/volumetric/volumetric.did",
+      "package": "volumetric",
       "type": "rust"
     }
   },

@@ -1,0 +1,5 @@
+{
+  "volumetric_dev": {
+    "ic": "<your-canister-id>"
+  }
+}

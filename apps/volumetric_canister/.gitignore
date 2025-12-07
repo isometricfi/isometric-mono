@@ -23,3 +23,6 @@ dist/
 
 # environment variables
 .env
+
+# canister IDs (use canister_ids.example.json as template)
+canister_ids.json
