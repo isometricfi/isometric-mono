@@ -1,4 +1,6 @@
 #[ic_cdk::query]
 fn greet(name: String) -> String {
-    format!("Hello, {}!", name)
+    format!("Volumetric, {}!", name)
 }
+
+ic_cdk::export_candid!();

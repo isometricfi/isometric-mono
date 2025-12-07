@@ -10,8 +10,8 @@
 # dfx temporary files
 .dfx/
 
-# generated files
-**/declarations/
+# generated declarations (live in packages/canister-types)
+src/declarations/
 
 # rust
 target/

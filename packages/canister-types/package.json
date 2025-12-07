@@ -1,0 +1,19 @@
+{
+  "name": "@volumetric/canister-types",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "main": "./src/generated/index.js",
+  "types": "./src/generated/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./src/generated/index.d.ts",
+      "import": "./src/generated/index.js"
+    }
+  },
+  "dependencies": {
+    "@dfinity/agent": "^2.2.0",
+    "@dfinity/candid": "^2.2.0",
+    "@dfinity/principal": "^2.2.0"
+  }
+}

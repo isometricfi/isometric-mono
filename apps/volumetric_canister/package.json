@@ -1,0 +1,9 @@
+{
+  "name": "@volumetric/canister",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "generate": "make generate"
+  }
+}
+

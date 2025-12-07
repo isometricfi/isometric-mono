@@ -1,4 +1,4 @@
-.PHONY: build release deploy reinstall-local verify info clean start stop help
+.PHONY: build release deploy generate reinstall-local verify info clean start stop help
 
 TARGET ?= local
 
@@ -18,10 +18,12 @@ endif
 DOCKER_IMAGE := volumetric-canister
 WASM_RELEASE := volumetric.wasm
 WASM_LOCAL := volumetric.local.wasm
+DID_FILE := src/volumetric/volumetric.did
 
 build:
 	@echo "Building locally..."
 	cargo build --locked --target wasm32-unknown-unknown --release
+	candid-extractor target/wasm32-unknown-unknown/release/volumetric.wasm > $(DID_FILE)
 	ic-wasm target/wasm32-unknown-unknown/release/volumetric.wasm -o $(WASM_LOCAL) shrink
 	@echo "Build complete: $(WASM_LOCAL)"
 	@sha256sum $(WASM_LOCAL)
@@ -30,6 +32,15 @@ release:
 	@echo "Building reproducible wasm with Docker..."
 	docker build -t $(DOCKER_IMAGE) -f docker/Dockerfile .
 	docker run --rm -v "$(PWD)":/canister $(DOCKER_IMAGE)
+
+generate: build
+	@echo "Generating TypeScript declarations..."
+	dfx generate $(CANISTER)
+	@echo "Copying to @volumetric/canister-types..."
+	rm -rf ../../packages/canister-types/src/generated
+	mkdir -p ../../packages/canister-types/src/generated
+	cp src/declarations/$(CANISTER)/* ../../packages/canister-types/src/generated/
+	@echo "Declarations updated in packages/canister-types/src/generated"
 
 deploy:
 ifeq ($(TARGET),local)
@@ -75,6 +86,7 @@ help:
 	@echo "Targets:"
 	@echo "  build           - Build locally (fast, outputs volumetric.local.wasm)"
 	@echo "  release         - Build with Docker (reproducible, outputs volumetric.wasm)"
+	@echo "  generate        - Generate TypeScript declarations inside volumentric_web package"
 	@echo "  deploy          - Deploy canister (local: dfx, mainnet: uses volumetric.wasm)"
 	@echo "  reinstall-local - Reinstall local canister (wipes state)"
 	@echo "  verify          - Verify local build matches on-chain"

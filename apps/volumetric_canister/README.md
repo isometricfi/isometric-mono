@@ -7,6 +7,8 @@ Rust canister for the Volumetric project on the Internet Computer.
 - [dfx](https://internetcomputer.org/docs/current/developer-docs/setup/install) (IC SDK)
 - Rust toolchain with `wasm32-unknown-unknown` target
 - Docker (for reproducible builds)
+- [candid-extractor](https://crates.io/crates/candid-extractor) - `cargo install candid-extractor`
+- [ic-wasm](https://crates.io/crates/ic-wasm) - `cargo install ic-wasm`
 
 ## Quick start
 
