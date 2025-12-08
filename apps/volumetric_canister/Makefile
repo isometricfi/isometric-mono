@@ -16,22 +16,24 @@ else
 endif
 
 DOCKER_IMAGE := volumetric-canister
-WASM_RELEASE := volumetric.wasm
-WASM_LOCAL := volumetric.local.wasm
+WASM_FILE := volumetric.wasm
 DID_FILE := src/volumetric/volumetric.did
 
 build:
 	@echo "Building locally..."
 	cargo build --locked --target wasm32-unknown-unknown --release
 	candid-extractor target/wasm32-unknown-unknown/release/volumetric.wasm > $(DID_FILE)
-	ic-wasm target/wasm32-unknown-unknown/release/volumetric.wasm -o $(WASM_LOCAL) shrink
-	@echo "Build complete: $(WASM_LOCAL)"
-	@sha256sum $(WASM_LOCAL)
+	ic-wasm target/wasm32-unknown-unknown/release/volumetric.wasm -o $(WASM_FILE) shrink
+	@echo "Build complete: $(WASM_FILE)"
+	@sha256sum $(WASM_FILE)
 
 release:
 	@echo "Building reproducible wasm with Docker..."
 	docker build -t $(DOCKER_IMAGE) -f docker/Dockerfile .
 	docker run --rm -v "$(PWD)":/canister $(DOCKER_IMAGE)
+	candid-extractor $(WASM_FILE) > $(DID_FILE)
+	@echo "Build complete: $(WASM_FILE)"
+	@sha256sum $(WASM_FILE)
 
 generate: build
 	@echo "Generating TypeScript declarations..."
@@ -47,12 +49,12 @@ ifeq ($(TARGET),local)
 	@echo "Deploying to local..."
 	dfx deploy $(CANISTER)
 else
-	@echo "Deploying $(WASM_RELEASE) to $(CANISTER) on $(NETWORK)..."
-	@if [ ! -f "$(WASM_RELEASE)" ]; then \
-		echo "Error: $(WASM_RELEASE) not found. Run 'make release' first."; \
+	@echo "Deploying $(WASM_FILE) to $(CANISTER) on $(NETWORK)..."
+	@if [ ! -f "$(WASM_FILE)" ]; then \
+		echo "Error: $(WASM_FILE) not found. Run 'make build' or 'make release' first."; \
 		exit 1; \
 	fi
-	dfx canister install $(CANISTER) --network $(NETWORK) --mode upgrade --wasm $(WASM_RELEASE) --yes
+	dfx canister install $(CANISTER) --network $(NETWORK) --mode upgrade --wasm $(WASM_FILE) --yes
 endif
 	@echo "Deploy complete."
 
@@ -68,8 +70,7 @@ info:
 	dfx canister --network $(NETWORK) info $(CANISTER) --identity anonymous
 
 hash:
-	@echo "Release (Docker):  $$([ -f $(WASM_RELEASE) ] && sha256sum $(WASM_RELEASE) | awk '{print $$1}' || echo 'not built')"
-	@echo "Local:             $$([ -f $(WASM_LOCAL) ] && sha256sum $(WASM_LOCAL) | awk '{print $$1}' || echo 'not built')"
+	@echo "Wasm hash: $$([ -f $(WASM_FILE) ] && sha256sum $(WASM_FILE) | awk '{print $$1}' || echo 'not built')"
 
 start:
 	dfx start --background
@@ -78,25 +79,26 @@ stop:
 	dfx stop
 
 clean:
-	rm -rf .dfx target $(WASM_RELEASE) $(WASM_LOCAL)
+	rm -rf .dfx target $(WASM_FILE)
 
 help:
 	@echo "Usage: make <target> [TARGET=dev|prod|local]"
 	@echo ""
 	@echo "Targets:"
-	@echo "  build           - Build locally (fast, outputs volumetric.local.wasm)"
+	@echo "  build           - Build locally (fast, outputs volumetric.wasm)"
 	@echo "  release         - Build with Docker (reproducible, outputs volumetric.wasm)"
-	@echo "  generate        - Generate TypeScript declarations inside volumentric_web package"
+	@echo "  generate        - Generate TypeScript declarations inside volumetric_web package"
 	@echo "  deploy          - Deploy canister (local: dfx, mainnet: uses volumetric.wasm)"
 	@echo "  reinstall-local - Reinstall local canister (wipes state)"
 	@echo "  verify          - Verify local build matches on-chain"
 	@echo "  info            - Show canister info"
-	@echo "  hash            - Show wasm hashes"
+	@echo "  hash            - Show wasm hash"
 	@echo "  start           - Start local replica"
 	@echo "  stop            - Stop local replica"
 	@echo "  clean           - Remove build artifacts"
 	@echo ""
 	@echo "Examples:"
+	@echo "  make build                # Build locally"
 	@echo "  make release              # Build reproducible wasm"
-	@echo "  make deploy TARGET=dev    # Deploy to dev (uses volumetric.wasm)"
-	@echo "  make deploy TARGET=local  # Deploy to local replica (dfx builds)"
+	@echo "  make deploy TARGET=dev    # Deploy to dev"
+	@echo "  make deploy TARGET=local  # Deploy to local replica"
