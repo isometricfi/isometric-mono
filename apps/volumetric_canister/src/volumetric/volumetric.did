@@ -1,1 +1,16 @@
-service : { greet : (text) -> (text) query }
+type Config = record { temp : text };
+type Result = variant { Ok; Err : VolumetricError };
+type VolumetricError = variant {
+  Internal : text;
+  UnauthorizedWhitelisted : record { caller : text };
+  UnauthorizedController : record { caller : text };
+  ConfigError : text;
+};
+service : () -> {
+  add_whitelisted : (principal) -> (Result);
+  get_config : () -> (Config) query;
+  greet : (text) -> (text) query;
+  list_whitelisted : () -> (vec principal) query;
+  remove_whitelisted : (principal) -> (Result);
+  set_temp : (text) -> (Result);
+}
