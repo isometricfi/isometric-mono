@@ -7,7 +7,7 @@ import type {
 import type { Principal } from "@dfinity/principal";
 import type { IDL } from "@dfinity/candid";
 
-import { _SERVICE } from './volumetric_dev.did';
+export { _SERVICE, UserInfo } from './volumetric_dev.did';
 
 export declare const idlFactory: IDL.InterfaceFactory;
 export declare const canisterId: string;
