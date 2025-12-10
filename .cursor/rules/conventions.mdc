@@ -1,0 +1,30 @@
+---
+description: Code conventions, quality, and security standards
+globs:
+---
+
+# Conventions
+
+- Conventional commits: feat, fix, chore, refactor, docs
+- Scopes: `(canister)` for canister, `(web)` for web app
+- Run `cargo fmt` after Rust changes
+- Run `cargo check` before committing
+- Run `make generate` to update TypeScript types after API changes
+- Never commit without explicit permission
+- Minimal comments; only document non-obvious logic
+- No emojis in logs or code
+
+# Code Quality
+
+- Always use guard clauses and early returns
+- Prefer readable code over micro-optimizations
+- Handle edge cases explicitly
+- Keep functions small and single-purpose
+- Validate all user input at boundaries
+- Never use magic numbers or literals; define named constants or variables for clarity
+
+# Security
+
+- Use guards on all state-modifying endpoints
+- Never expose sensitive data client-side
+- Principle of least privilege for canister access

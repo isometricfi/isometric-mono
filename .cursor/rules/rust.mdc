@@ -1,0 +1,22 @@
+---
+description: Rust and ICP canister patterns
+globs: **/*.rs
+---
+
+# Rust Patterns
+
+- Write idiomatic Rust; embrace ownership and type system
+- snake_case for variables/functions, PascalCase for types/structs
+- Use `Result` and `Option` for error handling; propagate with `?`
+- Use `thiserror` for custom error types
+- Avoid code duplication; modularize into functions and modules
+- Write unit tests with `#[test]` in `#[cfg(test)]` modules
+
+# ICP Canister Patterns
+
+- Use `ic-stable-structures` with CBOR wrapper for persistent state
+- Use `thread_local!` with `RefCell` for state management
+- Guards return `Result<(), VolumetricError>` and are awaited in update calls
+- Use `#[ic_cdk::query]` for reads, `#[ic_cdk::update]` for writes
+- Export interface with `ic_cdk::export_candid!()` (keep Principal in scope)
+- Regenerate .did via `make build` after API changes
