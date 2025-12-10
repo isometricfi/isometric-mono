@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useDynamicContext, DynamicWidget } from "@dynamic-labs/sdk-react-core";
 import { isBitcoinWallet } from "@dynamic-labs/bitcoin";
 import { useDynamicConfig } from "@/app/providers/dynamic-provider";
+import { useBtcAddresses } from "@/hooks/use-btc-address";
 
 export function BtcWallet() {
   const { isConfigured } = useDynamicConfig();
@@ -26,6 +27,7 @@ export function BtcWallet() {
 
 function BtcWalletInner() {
   const { primaryWallet, user } = useDynamicContext();
+  const addresses = useBtcAddresses();
   const [signature, setSignature] = useState<string | null>(null);
   const [message, setMessage] = useState("Hello from Volumetric");
   const [error, setError] = useState<string | null>(null);
@@ -47,7 +49,7 @@ function BtcWalletInner() {
 
     setIsLoading(true);
     try {
-      const sig = await primaryWallet.signMessage(message);
+      const sig = await primaryWallet.signMessage(message, { addressType: "payment" });
       if (sig) {
         setSignature(sig);
       }
@@ -68,11 +70,36 @@ function BtcWalletInner() {
       {primaryWallet && (
         <div className="flex flex-col gap-4 p-4 rounded-lg border border-zinc-200 dark:border-zinc-800">
           <div className="flex flex-col gap-1">
-            <span className="text-sm text-zinc-500">Connected Address</span>
+            <span className="text-sm text-zinc-500">Primary Address</span>
             <code className="text-xs bg-zinc-100 dark:bg-zinc-900 p-2 rounded break-all">
               {primaryWallet.address}
             </code>
           </div>
+
+          <div className="flex flex-col gap-1">
+            <span className="text-sm text-zinc-500">Additional Addresses (raw)</span>
+            <code className="text-xs bg-zinc-100 dark:bg-zinc-900 p-2 rounded break-all whitespace-pre-wrap">
+              {JSON.stringify((primaryWallet as unknown as { additionalAddresses?: unknown }).additionalAddresses, null, 2) ?? "none"}
+            </code>
+          </div>
+
+          {addresses.payment && (
+            <div className="flex flex-col gap-1">
+              <span className="text-sm text-green-500 font-medium">Payment Address (bc1q...)</span>
+              <code className="text-xs bg-zinc-100 dark:bg-zinc-900 p-2 rounded break-all">
+                {addresses.payment}
+              </code>
+            </div>
+          )}
+
+          {addresses.ordinals && (
+            <div className="flex flex-col gap-1">
+              <span className="text-sm text-purple-500">Ordinals Address (bc1p...)</span>
+              <code className="text-xs bg-zinc-100 dark:bg-zinc-900 p-2 rounded break-all">
+                {addresses.ordinals}
+              </code>
+            </div>
+          )}
 
           {user?.email && (
             <div className="flex flex-col gap-1">

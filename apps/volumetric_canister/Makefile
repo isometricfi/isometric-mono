@@ -1,5 +1,7 @@
 .PHONY: build release deploy generate reinstall-local verify info clean start stop help
 
+export CC := /opt/homebrew/opt/llvm/bin/clang
+
 TARGET ?= local
 
 ifeq ($(TARGET),prod)

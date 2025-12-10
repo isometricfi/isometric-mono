@@ -10,6 +10,9 @@ use super::config::Config;
 pub enum MemoryIndex {
     ConfigMemory = 0,
     WhitelistMemory = 1,
+    NoncesMemory = 2,
+    ProfilesMemory = 3,
+    WalletsMemory = 4,
 }
 
 pub type Memory = VirtualMemory<DefaultMemoryImpl>;

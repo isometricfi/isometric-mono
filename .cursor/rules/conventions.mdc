@@ -5,8 +5,15 @@ globs:
 
 # Conventions
 
-- Conventional commits: feat, fix, chore, refactor, docs
+## Commits
+
+- Use conventional commits: feat, fix, chore, refactor, docs
 - Scopes: `(canister)` for canister, `(web)` for web app
+- Keep commit messages short (under 72 chars)
+- Never use commit description/body, only the subject line
+- Format: `type(scope): short message`
+
+## General
 - Run `cargo fmt` after Rust changes
 - Run `cargo check` before committing
 - Run `make generate` to update TypeScript types after API changes

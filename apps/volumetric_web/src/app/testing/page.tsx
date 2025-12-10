@@ -1,20 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { createActor } from "@volumetric/canister-types";
 import { BtcWallet } from "@/components/btc-wallet";
-
-interface Config {
-  canisterId: string | undefined;
-  icHost: string;
-}
-
-async function fetchConfig(): Promise<Config> {
-  const res = await fetch("/api/config");
-  if (!res.ok) throw new Error("Failed to load config");
-  return res.json();
-}
+import { CreateAccount } from "@/components/create-account";
+import { AccountQueries } from "@/components/account-queries";
+import { UpdateUsername } from "@/components/update-username";
+import { UserList } from "@/components/user-list";
+import { useCanisterConfig } from "@/hooks/use-canister";
 
 export default function TestingPage() {
   const [name, setName] = useState("World");
@@ -23,10 +17,7 @@ export default function TestingPage() {
     data: config,
     isLoading: configLoading,
     error: configError,
-  } = useQuery({
-    queryKey: ["config"],
-    queryFn: fetchConfig,
-  });
+  } = useCanisterConfig();
 
   const greetMutation = useMutation({
     mutationFn: async (name: string) => {
@@ -51,10 +42,46 @@ export default function TestingPage() {
 
         <section className="space-y-4">
           <h2 className="text-xl font-semibold text-zinc-300">
-            Bitcoin Wallet (Dynamic)
+            1. Connect Bitcoin Wallet
           </h2>
           <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-6">
             <BtcWallet />
+          </div>
+        </section>
+
+        <section className="space-y-4">
+          <h2 className="text-xl font-semibold text-zinc-300">
+            2. Create Account
+          </h2>
+          <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-6">
+            <CreateAccount />
+          </div>
+        </section>
+
+        <section className="space-y-4">
+          <h2 className="text-xl font-semibold text-zinc-300">
+            3. Update Username
+          </h2>
+          <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-6">
+            <UpdateUsername />
+          </div>
+        </section>
+
+        <section className="space-y-4">
+          <h2 className="text-xl font-semibold text-zinc-300">
+            4. All Users
+          </h2>
+          <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-6">
+            <UserList />
+          </div>
+        </section>
+
+        <section className="space-y-4">
+          <h2 className="text-xl font-semibold text-zinc-300">
+            5. Query Account Methods
+          </h2>
+          <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-6">
+            <AccountQueries />
           </div>
         </section>
 
@@ -108,4 +135,3 @@ export default function TestingPage() {
     </div>
   );
 }
-
