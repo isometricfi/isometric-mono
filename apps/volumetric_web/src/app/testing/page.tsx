@@ -8,6 +8,7 @@ import { CreateAccount } from "@/components/create-account";
 import { AccountQueries } from "@/components/account-queries";
 import { UpdateUsername } from "@/components/update-username";
 import { UserList } from "@/components/user-list";
+import { CkbtcWallet } from "@/components/ckbtc-wallet";
 import { useCanisterConfig } from "@/hooks/use-canister";
 
 export default function TestingPage() {
@@ -69,7 +70,16 @@ export default function TestingPage() {
 
         <section className="space-y-4">
           <h2 className="text-xl font-semibold text-zinc-300">
-            4. All Users
+            4. ckBTC Wallet
+          </h2>
+          <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-6">
+            <CkbtcWallet />
+          </div>
+        </section>
+
+        <section className="space-y-4">
+          <h2 className="text-xl font-semibold text-zinc-300">
+            5. All Users
           </h2>
           <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-6">
             <UserList />
@@ -78,7 +88,7 @@ export default function TestingPage() {
 
         <section className="space-y-4">
           <h2 className="text-xl font-semibold text-zinc-300">
-            5. Query Account Methods
+            6. Query Account Methods
           </h2>
           <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-6">
             <AccountQueries />
