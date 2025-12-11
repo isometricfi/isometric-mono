@@ -1,20 +1,25 @@
 use std::time::Duration;
 
-use candid::Principal;
+use candid::{Nat, Principal};
 use ic_cdk::export_candid;
 use ic_cdk::init;
 
 pub mod api;
 pub mod auth;
 pub mod errors;
+pub mod generated;
 pub mod guards;
 pub mod storage;
 
 pub use api::accounts::{ProfileInfo, UserInfo};
+pub use api::deposits::DepositInfo;
+pub use api::withdrawals::{WithdrawRequest, WithdrawResult};
+pub use generated::ckbtc::{Utxo, UtxoOutpoint, UtxoStatus};
 pub use api::{
-    add_whitelisted, create_account, get_account_info, get_account_nonce, get_config,
-    get_message_to_sign, get_username_update_message, list_users, list_whitelisted,
-    remove_whitelisted, set_temp, update_username,
+    add_whitelisted, create_account, get_account_info, get_account_nonce, get_ckbtc_balance,
+    get_config, get_deposit_address, get_message_to_sign, get_username_update_message, list_users,
+    list_whitelisted, remove_whitelisted, set_temp, update_ckbtc_balance, update_username,
+    withdraw_ckbtc,
 };
 pub use auth::types::{AuthenticatedPayload, CreateProfileRequest, UpdateUsernameRequest};
 pub use errors::VolumetricError;

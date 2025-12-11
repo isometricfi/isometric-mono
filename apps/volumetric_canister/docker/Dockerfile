@@ -3,7 +3,7 @@ FROM --platform=linux/amd64 ubuntu:22.04
 ENV RUSTUP_HOME=/opt/rustup
 ENV CARGO_HOME=/opt/cargo
 ENV PATH=/opt/cargo/bin:${PATH}
-ENV RUST_VERSION=1.85.0
+ENV RUST_VERSION=1.90.0
 ENV DFX_VERSION=0.29.2
 ENV DFXVM_INIT_YES=true
 

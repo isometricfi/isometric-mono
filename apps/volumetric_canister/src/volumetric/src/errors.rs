@@ -22,6 +22,9 @@ pub enum VolumetricError {
     #[error("Profile not found")]
     ProfileNotFound,
 
+    #[error("Inter-canister call failed: {0}")]
+    InterCanisterCallFailed(String),
+
     #[error("{0}")]
     Internal(String),
 }

@@ -1,4 +1,4 @@
-.PHONY: build release deploy generate reinstall-local verify info clean start stop help
+.PHONY: build release deploy generate generate-external-types reinstall-local verify info clean start stop help
 
 export CC := /opt/homebrew/opt/llvm/bin/clang
 
@@ -46,6 +46,13 @@ generate: build
 	cp src/declarations/$(CANISTER)/* ../../packages/canister-types/src/generated/
 	@echo "Declarations updated in packages/canister-types/src/generated"
 
+generate-external-types:
+	@echo "Updating external Candid interfaces..."
+	curl -sL "https://raw.githubusercontent.com/dfinity/ic/master/rs/bitcoin/ckbtc/minter/ckbtc_minter.did" -o did/ckbtc_minter.did
+	@echo "Generating Rust types..."
+	didc bind did/ckbtc_minter.did --target rs > src/volumetric/src/generated/ckbtc.rs
+	@echo "Generated types updated in src/volumetric/src/generated/"
+
 deploy:
 ifeq ($(TARGET),local)
 	@echo "Deploying to local..."
@@ -90,6 +97,7 @@ help:
 	@echo "  build           - Build locally (fast, outputs volumetric.wasm)"
 	@echo "  release         - Build with Docker (reproducible, outputs volumetric.wasm)"
 	@echo "  generate        - Generate TypeScript declarations inside volumetric_web package"
+	@echo "  generate-external-types - Update external .did files and regenerate Rust types"
 	@echo "  deploy          - Deploy canister (local: dfx, mainnet: uses volumetric.wasm)"
 	@echo "  reinstall-local - Reinstall local canister (wipes state)"
 	@echo "  verify          - Verify local build matches on-chain"
