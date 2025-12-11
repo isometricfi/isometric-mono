@@ -2,16 +2,23 @@ use candid::Principal;
 use sha2::{Digest, Sha224};
 
 const SUBACCOUNT_SIZE: usize = 32;
+const SHA224_OUTPUT_SIZE: usize = 28;
+const SELF_AUTHENTICATING_PRINCIPAL_SIZE: usize = SHA224_OUTPUT_SIZE + 1;
+const SELF_AUTHENTICATING_TYPE_BYTE: u8 = 0x02;
 
 /// Derives a deterministic ICP Principal from a Bitcoin address.
-/// Uses SHA-224 (28 bytes). Standard principals are 29 bytes (28-byte hash + 1-byte type suffix),
-/// but we omit the type byte since this is neither a self-authenticating principal (0x02)
-/// nor a canister ID (0x01). See: https://internetcomputer.org/docs/references/ic-interface-spec#principal
+/// Uses SHA-224 (28 bytes) + 0x02 type suffix to form a 29-byte self-authenticating principal.
+/// See: https://internetcomputer.org/docs/references/ic-interface-spec#principal
 pub fn derive_principal(btc_address: &str) -> Principal {
     let mut hasher = Sha224::new();
     hasher.update(btc_address.as_bytes());
     let hash = hasher.finalize();
-    Principal::from_slice(&hash)
+
+    let mut principal_bytes = [0u8; SELF_AUTHENTICATING_PRINCIPAL_SIZE];
+    principal_bytes[..SHA224_OUTPUT_SIZE].copy_from_slice(&hash);
+    principal_bytes[SHA224_OUTPUT_SIZE] = SELF_AUTHENTICATING_TYPE_BYTE;
+
+    Principal::from_slice(&principal_bytes)
 }
 
 pub fn derive_subaccount(principal: Principal) -> [u8; SUBACCOUNT_SIZE] {
