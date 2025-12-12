@@ -9,5 +9,5 @@ pub use accounts::{
     Profile,
 };
 pub use cbor::Cbor;
-pub use config::Config;
+pub use config::{BtcNetwork, Config};
 pub use state::{ConfigCell, MemoryIndex, CONFIG, MEMORY_MANAGER, WHITELIST};

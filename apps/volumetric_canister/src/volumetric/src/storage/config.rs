@@ -8,19 +8,42 @@ use super::Cbor;
 const CKBTC_MINTER_MAINNET: &str = "mqygn-kiaaa-aaaar-qaadq-cai";
 const CKBTC_LEDGER_MAINNET: &str = "mxzaz-hqaaa-aaaar-qaada-cai";
 
+// https://dashboard.internetcomputer.org/bitcoin (testnet4)
+const CKTESTBTC_MINTER: &str = "ml52i-qqaaa-aaaar-qaaba-cai";
+const CKTESTBTC_LEDGER: &str = "mc6ru-gyaaa-aaaar-qaaaq-cai";
+
+#[derive(Debug, Deserialize, Serialize, CandidType, Clone, Copy, PartialEq, Eq, Default)]
+pub enum BtcNetwork {
+    Mainnet,
+    #[default]
+    Testnet,
+}
+
 #[derive(Debug, Deserialize, Serialize, CandidType, Clone)]
 pub struct Config {
     pub temp: String,
+    pub btc_network: BtcNetwork,
     pub ckbtc_minter: Principal,
     pub ckbtc_ledger: Principal,
 }
 
 impl Default for Config {
     fn default() -> Self {
+        Self::new(BtcNetwork::default())
+    }
+}
+
+impl Config {
+    pub fn new(network: BtcNetwork) -> Self {
+        let (minter, ledger) = match network {
+            BtcNetwork::Mainnet => (CKBTC_MINTER_MAINNET, CKBTC_LEDGER_MAINNET),
+            BtcNetwork::Testnet => (CKTESTBTC_MINTER, CKTESTBTC_LEDGER),
+        };
         Self {
             temp: String::new(),
-            ckbtc_minter: Principal::from_text(CKBTC_MINTER_MAINNET).unwrap(),
-            ckbtc_ledger: Principal::from_text(CKBTC_LEDGER_MAINNET).unwrap(),
+            btc_network: network,
+            ckbtc_minter: Principal::from_text(minter).unwrap(),
+            ckbtc_ledger: Principal::from_text(ledger).unwrap(),
         }
     }
 }
@@ -36,6 +59,10 @@ impl Config {
             config.temp = value;
             let _ = c.set(Cbor(config));
         });
+    }
+
+    pub fn btc_network() -> BtcNetwork {
+        CONFIG.with_borrow(|c| c.get().0.btc_network)
     }
 
     pub fn ckbtc_minter() -> Principal {

@@ -6,9 +6,17 @@ use bitcoin::secp256k1::{Message, Secp256k1};
 use bitcoin::{Address, CompressedPublicKey, Network, Witness};
 
 use crate::errors::VolumetricError;
+use crate::storage::{BtcNetwork, Config};
 
 const LEGACY_SIGNATURE_LENGTH: usize = 65;
 const BTC_MESSAGE_PREFIX: &[u8] = b"\x18Bitcoin Signed Message:\n";
+
+fn get_bitcoin_network() -> Network {
+    match Config::btc_network() {
+        BtcNetwork::Mainnet => Network::Bitcoin,
+        BtcNetwork::Testnet => Network::Testnet4,
+    }
+}
 
 pub fn verify_btc_signature(
     address: &str,
@@ -19,8 +27,9 @@ pub fn verify_btc_signature(
         .parse()
         .map_err(|e| VolumetricError::InvalidSignature(format!("Invalid address: {}", e)))?;
 
+    let network = get_bitcoin_network();
     let btc_address = unchecked_address
-        .require_network(Network::Bitcoin)
+        .require_network(network)
         .map_err(|e| VolumetricError::InvalidSignature(format!("Invalid network: {}", e)))?;
 
     let signature_bytes = BASE64_STANDARD
@@ -28,7 +37,7 @@ pub fn verify_btc_signature(
         .map_err(|e| VolumetricError::InvalidSignature(format!("Invalid base64: {}", e)))?;
 
     if signature_bytes.len() == LEGACY_SIGNATURE_LENGTH {
-        verify_legacy_signature(&btc_address, message, &signature_bytes)
+        verify_legacy_signature(&btc_address, message, &signature_bytes, network)
     } else {
         verify_bip322_signature(&btc_address, message, &signature_bytes)
     }
@@ -38,6 +47,7 @@ fn verify_legacy_signature(
     btc_address: &Address,
     message: &str,
     signature_bytes: &[u8],
+    network: Network,
 ) -> Result<(), VolumetricError> {
     let header = signature_bytes[0];
     let r_s = &signature_bytes[1..LEGACY_SIGNATURE_LENGTH];
@@ -75,7 +85,7 @@ fn verify_legacy_signature(
         .map_err(|e| VolumetricError::InvalidSignature(format!("Recovery failed: {}", e)))?;
 
     let compressed_pubkey = CompressedPublicKey(pubkey);
-    let recovered_address = Address::p2wpkh(&compressed_pubkey, Network::Bitcoin);
+    let recovered_address = Address::p2wpkh(&compressed_pubkey, network);
 
     if recovered_address != *btc_address {
         return Err(VolumetricError::InvalidSignature(format!(

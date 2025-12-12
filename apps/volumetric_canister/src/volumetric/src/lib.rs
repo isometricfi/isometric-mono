@@ -23,15 +23,17 @@ pub use api::{
 pub use auth::types::{AuthenticatedPayload, CreateProfileRequest, UpdateUsernameRequest};
 pub use errors::VolumetricError;
 pub use generated::ckbtc::{Utxo, UtxoOutpoint, UtxoStatus};
+pub use storage::BtcNetwork;
 
 use crate::storage::{Cbor, Config, CONFIG};
 
 const INIT_DELAY_SECS: u64 = 0;
 
 #[init]
-fn init() {
-    ic_cdk_timers::set_timer(Duration::from_secs(INIT_DELAY_SECS), async {
-        let new_config = Config::default();
+fn init(btc_network: Option<BtcNetwork>) {
+    let network = btc_network.unwrap_or_default();
+    ic_cdk_timers::set_timer(Duration::from_secs(INIT_DELAY_SECS), async move {
+        let new_config = Config::new(network);
 
         CONFIG.with_borrow_mut(|config| {
             let _ = config.set(Cbor(new_config));

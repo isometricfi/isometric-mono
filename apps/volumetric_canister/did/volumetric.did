@@ -7,9 +7,11 @@ type AuthenticatedPayload_1 = record {
   data : UpdateUsernameRequest;
   wallet_proof : WalletProof;
 };
+type BtcNetwork = variant { Mainnet; Testnet };
 type Config = record {
   temp : text;
   ckbtc_minter : principal;
+  btc_network : BtcNetwork;
   ckbtc_ledger : principal;
 };
 type DepositInfo = record { account : Account; btc_address : text };
@@ -56,7 +58,7 @@ type WithdrawRequest = record {
   btc_address : text;
 };
 type WithdrawResult = record { block_index : nat64 };
-service : () -> {
+service : (opt BtcNetwork) -> {
   add_whitelisted : (principal) -> (Result);
   create_account : (AuthenticatedPayload) -> (Result_1);
   get_account_info : (text) -> (opt ProfileInfo) query;

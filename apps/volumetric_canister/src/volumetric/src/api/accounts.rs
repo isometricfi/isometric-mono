@@ -10,10 +10,9 @@ use crate::auth::{derive_principal, derive_subaccount, verify_btc_signature};
 use crate::errors::VolumetricError;
 use crate::storage::{
     create_profile, get_nonce, get_principal_for_wallet, get_profile, increment_nonce,
-    is_wallet_registered, list_all_profiles, register_wallet, update_profile, Profile,
+    is_wallet_registered, list_all_profiles, register_wallet, update_profile, BtcNetwork, Config,
+    Profile,
 };
-
-const BTC_NETWORK_LABEL: &str = "mainnet";
 
 #[derive(candid::CandidType, serde::Serialize, serde::Deserialize)]
 pub struct ProfileInfo {
@@ -151,10 +150,14 @@ pub fn list_users() -> Vec<UserInfo> {
 
 fn build_context(wallet_key: &WalletKey) -> ChallengeContext {
     let nonce = get_nonce(wallet_key);
+    let network = match Config::btc_network() {
+        BtcNetwork::Mainnet => "mainnet",
+        BtcNetwork::Testnet => "testnet",
+    };
 
     ChallengeContext {
         canister_id_hash: hash_canister_id(api::canister_self()),
-        network: BTC_NETWORK_LABEL,
+        network,
         nonce,
     }
 }
