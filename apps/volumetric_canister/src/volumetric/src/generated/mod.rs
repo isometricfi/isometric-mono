@@ -5,4 +5,5 @@
 //! make generate-external-types
 //! ```
 
+#[allow(deprecated)]
 pub mod ckbtc;
