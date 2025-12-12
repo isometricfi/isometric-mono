@@ -1,7 +1,7 @@
 {
   "canisters": {
     "volumetric_dev": {
-      "candid": "src/volumetric/volumetric.did",
+      "candid": "did/volumetric.did",
       "package": "volumetric",
       "type": "rust"
     }

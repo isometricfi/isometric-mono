@@ -19,16 +19,14 @@ endif
 
 DOCKER_IMAGE := volumetric-canister
 WASM_FILE := volumetric.wasm
-DID_FILE := src/volumetric/volumetric.did
-DID_EXPORT_DIR := did
-DID_EXPORT_FILE := $(DID_EXPORT_DIR)/volumetric.did
+DID_DIR := did
+DID_FILE := $(DID_DIR)/volumetric.did
 
 build:
 	@echo "Building locally..."
 	cargo build --locked --target wasm32-unknown-unknown --release
+	mkdir -p $(DID_DIR)
 	candid-extractor target/wasm32-unknown-unknown/release/volumetric.wasm > $(DID_FILE)
-	mkdir -p $(DID_EXPORT_DIR)
-	cp $(DID_FILE) $(DID_EXPORT_FILE)
 	ic-wasm target/wasm32-unknown-unknown/release/volumetric.wasm -o $(WASM_FILE) shrink
 	ic-wasm $(WASM_FILE) -o $(WASM_FILE) metadata candid:service -f $(DID_FILE) -v public
 	@echo "Build complete: $(WASM_FILE)"
@@ -38,9 +36,8 @@ release:
 	@echo "Building reproducible wasm with Docker..."
 	docker build -t $(DOCKER_IMAGE) -f docker/Dockerfile .
 	docker run --rm -v "$(PWD)":/canister $(DOCKER_IMAGE)
+	mkdir -p $(DID_DIR)
 	candid-extractor $(WASM_FILE) > $(DID_FILE)
-	mkdir -p $(DID_EXPORT_DIR)
-	cp $(DID_FILE) $(DID_EXPORT_FILE)
 	ic-wasm $(WASM_FILE) -o $(WASM_FILE) metadata candid:service -f $(DID_FILE) -v public
 	@echo "Build complete: $(WASM_FILE)"
 	@sha256sum $(WASM_FILE)
