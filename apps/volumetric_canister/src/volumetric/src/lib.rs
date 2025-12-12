@@ -14,7 +14,6 @@ pub mod storage;
 pub use api::accounts::{ProfileInfo, UserInfo};
 pub use api::deposits::DepositInfo;
 pub use api::withdrawals::{WithdrawRequest, WithdrawResult};
-pub use generated::ckbtc::{Utxo, UtxoOutpoint, UtxoStatus};
 pub use api::{
     add_whitelisted, create_account, get_account_info, get_account_nonce, get_ckbtc_balance,
     get_config, get_deposit_address, get_message_to_sign, get_username_update_message, list_users,
@@ -23,6 +22,7 @@ pub use api::{
 };
 pub use auth::types::{AuthenticatedPayload, CreateProfileRequest, UpdateUsernameRequest};
 pub use errors::VolumetricError;
+pub use generated::ckbtc::{Utxo, UtxoOutpoint, UtxoStatus};
 
 use crate::storage::{Cbor, Config, CONFIG};
 

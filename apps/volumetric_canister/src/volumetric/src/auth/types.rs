@@ -127,17 +127,24 @@ pub struct AuthenticatedPayload<T> {
 }
 
 pub trait SignableAction {
-    fn signing_message(&self, address: &str, nonce: u64) -> String;
+    fn signing_message(&self, address: &str, context: &ChallengeContext) -> String;
+}
+
+#[derive(Debug, Clone)]
+pub struct ChallengeContext {
+    pub canister_id_hash: String,
+    pub network: &'static str,
+    pub nonce: u64,
 }
 
 #[derive(Debug, Clone, CandidType, Serialize, Deserialize)]
 pub struct CreateProfileRequest {}
 
 impl SignableAction for CreateProfileRequest {
-    fn signing_message(&self, address: &str, nonce: u64) -> String {
+    fn signing_message(&self, address: &str, context: &ChallengeContext) -> String {
         format!(
-            "Sign up for Volumetric\nAddress: {}\nNonce: {}",
-            address, nonce
+            "Sign up for Volumetric\nAddress: {}\nCanister: {}\nNetwork: {}\nNonce: {}",
+            address, context.canister_id_hash, context.network, context.nonce
         )
     }
 }
@@ -148,10 +155,10 @@ pub struct UpdateUsernameRequest {
 }
 
 impl SignableAction for UpdateUsernameRequest {
-    fn signing_message(&self, address: &str, nonce: u64) -> String {
+    fn signing_message(&self, address: &str, context: &ChallengeContext) -> String {
         format!(
-            "Update username to: {}\nAddress: {}\nNonce: {}",
-            self.username, address, nonce
+            "Update username to: {}\nAddress: {}\nCanister: {}\nNetwork: {}\nNonce: {}",
+            self.username, address, context.canister_id_hash, context.network, context.nonce
         )
     }
 }

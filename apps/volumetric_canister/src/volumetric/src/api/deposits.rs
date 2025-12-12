@@ -58,9 +58,7 @@ pub async fn get_deposit_address(address: String) -> Result<DepositInfo, Volumet
 }
 
 #[ic_cdk::update]
-pub async fn update_ckbtc_balance(
-    address: String,
-) -> Result<Vec<UtxoStatus>, VolumetricError> {
+pub async fn update_ckbtc_balance(address: String) -> Result<Vec<UtxoStatus>, VolumetricError> {
     let subaccount = get_user_subaccount(&address)?;
     let minter = Config::ckbtc_minter();
 

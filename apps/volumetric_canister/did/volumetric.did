@@ -1,0 +1,77 @@
+type Account = record { owner : principal; subaccount : opt blob };
+type AuthenticatedPayload = record {
+  data : record {};
+  wallet_proof : WalletProof;
+};
+type AuthenticatedPayload_1 = record {
+  data : UpdateUsernameRequest;
+  wallet_proof : WalletProof;
+};
+type Config = record {
+  temp : text;
+  ckbtc_minter : principal;
+  ckbtc_ledger : principal;
+};
+type DepositInfo = record { account : Account; btc_address : text };
+type ProfileInfo = record {
+  "principal" : principal;
+  username : opt text;
+  subaccount : blob;
+  address : text;
+};
+type Result = variant { Ok; Err : VolumetricError };
+type Result_1 = variant { Ok : ProfileInfo; Err : VolumetricError };
+type Result_2 = variant { Ok : nat; Err : VolumetricError };
+type Result_3 = variant { Ok : DepositInfo; Err : VolumetricError };
+type Result_4 = variant { Ok : vec UtxoStatus; Err : VolumetricError };
+type Result_5 = variant { Ok : WithdrawResult; Err : VolumetricError };
+type UpdateUsernameRequest = record { username : text };
+type UserInfo = record {
+  "principal" : principal;
+  username : opt text;
+  address : text;
+};
+type Utxo = record { height : nat32; value : nat64; outpoint : UtxoOutpoint };
+type UtxoOutpoint = record { txid : blob; vout : nat32 };
+type UtxoStatus = variant {
+  ValueTooSmall : Utxo;
+  Tainted : Utxo;
+  Minted : record { minted_amount : nat64; block_index : nat64; utxo : Utxo };
+  Checked : Utxo;
+};
+type VolumetricError = variant {
+  Internal : text;
+  ProfileAlreadyRegistered;
+  ProfileNotFound;
+  InvalidSignature : text;
+  UnauthorizedWhitelisted : record { caller : text };
+  InterCanisterCallFailed : text;
+  UnauthorizedController : record { caller : text };
+  ConfigError : text;
+};
+type WalletProof = record { signature : text; address : text };
+type WithdrawRequest = record {
+  address : text;
+  amount : nat64;
+  btc_address : text;
+};
+type WithdrawResult = record { block_index : nat64 };
+service : () -> {
+  add_whitelisted : (principal) -> (Result);
+  create_account : (AuthenticatedPayload) -> (Result_1);
+  get_account_info : (text) -> (opt ProfileInfo) query;
+  get_account_nonce : (text) -> (nat64) query;
+  get_ckbtc_balance : (text) -> (Result_2);
+  get_config : () -> (Config) query;
+  get_deposit_address : (text) -> (Result_3);
+  get_message_to_sign : (text) -> (text) query;
+  get_username_update_message : (text, text) -> (text) query;
+  greet : (text) -> (text) query;
+  list_users : () -> (vec UserInfo) query;
+  list_whitelisted : () -> (vec principal) query;
+  remove_whitelisted : (principal) -> (Result);
+  set_temp : (text) -> (Result);
+  update_ckbtc_balance : (text) -> (Result_4);
+  update_username : (AuthenticatedPayload_1) -> (Result_1);
+  withdraw_ckbtc : (WithdrawRequest) -> (Result_5);
+}

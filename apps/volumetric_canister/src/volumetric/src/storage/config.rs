@@ -45,7 +45,7 @@ impl Config {
     pub fn ckbtc_ledger() -> Principal {
         CONFIG.with_borrow(|c| c.get().0.ckbtc_ledger)
     }
-    
+
     pub fn get() -> Self {
         CONFIG.with_borrow(|c| c.get().0.clone())
     }

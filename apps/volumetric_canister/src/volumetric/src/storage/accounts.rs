@@ -1,6 +1,6 @@
 use std::cell::RefCell;
 
-use candid::{CandidType, Principal};
+use candid::Principal;
 use ic_stable_structures::memory_manager::MemoryId;
 use ic_stable_structures::StableBTreeMap;
 use serde::{Deserialize, Serialize};
@@ -11,7 +11,7 @@ use crate::auth::types::WalletKey;
 
 thread_local! {
     /// Replay protection: tracks signature nonces per wallet address.
-    pub static NONCES: RefCell<StableBTreeMap<WalletKey, u64, Memory>> = RefCell::new(
+    pub static NONCES: RefCell<StableBTreeMap<WalletKey, Cbor<NonceEntry>, Memory>> = RefCell::new(
         StableBTreeMap::init(
             MEMORY_MANAGER.with_borrow(|m| m.get(MemoryId::new(MemoryIndex::NoncesMemory as u8))),
         )
@@ -32,21 +32,32 @@ thread_local! {
     );
 }
 
-#[derive(Debug, Clone, CandidType, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Profile {
     pub wallet_address: String,
     pub username: Option<String>,
     pub created_at: u64,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct NonceEntry {
+    pub value: u64,
+}
+
 pub fn get_nonce(wallet_key: &WalletKey) -> u64 {
-    NONCES.with_borrow(|n| n.get(wallet_key).unwrap_or(0))
+    NONCES
+        .with_borrow(|n| n.get(wallet_key).map(|c| c.0.value))
+        .unwrap_or(0)
 }
 
 pub fn increment_nonce(wallet_key: &WalletKey) {
     NONCES.with_borrow_mut(|n| {
-        let current = n.get(wallet_key).unwrap_or(0);
-        n.insert(*wallet_key, current + 1);
+        let mut entry = n
+            .get(wallet_key)
+            .map(|c| c.0)
+            .unwrap_or(NonceEntry { value: 0 });
+        entry.value = entry.value.saturating_add(1);
+        n.insert(*wallet_key, Cbor(entry));
     });
 }
 

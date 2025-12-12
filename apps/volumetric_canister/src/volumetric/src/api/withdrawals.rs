@@ -5,7 +5,9 @@ use serde::{Deserialize, Serialize};
 use crate::auth::derive_subaccount;
 use crate::auth::types::WalletKey;
 use crate::errors::VolumetricError;
-use crate::generated::ckbtc::{RetrieveBtcOk, RetrieveBtcWithApprovalArgs, RetrieveBtcWithApprovalError};
+use crate::generated::ckbtc::{
+    RetrieveBtcOk, RetrieveBtcWithApprovalArgs, RetrieveBtcWithApprovalError,
+};
 use crate::storage::{get_principal_for_wallet, Config};
 
 fn get_user_subaccount(address: &str) -> Result<[u8; 32], VolumetricError> {
@@ -28,9 +30,7 @@ pub struct WithdrawResult {
 }
 
 #[ic_cdk::update]
-pub async fn withdraw_ckbtc(
-    request: WithdrawRequest,
-) -> Result<WithdrawResult, VolumetricError> {
+pub async fn withdraw_ckbtc(request: WithdrawRequest) -> Result<WithdrawResult, VolumetricError> {
     let subaccount = get_user_subaccount(&request.address)?;
     let minter = Config::ckbtc_minter();
     let ledger = Config::ckbtc_ledger();
@@ -89,9 +89,7 @@ pub async fn withdraw_ckbtc(
         })?;
 
     let ok = retrieve_result.map_err(|_| {
-        VolumetricError::InterCanisterCallFailed(
-            "retrieve_btc_with_approval rejected".to_string(),
-        )
+        VolumetricError::InterCanisterCallFailed("retrieve_btc_with_approval rejected".to_string())
     })?;
 
     Ok(WithdrawResult {

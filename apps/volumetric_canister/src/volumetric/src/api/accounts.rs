@@ -1,7 +1,10 @@
 use candid::Principal;
+use ic_cdk::api;
+use sha2::{Digest, Sha256};
 
 use crate::auth::types::{
-    AuthenticatedPayload, CreateProfileRequest, SignableAction, UpdateUsernameRequest, WalletKey,
+    AuthenticatedPayload, ChallengeContext, CreateProfileRequest, SignableAction,
+    UpdateUsernameRequest, WalletKey,
 };
 use crate::auth::{derive_principal, derive_subaccount, verify_btc_signature};
 use crate::errors::VolumetricError;
@@ -9,6 +12,8 @@ use crate::storage::{
     create_profile, get_nonce, get_principal_for_wallet, get_profile, increment_nonce,
     is_wallet_registered, list_all_profiles, register_wallet, update_profile, Profile,
 };
+
+const BTC_NETWORK_LABEL: &str = "mainnet";
 
 #[derive(candid::CandidType, serde::Serialize, serde::Deserialize)]
 pub struct ProfileInfo {
@@ -36,8 +41,8 @@ pub fn create_account(
         return Err(VolumetricError::ProfileAlreadyRegistered);
     }
 
-    let nonce = get_nonce(&wallet_key);
-    let message = req.data.signing_message(address, nonce);
+    let context = build_context(&wallet_key);
+    let message = req.data.signing_message(address, &context);
 
     verify_btc_signature(address, &message, &req.wallet_proof.signature)?;
 
@@ -87,17 +92,17 @@ pub fn get_account_info(address: String) -> Option<ProfileInfo> {
 #[ic_cdk::query]
 pub fn get_message_to_sign(address: String) -> String {
     let wallet_key = WalletKey::from_address(&address);
-    let nonce = get_nonce(&wallet_key);
+    let context = build_context(&wallet_key);
     let req = CreateProfileRequest {};
-    req.signing_message(&address, nonce)
+    req.signing_message(&address, &context)
 }
 
 #[ic_cdk::query]
 pub fn get_username_update_message(address: String, username: String) -> String {
     let wallet_key = WalletKey::from_address(&address);
-    let nonce = get_nonce(&wallet_key);
+    let context = build_context(&wallet_key);
     let req = UpdateUsernameRequest { username };
-    req.signing_message(&address, nonce)
+    req.signing_message(&address, &context)
 }
 
 #[ic_cdk::update]
@@ -112,8 +117,8 @@ pub fn update_username(
 
     let mut profile = get_profile(&principal).ok_or(VolumetricError::ProfileNotFound)?;
 
-    let nonce = get_nonce(&wallet_key);
-    let message = req.data.signing_message(address, nonce);
+    let context = build_context(&wallet_key);
+    let message = req.data.signing_message(address, &context);
 
     verify_btc_signature(address, &message, &req.wallet_proof.signature)?;
 
@@ -142,4 +147,24 @@ pub fn list_users() -> Vec<UserInfo> {
             username: profile.username,
         })
         .collect()
+}
+
+fn build_context(wallet_key: &WalletKey) -> ChallengeContext {
+    let nonce = get_nonce(wallet_key);
+
+    ChallengeContext {
+        canister_id_hash: hash_canister_id(api::canister_self()),
+        network: BTC_NETWORK_LABEL,
+        nonce,
+    }
+}
+
+fn hash_canister_id(canister_id: Principal) -> String {
+    let digest = Sha256::digest(canister_id.as_slice());
+    let mut out = String::with_capacity(digest.len() * 2);
+    for b in digest {
+        use core::fmt::Write;
+        let _ = write!(&mut out, "{:02x}", b);
+    }
+    out
 }
