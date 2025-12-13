@@ -2,13 +2,15 @@ use candid::{CandidType, Nat};
 use icrc_ledger_types::icrc1::account::Account;
 use serde::{Deserialize, Serialize};
 
-use crate::auth::derive_subaccount;
-use crate::auth::types::WalletKey;
+use crate::auth::types::{AuthenticatedPayload, SignableAction, WalletKey, WithdrawCkbtcRequest};
+use crate::auth::{derive_subaccount, verify_btc_signature};
 use crate::errors::VolumetricError;
 use crate::generated::ckbtc::{
     RetrieveBtcOk, RetrieveBtcWithApprovalArgs, RetrieveBtcWithApprovalError,
 };
-use crate::storage::{get_principal_for_wallet, Config};
+use crate::storage::{get_principal_for_wallet, increment_nonce, Config};
+
+use super::accounts::build_challenge_context;
 
 fn get_user_subaccount(address: &str) -> Result<[u8; 32], VolumetricError> {
     let wallet_key = WalletKey::from_address(address);
@@ -18,20 +20,33 @@ fn get_user_subaccount(address: &str) -> Result<[u8; 32], VolumetricError> {
 }
 
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
-pub struct WithdrawRequest {
-    pub address: String,
-    pub btc_address: String,
-    pub amount: u64,
-}
-
-#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
 pub struct WithdrawResult {
     pub block_index: u64,
 }
 
+#[ic_cdk::query]
+pub fn get_withdraw_message(address: String, btc_address: String, amount: u64) -> String {
+    let wallet_key = WalletKey::from_address(&address);
+    let context = build_challenge_context(&wallet_key);
+    let req = WithdrawCkbtcRequest { btc_address, amount };
+    req.signing_message(&address, &context)
+}
+
 #[ic_cdk::update]
-pub async fn withdraw_ckbtc(request: WithdrawRequest) -> Result<WithdrawResult, VolumetricError> {
-    let subaccount = get_user_subaccount(&request.address)?;
+pub async fn withdraw_ckbtc(
+    req: AuthenticatedPayload<WithdrawCkbtcRequest>,
+) -> Result<WithdrawResult, VolumetricError> {
+    let address = &req.wallet_proof.address;
+    let wallet_key = WalletKey::from_address(address);
+
+    let context = build_challenge_context(&wallet_key);
+    let message = req.data.signing_message(address, &context);
+
+    verify_btc_signature(address, &message, &req.wallet_proof.signature)?;
+
+    increment_nonce(&wallet_key);
+
+    let subaccount = get_user_subaccount(address)?;
     let minter = Config::ckbtc_minter();
     let ledger = Config::ckbtc_ledger();
 
@@ -41,7 +56,7 @@ pub async fn withdraw_ckbtc(request: WithdrawRequest) -> Result<WithdrawResult, 
             owner: minter,
             subaccount: None,
         },
-        amount: Nat::from(request.amount),
+        amount: Nat::from(req.data.amount),
         expected_allowance: None,
         expires_at: None,
         fee: None,
@@ -64,8 +79,8 @@ pub async fn withdraw_ckbtc(request: WithdrawRequest) -> Result<WithdrawResult, 
     })?;
 
     let retrieve_args = RetrieveBtcWithApprovalArgs {
-        address: request.btc_address,
-        amount: request.amount,
+        address: req.data.btc_address,
+        amount: req.data.amount,
         from_subaccount: Some(serde_bytes::ByteBuf::from(subaccount.to_vec())),
     };
 

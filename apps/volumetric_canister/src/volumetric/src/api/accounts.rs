@@ -40,7 +40,7 @@ pub fn create_account(
         return Err(VolumetricError::ProfileAlreadyRegistered);
     }
 
-    let context = build_context(&wallet_key);
+    let context = build_challenge_context(&wallet_key);
     let message = req.data.signing_message(address, &context);
 
     verify_btc_signature(address, &message, &req.wallet_proof.signature)?;
@@ -91,7 +91,7 @@ pub fn get_account_info(address: String) -> Option<ProfileInfo> {
 #[ic_cdk::query]
 pub fn get_message_to_sign(address: String) -> String {
     let wallet_key = WalletKey::from_address(&address);
-    let context = build_context(&wallet_key);
+    let context = build_challenge_context(&wallet_key);
     let req = CreateProfileRequest {};
     req.signing_message(&address, &context)
 }
@@ -99,7 +99,7 @@ pub fn get_message_to_sign(address: String) -> String {
 #[ic_cdk::query]
 pub fn get_username_update_message(address: String, username: String) -> String {
     let wallet_key = WalletKey::from_address(&address);
-    let context = build_context(&wallet_key);
+    let context = build_challenge_context(&wallet_key);
     let req = UpdateUsernameRequest { username };
     req.signing_message(&address, &context)
 }
@@ -116,7 +116,7 @@ pub fn update_username(
 
     let mut profile = get_profile(&principal).ok_or(VolumetricError::ProfileNotFound)?;
 
-    let context = build_context(&wallet_key);
+    let context = build_challenge_context(&wallet_key);
     let message = req.data.signing_message(address, &context);
 
     verify_btc_signature(address, &message, &req.wallet_proof.signature)?;
@@ -148,7 +148,7 @@ pub fn list_users() -> Vec<UserInfo> {
         .collect()
 }
 
-fn build_context(wallet_key: &WalletKey) -> ChallengeContext {
+pub fn build_challenge_context(wallet_key: &WalletKey) -> ChallengeContext {
     let nonce = get_nonce(wallet_key);
     let network = match Config::btc_network() {
         BtcNetwork::Mainnet => "mainnet",

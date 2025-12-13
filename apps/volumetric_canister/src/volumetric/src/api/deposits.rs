@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 use crate::auth::derive_subaccount;
 use crate::auth::types::WalletKey;
 use crate::errors::VolumetricError;
-use crate::generated::ckbtc::{GetBtcAddressArg, UpdateBalanceArg, UtxoStatus};
+use crate::generated::ckbtc::{GetBtcAddressArg, UpdateBalanceArg, UpdateBalanceError, UtxoStatus};
 use crate::storage::{get_principal_for_wallet, Config};
 
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
@@ -74,11 +74,19 @@ pub async fn update_ckbtc_balance(address: String) -> Result<Vec<UtxoStatus>, Vo
             VolumetricError::InterCanisterCallFailed(format!("update_balance: {:?}", e))
         })?;
 
-    let statuses: Vec<UtxoStatus> = response.candid().map_err(|e| {
+    let result: Result<Vec<UtxoStatus>, UpdateBalanceError> = response.candid().map_err(|e| {
         VolumetricError::InterCanisterCallFailed(format!("update_balance decode: {:?}", e))
     })?;
 
-    Ok(statuses)
+    result.map_err(|e| {
+        let msg = match e {
+            UpdateBalanceError::GenericError { error_message, .. } => error_message,
+            UpdateBalanceError::TemporarilyUnavailable(msg) => msg,
+            UpdateBalanceError::AlreadyProcessing => "Already processing".to_string(),
+            UpdateBalanceError::NoNewUtxos { .. } => "No new UTXOs".to_string(),
+        };
+        VolumetricError::InterCanisterCallFailed(format!("update_balance: {}", msg))
+    })
 }
 
 #[ic_cdk::update]

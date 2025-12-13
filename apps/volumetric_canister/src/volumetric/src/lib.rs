@@ -13,14 +13,16 @@ pub mod storage;
 
 pub use api::accounts::{ProfileInfo, UserInfo};
 pub use api::deposits::DepositInfo;
-pub use api::withdrawals::{WithdrawRequest, WithdrawResult};
+pub use api::withdrawals::WithdrawResult;
 pub use api::{
     add_whitelisted, create_account, get_account_info, get_account_nonce, get_ckbtc_balance,
-    get_config, get_deposit_address, get_message_to_sign, get_username_update_message, list_users,
-    list_whitelisted, remove_whitelisted, set_temp, update_ckbtc_balance, update_username,
-    withdraw_ckbtc,
+    get_config, get_deposit_address, get_message_to_sign, get_username_update_message,
+    get_withdraw_message, list_users, list_whitelisted, remove_whitelisted, set_temp,
+    update_ckbtc_balance, update_username, withdraw_ckbtc,
 };
-pub use auth::types::{AuthenticatedPayload, CreateProfileRequest, UpdateUsernameRequest};
+pub use auth::types::{
+    AuthenticatedPayload, CreateProfileRequest, UpdateUsernameRequest, WithdrawCkbtcRequest,
+};
 pub use errors::VolumetricError;
 pub use generated::ckbtc::{Utxo, UtxoOutpoint, UtxoStatus};
 pub use storage::BtcNetwork;

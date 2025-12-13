@@ -11,4 +11,4 @@ pub use accounts::{
 pub use config::{get_config, set_temp};
 pub use deposits::{get_ckbtc_balance, get_deposit_address, update_ckbtc_balance};
 pub use whitelist::{add_whitelisted, list_whitelisted, remove_whitelisted};
-pub use withdrawals::withdraw_ckbtc;
+pub use withdrawals::{get_withdraw_message, withdraw_ckbtc};

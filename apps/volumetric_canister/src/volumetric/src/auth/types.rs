@@ -162,3 +162,18 @@ impl SignableAction for UpdateUsernameRequest {
         )
     }
 }
+
+#[derive(Debug, Clone, CandidType, Serialize, Deserialize)]
+pub struct WithdrawCkbtcRequest {
+    pub btc_address: String,
+    pub amount: u64,
+}
+
+impl SignableAction for WithdrawCkbtcRequest {
+    fn signing_message(&self, address: &str, context: &ChallengeContext) -> String {
+        format!(
+            "Withdraw {} sats to {}\nAddress: {}\nCanister: {}\nNetwork: {}\nNonce: {}",
+            self.amount, self.btc_address, address, context.canister_id_hash, context.network, context.nonce
+        )
+    }
+}
