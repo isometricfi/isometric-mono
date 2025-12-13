@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { Clock, TrendingUp, Zap, ArrowRight } from "lucide-react";
-import { AnimatedToggle } from "@/components/navigation/animated-toggle";
+import { AnimatedToggle } from "@/components/navigation/AnimatedToggle";
 import { Button } from "@/components/ui/button";
 
 export function HowItWorksSection() {

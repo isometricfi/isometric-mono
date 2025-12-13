@@ -2,8 +2,8 @@
 
 import { motion } from "framer-motion";
 import { Sparkles, TrendingUp, Zap } from "lucide-react";
-import { YieldDisplay } from "@/components/landing/yield-display";
-import { PayoffVisualization } from "@/components/landing/payoff-visualization";
+import { YieldDisplay } from "./YieldDisplay";
+import { PayoffVisualization } from "./PayoffVisualization";
 
 export function HeroSection() {
   return (

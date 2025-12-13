@@ -3,12 +3,12 @@
 import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { createActor } from "@volumetric/canister-types";
-import { BtcWallet } from "@/components/btc-wallet";
-import { CreateAccount } from "@/components/create-account";
-import { AccountQueries } from "@/components/account-queries";
-import { UpdateUsername } from "@/components/update-username";
-import { UserList } from "@/components/user-list";
-import { CkbtcWallet } from "@/components/ckbtc-wallet";
+import { BtcWallet } from "./_components/BtcWallet";
+import { CreateAccount } from "./_components/CreateAccount";
+import { AccountQueries } from "./_components/AccountQueries";
+import { UpdateUsername } from "./_components/UpdateUsername";
+import { UserList } from "./_components/UserList";
+import { CkbtcWallet } from "./_components/CkbtcWallet";
 import { useCanisterConfig } from "@/hooks/use-canister";
 
 export default function TestingPage() {
@@ -43,7 +43,7 @@ export default function TestingPage() {
 
         <section className="space-y-4">
           <h2 className="text-xl font-semibold text-zinc-300">
-            1. Connect Bitcoin Wallet
+            1. Bitcoin Wallet
           </h2>
           <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-6">
             <BtcWallet />

@@ -6,15 +6,18 @@ import { usePathname } from "next/navigation";
 import { Moon, Sun } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useTheme } from "next-themes";
+import { useDynamicConfig } from "@/app/providers/dynamic-provider";
+import { ConnectButton } from "@/components/wallet/ConnectButton";
 
 export function Navbar() {
   const pathname = usePathname();
   const { theme, setTheme } = useTheme();
+  const { isConfigured } = useDynamicConfig();
   const isLandingPage = pathname === "/";
 
   return (
     <nav className="fixed top-4 left-1/2  -translate-x-1/2 z-50 w-full max-w-5xl md:px-0 px-4 ">
-      <div className=" border rounded-full bg-background/80 backdrop-blur-sm">
+      <div className="border rounded-full bg-background/80 backdrop-blur-sm overflow-visible">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4">
           <Link
             href="/"
@@ -52,11 +55,15 @@ export function Navbar() {
               )}
             </Button>
 
-            <Button asChild>
-              <Link href={isLandingPage ? "/app" : "#"}>
-                {isLandingPage ? "Open App" : "Connect"}
-              </Link>
-            </Button>
+            {isLandingPage ? (
+              <Button asChild>
+                <Link href="/app">Open App</Link>
+              </Button>
+            ) : isConfigured ? (
+              <ConnectButton />
+            ) : (
+              <Button disabled>Connect</Button>
+            )}
           </div>
         </div>
       </div>

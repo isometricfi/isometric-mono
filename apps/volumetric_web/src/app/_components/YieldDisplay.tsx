@@ -3,7 +3,6 @@ import { motion } from "framer-motion";
 export function YieldDisplay() {
   return (
     <div className="relative">
-      {/* floating card with glassmorphism */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         whileInView={{ opacity: 1, y: 0 }}
@@ -11,9 +10,7 @@ export function YieldDisplay() {
         viewport={{ once: true }}
         className="relative"
       >
-        {/* main content */}
         <div className="relative ">
-          {/* status bar */}
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-2">
               <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
@@ -26,7 +23,6 @@ export function YieldDisplay() {
             </span>
           </div>
 
-          {/* yield display */}
           <div className="text-center mb-6">
             <div className="text-xs font-mono text-muted-foreground mb-1">
               ESTIMATED APY
@@ -36,7 +32,6 @@ export function YieldDisplay() {
             </div>
           </div>
 
-          {/* position details */}
           <div className="grid grid-cols-2 gap-3">
             <div className="bg-card rounded-xl p-5">
               <div className="text-[10px] font-mono text-muted-foreground mb-1">

@@ -9,44 +9,33 @@ export function PayoffVisualization() {
   const containerRef = useRef<HTMLDivElement>(null);
   const { resolvedTheme } = useTheme();
 
-  // contract params
-  const strikePrice = 100000; // K = $100k
-  const sizeBTC = 0.3; // collateral size
-  const premiumBTC = 0.003; // premium paid by buyer
+  const strikePrice = 100000;
+  const sizeBTC = 0.3;
+  const premiumBTC = 0.003;
 
   const primaryColor = "#e86c3a";
 
-  // theme-aware colors (use resolvedTheme which handles "system" preference)
   const isDark = resolvedTheme === "dark";
   const gridColor = isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.08)";
   const zeroLineColor = isDark ? "rgba(255,255,255,0.2)" : "rgba(0,0,0,0.2)";
 
-  // chart bounds
   const priceMin = 80000;
-  const priceMax = 140000; // more realistic max
+  const priceMax = 140000;
 
-  // animation progress 0-1 drives the whole animation
   const [progress, setProgress] = useState(0);
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
   const [animationKey, setAnimationKey] = useState(0);
   const padding = { top: 20, right: 20, bottom: 20, left: 20 };
 
-  // P&L bounds
-  const pnlMin = -premiumBTC; // max loss = premium
-  // max P&L at priceMax using covered call formula: ((S-K)/S) * q - premium
+  const pnlMin = -premiumBTC;
   const pnlMax = ((priceMax - strikePrice) / priceMax) * sizeBTC - premiumBTC;
 
-  // derive spot price from progress
   const spotPrice = priceMin + progress * (priceMax - priceMin);
 
-  // P&L calculation
-  // OTM (S <= K): P&L = -premium (flat line at bottom)
-  // ITM (S > K): P&L increases based on covered call formula
   const calculatePnL = (S: number): number => {
     if (S <= strikePrice) {
       return -premiumBTC;
     }
-    // covered call payout: ((S-K)/S) * q - premium
     const intrinsicBTC = ((S - strikePrice) / S) * sizeBTC;
     return intrinsicBTC - premiumBTC;
   };
@@ -55,13 +44,10 @@ export function PayoffVisualization() {
   const roi = (currentPnLBTC / premiumBTC) * 100;
   const inTheMoney = spotPrice > strikePrice;
 
-  // key points for animation keyframes
-  const strikeProgress = (strikePrice - priceMin) / (priceMax - priceMin); // ~0.167
+  const strikeProgress = (strikePrice - priceMin) / (priceMax - priceMin);
 
-  // animation duration
-  const totalDuration = 6; // seconds
+  const totalDuration = 6;
 
-  // calculate keyframe positions - recalculate when dimensions change
   const animationKeyframes = useMemo(() => {
     if (dimensions.width === 0 || dimensions.height === 0) {
       return { x1: 0, x2: 0, x3: 0, y1: 0, y3: 0 };
@@ -85,11 +71,11 @@ export function PayoffVisualization() {
     };
 
     return {
-      x1: xScale(priceMin), // start (OTM)
-      x2: xScale(strikePrice), // strike point
-      x3: xScale(priceMax), // end (max ITM)
-      y1: yScale(-premiumBTC), // bottom (loss)
-      y3: yScale(pnlMax), // top (max profit)
+      x1: xScale(priceMin),
+      x2: xScale(strikePrice),
+      x3: xScale(priceMax),
+      y1: yScale(-premiumBTC),
+      y3: yScale(pnlMax),
     };
   }, [
     dimensions.width,
@@ -108,21 +94,19 @@ export function PayoffVisualization() {
 
   const { x1, x2, x3, y1, y3 } = animationKeyframes;
 
-  // measure container
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
     const updateDimensions = () => {
       const rect = container.getBoundingClientRect();
       setDimensions({ width: rect.width, height: rect.height });
-      setAnimationKey((prev) => prev + 1); // restart animation on resize
+      setAnimationKey((prev) => prev + 1);
     };
     updateDimensions();
     window.addEventListener("resize", updateDimensions);
     return () => window.removeEventListener("resize", updateDimensions);
   }, []);
 
-  // draw chart (static - only dot moves)
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas || dimensions.width === 0) return;
@@ -149,7 +133,6 @@ export function PayoffVisualization() {
       ((pnl - pnlMin) / (pnlMax - pnlMin)) *
         (height - padding.top - padding.bottom);
 
-    // grid
     ctx.strokeStyle = gridColor;
     ctx.lineWidth = 1;
     for (let price = 100000; price <= priceMax; price += 20000) {
@@ -159,7 +142,6 @@ export function PayoffVisualization() {
       ctx.stroke();
     }
 
-    // zero line (breakeven)
     ctx.strokeStyle = zeroLineColor;
     ctx.setLineDash([4, 4]);
     ctx.beginPath();
@@ -168,7 +150,6 @@ export function PayoffVisualization() {
     ctx.stroke();
     ctx.setLineDash([]);
 
-    // OTM region: flat line at -premium (RED)
     ctx.beginPath();
     ctx.strokeStyle = "rgba(239, 68, 68, 0.7)";
     ctx.lineWidth = 2.5;
@@ -176,7 +157,6 @@ export function PayoffVisualization() {
     ctx.lineTo(xLocal(strikePrice), yLocal(-premiumBTC));
     ctx.stroke();
 
-    // ITM region: line going up to priceMax (ORANGE)
     ctx.beginPath();
     ctx.strokeStyle = primaryColor;
     ctx.lineWidth = 3;
@@ -184,7 +164,6 @@ export function PayoffVisualization() {
     ctx.lineTo(xLocal(priceMax), yLocal(pnlMax));
     ctx.stroke();
 
-    // gradient fill under profit region
     const breakevenPrice = strikePrice + (premiumBTC / sizeBTC) * strikePrice;
     ctx.beginPath();
     ctx.moveTo(xLocal(breakevenPrice), yLocal(0));
@@ -223,9 +202,7 @@ export function PayoffVisualization() {
         viewport={{ once: true }}
         className="relative"
       >
-        {/* main content */}
         <div className="relative  ">
-          {/* header */}
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
               <motion.div
@@ -244,17 +221,14 @@ export function PayoffVisualization() {
             </span>
           </div>
 
-          {/* chart with framer motion dot */}
           <div ref={containerRef} className="h-[140px] relative mb-4">
             <canvas
               ref={canvasRef}
               className="absolute inset-0 w-full h-full"
             />
 
-            {/* animated dot using framer motion keyframes */}
             {dimensions.width > 0 && (
               <>
-                {/* glow */}
                 <motion.div
                   key={`glow-${animationKey}`}
                   className="absolute w-8 h-8 rounded-full pointer-events-none"
@@ -273,7 +247,6 @@ export function PayoffVisualization() {
                     times: [0, strikeProgress, 1],
                   }}
                   onUpdate={(latest) => {
-                    // sync progress state from animation for stats display
                     if (typeof latest.left === "number") {
                       const currentX = latest.left + 16;
                       const prog = (currentX - x1) / (x3 - x1);
@@ -281,7 +254,6 @@ export function PayoffVisualization() {
                     }
                   }}
                 />
-                {/* dot */}
                 <motion.div
                   key={`dot-${animationKey}`}
                   className="absolute w-2.5 h-2.5 rounded-full bg-[#d4a574] pointer-events-none"
@@ -300,7 +272,6 @@ export function PayoffVisualization() {
             )}
           </div>
 
-          {/* stats - P&L in BTC */}
           <div className="grid grid-cols-3 gap-2 -mt-3">
             <div className="text-center">
               <div className="text-[9px] font-mono text-muted-foreground">
