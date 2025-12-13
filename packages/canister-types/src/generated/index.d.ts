@@ -8,7 +8,7 @@ import type { Principal } from "@dfinity/principal";
 import type { IDL } from "@dfinity/candid";
 
 import { _SERVICE } from './volumetric_dev.did';
-export type { _SERVICE } from './volumetric_dev.did';
+
 export * from './volumetric_dev.did';
 
 export declare const idlFactory: IDL.InterfaceFactory;

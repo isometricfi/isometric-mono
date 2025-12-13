@@ -14,9 +14,16 @@ export interface AuthenticatedPayload_1 {
   'data' : UpdateUsernameRequest,
   'wallet_proof' : WalletProof,
 }
+export interface AuthenticatedPayload_2 {
+  'data' : WithdrawCkbtcRequest,
+  'wallet_proof' : WalletProof,
+}
+export type BtcNetwork = { 'Mainnet' : null } |
+  { 'Testnet' : null };
 export interface Config {
   'temp' : string,
   'ckbtc_minter' : Principal,
+  'btc_network' : BtcNetwork,
   'ckbtc_ledger' : Principal,
 }
 export interface DepositInfo { 'account' : Account, 'btc_address' : string }
@@ -72,8 +79,7 @@ export type VolumetricError = { 'Internal' : string } |
   { 'UnauthorizedController' : { 'caller' : string } } |
   { 'ConfigError' : string };
 export interface WalletProof { 'signature' : string, 'address' : string }
-export interface WithdrawRequest {
-  'address' : string,
+export interface WithdrawCkbtcRequest {
   'amount' : bigint,
   'btc_address' : string,
 }
@@ -88,6 +94,7 @@ export interface _SERVICE {
   'get_deposit_address' : ActorMethod<[string], Result_3>,
   'get_message_to_sign' : ActorMethod<[string], string>,
   'get_username_update_message' : ActorMethod<[string, string], string>,
+  'get_withdraw_message' : ActorMethod<[string, string, bigint], string>,
   'greet' : ActorMethod<[string], string>,
   'list_users' : ActorMethod<[], Array<UserInfo>>,
   'list_whitelisted' : ActorMethod<[], Array<Principal>>,
@@ -95,7 +102,7 @@ export interface _SERVICE {
   'set_temp' : ActorMethod<[string], Result>,
   'update_ckbtc_balance' : ActorMethod<[string], Result_4>,
   'update_username' : ActorMethod<[AuthenticatedPayload_1], Result_1>,
-  'withdraw_ckbtc' : ActorMethod<[WithdrawRequest], Result_5>,
+  'withdraw_ckbtc' : ActorMethod<[AuthenticatedPayload_2], Result_5>,
 }
 export declare const idlFactory: IDL.InterfaceFactory;
 export declare const init: (args: { IDL: typeof IDL }) => IDL.Type[];

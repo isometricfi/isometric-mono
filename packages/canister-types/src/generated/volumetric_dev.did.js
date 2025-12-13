@@ -1,4 +1,8 @@
 export const idlFactory = ({ IDL }) => {
+  const BtcNetwork = IDL.Variant({
+    'Mainnet' : IDL.Null,
+    'Testnet' : IDL.Null,
+  });
   const VolumetricError = IDL.Variant({
     'Internal' : IDL.Text,
     'ProfileAlreadyRegistered' : IDL.Null,
@@ -29,6 +33,7 @@ export const idlFactory = ({ IDL }) => {
   const Config = IDL.Record({
     'temp' : IDL.Text,
     'ckbtc_minter' : IDL.Principal,
+    'btc_network' : BtcNetwork,
     'ckbtc_ledger' : IDL.Principal,
   });
   const Account = IDL.Record({
@@ -73,10 +78,13 @@ export const idlFactory = ({ IDL }) => {
     'data' : UpdateUsernameRequest,
     'wallet_proof' : WalletProof,
   });
-  const WithdrawRequest = IDL.Record({
-    'address' : IDL.Text,
+  const WithdrawCkbtcRequest = IDL.Record({
     'amount' : IDL.Nat64,
     'btc_address' : IDL.Text,
+  });
+  const AuthenticatedPayload_2 = IDL.Record({
+    'data' : WithdrawCkbtcRequest,
+    'wallet_proof' : WalletProof,
   });
   const WithdrawResult = IDL.Record({ 'block_index' : IDL.Nat64 });
   const Result_5 = IDL.Variant({
@@ -101,6 +109,11 @@ export const idlFactory = ({ IDL }) => {
         [IDL.Text],
         ['query'],
       ),
+    'get_withdraw_message' : IDL.Func(
+        [IDL.Text, IDL.Text, IDL.Nat64],
+        [IDL.Text],
+        ['query'],
+      ),
     'greet' : IDL.Func([IDL.Text], [IDL.Text], ['query']),
     'list_users' : IDL.Func([], [IDL.Vec(UserInfo)], ['query']),
     'list_whitelisted' : IDL.Func([], [IDL.Vec(IDL.Principal)], ['query']),
@@ -108,7 +121,13 @@ export const idlFactory = ({ IDL }) => {
     'set_temp' : IDL.Func([IDL.Text], [Result], []),
     'update_ckbtc_balance' : IDL.Func([IDL.Text], [Result_4], []),
     'update_username' : IDL.Func([AuthenticatedPayload_1], [Result_1], []),
-    'withdraw_ckbtc' : IDL.Func([WithdrawRequest], [Result_5], []),
+    'withdraw_ckbtc' : IDL.Func([AuthenticatedPayload_2], [Result_5], []),
   });
 };
-export const init = ({ IDL }) => { return []; };
+export const init = ({ IDL }) => {
+  const BtcNetwork = IDL.Variant({
+    'Mainnet' : IDL.Null,
+    'Testnet' : IDL.Null,
+  });
+  return [IDL.Opt(BtcNetwork)];
+};
