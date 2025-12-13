@@ -10,8 +10,8 @@
 # dfx temporary files
 .dfx/
 
-# generated files
-**/declarations/
+# generated declarations (live in packages/canister-types)
+src/declarations/
 
 # rust
 target/
@@ -23,3 +23,9 @@ dist/
 
 # environment variables
 .env
+
+# canister IDs (use canister_ids.example.json as template)
+canister_ids.json
+
+# built wasm files
+*.wasm

@@ -1,60 +1,147 @@
-# `volumetric_canister`
+# volumetric_canister
 
-Welcome to your new `volumetric_canister` project and to the Internet Computer development community. By default, creating a new project adds this README and some template files to your project directory. You can edit these template files to customize your project and to include your own code to speed up the development cycle.
+Rust canister for the Volumetric project on the Internet Computer.
 
-To get started, you might want to explore the project directory structure and the default configuration file. Working with this project in your development environment will not affect any production deployment or identity tokens.
+## Prerequisites
 
-To learn more before you start working with `volumetric_canister`, see the following documentation available online:
+- [dfx](https://internetcomputer.org/docs/current/developer-docs/setup/install) (IC SDK)
+- Rust toolchain with `wasm32-unknown-unknown` target
+- Docker (for reproducible builds)
+- [candid-extractor](https://crates.io/crates/candid-extractor) - `cargo install candid-extractor`
+- [ic-wasm](https://crates.io/crates/ic-wasm) - `cargo install ic-wasm`
 
-- [Quick Start](https://internetcomputer.org/docs/current/developer-docs/setup/deploy-locally)
-- [SDK Developer Tools](https://internetcomputer.org/docs/current/developer-docs/setup/install)
+## Quick start
+
+```bash
+make help        # Show all commands
+make start       # Start local replica
+make deploy TARGET=local  # Deploy locally
+```
+
+## Running locally
+
+```bash
+make start                # Start local replica
+make deploy TARGET=local  # Deploy to local replica
+make reinstall-local      # Wipe state and reinstall
+```
+
+Your canister will be available at `http://localhost:4943?canisterId={canister_id}`.
+
+## Deploying to mainnet
+
+First, ensure you have an identity and cycles on the cycles ledger:
+
+```bash
+dfx identity whoami
+dfx cycles balance --network ic
+```
+
+If you need cycles, convert ICP to cycles:
+
+```bash
+dfx cycles convert --amount 0.5 --network ic
+```
+
+Deploy:
+
+```bash
+make deploy TARGET=dev
+```
+
+This will create a new canister and output its ID. Add the ID to `canister_ids.json`:
+
+```json
+{
+  "volumetric_dev": {
+    "ic": "<your-canister-id>"
+  }
+}
+```
+
+## Upgrading an existing canister
+
+For reproducible deployments, use the Docker-built wasm:
+
+```bash
+make release                  # Build reproducible wasm
+make deploy TARGET=dev        # Deploy volumetric.wasm
+make verify                   # Confirm hashes match
+```
+
+## Reinstalling (wiping state)
+
+⚠️ **Warning**: This permanently deletes all canister state.
+
+Local:
+
+```bash
+make reinstall-local
+```
+
+Mainnet:
+
+```bash
+dfx canister install volumetric_dev --network ic --mode reinstall --wasm volumetric.wasm
+```
+
+## Reproducible builds
+
+Reproducible builds allow anyone to verify that the deployed canister matches the source code. See [ICP Reproducible Builds](https://internetcomputer.org/docs/building-apps/best-practices/reproducible-builds) for background.
+
+### Build commands
+
+| Command | Output | Purpose |
+|---------|--------|---------|
+| `make build` | `volumetric.local.wasm` | Fast local build (not reproducible) |
+| `make release` | `volumetric.wasm` | Docker build (reproducible) |
+
+### Build with Docker
+
+```bash
+make release
+```
+
+This:
+1. Builds a Docker image with pinned versions of Ubuntu, Rust, and dfx
+2. Compiles the canister with `--locked` to use exact dependency versions
+3. Uses `--remap-path-prefix` for deterministic paths
+4. Shrinks the Wasm with `ic-wasm`
+5. Outputs `volumetric.wasm` in the project root
+
+### Verify on-chain
+
+Check the hash of the deployed canister:
+
+```bash
+make info
+```
+
+Compare to your local build:
+
+```bash
+make hash
+```
+
+Or run the verification script:
+
+```bash
+make verify
+```
+
+### Build environment
+
+The Dockerfile (`docker/Dockerfile`) pins:
+- Ubuntu 22.04 (linux/amd64)
+- Rust 1.85.0
+- dfx 0.29.2
+- ic-wasm (for Wasm optimization)
+
+Dependencies are locked via `Cargo.lock`. The build uses `RUSTFLAGS` with `--remap-path-prefix` to ensure deterministic output regardless of build machine paths.
+
+## Resources
+
 - [Rust Canister Development Guide](https://internetcomputer.org/docs/current/developer-docs/backend/rust/)
 - [ic-cdk](https://docs.rs/ic-cdk)
 - [Candid Introduction](https://internetcomputer.org/docs/building-apps/interact-with-canisters/candid/candid-concepts)
-
-If you want to start working on your project right away, you might want to try the following commands:
-
-```bash
-cd volumetric_canister/
-dfx help
-dfx canister --help
-```
-
-## Running the project locally
-
-If you want to test your project locally, you can use the following commands:
-
-```bash
-# Starts the replica, running in the background
-dfx start --background
-
-# Deploys your canisters to the replica and generates your candid interface
-dfx deploy
-```
-
-Once the job completes, your application will be available at `http://localhost:4943?canisterId={asset_canister_id}`.
-
-If you have made changes to your backend canister, you can generate a new candid interface with
-
-```bash
-npm run generate
-```
-
-at any time. This is recommended before starting the frontend development server, and will be run automatically any time you run `dfx deploy`.
-
-If you are making frontend changes, you can start a development server with
-
-```bash
-npm start
-```
-
-Which will start a server at `http://localhost:8080`, proxying API requests to the replica at port 4943.
-
-### Note on frontend environment variables
-
-If you are hosting frontend code somewhere without using DFX, you may need to make one of the following adjustments to ensure your project does not fetch the root key in production:
-
-- set`DFX_NETWORK` to `ic` if you are using Webpack
-- use your own preferred method to replace `process.env.DFX_NETWORK` in the autogenerated declarations
-  - Setting `canisters -> {asset_canister_id} -> declarations -> env_override to a string` in `dfx.json` will replace `process.env.DFX_NETWORK` with the string in the autogenerated declarations
-- Write your own `createActor` constructor
+- [Reproducible Builds](https://internetcomputer.org/docs/building-apps/best-practices/reproducible-builds)
