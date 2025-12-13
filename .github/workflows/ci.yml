@@ -31,13 +31,34 @@ jobs:
         with:
           targets: wasm32-unknown-unknown
 
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: apps/volumetric_canister
+          cache-on-failure: true
+
+      - name: Cache Cargo binaries
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/bin
+          key: cargo-bin-${{ runner.os }}-candid-extractor-ic-wasm
+
       - name: Setup DFX
         uses: dfinity/setup-dfx@main
+
+      - name: Install Rust tools
+        run: |
+          command -v candid-extractor || cargo install candid-extractor
+          command -v ic-wasm || cargo install ic-wasm
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Build
+      - name: Build canister
+        working-directory: apps/volumetric_canister
+        run: make build
+
+      - name: Build web
         run: pnpm build
 
       - name: Lint

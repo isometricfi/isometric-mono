@@ -1,6 +1,9 @@
 .PHONY: build release deploy generate generate-external-types reinstall-local verify info clean start stop help
 
-export CC := /opt/homebrew/opt/llvm/bin/clang
+# Use Homebrew LLVM on macOS if available, otherwise use system clang
+ifneq ($(wildcard /opt/homebrew/opt/llvm/bin/clang),)
+    export CC := /opt/homebrew/opt/llvm/bin/clang
+endif
 
 TARGET ?= local
 
