@@ -12,6 +12,7 @@ export function CkbtcWallet() {
   const canister = useCanister();
   const address = useBtcAddress("payment");
 
+  const [depositAmount, setDepositAmount] = useState("");
   const [withdrawAmount, setWithdrawAmount] = useState("");
   const [withdrawBtcAddress, setWithdrawBtcAddress] = useState("");
 
@@ -71,6 +72,32 @@ export function CkbtcWallet() {
     },
     onSuccess: () => {
       refetchBalance();
+    },
+  });
+
+  const depositMutation = useMutation({
+    mutationFn: async () => {
+      if (!depositInfo) throw new Error("Deposit address not loaded");
+      if (!primaryWallet || !isBitcoinWallet(primaryWallet)) {
+        throw new Error("Bitcoin wallet not connected");
+      }
+      if (!depositAmount) throw new Error("Enter deposit amount");
+
+      const amount = BigInt(depositAmount);
+      if (amount < BigInt(5000)) {
+        throw new Error("Minimum deposit is 5000 sats");
+      }
+
+      const txid = await primaryWallet.sendBitcoin({
+        amount,
+        recipientAddress: depositInfo.btc_address,
+      });
+
+      if (!txid) throw new Error("Transaction failed");
+      return txid;
+    },
+    onSuccess: () => {
+      setDepositAmount("");
     },
   });
 
@@ -176,11 +203,48 @@ export function CkbtcWallet() {
             </div>
 
             <div className="flex flex-col gap-2">
-              <span className="text-sm text-zinc-500">Account Owner</span>
-              <code className="text-xs bg-zinc-800 p-2 rounded break-all">
-                {depositInfo.account.owner.toText()}
-              </code>
+              <label htmlFor="deposit-amount" className="text-sm text-zinc-500">
+                Deposit Amount (satoshis, min 5000)
+              </label>
+              <input
+                id="deposit-amount"
+                type="number"
+                value={depositAmount}
+                onChange={(e) => setDepositAmount(e.target.value)}
+                placeholder="10000"
+                min="5000"
+                className="w-full bg-zinc-800 border border-zinc-700 rounded px-4 py-2 focus:outline-none focus:border-zinc-600"
+              />
             </div>
+
+            <button
+              type="button"
+              onClick={() => depositMutation.mutate()}
+              disabled={depositMutation.isPending || !depositAmount}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              {depositMutation.isPending ? "Sending..." : "Send Deposit"}
+            </button>
+
+            {depositMutation.isSuccess && depositMutation.data && (
+              <div className="p-3 bg-green-950 border border-green-800 rounded-lg">
+                <div className="text-sm text-green-400 mb-2">Transaction Sent!</div>
+                <div className="text-xs text-zinc-300">
+                  TXID: <code className="break-all">{depositMutation.data}</code>
+                </div>
+                <p className="text-xs text-zinc-500 mt-2">
+                  Wait for 6 confirmations, then click &quot;Check for Deposits&quot; below.
+                </p>
+              </div>
+            )}
+
+            {depositMutation.isError && (
+              <div className="p-3 bg-red-950 border border-red-800 rounded-lg">
+                <div className="text-sm text-red-400">{depositMutation.error?.message}</div>
+              </div>
+            )}
+
+            <div className="border-t border-zinc-700 my-2" />
 
             <button
               type="button"
