@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { ArrowRight, Layers, KeyRound } from "lucide-react";
+import { ArrowRight, KeyRound, Layers } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export function ChainAbstractionSection() {
@@ -24,15 +24,13 @@ export function ChainAbstractionSection() {
             <h2 className="text-3xl md:text-4xl font-bold tracking-tight mb-6">
               Native Bitcoin.
               <br />
-              <span className="text-muted-foreground">
-                Smart contract power.
-              </span>
+              <span className="text-muted-foreground">Smart contract power.</span>
             </h2>
             <p className="text-muted-foreground leading-relaxed mb-8">
-              Powered by ICP&apos;s chain-key technology, Volumetric bridges the gap
-              between Bitcoin&apos;s security and programmable smart contracts. Your
-              BTC never leaves the Bitcoin network—it&apos;s represented 1:1 on-chain
-              with full cryptographic verification.
+              Powered by ICP&apos;s chain-key technology, Volumetric bridges the gap between
+              Bitcoin&apos;s security and programmable smart contracts. Your BTC never leaves the
+              Bitcoin network—it&apos;s represented 1:1 on-chain with full cryptographic
+              verification.
             </p>
             <div className="flex items-center gap-4">
               <Button variant="outline" size="sm" className="gap-2">
@@ -72,9 +70,7 @@ function ChainAbstractionVisual() {
             <div className="text-sm font-semibold">Your BTC</div>
           </div>
         </div>
-        <div className="text-[10px] font-mono text-muted-foreground">
-          bc1q...x7f9
-        </div>
+        <div className="text-[10px] font-mono text-muted-foreground">bc1q...x7f9</div>
       </motion.div>
 
       {/* center - chain key */}
@@ -95,9 +91,7 @@ function ChainAbstractionVisual() {
           </div>
         </div>
 
-        <div className="text-[10px] text-muted-foreground">
-          Cryptographic proof
-        </div>
+        <div className="text-[10px] text-muted-foreground">Cryptographic proof</div>
       </motion.div>
 
       {/* smart contract side */}
@@ -117,9 +111,7 @@ function ChainAbstractionVisual() {
             <div className="text-sm font-semibold">Options</div>
           </div>
         </div>
-        <div className="text-[10px] font-mono text-muted-foreground">
-          Auto-settlement
-        </div>
+        <div className="text-[10px] font-mono text-muted-foreground">Auto-settlement</div>
       </motion.div>
     </div>
   );

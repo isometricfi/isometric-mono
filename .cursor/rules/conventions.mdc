@@ -10,7 +10,7 @@ globs:
 - Use conventional commits: feat, fix, chore, refactor, docs
 - Scopes: `(canister)` for canister, `(web)` for web app
 - Keep commit messages short (under 72 chars)
-- Never use commit description/body, only the subject line
+- Never use commit description/body, only the subject line (no multi-line commits)
 - Format: `type(scope): short message`
 
 ## General

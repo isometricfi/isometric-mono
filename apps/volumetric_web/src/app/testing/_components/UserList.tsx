@@ -1,8 +1,8 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { useCanister } from "@/hooks/use-canister";
 import type { UserInfo } from "@volumetric/canister-types";
+import { useCanister } from "@/hooks/use-canister";
 
 export function UserList() {
   const canister = useCanister();
@@ -28,10 +28,9 @@ export function UserList() {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between">
-        <span className="text-sm text-zinc-400">
-          {users?.length ?? 0} registered user(s)
-        </span>
+        <span className="text-sm text-zinc-400">{users?.length ?? 0} registered user(s)</span>
         <button
+          type="button"
           onClick={() => refetch()}
           className="px-3 py-1 text-sm bg-zinc-700 text-white rounded hover:bg-zinc-600 transition-colors"
         >
@@ -50,15 +49,10 @@ export function UserList() {
       {users && users.length > 0 && (
         <div className="flex flex-col gap-2">
           {users.map((user: UserInfo) => (
-            <div
-              key={user.principal.toText()}
-              className="bg-zinc-800 rounded-lg p-4 space-y-2"
-            >
+            <div key={user.principal.toText()} className="bg-zinc-800 rounded-lg p-4 space-y-2">
               <div className="flex items-center gap-2">
                 <span className="text-sm font-medium text-zinc-200">
-                  {user.username && user.username.length > 0
-                    ? user.username[0]
-                    : "Anonymous"}
+                  {user.username && user.username.length > 0 ? user.username[0] : "Anonymous"}
                 </span>
                 {(!user.username || user.username.length === 0) && (
                   <span className="text-xs text-zinc-500">(no username)</span>
@@ -78,9 +72,7 @@ export function UserList() {
       )}
 
       {users && users.length === 0 && (
-        <div className="text-zinc-500 text-sm text-center py-8">
-          No users registered yet
-        </div>
+        <div className="text-zinc-500 text-sm text-center py-8">No users registered yet</div>
       )}
     </div>
   );

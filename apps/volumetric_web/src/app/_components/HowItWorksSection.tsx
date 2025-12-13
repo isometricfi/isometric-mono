@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
 import { motion } from "framer-motion";
-import { Clock, TrendingUp, Zap, ArrowRight } from "lucide-react";
-import { AnimatedToggle } from "@/components/navigation/animated-toggle";
+import { ArrowRight, Clock, TrendingUp, Zap } from "lucide-react";
+import { useState } from "react";
+import { AnimatedToggle } from "@/components/navigation/AnimatedToggle";
 import { Button } from "@/components/ui/button";
 
 export function HowItWorksSection() {
@@ -99,9 +99,7 @@ export function HowItWorksSection() {
                   {item.step}
                 </div>
                 <h3 className="text-lg font-semibold mb-2">{item.title}</h3>
-                <p className="text-sm text-muted-foreground leading-relaxed">
-                  {item.description}
-                </p>
+                <p className="text-sm text-muted-foreground leading-relaxed">{item.description}</p>
               </div>
             </motion.div>
           ))}

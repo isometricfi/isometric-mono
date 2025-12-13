@@ -1,7 +1,7 @@
-import { ConcentricCircles } from "@/components/landing/concentric-circles";
-import { HeroSection } from "@/components/landing/hero-section";
-import { ChainAbstractionSection } from "@/components/landing/chain-abstraction-section";
-import { HowItWorksSection } from "@/components/landing/how-it-works-section";
+import { ChainAbstractionSection } from "./_components/ChainAbstractionSection";
+import { ConcentricCircles } from "./_components/ConcentricCircles";
+import { HeroSection } from "./_components/HeroSection";
+import { HowItWorksSection } from "./_components/HowItWorksSection";
 
 export default function Home() {
   return (

@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { useCanister } from "@/hooks/use-canister";
+import { useState } from "react";
 import { useBtcAddress } from "@/hooks/use-btc-address";
+import { useCanister } from "@/hooks/use-canister";
 
 export function AccountQueries() {
   const canister = useCanister();
@@ -68,10 +68,11 @@ export function AccountQueries() {
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-2">
-        <label className="text-sm text-zinc-400">
+        <label htmlFor="query-address" className="text-sm text-zinc-400">
           Query Address (leave empty to use connected wallet)
         </label>
         <input
+          id="query-address"
           type="text"
           value={queryAddress}
           onChange={(e) => setQueryAddress(e.target.value)}
@@ -82,6 +83,7 @@ export function AccountQueries() {
 
       <div className="flex gap-2">
         <button
+          type="button"
           onClick={handleRefreshAll}
           disabled={!activeAddress}
           className="px-4 py-2 bg-zinc-700 text-white rounded font-medium hover:bg-zinc-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
@@ -97,9 +99,7 @@ export function AccountQueries() {
             {isLoadingNonce ? (
               <div className="text-zinc-500">Loading...</div>
             ) : (
-              <code className="text-lg font-mono text-green-400">
-                {nonce?.toString() ?? "N/A"}
-              </code>
+              <code className="text-lg font-mono text-green-400">{nonce?.toString() ?? "N/A"}</code>
             )}
           </div>
 
@@ -145,9 +145,7 @@ export function AccountQueries() {
       )}
 
       {!activeAddress && (
-        <div className="text-zinc-500 text-sm">
-          Connect a wallet or enter an address to query
-        </div>
+        <div className="text-zinc-500 text-sm">Connect a wallet or enter an address to query</div>
       )}
     </div>
   );

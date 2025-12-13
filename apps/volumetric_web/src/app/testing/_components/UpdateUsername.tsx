@@ -1,11 +1,11 @@
 "use client";
 
-import { useState } from "react";
-import { useDynamicContext } from "@dynamic-labs/sdk-react-core";
 import { isBitcoinWallet } from "@dynamic-labs/bitcoin";
+import { useDynamicContext } from "@dynamic-labs/sdk-react-core";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useCanister } from "@/hooks/use-canister";
+import { useState } from "react";
 import { useBtcAddress } from "@/hooks/use-btc-address";
+import { useCanister } from "@/hooks/use-canister";
 
 export function UpdateUsername() {
   const { primaryWallet } = useDynamicContext();
@@ -96,9 +96,7 @@ export function UpdateUsername() {
 
   if (!primaryWallet) {
     return (
-      <div className="text-zinc-500 text-sm">
-        Connect your Bitcoin wallet to update username
-      </div>
+      <div className="text-zinc-500 text-sm">Connect your Bitcoin wallet to update username</div>
     );
   }
 
@@ -107,11 +105,7 @@ export function UpdateUsername() {
   }
 
   if (!accountInfo) {
-    return (
-      <div className="text-zinc-500 text-sm">
-        Create an account first to set a username
-      </div>
-    );
+    return <div className="text-zinc-500 text-sm">Create an account first to set a username</div>;
   }
 
   return (
@@ -149,6 +143,7 @@ export function UpdateUsername() {
       )}
 
       <button
+        type="button"
         onClick={() => updateUsernameMutation.mutate()}
         disabled={updateUsernameMutation.isPending || !username.trim()}
         className="px-4 py-2 bg-orange-500 text-white rounded-lg font-medium hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
@@ -156,11 +151,7 @@ export function UpdateUsername() {
         {updateUsernameMutation.isPending ? "Updating..." : "Update Username"}
       </button>
 
-      {error && (
-        <div className="text-sm text-red-500 p-2 bg-red-950 rounded">
-          {error}
-        </div>
-      )}
+      {error && <div className="text-sm text-red-500 p-2 bg-red-950 rounded">{error}</div>}
     </div>
   );
 }

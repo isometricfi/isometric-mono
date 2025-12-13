@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { createActor, _SERVICE } from "@volumetric/canister-types";
+import { type _SERVICE, createActor } from "@volumetric/canister-types";
 
 interface Config {
   canisterId: string | undefined;
@@ -30,10 +30,3 @@ export function useCanister(): _SERVICE | null {
     agentOptions: { host: config.icHost },
   });
 }
-
-
-
-
-
-
-

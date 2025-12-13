@@ -1,8 +1,8 @@
 "use client";
 
-import { createContext, useContext } from "react";
-import { DynamicContextProvider } from "@dynamic-labs/sdk-react-core";
 import { BitcoinWalletConnectors } from "@dynamic-labs/bitcoin";
+import { DynamicContextProvider } from "@dynamic-labs/sdk-react-core";
+import { createContext, useContext } from "react";
 
 const environmentId = process.env.NEXT_PUBLIC_DYNAMIC_ENVIRONMENT_ID;
 

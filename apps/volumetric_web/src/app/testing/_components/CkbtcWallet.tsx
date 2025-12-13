@@ -1,11 +1,11 @@
 "use client";
 
-import { useState } from "react";
-import { useDynamicContext } from "@dynamic-labs/sdk-react-core";
 import { isBitcoinWallet } from "@dynamic-labs/bitcoin";
+import { useDynamicContext } from "@dynamic-labs/sdk-react-core";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { useCanister } from "@/hooks/use-canister";
+import { useState } from "react";
 import { useBtcAddress } from "@/hooks/use-btc-address";
+import { useCanister } from "@/hooks/use-canister";
 
 export function CkbtcWallet() {
   const { primaryWallet } = useDynamicContext();
@@ -15,10 +15,7 @@ export function CkbtcWallet() {
   const [withdrawAmount, setWithdrawAmount] = useState("");
   const [withdrawBtcAddress, setWithdrawBtcAddress] = useState("");
 
-  const {
-    data: accountInfo,
-    isLoading: isLoadingAccount,
-  } = useQuery({
+  const { data: accountInfo, isLoading: isLoadingAccount } = useQuery({
     queryKey: ["account", address],
     queryFn: async () => {
       if (!canister || !address) return null;
@@ -117,11 +114,7 @@ export function CkbtcWallet() {
   });
 
   if (!primaryWallet) {
-    return (
-      <div className="text-zinc-500 text-sm">
-        Connect your Bitcoin wallet first
-      </div>
-    );
+    return <div className="text-zinc-500 text-sm">Connect your Bitcoin wallet first</div>;
   }
 
   if (isLoadingAccount) {
@@ -130,9 +123,7 @@ export function CkbtcWallet() {
 
   if (!accountInfo) {
     return (
-      <div className="text-zinc-500 text-sm">
-        Create an account first to access ckBTC features
-      </div>
+      <div className="text-zinc-500 text-sm">Create an account first to access ckBTC features</div>
     );
   }
 
@@ -154,6 +145,7 @@ export function CkbtcWallet() {
             </div>
           </div>
           <button
+            type="button"
             onClick={() => refetchBalance()}
             disabled={isLoadingBalance}
             className="px-4 py-2 bg-zinc-700 text-zinc-200 rounded-lg hover:bg-zinc-600 disabled:opacity-50 transition-colors"
@@ -168,7 +160,8 @@ export function CkbtcWallet() {
       <div className="flex flex-col gap-4">
         <h3 className="text-lg font-medium text-zinc-200">Deposit BTC → ckBTC</h3>
         <p className="text-sm text-zinc-500">
-          Send BTC to the address below. After 6 confirmations, click &quot;Check for Deposits&quot; to mint ckBTC.
+          Send BTC to the address below. After 6 confirmations, click &quot;Check for Deposits&quot;
+          to mint ckBTC.
         </p>
 
         {isLoadingDeposit ? (
@@ -190,6 +183,7 @@ export function CkbtcWallet() {
             </div>
 
             <button
+              type="button"
               onClick={() => updateBalanceMutation.mutate()}
               disabled={updateBalanceMutation.isPending}
               className="px-4 py-2 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
@@ -201,22 +195,24 @@ export function CkbtcWallet() {
               <div className="p-3 bg-green-950 border border-green-800 rounded-lg">
                 <div className="text-sm text-green-400 mb-2">Deposit Result</div>
                 <pre className="text-xs text-zinc-300 overflow-auto">
-                  {JSON.stringify(updateBalanceMutation.data, (_, v) =>
-                    typeof v === "bigint" ? v.toString() : v, 2)}
+                  {JSON.stringify(
+                    updateBalanceMutation.data,
+                    (_, v) => (typeof v === "bigint" ? v.toString() : v),
+                    2,
+                  )}
                 </pre>
               </div>
             )}
 
             {updateBalanceMutation.isError && (
               <div className="p-3 bg-red-950 border border-red-800 rounded-lg">
-                <div className="text-sm text-red-400">
-                  {updateBalanceMutation.error?.message}
-                </div>
+                <div className="text-sm text-red-400">{updateBalanceMutation.error?.message}</div>
               </div>
             )}
           </>
         ) : (
           <button
+            type="button"
             onClick={() => refetchDeposit()}
             className="px-4 py-2 bg-zinc-700 text-zinc-200 rounded-lg hover:bg-zinc-600 transition-colors"
           >
@@ -234,8 +230,11 @@ export function CkbtcWallet() {
         </p>
 
         <div className="flex flex-col gap-2">
-          <label className="text-sm text-zinc-500">Amount (satoshis)</label>
+          <label htmlFor="withdraw-amount" className="text-sm text-zinc-500">
+            Amount (satoshis)
+          </label>
           <input
+            id="withdraw-amount"
             type="number"
             value={withdrawAmount}
             onChange={(e) => setWithdrawAmount(e.target.value)}
@@ -245,8 +244,11 @@ export function CkbtcWallet() {
         </div>
 
         <div className="flex flex-col gap-2">
-          <label className="text-sm text-zinc-500">Destination BTC Address</label>
+          <label htmlFor="withdraw-address" className="text-sm text-zinc-500">
+            Destination BTC Address
+          </label>
           <input
+            id="withdraw-address"
             type="text"
             value={withdrawBtcAddress}
             onChange={(e) => setWithdrawBtcAddress(e.target.value)}
@@ -256,6 +258,7 @@ export function CkbtcWallet() {
         </div>
 
         <button
+          type="button"
           onClick={() => withdrawMutation.mutate()}
           disabled={withdrawMutation.isPending || !withdrawAmount || !withdrawBtcAddress}
           className="px-4 py-2 bg-orange-600 text-white rounded-lg font-medium hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
@@ -274,9 +277,7 @@ export function CkbtcWallet() {
 
         {withdrawMutation.isError && (
           <div className="p-3 bg-red-950 border border-red-800 rounded-lg">
-            <div className="text-sm text-red-400">
-              {withdrawMutation.error?.message}
-            </div>
+            <div className="text-sm text-red-400">{withdrawMutation.error?.message}</div>
           </div>
         )}
       </div>

@@ -2,8 +2,8 @@
 
 import { motion } from "framer-motion";
 import { Sparkles, TrendingUp, Zap } from "lucide-react";
-import { YieldDisplay } from "@/components/landing/yield-display";
-import { PayoffVisualization } from "@/components/landing/payoff-visualization";
+import { PayoffVisualization } from "./PayoffVisualization";
+import { YieldDisplay } from "./YieldDisplay";
 
 export function HeroSection() {
   return (
@@ -24,8 +24,7 @@ export function HeroSection() {
 
         {/* main headline */}
         <h1 className="text-center text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight leading-[1.1] mb-6">
-          Bitcoin Options{" "}
-          <span className="text-primary block sm:inline">For Everyone.</span>
+          Bitcoin Options <span className="text-primary block sm:inline">For Everyone.</span>
         </h1>
 
         {/* subheadline */}
@@ -41,8 +40,7 @@ export function HeroSection() {
             <div
               className="absolute -top-12 left-1/2 -translate-x-1/2 w-24 h-24 pointer-events-none z-10"
               style={{
-                background:
-                  "radial-gradient(circle, hsl(var(--background)) 30%, transparent 70%)",
+                background: "radial-gradient(circle, hsl(var(--background)) 30%, transparent 70%)",
               }}
             />
             {/* the line - uses border color for light/dark mode */}
@@ -91,12 +89,9 @@ export function HeroSection() {
                 <TrendingUp className="size-3" />
                 for hodlers
               </div>
-              <h2 className="text-2xl md:text-3xl font-bold mb-3">
-                Earn yield on idle assets
-              </h2>
+              <h2 className="text-2xl md:text-3xl font-bold mb-3">Earn yield on idle assets</h2>
               <p className="text-muted-foreground text-sm md:text-base">
-                Let your assets work for you. Write options and collect premium
-                instantly.
+                Let your assets work for you. Write options and collect premium instantly.
               </p>
             </div>
 
@@ -137,12 +132,9 @@ export function HeroSection() {
                 <Zap className="size-3" />
                 for traders
               </div>
-              <h2 className="text-2xl md:text-3xl font-bold mb-3">
-                Leverage without liquidation
-              </h2>
+              <h2 className="text-2xl md:text-3xl font-bold mb-3">Leverage without liquidation</h2>
               <p className="text-muted-foreground">
-                Asymmetric exposure with defined risk. Your max loss is the
-                premium.
+                Asymmetric exposure with defined risk. Your max loss is the premium.
               </p>
             </div>
 
