@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useDynamicContext } from "@dynamic-labs/sdk-react-core";
+import { isBitcoinWallet } from "@dynamic-labs/bitcoin";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useCanister } from "@/hooks/use-canister";
 import { useBtcAddress } from "@/hooks/use-btc-address";
@@ -79,12 +80,28 @@ export function CkbtcWallet() {
   const withdrawMutation = useMutation({
     mutationFn: async () => {
       if (!canister || !address) throw new Error("Not ready");
+      if (!primaryWallet || !isBitcoinWallet(primaryWallet)) {
+        throw new Error("Bitcoin wallet not connected");
+      }
       if (!withdrawAmount || !withdrawBtcAddress) throw new Error("Missing fields");
 
+      const amount = BigInt(withdrawAmount);
+      const message = await canister.get_withdraw_message(address, withdrawBtcAddress, amount);
+      const signature = await primaryWallet.signMessage(message, { addressType: "payment" });
+
+      if (!signature) {
+        throw new Error("Failed to sign message");
+      }
+
       const result = await canister.withdraw_ckbtc({
-        address,
-        btc_address: withdrawBtcAddress,
-        amount: BigInt(withdrawAmount),
+        data: {
+          btc_address: withdrawBtcAddress,
+          amount,
+        },
+        wallet_proof: {
+          address,
+          signature,
+        },
       });
 
       if ("Err" in result) {
