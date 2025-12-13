@@ -20,8 +20,14 @@ export function Navbar() {
             href="/"
             className="flex items-center gap-2 text-xl font-semibold tracking-tight"
           >
-            <Image src="/logo.svg" alt="Volumetric" width={32} height={32} />
-            Volumetric
+            <Image
+              src="/logo.svg"
+              alt="Volumetric"
+              width={32}
+              height={32}
+              className="min-w-[32px] min-h-[32px]"
+            />
+            <span className="md:block hidden">Volumetric</span>
           </Link>
           <div className="flex items-center gap-3">
             <Button variant="ghost" size="sm">
@@ -37,6 +43,7 @@ export function Navbar() {
               size="icon"
               onClick={() => setTheme(theme === "light" ? "dark" : "light")}
               aria-label="Toggle theme"
+              className="md:block hidden"
             >
               {theme === "light" ? (
                 <Moon className="size-5" />
