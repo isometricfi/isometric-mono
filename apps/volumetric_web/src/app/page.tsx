@@ -1,6 +1,6 @@
+import { ChainAbstractionSection } from "./_components/ChainAbstractionSection";
 import { ConcentricCircles } from "./_components/ConcentricCircles";
 import { HeroSection } from "./_components/HeroSection";
-import { ChainAbstractionSection } from "./_components/ChainAbstractionSection";
 import { HowItWorksSection } from "./_components/HowItWorksSection";
 
 export default function Home() {

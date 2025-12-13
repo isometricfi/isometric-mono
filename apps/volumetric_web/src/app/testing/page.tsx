@@ -1,24 +1,20 @@
 "use client";
 
-import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { createActor } from "@volumetric/canister-types";
-import { BtcWallet } from "./_components/BtcWallet";
-import { CreateAccount } from "./_components/CreateAccount";
+import { useState } from "react";
+import { useCanisterConfig } from "@/hooks/use-canister";
 import { AccountQueries } from "./_components/AccountQueries";
+import { BtcWallet } from "./_components/BtcWallet";
+import { CkbtcWallet } from "./_components/CkbtcWallet";
+import { CreateAccount } from "./_components/CreateAccount";
 import { UpdateUsername } from "./_components/UpdateUsername";
 import { UserList } from "./_components/UserList";
-import { CkbtcWallet } from "./_components/CkbtcWallet";
-import { useCanisterConfig } from "@/hooks/use-canister";
 
 export default function TestingPage() {
   const [name, setName] = useState("World");
 
-  const {
-    data: config,
-    isLoading: configLoading,
-    error: configError,
-  } = useCanisterConfig();
+  const { data: config, isLoading: configLoading, error: configError } = useCanisterConfig();
 
   const greetMutation = useMutation({
     mutationFn: async (name: string) => {
@@ -42,54 +38,42 @@ export default function TestingPage() {
         <h1 className="text-3xl font-bold">Testing</h1>
 
         <section className="space-y-4">
-          <h2 className="text-xl font-semibold text-zinc-300">
-            1. Bitcoin Wallet
-          </h2>
+          <h2 className="text-xl font-semibold text-zinc-300">1. Bitcoin Wallet</h2>
           <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-6">
             <BtcWallet />
           </div>
         </section>
 
         <section className="space-y-4">
-          <h2 className="text-xl font-semibold text-zinc-300">
-            2. Create Account
-          </h2>
+          <h2 className="text-xl font-semibold text-zinc-300">2. Create Account</h2>
           <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-6">
             <CreateAccount />
           </div>
         </section>
 
         <section className="space-y-4">
-          <h2 className="text-xl font-semibold text-zinc-300">
-            3. Update Username
-          </h2>
+          <h2 className="text-xl font-semibold text-zinc-300">3. Update Username</h2>
           <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-6">
             <UpdateUsername />
           </div>
         </section>
 
         <section className="space-y-4">
-          <h2 className="text-xl font-semibold text-zinc-300">
-            4. ckBTC Wallet
-          </h2>
+          <h2 className="text-xl font-semibold text-zinc-300">4. ckBTC Wallet</h2>
           <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-6">
             <CkbtcWallet />
           </div>
         </section>
 
         <section className="space-y-4">
-          <h2 className="text-xl font-semibold text-zinc-300">
-            5. All Users
-          </h2>
+          <h2 className="text-xl font-semibold text-zinc-300">5. All Users</h2>
           <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-6">
             <UserList />
           </div>
         </section>
 
         <section className="space-y-4">
-          <h2 className="text-xl font-semibold text-zinc-300">
-            6. Query Account Methods
-          </h2>
+          <h2 className="text-xl font-semibold text-zinc-300">6. Query Account Methods</h2>
           <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-6">
             <AccountQueries />
           </div>
@@ -99,16 +83,17 @@ export default function TestingPage() {
           <h2 className="text-xl font-semibold text-zinc-300">Canister Test</h2>
           <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-6 space-y-4">
             <div>
-              <label className="block text-sm text-zinc-400 mb-2">
-                Canister ID
-              </label>
+              <span className="block text-sm text-zinc-400 mb-2">Canister ID</span>
               <code className="block bg-zinc-800 px-4 py-2 rounded text-sm font-mono">
                 {config?.canisterId || "Not configured"}
               </code>
             </div>
             <div>
-              <label className="block text-sm text-zinc-400 mb-2">Name</label>
+              <label htmlFor="greet-name" className="block text-sm text-zinc-400 mb-2">
+                Name
+              </label>
               <input
+                id="greet-name"
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
@@ -117,6 +102,7 @@ export default function TestingPage() {
             </div>
 
             <button
+              type="button"
               onClick={handleGreet}
               disabled={greetMutation.isPending || configLoading}
               className="w-full bg-zinc-100 text-zinc-900 font-medium py-2 px-4 rounded hover:bg-zinc-200 disabled:opacity-50 disabled:cursor-not-allowed"

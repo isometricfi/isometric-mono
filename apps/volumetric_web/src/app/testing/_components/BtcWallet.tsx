@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
-import { useDynamicContext } from "@dynamic-labs/sdk-react-core";
 import { isBitcoinWallet } from "@dynamic-labs/bitcoin";
+import { useDynamicContext } from "@dynamic-labs/sdk-react-core";
+import { useState } from "react";
 import { useDynamicConfig } from "@/app/providers/dynamic-provider";
 import { useBtcAddresses } from "@/hooks/use-btc-address";
 
@@ -12,9 +12,7 @@ export function BtcWallet() {
   if (!isConfigured) {
     return (
       <div className="flex flex-col gap-2 p-4 rounded-lg border border-yellow-500/50 bg-yellow-500/10">
-        <span className="text-sm font-medium text-yellow-500">
-          Dynamic not configured
-        </span>
+        <span className="text-sm font-medium text-yellow-500">Dynamic not configured</span>
         <span className="text-xs text-zinc-400">
           Set NEXT_PUBLIC_DYNAMIC_ENVIRONMENT_ID in your .env.local file
         </span>
@@ -82,13 +80,19 @@ function BtcWalletInner() {
       <div className="flex flex-col gap-1">
         <span className="text-sm text-zinc-500">Additional Addresses (raw)</span>
         <code className="text-xs bg-zinc-100 dark:bg-zinc-900 p-2 rounded break-all whitespace-pre-wrap">
-          {JSON.stringify((primaryWallet as unknown as { additionalAddresses?: unknown }).additionalAddresses, null, 2) ?? "none"}
+          {JSON.stringify(
+            (primaryWallet as unknown as { additionalAddresses?: unknown }).additionalAddresses,
+            null,
+            2,
+          ) ?? "none"}
         </code>
       </div>
 
       {addresses.payment && (
         <div className="flex flex-col gap-1">
-          <span className="text-sm text-green-500 font-medium">Payment Address (bc1q.../tb1q...)</span>
+          <span className="text-sm text-green-500 font-medium">
+            Payment Address (bc1q.../tb1q...)
+          </span>
           <code className="text-xs bg-zinc-100 dark:bg-zinc-900 p-2 rounded break-all">
             {addresses.payment}
           </code>
@@ -125,6 +129,7 @@ function BtcWalletInner() {
       </div>
 
       <button
+        type="button"
         onClick={signMessage}
         disabled={isLoading || !message}
         className="px-4 py-2 bg-orange-500 text-white rounded-lg font-medium hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
@@ -142,9 +147,7 @@ function BtcWalletInner() {
       )}
 
       {error && (
-        <div className="text-sm text-red-500 p-2 bg-red-50 dark:bg-red-950 rounded">
-          {error}
-        </div>
+        <div className="text-sm text-red-500 p-2 bg-red-50 dark:bg-red-950 rounded">{error}</div>
       )}
     </div>
   );

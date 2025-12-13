@@ -6,4 +6,3 @@ export async function GET() {
     icHost: process.env.IC_HOST || "https://ic0.app",
   });
 }
-

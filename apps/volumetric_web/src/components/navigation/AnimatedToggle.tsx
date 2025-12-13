@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { type LucideIcon } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 
 export interface ToggleOption<T extends string> {
   value: T;
@@ -30,12 +30,11 @@ export function AnimatedToggle<T extends string>({
 
         return (
           <button
+            type="button"
             key={option.value}
             onClick={() => onChange(option.value)}
             className={`relative px-5 py-2 text-sm font-medium rounded-full transition-all ${
-              isActive
-                ? "text-foreground"
-                : "text-muted-foreground hover:text-foreground"
+              isActive ? "text-foreground" : "text-muted-foreground hover:text-foreground"
             }`}
           >
             {isActive && (

@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState, useRef, useMemo } from "react";
-import { useTheme } from "next-themes";
 import { motion } from "framer-motion";
+import { useTheme } from "next-themes";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 export function PayoffVisualization() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -65,8 +65,7 @@ export function PayoffVisualization() {
       return (
         dimensions.height -
         padding.bottom -
-        ((pnl - pnlMin) / (pnlMax - pnlMin)) *
-          (dimensions.height - padding.top - padding.bottom)
+        ((pnl - pnlMin) / (pnlMax - pnlMin)) * (dimensions.height - padding.top - padding.bottom)
       );
     };
 
@@ -77,20 +76,7 @@ export function PayoffVisualization() {
       y1: yScale(-premiumBTC),
       y3: yScale(pnlMax),
     };
-  }, [
-    dimensions.width,
-    dimensions.height,
-    priceMin,
-    strikePrice,
-    priceMax,
-    premiumBTC,
-    pnlMax,
-    pnlMin,
-    padding.left,
-    padding.right,
-    padding.top,
-    padding.bottom,
-  ]);
+  }, [dimensions.width, dimensions.height, pnlMax, pnlMin]);
 
   const { x1, x2, x3, y1, y3 } = animationKeyframes;
 
@@ -124,14 +110,12 @@ export function PayoffVisualization() {
 
     const xLocal = (price: number) =>
       padding.left +
-      ((price - priceMin) / (priceMax - priceMin)) *
-        (width - padding.left - padding.right);
+      ((price - priceMin) / (priceMax - priceMin)) * (width - padding.left - padding.right);
 
     const yLocal = (pnl: number) =>
       height -
       padding.bottom -
-      ((pnl - pnlMin) / (pnlMax - pnlMin)) *
-        (height - padding.top - padding.bottom);
+      ((pnl - pnlMin) / (pnlMax - pnlMin)) * (height - padding.top - padding.bottom);
 
     ctx.strokeStyle = gridColor;
     ctx.lineWidth = 1;
@@ -175,23 +159,7 @@ export function PayoffVisualization() {
     gradient.addColorStop(1, `${primaryColor}00`);
     ctx.fillStyle = gradient;
     ctx.fill();
-  }, [
-    dimensions,
-    strikePrice,
-    premiumBTC,
-    sizeBTC,
-    pnlMin,
-    pnlMax,
-    primaryColor,
-    priceMin,
-    priceMax,
-    gridColor,
-    zeroLineColor,
-    padding.top,
-    padding.right,
-    padding.bottom,
-    padding.left,
-  ]);
+  }, [dimensions, pnlMin, pnlMax, gridColor, zeroLineColor]);
 
   return (
     <div className="relative">
@@ -206,9 +174,7 @@ export function PayoffVisualization() {
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
               <motion.div
-                className={`w-2 h-2 rounded-full ${
-                  inTheMoney ? "bg-green-500" : "bg-red-400"
-                }`}
+                className={`w-2 h-2 rounded-full ${inTheMoney ? "bg-green-500" : "bg-red-400"}`}
                 animate={{ opacity: [1, 0.5, 1] }}
                 transition={{ duration: 1.5, repeat: Infinity }}
               />
@@ -222,10 +188,7 @@ export function PayoffVisualization() {
           </div>
 
           <div ref={containerRef} className="h-[140px] relative mb-4">
-            <canvas
-              ref={canvasRef}
-              className="absolute inset-0 w-full h-full"
-            />
+            <canvas ref={canvasRef} className="absolute inset-0 w-full h-full" />
 
             {dimensions.width > 0 && (
               <>
@@ -274,17 +237,13 @@ export function PayoffVisualization() {
 
           <div className="grid grid-cols-3 gap-2 -mt-3">
             <div className="text-center">
-              <div className="text-[9px] font-mono text-muted-foreground">
-                SPOT
-              </div>
+              <div className="text-[9px] font-mono text-muted-foreground">SPOT</div>
               <div className="text-sm font-mono font-semibold tabular-nums">
                 ${(spotPrice / 1000).toFixed(0)}K
               </div>
             </div>
             <div className="text-center">
-              <div className="text-[9px] font-mono text-muted-foreground">
-                P&L
-              </div>
+              <div className="text-[9px] font-mono text-muted-foreground">P&L</div>
               <motion.div
                 className={`text-sm font-mono font-semibold tabular-nums ${
                   currentPnLBTC >= 0 ? "text-green-500" : "text-red-400"
@@ -296,9 +255,7 @@ export function PayoffVisualization() {
               </motion.div>
             </div>
             <div className="text-center">
-              <div className="text-[9px] font-mono text-muted-foreground">
-                ROI
-              </div>
+              <div className="text-[9px] font-mono text-muted-foreground">ROI</div>
               <div
                 className={`text-sm font-mono font-semibold tabular-nums ${
                   roi >= 0 ? "text-green-500" : "text-red-400"

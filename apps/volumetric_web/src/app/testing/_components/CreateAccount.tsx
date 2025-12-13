@@ -1,11 +1,11 @@
 "use client";
 
-import { useState } from "react";
-import { useDynamicContext } from "@dynamic-labs/sdk-react-core";
 import { isBitcoinWallet } from "@dynamic-labs/bitcoin";
+import { useDynamicContext } from "@dynamic-labs/sdk-react-core";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { useCanister } from "@/hooks/use-canister";
+import { useState } from "react";
 import { useBtcAddress } from "@/hooks/use-btc-address";
+import { useCanister } from "@/hooks/use-canister";
 
 export function CreateAccount() {
   const { primaryWallet } = useDynamicContext();
@@ -92,21 +92,15 @@ export function CreateAccount() {
 
   if (!primaryWallet) {
     return (
-      <div className="text-zinc-500 text-sm">
-        Connect your Bitcoin wallet to create an account
-      </div>
+      <div className="text-zinc-500 text-sm">Connect your Bitcoin wallet to create an account</div>
     );
   }
 
   const isMainnetAddress =
-    address?.startsWith("bc1q") ||
-    address?.startsWith("bc1p") ||
-    address?.startsWith("3");
+    address?.startsWith("bc1q") || address?.startsWith("bc1p") || address?.startsWith("3");
 
   const isTestnetAddress =
-    address?.startsWith("tb1q") ||
-    address?.startsWith("tb1p") ||
-    address?.startsWith("2");
+    address?.startsWith("tb1q") || address?.startsWith("tb1p") || address?.startsWith("2");
 
   const isSupportedAddress = isMainnetAddress || isTestnetAddress;
 
@@ -114,8 +108,8 @@ export function CreateAccount() {
     return (
       <div className="p-4 rounded-lg border border-yellow-500/50 bg-yellow-500/10">
         <span className="text-sm text-yellow-500">
-          Unsupported address type. Please use native SegWit (bc1q/tb1q),
-          Taproot (bc1p/tb1p), or nested SegWit (3.../2...) address.
+          Unsupported address type. Please use native SegWit (bc1q/tb1q), Taproot (bc1p/tb1p), or
+          nested SegWit (3.../2...) address.
         </span>
       </div>
     );
@@ -129,16 +123,12 @@ export function CreateAccount() {
     return (
       <div className="flex flex-col gap-4">
         <div className="p-4 rounded-lg border border-green-500/50 bg-green-500/10">
-          <span className="text-sm font-medium text-green-500">
-            Account Active
-          </span>
+          <span className="text-sm font-medium text-green-500">Account Active</span>
         </div>
 
         <div className="flex flex-col gap-2">
           <span className="text-sm text-zinc-500">BTC Address</span>
-          <code className="text-xs bg-zinc-800 p-2 rounded break-all">
-            {accountInfo.address}
-          </code>
+          <code className="text-xs bg-zinc-800 p-2 rounded break-all">{accountInfo.address}</code>
         </div>
 
         <div className="flex flex-col gap-2">
@@ -164,9 +154,7 @@ export function CreateAccount() {
     <div className="flex flex-col gap-4">
       <div className="flex flex-col gap-2">
         <span className="text-sm text-zinc-500">Connected Address</span>
-        <code className="text-xs bg-zinc-800 p-2 rounded break-all">
-          {address}
-        </code>
+        <code className="text-xs bg-zinc-800 p-2 rounded break-all">{address}</code>
       </div>
 
       {messageToSign && (
@@ -179,6 +167,7 @@ export function CreateAccount() {
       )}
 
       <button
+        type="button"
         onClick={() => createAccountMutation.mutate()}
         disabled={createAccountMutation.isPending}
         className="px-4 py-2 bg-orange-500 text-white rounded-lg font-medium hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
@@ -186,11 +175,7 @@ export function CreateAccount() {
         {createAccountMutation.isPending ? "Creating Account..." : "Create Account"}
       </button>
 
-      {error && (
-        <div className="text-sm text-red-500 p-2 bg-red-950 rounded">
-          {error}
-        </div>
-      )}
+      {error && <div className="text-sm text-red-500 p-2 bg-red-950 rounded">{error}</div>}
     </div>
   );
 }
