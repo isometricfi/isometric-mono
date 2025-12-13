@@ -98,17 +98,24 @@ export function CreateAccount() {
     );
   }
 
-  const isSupportedAddress =
+  const isMainnetAddress =
     address?.startsWith("bc1q") ||
     address?.startsWith("bc1p") ||
     address?.startsWith("3");
+
+  const isTestnetAddress =
+    address?.startsWith("tb1q") ||
+    address?.startsWith("tb1p") ||
+    address?.startsWith("2");
+
+  const isSupportedAddress = isMainnetAddress || isTestnetAddress;
 
   if (!isSupportedAddress) {
     return (
       <div className="p-4 rounded-lg border border-yellow-500/50 bg-yellow-500/10">
         <span className="text-sm text-yellow-500">
-          Unsupported address type. Please use native SegWit (bc1q), Taproot
-          (bc1p), or nested SegWit (3...) address.
+          Unsupported address type. Please use native SegWit (bc1q/tb1q),
+          Taproot (bc1p/tb1p), or nested SegWit (3.../2...) address.
         </span>
       </div>
     );

@@ -1,6 +1,9 @@
-.PHONY: build release deploy generate reinstall-local verify info clean start stop help
+.PHONY: build release deploy generate generate-external-types reinstall-local verify info clean start stop help
 
-export CC := /opt/homebrew/opt/llvm/bin/clang
+# Use Homebrew LLVM on macOS if available, otherwise use system clang
+ifneq ($(wildcard /opt/homebrew/opt/llvm/bin/clang),)
+    export CC := /opt/homebrew/opt/llvm/bin/clang
+endif
 
 TARGET ?= local
 
@@ -19,13 +22,16 @@ endif
 
 DOCKER_IMAGE := volumetric-canister
 WASM_FILE := volumetric.wasm
-DID_FILE := src/volumetric/volumetric.did
+DID_DIR := did
+DID_FILE := $(DID_DIR)/volumetric.did
 
 build:
 	@echo "Building locally..."
 	cargo build --locked --target wasm32-unknown-unknown --release
+	mkdir -p $(DID_DIR)
 	candid-extractor target/wasm32-unknown-unknown/release/volumetric.wasm > $(DID_FILE)
 	ic-wasm target/wasm32-unknown-unknown/release/volumetric.wasm -o $(WASM_FILE) shrink
+	ic-wasm $(WASM_FILE) -o $(WASM_FILE) metadata candid:service -f $(DID_FILE) -v public
 	@echo "Build complete: $(WASM_FILE)"
 	@sha256sum $(WASM_FILE)
 
@@ -33,7 +39,9 @@ release:
 	@echo "Building reproducible wasm with Docker..."
 	docker build -t $(DOCKER_IMAGE) -f docker/Dockerfile .
 	docker run --rm -v "$(PWD)":/canister $(DOCKER_IMAGE)
+	mkdir -p $(DID_DIR)
 	candid-extractor $(WASM_FILE) > $(DID_FILE)
+	ic-wasm $(WASM_FILE) -o $(WASM_FILE) metadata candid:service -f $(DID_FILE) -v public
 	@echo "Build complete: $(WASM_FILE)"
 	@sha256sum $(WASM_FILE)
 
@@ -45,6 +53,13 @@ generate: build
 	mkdir -p ../../packages/canister-types/src/generated
 	cp src/declarations/$(CANISTER)/* ../../packages/canister-types/src/generated/
 	@echo "Declarations updated in packages/canister-types/src/generated"
+
+generate-external-types:
+	@echo "Updating external Candid interfaces..."
+	curl -sL "https://raw.githubusercontent.com/dfinity/ic/master/rs/bitcoin/ckbtc/minter/ckbtc_minter.did" -o did/ckbtc_minter.did
+	@echo "Generating Rust types..."
+	didc bind did/ckbtc_minter.did --target rs > src/volumetric/src/generated/ckbtc.rs
+	@echo "Generated types updated in src/volumetric/src/generated/"
 
 deploy:
 ifeq ($(TARGET),local)
@@ -90,6 +105,7 @@ help:
 	@echo "  build           - Build locally (fast, outputs volumetric.wasm)"
 	@echo "  release         - Build with Docker (reproducible, outputs volumetric.wasm)"
 	@echo "  generate        - Generate TypeScript declarations inside volumetric_web package"
+	@echo "  generate-external-types - Update external .did files and regenerate Rust types"
 	@echo "  deploy          - Deploy canister (local: dfx, mainnet: uses volumetric.wasm)"
 	@echo "  reinstall-local - Reinstall local canister (wipes state)"
 	@echo "  verify          - Verify local build matches on-chain"

@@ -85,7 +85,7 @@ function BtcWalletInner() {
 
           {addresses.payment && (
             <div className="flex flex-col gap-1">
-              <span className="text-sm text-green-500 font-medium">Payment Address (bc1q...)</span>
+              <span className="text-sm text-green-500 font-medium">Payment Address (bc1q.../tb1q...)</span>
               <code className="text-xs bg-zinc-100 dark:bg-zinc-900 p-2 rounded break-all">
                 {addresses.payment}
               </code>
@@ -94,7 +94,7 @@ function BtcWalletInner() {
 
           {addresses.ordinals && (
             <div className="flex flex-col gap-1">
-              <span className="text-sm text-purple-500">Ordinals Address (bc1p...)</span>
+              <span className="text-sm text-purple-500">Ordinals Address (bc1p.../tb1p...)</span>
               <code className="text-xs bg-zinc-100 dark:bg-zinc-900 p-2 rounded break-all">
                 {addresses.ordinals}
               </code>

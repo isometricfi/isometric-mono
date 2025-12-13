@@ -65,8 +65,24 @@ For reproducible deployments, use the Docker-built wasm:
 
 ```bash
 make release                  # Build reproducible wasm
-make deploy-wasm TARGET=dev   # Deploy volumetric.wasm
+make deploy TARGET=dev        # Deploy volumetric.wasm
 make verify                   # Confirm hashes match
+```
+
+## Reinstalling (wiping state)
+
+⚠️ **Warning**: This permanently deletes all canister state.
+
+Local:
+
+```bash
+make reinstall-local
+```
+
+Mainnet:
+
+```bash
+dfx canister install volumetric_dev --network ic --mode reinstall --wasm volumetric.wasm
 ```
 
 ## Reproducible builds
