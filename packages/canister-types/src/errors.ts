@@ -32,6 +32,21 @@ export const ErrorCode = {
 
 export type ErrorCode = (typeof ErrorCode)[keyof typeof ErrorCode];
 
+const errorMessages: Record<ErrorCode, string> = {
+  [ErrorCode.UNAUTHORIZED_CONTROLLER]: "You are not authorized to perform this action",
+  [ErrorCode.UNAUTHORIZED_WHITELISTED]: "You are not authorized to perform this action",
+  [ErrorCode.INVALID_SIGNATURE]: "Signature verification failed",
+  [ErrorCode.PROFILE_NOT_FOUND]: "Profile not found",
+  [ErrorCode.PROFILE_ALREADY_REGISTERED]: "Account already exists",
+  [ErrorCode.INTER_CANISTER_CALL_FAILED]: "Service temporarily unavailable",
+  [ErrorCode.CONFIG_ERROR]: "Service configuration error",
+  [ErrorCode.INTERNAL_ERROR]: "An unexpected error occurred",
+};
+
+export function getErrorMessage(err: CanisterError): string {
+  return errorMessages[err.code as ErrorCode] ?? err.message;
+}
+
 export class CanisterError extends Error {
   code: number;
   errorName: string;
