@@ -7,9 +7,7 @@ pub async fn is_controller() -> Result<(), VolumetricError> {
     let caller_id = msg_caller();
 
     if !api_is_controller(&caller_id) {
-        return Err(VolumetricError::UnauthorizedController {
-            caller: caller_id.to_string(),
-        });
+        return Err(VolumetricError::unauthorized_controller(&caller_id.to_string()));
     }
 
     Ok(())
@@ -20,9 +18,7 @@ pub async fn is_whitelisted() -> Result<(), VolumetricError> {
 
     WHITELIST.with_borrow(|whitelist| {
         if !whitelist.contains_key(&caller_id) {
-            return Err(VolumetricError::UnauthorizedWhitelisted {
-                caller: caller_id.to_string(),
-            });
+            return Err(VolumetricError::unauthorized_whitelisted(&caller_id.to_string()));
         }
 
         Ok(())
