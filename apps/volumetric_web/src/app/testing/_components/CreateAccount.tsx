@@ -51,7 +51,9 @@ export function CreateAccount() {
       }
 
       const message = await canister.get_message_to_sign(address);
-      const signature = await primaryWallet.signMessage(message, { addressType: "payment" });
+      const signature = await primaryWallet.signMessage(message, {
+        addressType: "payment",
+      });
 
       if (!signature) {
         throw new Error("Failed to sign message");
@@ -128,7 +130,9 @@ export function CreateAccount() {
         </div>
 
         <div className="flex flex-col gap-2">
-          <span className="text-sm text-zinc-500">Subaccount (for deposits)</span>
+          <span className="text-sm text-zinc-500">
+            Subaccount (for deposits)
+          </span>
           <code className="text-xs bg-zinc-800 p-2 rounded break-all">
             {Array.from(accountInfo.subaccount as Uint8Array)
               .map((b: number) => b.toString(16).padStart(2, "0"))
@@ -161,7 +165,9 @@ export function CreateAccount() {
         disabled={createAccountMutation.isPending}
         className="px-4 py-2 bg-orange-500 text-white rounded-lg font-medium hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
       >
-        {createAccountMutation.isPending ? "Creating Account..." : "Create Account"}
+        {createAccountMutation.isPending
+          ? "Creating Account..."
+          : "Create Account"}
       </button>
 
       {error && <div className="text-sm text-red-500 p-2 bg-red-950 rounded">{error}</div>}

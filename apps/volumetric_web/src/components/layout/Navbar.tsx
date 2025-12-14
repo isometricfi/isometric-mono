@@ -31,19 +31,24 @@ export function Navbar() {
           </Link>
           <div className="flex items-center gap-3">
             <Button variant="ghost" size="sm">
-              <Link href="/">Writers</Link>
+              <Link href="/write">Write</Link>
             </Button>
             <Button variant="ghost" size="sm">
-              <Link href="/about">Buyers</Link>
+              <Link href="/buy">Buy</Link>
             </Button>
+            {!isLandingPage && (
+              <Button variant="ghost" size="sm">
+                <Link href="/portfolio">Portfolio</Link>
+              </Button>
+            )}
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 justify-center">
             <Button
               variant="ghost"
               size="icon"
               onClick={() => setTheme(theme === "light" ? "dark" : "light")}
               aria-label="Toggle theme"
-              className="md:block hidden"
+              className="md:flex hidden  items-center justify-center"
             >
               {theme === "light" ? <Moon className="size-5" /> : <Sun className="size-5" />}
             </Button>
