@@ -1,6 +1,5 @@
 use candid::Principal;
 use ic_cdk::api;
-use sha2::{Digest, Sha256};
 
 use crate::auth::types::{
     AuthenticatedPayload, ChallengeContext, CreateProfileRequest, SignableAction,
@@ -8,6 +7,7 @@ use crate::auth::types::{
 };
 use crate::auth::{derive_principal, derive_subaccount, verify_btc_signature};
 use crate::errors::VolumetricError;
+use crate::guards::is_whitelisted;
 use crate::storage::{
     create_profile, get_nonce, get_principal_for_wallet, get_profile, increment_nonce,
     is_wallet_registered, list_all_profiles, register_wallet, update_profile, BtcNetwork, Config,
@@ -30,9 +30,11 @@ pub struct UserInfo {
 }
 
 #[ic_cdk::update]
-pub fn create_account(
+pub async fn create_account(
     req: AuthenticatedPayload<CreateProfileRequest>,
 ) -> Result<ProfileInfo, VolumetricError> {
+    is_whitelisted().await?;
+
     let address = &req.wallet_proof.address;
     let wallet_key = WalletKey::from_address(address);
 
@@ -105,9 +107,11 @@ pub fn get_username_update_message(address: String, username: String) -> String 
 }
 
 #[ic_cdk::update]
-pub fn update_username(
+pub async fn update_username(
     req: AuthenticatedPayload<UpdateUsernameRequest>,
 ) -> Result<ProfileInfo, VolumetricError> {
+    is_whitelisted().await?;
+
     let address = &req.wallet_proof.address;
     let wallet_key = WalletKey::from_address(address);
 
@@ -156,18 +160,8 @@ pub fn build_challenge_context(wallet_key: &WalletKey) -> ChallengeContext {
     };
 
     ChallengeContext {
-        canister_id_hash: hash_canister_id(api::canister_self()),
+        canister_id: api::canister_self().to_text(),
         network,
         nonce,
     }
-}
-
-fn hash_canister_id(canister_id: Principal) -> String {
-    let digest = Sha256::digest(canister_id.as_slice());
-    let mut out = String::with_capacity(digest.len() * 2);
-    for b in digest {
-        use core::fmt::Write;
-        let _ = write!(&mut out, "{:02x}", b);
-    }
-    out
 }
