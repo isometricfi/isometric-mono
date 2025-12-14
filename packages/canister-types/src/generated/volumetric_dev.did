@@ -19,6 +19,7 @@ type Config = record {
   ckbtc_ledger : principal;
 };
 type DepositInfo = record { account : Account; btc_address : text };
+type ErrorDetails = record { caller : opt text };
 type ProfileInfo = record {
   "principal" : principal;
   username : opt text;
@@ -45,15 +46,11 @@ type UtxoStatus = variant {
   Minted : record { minted_amount : nat64; block_index : nat64; utxo : Utxo };
   Checked : Utxo;
 };
-type VolumetricError = variant {
-  Internal : text;
-  ProfileAlreadyRegistered;
-  ProfileNotFound;
-  InvalidSignature : text;
-  UnauthorizedWhitelisted : record { caller : text };
-  InterCanisterCallFailed : text;
-  UnauthorizedController : record { caller : text };
-  ConfigError : text;
+type VolumetricError = record {
+  code : nat32;
+  name : text;
+  message : text;
+  details : opt ErrorDetails;
 };
 type WalletProof = record { signature : text; address : text };
 type WithdrawCkbtcRequest = record { amount : nat64; btc_address : text };

@@ -3,15 +3,12 @@ export const idlFactory = ({ IDL }) => {
     'Mainnet' : IDL.Null,
     'Testnet' : IDL.Null,
   });
-  const VolumetricError = IDL.Variant({
-    'Internal' : IDL.Text,
-    'ProfileAlreadyRegistered' : IDL.Null,
-    'ProfileNotFound' : IDL.Null,
-    'InvalidSignature' : IDL.Text,
-    'UnauthorizedWhitelisted' : IDL.Record({ 'caller' : IDL.Text }),
-    'InterCanisterCallFailed' : IDL.Text,
-    'UnauthorizedController' : IDL.Record({ 'caller' : IDL.Text }),
-    'ConfigError' : IDL.Text,
+  const ErrorDetails = IDL.Record({ 'caller' : IDL.Opt(IDL.Text) });
+  const VolumetricError = IDL.Record({
+    'code' : IDL.Nat32,
+    'name' : IDL.Text,
+    'message' : IDL.Text,
+    'details' : IDL.Opt(ErrorDetails),
   });
   const Result = IDL.Variant({ 'Ok' : IDL.Null, 'Err' : VolumetricError });
   const WalletProof = IDL.Record({
