@@ -15,7 +15,7 @@ use super::accounts::build_challenge_context;
 fn get_user_subaccount(address: &str) -> Result<[u8; 32], VolumetricError> {
     let wallet_key = WalletKey::from_address(address);
     let principal =
-        get_principal_for_wallet(&wallet_key).ok_or(VolumetricError::ProfileNotFound)?;
+        get_principal_for_wallet(&wallet_key).ok_or_else(VolumetricError::profile_not_found)?;
     Ok(derive_subaccount(principal))
 }
 
@@ -67,15 +67,15 @@ pub async fn withdraw_ckbtc(
     let approve_response = ic_cdk::call::Call::unbounded_wait(ledger, "icrc2_approve")
         .with_arg(&approve_args)
         .await
-        .map_err(|e| VolumetricError::InterCanisterCallFailed(format!("icrc2_approve: {:?}", e)))?;
+        .map_err(|e| VolumetricError::inter_canister_call_failed(&format!("icrc2_approve: {:?}", e)))?;
 
     let approve_result: Result<Nat, icrc_ledger_types::icrc2::approve::ApproveError> =
         approve_response.candid().map_err(|e| {
-            VolumetricError::InterCanisterCallFailed(format!("icrc2_approve decode: {:?}", e))
+            VolumetricError::inter_canister_call_failed(&format!("icrc2_approve decode: {:?}", e))
         })?;
 
     approve_result.map_err(|e| {
-        VolumetricError::InterCanisterCallFailed(format!("icrc2_approve rejected: {:?}", e))
+        VolumetricError::inter_canister_call_failed(&format!("icrc2_approve rejected: {:?}", e))
     })?;
 
     let retrieve_args = RetrieveBtcWithApprovalArgs {
@@ -89,7 +89,7 @@ pub async fn withdraw_ckbtc(
             .with_arg(&retrieve_args)
             .await
             .map_err(|e| {
-                VolumetricError::InterCanisterCallFailed(format!(
+                VolumetricError::inter_canister_call_failed(&format!(
                     "retrieve_btc_with_approval: {:?}",
                     e
                 ))
@@ -97,14 +97,14 @@ pub async fn withdraw_ckbtc(
 
     let retrieve_result: Result<RetrieveBtcOk, RetrieveBtcWithApprovalError> =
         retrieve_response.candid().map_err(|e| {
-            VolumetricError::InterCanisterCallFailed(format!(
+            VolumetricError::inter_canister_call_failed(&format!(
                 "retrieve_btc_with_approval decode: {:?}",
                 e
             ))
         })?;
 
     let ok = retrieve_result.map_err(|_| {
-        VolumetricError::InterCanisterCallFailed("retrieve_btc_with_approval rejected".to_string())
+        VolumetricError::inter_canister_call_failed("retrieve_btc_with_approval rejected")
     })?;
 
     Ok(WithdrawResult {

@@ -17,7 +17,7 @@ pub struct DepositInfo {
 fn get_user_subaccount(address: &str) -> Result<[u8; 32], VolumetricError> {
     let wallet_key = WalletKey::from_address(address);
     let principal =
-        get_principal_for_wallet(&wallet_key).ok_or(VolumetricError::ProfileNotFound)?;
+        get_principal_for_wallet(&wallet_key).ok_or_else(VolumetricError::profile_not_found)?;
     Ok(derive_subaccount(principal))
 }
 
@@ -42,12 +42,10 @@ pub async fn get_deposit_address(address: String) -> Result<DepositInfo, Volumet
     let response = ic_cdk::call::Call::unbounded_wait(minter, "get_btc_address")
         .with_arg(&args)
         .await
-        .map_err(|e| {
-            VolumetricError::InterCanisterCallFailed(format!("get_btc_address: {:?}", e))
-        })?;
+        .map_err(|e| VolumetricError::inter_canister_call_failed(&format!("get_btc_address: {:?}", e)))?;
 
     let btc_address: String = response.candid().map_err(|e| {
-        VolumetricError::InterCanisterCallFailed(format!("get_btc_address decode: {:?}", e))
+        VolumetricError::inter_canister_call_failed(&format!("get_btc_address decode: {:?}", e))
     })?;
 
     let account = get_user_account(&address)?;
@@ -70,12 +68,10 @@ pub async fn update_ckbtc_balance(address: String) -> Result<Vec<UtxoStatus>, Vo
     let response = ic_cdk::call::Call::unbounded_wait(minter, "update_balance")
         .with_arg(&args)
         .await
-        .map_err(|e| {
-            VolumetricError::InterCanisterCallFailed(format!("update_balance: {:?}", e))
-        })?;
+        .map_err(|e| VolumetricError::inter_canister_call_failed(&format!("update_balance: {:?}", e)))?;
 
     let result: Result<Vec<UtxoStatus>, UpdateBalanceError> = response.candid().map_err(|e| {
-        VolumetricError::InterCanisterCallFailed(format!("update_balance decode: {:?}", e))
+        VolumetricError::inter_canister_call_failed(&format!("update_balance decode: {:?}", e))
     })?;
 
     result.map_err(|e| {
@@ -85,7 +81,7 @@ pub async fn update_ckbtc_balance(address: String) -> Result<Vec<UtxoStatus>, Vo
             UpdateBalanceError::AlreadyProcessing => "Already processing".to_string(),
             UpdateBalanceError::NoNewUtxos { .. } => "No new UTXOs".to_string(),
         };
-        VolumetricError::InterCanisterCallFailed(format!("update_balance: {}", msg))
+        VolumetricError::inter_canister_call_failed(&format!("update_balance: {}", msg))
     })
 }
 
@@ -97,12 +93,10 @@ pub async fn get_ckbtc_balance(address: String) -> Result<Nat, VolumetricError> 
     let response = ic_cdk::call::Call::unbounded_wait(ledger, "icrc1_balance_of")
         .with_arg(&account)
         .await
-        .map_err(|e| {
-            VolumetricError::InterCanisterCallFailed(format!("icrc1_balance_of: {:?}", e))
-        })?;
+        .map_err(|e| VolumetricError::inter_canister_call_failed(&format!("icrc1_balance_of: {:?}", e)))?;
 
     let balance: Nat = response.candid().map_err(|e| {
-        VolumetricError::InterCanisterCallFailed(format!("icrc1_balance_of decode: {:?}", e))
+        VolumetricError::inter_canister_call_failed(&format!("icrc1_balance_of decode: {:?}", e))
     })?;
 
     Ok(balance)

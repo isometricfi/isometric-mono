@@ -37,7 +37,7 @@ pub fn create_account(
     let wallet_key = WalletKey::from_address(address);
 
     if is_wallet_registered(&wallet_key) {
-        return Err(VolumetricError::ProfileAlreadyRegistered);
+        return Err(VolumetricError::profile_already_registered());
     }
 
     let context = build_challenge_context(&wallet_key);
@@ -112,9 +112,9 @@ pub fn update_username(
     let wallet_key = WalletKey::from_address(address);
 
     let principal =
-        get_principal_for_wallet(&wallet_key).ok_or(VolumetricError::ProfileNotFound)?;
+        get_principal_for_wallet(&wallet_key).ok_or_else(VolumetricError::profile_not_found)?;
 
-    let mut profile = get_profile(&principal).ok_or(VolumetricError::ProfileNotFound)?;
+    let mut profile = get_profile(&principal).ok_or_else(VolumetricError::profile_not_found)?;
 
     let context = build_challenge_context(&wallet_key);
     let message = req.data.signing_message(address, &context);

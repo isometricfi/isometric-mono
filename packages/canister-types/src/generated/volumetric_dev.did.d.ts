@@ -27,6 +27,7 @@ export interface Config {
   'ckbtc_ledger' : Principal,
 }
 export interface DepositInfo { 'account' : Account, 'btc_address' : string }
+export interface ErrorDetails { 'caller' : [] | [string] }
 export interface ProfileInfo {
   'principal' : Principal,
   'username' : [] | [string],
@@ -70,14 +71,12 @@ export type UtxoStatus = { 'ValueTooSmall' : Utxo } |
     }
   } |
   { 'Checked' : Utxo };
-export type VolumetricError = { 'Internal' : string } |
-  { 'ProfileAlreadyRegistered' : null } |
-  { 'ProfileNotFound' : null } |
-  { 'InvalidSignature' : string } |
-  { 'UnauthorizedWhitelisted' : { 'caller' : string } } |
-  { 'InterCanisterCallFailed' : string } |
-  { 'UnauthorizedController' : { 'caller' : string } } |
-  { 'ConfigError' : string };
+export interface VolumetricError {
+  'code' : number,
+  'name' : string,
+  'message' : string,
+  'details' : [] | [ErrorDetails],
+}
 export interface WalletProof { 'signature' : string, 'address' : string }
 export interface WithdrawCkbtcRequest {
   'amount' : bigint,

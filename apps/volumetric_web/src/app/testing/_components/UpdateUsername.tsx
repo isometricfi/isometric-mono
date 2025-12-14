@@ -3,6 +3,7 @@
 import { isBitcoinWallet } from "@dynamic-labs/bitcoin";
 import { useDynamicContext } from "@dynamic-labs/sdk-react-core";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { CanisterError, getErrorMessage, unwrapResult } from "@volumetric/canister-types";
 import { useState } from "react";
 import { useBtcAddress } from "@/hooks/use-btc-address";
 import { useCanister } from "@/hooks/use-canister";
@@ -70,19 +71,7 @@ export function UpdateUsername() {
         },
       });
 
-      if ("Err" in result) {
-        const err = result.Err;
-        if ("InvalidSignature" in err) {
-          throw new Error(err.InvalidSignature);
-        } else if ("ProfileNotFound" in err) {
-          throw new Error("Profile not found");
-        } else if ("Internal" in err) {
-          throw new Error(err.Internal);
-        }
-        throw new Error("Unknown error");
-      }
-
-      return result.Ok;
+      return unwrapResult(result);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["account", address] });
@@ -90,7 +79,11 @@ export function UpdateUsername() {
       setUsername("");
     },
     onError: (err) => {
-      setError(err instanceof Error ? err.message : "Failed to update username");
+      if (err instanceof CanisterError) {
+        setError(getErrorMessage(err));
+      } else {
+        setError(err instanceof Error ? err.message : "Failed to update username");
+      }
     },
   });
 
