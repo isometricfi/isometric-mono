@@ -5,6 +5,7 @@ use serde::{Deserialize, Serialize};
 use crate::auth::derive_subaccount;
 use crate::auth::types::WalletKey;
 use crate::errors::VolumetricError;
+use crate::guards::is_whitelisted;
 use crate::generated::ckbtc::{GetBtcAddressArg, UpdateBalanceArg, UpdateBalanceError, UtxoStatus};
 use crate::storage::{get_principal_for_wallet, Config};
 
@@ -31,6 +32,8 @@ fn get_user_account(address: &str) -> Result<Account, VolumetricError> {
 
 #[ic_cdk::update]
 pub async fn get_deposit_address(address: String) -> Result<DepositInfo, VolumetricError> {
+    is_whitelisted().await?;
+
     let subaccount = get_user_subaccount(&address)?;
     let minter = Config::ckbtc_minter();
 
@@ -57,6 +60,8 @@ pub async fn get_deposit_address(address: String) -> Result<DepositInfo, Volumet
 
 #[ic_cdk::update]
 pub async fn update_ckbtc_balance(address: String) -> Result<Vec<UtxoStatus>, VolumetricError> {
+    is_whitelisted().await?;
+
     let subaccount = get_user_subaccount(&address)?;
     let minter = Config::ckbtc_minter();
 
@@ -87,6 +92,8 @@ pub async fn update_ckbtc_balance(address: String) -> Result<Vec<UtxoStatus>, Vo
 
 #[ic_cdk::update]
 pub async fn get_ckbtc_balance(address: String) -> Result<Nat, VolumetricError> {
+    is_whitelisted().await?;
+
     let account = get_user_account(&address)?;
     let ledger = Config::ckbtc_ledger();
 

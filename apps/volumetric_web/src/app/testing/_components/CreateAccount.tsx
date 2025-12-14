@@ -3,8 +3,8 @@
 import { isBitcoinWallet } from "@dynamic-labs/bitcoin";
 import { useDynamicContext } from "@dynamic-labs/sdk-react-core";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { CanisterError, getErrorMessage, unwrapResult } from "@volumetric/canister-types";
 import { useState } from "react";
+import type { CreateAccountResponse } from "@/app/api/canister/create-account/route";
 import { useBtcAddress } from "@/hooks/use-btc-address";
 import { useCanister } from "@/hooks/use-canister";
 
@@ -39,19 +39,15 @@ export function CreateAccount() {
   });
 
   const createAccountMutation = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (): Promise<CreateAccountResponse> => {
       setError(null);
 
       if (!primaryWallet || !isBitcoinWallet(primaryWallet)) {
         throw new Error("Bitcoin wallet not connected");
       }
 
-      if (!canister) {
-        throw new Error("Canister not available");
-      }
-
-      if (!address) {
-        throw new Error("No address");
+      if (!canister || !address) {
+        throw new Error("Not ready");
       }
 
       const message = await canister.get_message_to_sign(address);
@@ -61,25 +57,25 @@ export function CreateAccount() {
         throw new Error("Failed to sign message");
       }
 
-      const result = await canister.create_account({
-        data: {},
-        wallet_proof: {
-          address,
-          signature,
-        },
+      const response = await fetch("/api/canister/create-account", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ address, signature }),
       });
 
-      return unwrapResult(result);
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error?.message || data.error || "Failed to create account");
+      }
+
+      return data;
     },
     onSuccess: () => {
       refetchAccount();
     },
     onError: (err) => {
-      if (err instanceof CanisterError) {
-        setError(getErrorMessage(err));
-      } else {
-        setError(err instanceof Error ? err.message : "Failed to create account");
-      }
+      setError(err instanceof Error ? err.message : "Failed to create account");
     },
   });
 

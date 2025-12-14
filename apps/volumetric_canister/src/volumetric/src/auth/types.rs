@@ -132,7 +132,7 @@ pub trait SignableAction {
 
 #[derive(Debug, Clone)]
 pub struct ChallengeContext {
-    pub canister_id_hash: String,
+    pub canister_id: String,
     pub network: &'static str,
     pub nonce: u64,
 }
@@ -144,7 +144,7 @@ impl SignableAction for CreateProfileRequest {
     fn signing_message(&self, address: &str, context: &ChallengeContext) -> String {
         format!(
             "Sign up for Volumetric\nAddress: {}\nCanister: {}\nNetwork: {}\nNonce: {}",
-            address, context.canister_id_hash, context.network, context.nonce
+            address, context.canister_id, context.network, context.nonce
         )
     }
 }
@@ -158,7 +158,7 @@ impl SignableAction for UpdateUsernameRequest {
     fn signing_message(&self, address: &str, context: &ChallengeContext) -> String {
         format!(
             "Update username to: {}\nAddress: {}\nCanister: {}\nNetwork: {}\nNonce: {}",
-            self.username, address, context.canister_id_hash, context.network, context.nonce
+            self.username, address, context.canister_id, context.network, context.nonce
         )
     }
 }
@@ -173,7 +173,7 @@ impl SignableAction for WithdrawCkbtcRequest {
     fn signing_message(&self, address: &str, context: &ChallengeContext) -> String {
         format!(
             "Withdraw {} sats to {}\nAddress: {}\nCanister: {}\nNetwork: {}\nNonce: {}",
-            self.amount, self.btc_address, address, context.canister_id_hash, context.network, context.nonce
+            self.amount, self.btc_address, address, context.canister_id, context.network, context.nonce
         )
     }
 }

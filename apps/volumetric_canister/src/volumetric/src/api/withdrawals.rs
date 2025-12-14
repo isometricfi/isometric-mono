@@ -5,6 +5,7 @@ use serde::{Deserialize, Serialize};
 use crate::auth::types::{AuthenticatedPayload, SignableAction, WalletKey, WithdrawCkbtcRequest};
 use crate::auth::{derive_subaccount, verify_btc_signature};
 use crate::errors::VolumetricError;
+use crate::guards::is_whitelisted;
 use crate::generated::ckbtc::{
     RetrieveBtcOk, RetrieveBtcWithApprovalArgs, RetrieveBtcWithApprovalError,
 };
@@ -36,6 +37,8 @@ pub fn get_withdraw_message(address: String, btc_address: String, amount: u64) -
 pub async fn withdraw_ckbtc(
     req: AuthenticatedPayload<WithdrawCkbtcRequest>,
 ) -> Result<WithdrawResult, VolumetricError> {
+    is_whitelisted().await?;
+
     let address = &req.wallet_proof.address;
     let wallet_key = WalletKey::from_address(address);
 

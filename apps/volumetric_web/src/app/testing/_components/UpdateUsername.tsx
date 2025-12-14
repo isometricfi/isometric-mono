@@ -3,8 +3,8 @@
 import { isBitcoinWallet } from "@dynamic-labs/bitcoin";
 import { useDynamicContext } from "@dynamic-labs/sdk-react-core";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { CanisterError, getErrorMessage, unwrapResult } from "@volumetric/canister-types";
 import { useState } from "react";
+import type { UpdateUsernameResponse } from "@/app/api/canister/update-username/route";
 import { useBtcAddress } from "@/hooks/use-btc-address";
 import { useCanister } from "@/hooks/use-canister";
 
@@ -37,19 +37,15 @@ export function UpdateUsername() {
   });
 
   const updateUsernameMutation = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (): Promise<UpdateUsernameResponse> => {
       setError(null);
 
       if (!primaryWallet || !isBitcoinWallet(primaryWallet)) {
         throw new Error("Bitcoin wallet not connected");
       }
 
-      if (!canister) {
-        throw new Error("Canister not available");
-      }
-
-      if (!address) {
-        throw new Error("No address");
+      if (!canister || !address) {
+        throw new Error("Not ready");
       }
 
       if (!username.trim()) {
@@ -63,15 +59,19 @@ export function UpdateUsername() {
         throw new Error("Failed to sign message");
       }
 
-      const result = await canister.update_username({
-        data: { username },
-        wallet_proof: {
-          address,
-          signature,
-        },
+      const response = await fetch("/api/canister/update-username", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ address, signature, username }),
       });
 
-      return unwrapResult(result);
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error?.message || data.error || "Failed to update username");
+      }
+
+      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["account", address] });
@@ -79,11 +79,7 @@ export function UpdateUsername() {
       setUsername("");
     },
     onError: (err) => {
-      if (err instanceof CanisterError) {
-        setError(getErrorMessage(err));
-      } else {
-        setError(err instanceof Error ? err.message : "Failed to update username");
-      }
+      setError(err instanceof Error ? err.message : "Failed to update username");
     },
   });
 

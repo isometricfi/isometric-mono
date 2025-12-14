@@ -50,7 +50,7 @@ export function Navbar() {
 
             {isLandingPage ? (
               <Button asChild>
-                <Link href="/app">Open App</Link>
+                <Link href="/testing">Open App</Link>
               </Button>
             ) : isConfigured ? (
               <ConnectButton />

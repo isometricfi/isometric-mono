@@ -4,6 +4,9 @@ import { isBitcoinWallet } from "@dynamic-labs/bitcoin";
 import { useDynamicContext } from "@dynamic-labs/sdk-react-core";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useState } from "react";
+import type { GetCkbtcBalanceResponse } from "@/app/api/canister/get-ckbtc-balance/route";
+import type { GetDepositAddressResponse } from "@/app/api/canister/get-deposit-address/route";
+import type { WithdrawCkbtcResponse } from "@/app/api/canister/withdraw-ckbtc/route";
 import { useBtcAddress } from "@/hooks/use-btc-address";
 import { useCanister } from "@/hooks/use-canister";
 
@@ -32,15 +35,24 @@ export function CkbtcWallet() {
     refetch: refetchDeposit,
   } = useQuery({
     queryKey: ["depositAddress", address],
-    queryFn: async () => {
-      if (!canister || !address) return null;
-      const result = await canister.get_deposit_address(address);
-      if ("Err" in result) {
-        throw new Error(JSON.stringify(result.Err));
+    queryFn: async (): Promise<GetDepositAddressResponse | null> => {
+      if (!address) return null;
+
+      const response = await fetch("/api/canister/get-deposit-address", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ address }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error?.message || data.error || "Failed to get deposit address");
       }
-      return result.Ok;
+
+      return data;
     },
-    enabled: !!canister && !!address && !!accountInfo,
+    enabled: !!address && !!accountInfo,
   });
 
   const {
@@ -49,26 +61,44 @@ export function CkbtcWallet() {
     refetch: refetchBalance,
   } = useQuery({
     queryKey: ["ckbtcBalance", address],
-    queryFn: async () => {
-      if (!canister || !address) return null;
-      const result = await canister.get_ckbtc_balance(address);
-      if ("Err" in result) {
-        throw new Error(JSON.stringify(result.Err));
+    queryFn: async (): Promise<bigint | null> => {
+      if (!address) return null;
+
+      const response = await fetch("/api/canister/get-ckbtc-balance", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ address }),
+      });
+
+      const data: GetCkbtcBalanceResponse = await response.json();
+
+      if (!response.ok) {
+        throw new Error("Failed to get balance");
       }
-      return result.Ok;
+
+      return BigInt(data.balance);
     },
-    enabled: !!canister && !!address && !!accountInfo,
+    enabled: !!address && !!accountInfo,
     refetchInterval: 30000,
   });
 
   const updateBalanceMutation = useMutation({
     mutationFn: async () => {
-      if (!canister || !address) throw new Error("Not ready");
-      const result = await canister.update_ckbtc_balance(address);
-      if ("Err" in result) {
-        throw new Error(JSON.stringify(result.Err));
+      if (!address) throw new Error("Not ready");
+
+      const response = await fetch("/api/canister/update-ckbtc-balance", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ address }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error?.message || data.error || "Failed to update balance");
       }
-      return result.Ok;
+
+      return data;
     },
     onSuccess: () => {
       refetchBalance();
@@ -102,7 +132,7 @@ export function CkbtcWallet() {
   });
 
   const withdrawMutation = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (): Promise<WithdrawCkbtcResponse> => {
       if (!canister || !address) throw new Error("Not ready");
       if (!primaryWallet || !isBitcoinWallet(primaryWallet)) {
         throw new Error("Bitcoin wallet not connected");
@@ -117,21 +147,24 @@ export function CkbtcWallet() {
         throw new Error("Failed to sign message");
       }
 
-      const result = await canister.withdraw_ckbtc({
-        data: {
-          btc_address: withdrawBtcAddress,
-          amount,
-        },
-        wallet_proof: {
+      const response = await fetch("/api/canister/withdraw-ckbtc", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
           address,
           signature,
-        },
+          btcAddress: withdrawBtcAddress,
+          amount: amount.toString(),
+        }),
       });
 
-      if ("Err" in result) {
-        throw new Error(JSON.stringify(result.Err));
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error?.message || data.error || "Failed to withdraw");
       }
-      return result.Ok;
+
+      return data;
     },
     onSuccess: () => {
       refetchBalance();
@@ -334,7 +367,7 @@ export function CkbtcWallet() {
           <div className="p-3 bg-green-950 border border-green-800 rounded-lg">
             <div className="text-sm text-green-400 mb-1">Withdrawal Submitted</div>
             <div className="text-xs text-zinc-300">
-              Block Index: {withdrawMutation.data.block_index.toString()}
+              Block Index: {withdrawMutation.data.block_index}
             </div>
           </div>
         )}
