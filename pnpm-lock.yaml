@@ -31,6 +31,9 @@ importers:
       '@dfinity/candid':
         specifier: ^2.2.0
         version: 2.4.1(@dfinity/principal@2.4.1)
+      '@dfinity/identity':
+        specifier: 2.2.0
+        version: 2.2.0(@dfinity/agent@2.4.1(@dfinity/candid@2.4.1(@dfinity/principal@2.4.1))(@dfinity/principal@2.4.1))(@dfinity/principal@2.4.1)
       '@dfinity/principal':
         specifier: ^2.2.0
         version: 2.4.1
@@ -76,6 +79,9 @@ importers:
       tailwind-merge:
         specifier: ^3.4.0
         version: 3.4.0
+      zod:
+        specifier: 4.0.5
+        version: 4.0.5
     devDependencies:
       '@tailwindcss/postcss':
         specifier: ^4
@@ -89,6 +95,9 @@ importers:
       '@types/react-dom':
         specifier: ^19
         version: 19.2.3(@types/react@19.2.7)
+      bip39:
+        specifier: ^3.1.0
+        version: 3.1.0
       tailwindcss:
         specifier: ^4
         version: 4.1.17
@@ -187,6 +196,12 @@ packages:
     resolution: {integrity: sha512-kOaIKfhR2PYN8vD4M0Pc4s/7wb1nKjlTJUw+5E9jh26T03fITIZmaafIuwlX+wmdxwIT9Xoy7PlsxOEpzv203A==}
     peerDependencies:
       '@dfinity/principal': ^2.4.1
+
+  '@dfinity/identity@2.2.0':
+    resolution: {integrity: sha512-4L/i6pDYrGnpgnITHJR1Tb5umawqytZ8BhCE7G1MzG2ftWJ0SO1QJxRDwp5Nuj/fNZumq+ILSc3o3ItzaUs1iQ==}
+    peerDependencies:
+      '@dfinity/agent': ^2.2.0
+      '@dfinity/principal': ^2.2.0
 
   '@dfinity/principal@2.4.1':
     resolution: {integrity: sha512-Cz6XQVOwq0TXDBClPbcidDd4SqK1lfr1/Kn34ruDD13xVQ4iaP1iCntzS9O97+vGpY/6jwDtKd32Gn5YJ9BQNw==}
@@ -857,6 +872,9 @@ packages:
   bip174@2.1.1:
     resolution: {integrity: sha512-mdFV5+/v0XyNYXjBS6CQPLo9ekCx4gtKZFnJm5PMto7Fs9hTTDpkkzOB7/FtluRI6JbUUAu+snTYfJRgHLZbZQ==}
     engines: {node: '>=8.0.0'}
+
+  bip39@3.1.0:
+    resolution: {integrity: sha512-c9kiwdk45Do5GL0vJMe7tS95VjCii65mYAH7DfWl3uW8AVzXKQVUm64i3hzVybBDMp9r7j9iNxR85+ul8MdN/A==}
 
   bitcoin-address-validation@3.0.0:
     resolution: {integrity: sha512-R1X1c9EdgjgjTpjshjk5e16TbgF7HYasxBcu7l5ScWMxVs53845vMUg5PvnQ/R/3h8Grly6Y52DgH6/77gazLQ==}
@@ -1855,6 +1873,14 @@ snapshots:
     dependencies:
       '@dfinity/principal': 2.4.1
 
+  '@dfinity/identity@2.2.0(@dfinity/agent@2.4.1(@dfinity/candid@2.4.1(@dfinity/principal@2.4.1))(@dfinity/principal@2.4.1))(@dfinity/principal@2.4.1)':
+    dependencies:
+      '@dfinity/agent': 2.4.1(@dfinity/candid@2.4.1(@dfinity/principal@2.4.1))(@dfinity/principal@2.4.1)
+      '@dfinity/principal': 2.4.1
+      '@noble/curves': 1.9.7
+      '@noble/hashes': 1.8.0
+      borc: 2.1.2
+
   '@dfinity/principal@2.4.1':
     dependencies:
       '@noble/hashes': 1.8.0
@@ -2566,6 +2592,10 @@ snapshots:
   bignumber.js@9.3.1: {}
 
   bip174@2.1.1: {}
+
+  bip39@3.1.0:
+    dependencies:
+      '@noble/hashes': 1.8.0
 
   bitcoin-address-validation@3.0.0:
     dependencies:
