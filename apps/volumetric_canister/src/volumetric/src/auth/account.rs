@@ -35,23 +35,40 @@ mod tests {
 
     #[test]
     fn test_derive_principal_deterministic() {
+        // given
         let addr = "bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh";
+
+        // when
         let p1 = derive_principal(addr);
         let p2 = derive_principal(addr);
+
+        // then
         assert_eq!(p1, p2);
     }
 
     #[test]
     fn test_derive_principal_unique() {
-        let p1 = derive_principal("bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh");
-        let p2 = derive_principal("bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq");
+        // given
+        let addr1 = "bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh";
+        let addr2 = "bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq";
+
+        // when
+        let p1 = derive_principal(addr1);
+        let p2 = derive_principal(addr2);
+
+        // then
         assert_ne!(p1, p2);
     }
 
     #[test]
     fn test_derive_subaccount() {
+        // given
         let principal = derive_principal("bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh");
+
+        // when
         let sub = derive_subaccount(principal);
+
+        // then
         assert_eq!(sub.len(), SUBACCOUNT_SIZE);
         let empty_subaccount = [0u8; SUBACCOUNT_SIZE];
         assert_ne!(sub, empty_subaccount);

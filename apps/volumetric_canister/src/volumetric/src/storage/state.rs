@@ -8,11 +8,24 @@ use super::cbor::Cbor;
 use super::config::Config;
 
 pub enum MemoryIndex {
+    /// Canister configuration (ckBTC ledger principal, etc.)
     ConfigMemory = 0,
+    /// Admin whitelist for privileged operations
     WhitelistMemory = 1,
+    /// Replay protection nonces for signature verification
     NoncesMemory = 2,
+    /// User profiles linked to Bitcoin addresses
     ProfilesMemory = 3,
+    /// Bitcoin address to Principal mapping
     WalletsMemory = 4,
+    /// User ckBTC balances (available + locked as writer)
+    BalancesMemory = 5,
+    /// Option offers created by writers
+    OffersMemory = 6,
+    /// Active options between buyers and writers
+    ActiveOptionsMemory = 7,
+    /// Auto-increment ID counters (offers, options, fill groups)
+    CountersMemory = 8,
 }
 
 pub type Memory = VirtualMemory<DefaultMemoryImpl>;

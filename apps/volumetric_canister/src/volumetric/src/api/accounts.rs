@@ -43,9 +43,9 @@ pub async fn create_account(
     }
 
     let context = build_challenge_context(&wallet_key);
-    let message = req.data.signing_message(address, &context);
+    let reconstructed_message = req.data.signing_message(address, &context);
 
-    verify_btc_signature(address, &message, &req.wallet_proof.signature)?;
+    verify_btc_signature(address, &reconstructed_message, &req.wallet_proof.signature)?;
 
     increment_nonce(&wallet_key);
 
@@ -121,9 +121,9 @@ pub async fn update_username(
     let mut profile = get_profile(&principal).ok_or_else(VolumetricError::profile_not_found)?;
 
     let context = build_challenge_context(&wallet_key);
-    let message = req.data.signing_message(address, &context);
+    let reconstructed_message = req.data.signing_message(address, &context);
 
-    verify_btc_signature(address, &message, &req.wallet_proof.signature)?;
+    verify_btc_signature(address, &reconstructed_message, &req.wallet_proof.signature)?;
 
     increment_nonce(&wallet_key);
 

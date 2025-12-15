@@ -5,20 +5,13 @@ use serde::{Deserialize, Serialize};
 use crate::auth::types::{AuthenticatedPayload, SignableAction, WalletKey, WithdrawCkbtcRequest};
 use crate::auth::{derive_subaccount, verify_btc_signature};
 use crate::errors::VolumetricError;
-use crate::guards::is_whitelisted;
 use crate::generated::ckbtc::{
     RetrieveBtcOk, RetrieveBtcWithApprovalArgs, RetrieveBtcWithApprovalError,
 };
-use crate::storage::{get_principal_for_wallet, increment_nonce, Config};
+use crate::guards::is_whitelisted;
+use crate::storage::{get_balance, get_principal_for_wallet, increment_nonce, Config};
 
 use super::accounts::build_challenge_context;
-
-fn get_user_subaccount(address: &str) -> Result<[u8; 32], VolumetricError> {
-    let wallet_key = WalletKey::from_address(address);
-    let principal =
-        get_principal_for_wallet(&wallet_key).ok_or_else(VolumetricError::profile_not_found)?;
-    Ok(derive_subaccount(principal))
-}
 
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
 pub struct WithdrawResult {
@@ -29,7 +22,10 @@ pub struct WithdrawResult {
 pub fn get_withdraw_message(address: String, btc_address: String, amount: u64) -> String {
     let wallet_key = WalletKey::from_address(&address);
     let context = build_challenge_context(&wallet_key);
-    let req = WithdrawCkbtcRequest { btc_address, amount };
+    let req = WithdrawCkbtcRequest {
+        btc_address,
+        amount,
+    };
     req.signing_message(&address, &context)
 }
 
@@ -43,13 +39,24 @@ pub async fn withdraw_ckbtc(
     let wallet_key = WalletKey::from_address(address);
 
     let context = build_challenge_context(&wallet_key);
-    let message = req.data.signing_message(address, &context);
+    let reconstructed_message = req.data.signing_message(address, &context);
 
-    verify_btc_signature(address, &message, &req.wallet_proof.signature)?;
+    verify_btc_signature(address, &reconstructed_message, &req.wallet_proof.signature)?;
 
     increment_nonce(&wallet_key);
 
-    let subaccount = get_user_subaccount(address)?;
+    let principal =
+        get_principal_for_wallet(&wallet_key).ok_or_else(VolumetricError::profile_not_found)?;
+
+    let balance = get_balance(&principal);
+    if balance.available < req.data.amount {
+        return Err(VolumetricError::insufficient_balance(
+            balance.available,
+            req.data.amount,
+        ));
+    }
+
+    let subaccount = derive_subaccount(principal);
     let minter = Config::ckbtc_minter();
     let ledger = Config::ckbtc_ledger();
 
@@ -70,7 +77,9 @@ pub async fn withdraw_ckbtc(
     let approve_response = ic_cdk::call::Call::unbounded_wait(ledger, "icrc2_approve")
         .with_arg(&approve_args)
         .await
-        .map_err(|e| VolumetricError::inter_canister_call_failed(&format!("icrc2_approve: {:?}", e)))?;
+        .map_err(|e| {
+            VolumetricError::inter_canister_call_failed(&format!("icrc2_approve: {:?}", e))
+        })?;
 
     let approve_result: Result<Nat, icrc_ledger_types::icrc2::approve::ApproveError> =
         approve_response.candid().map_err(|e| {

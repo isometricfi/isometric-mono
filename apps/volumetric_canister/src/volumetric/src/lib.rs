@@ -9,23 +9,37 @@ pub mod auth;
 pub mod errors;
 pub mod generated;
 pub mod guards;
+pub mod oracle;
 pub mod storage;
+pub mod usecases;
 
 pub use api::accounts::{ProfileInfo, UserInfo};
 pub use api::deposits::DepositInfo;
 pub use api::withdrawals::WithdrawResult;
 pub use api::{
+    accept_offers, cancel_offer, create_offer, get_active_option_by_id, get_cancel_offer_message,
+    get_create_offer_message, get_my_offers, get_my_options, get_my_written_options,
+    get_offer_by_id, get_open_offers, get_pending_settlements, settle_expired_options,
+    settle_option_by_id, testing_expire_option, testing_force_settle, testing_set_option_expiry,
+    AcceptOfferItem, AcceptOffersRequest, AcceptOffersResponse, CancelOfferRequest,
+    CreateOfferRequest, CreateOfferResponse, SettleExpiredOptionsResponse, SettlementResult,
+};
+pub use api::{
     add_whitelisted, create_account, get_account_info, get_account_nonce, get_ckbtc_balance,
     get_config, get_deposit_address, get_message_to_sign, get_username_update_message,
-    get_withdraw_message, list_users, list_whitelisted, remove_whitelisted, set_temp,
-    update_ckbtc_balance, update_username, withdraw_ckbtc,
+    get_withdraw_message, list_users, list_whitelisted, remove_whitelisted, set_oracle_price,
+    set_temp, testing_sync_balance_from_ledger, update_ckbtc_balance, update_username,
+    withdraw_ckbtc,
 };
 pub use auth::types::{
     AuthenticatedPayload, CreateProfileRequest, UpdateUsernameRequest, WithdrawCkbtcRequest,
 };
 pub use errors::VolumetricError;
 pub use generated::ckbtc::{Utxo, UtxoOutpoint, UtxoStatus};
-pub use storage::BtcNetwork;
+pub use storage::{
+    ActiveOption, ActiveOptionStatus, Asset, BtcNetwork, Offer, OfferStatus, OptionType,
+    UserBalance, MINIMUM_QUANTITY_SATS,
+};
 
 use crate::storage::{Cbor, Config, CONFIG};
 
@@ -41,6 +55,8 @@ fn init(btc_network: Option<BtcNetwork>) {
             let _ = config.set(Cbor(new_config));
         });
     });
+
+    api::setup_settlement_timer();
 }
 
 #[ic_cdk::query]
