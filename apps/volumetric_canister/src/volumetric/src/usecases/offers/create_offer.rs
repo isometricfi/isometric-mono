@@ -7,12 +7,13 @@ use crate::storage::{
 };
 
 const MAX_PREMIUM_BASIS_POINTS: u16 = 10_000;
+const MAX_STRIKE_BASIS_POINTS: u16 = 10_000;
 const MIN_OPTION_DURATION_SECONDS: u64 = 60;
 
 pub struct CreateOfferParams {
     pub asset: Asset,
     pub option_type: OptionType,
-    pub strike_price_cents: u64,
+    pub strike_basis_points: u16,
     pub premium_basis_points: u16,
     pub quantity: u64,
     pub offer_valid_until: u64,
@@ -30,9 +31,9 @@ pub fn create_offer_use_case(
         ));
     }
 
-    if params.strike_price_cents == 0 {
+    if params.strike_basis_points > MAX_STRIKE_BASIS_POINTS {
         return Err(VolumetricError::internal(
-            "Strike price must be greater than 0",
+            "Strike basis points cannot exceed 10000 (100%)",
         ));
     }
 
@@ -71,7 +72,7 @@ pub fn create_offer_use_case(
         writer,
         asset: params.asset,
         option_type: params.option_type,
-        strike_price_cents: params.strike_price_cents,
+        strike_basis_points: params.strike_basis_points,
         premium_basis_points: params.premium_basis_points,
         total_quantity: params.quantity,
         remaining_quantity: params.quantity,

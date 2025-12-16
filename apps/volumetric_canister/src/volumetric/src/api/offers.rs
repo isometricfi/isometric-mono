@@ -15,7 +15,7 @@ use crate::usecases;
 pub struct CreateOfferRequest {
     pub asset: Asset,
     pub option_type: OptionType,
-    pub strike_price_cents: u64,
+    pub strike_basis_points: u16,
     pub premium_basis_points: u16,
     pub quantity: u64,
     pub offer_valid_until: u64,
@@ -25,8 +25,8 @@ pub struct CreateOfferRequest {
 impl SignableAction for CreateOfferRequest {
     fn signing_message(&self, address: &str, context: &ChallengeContext) -> String {
         format!(
-            "Create option offer\nQuantity: {} sats\nStrike: {} cents\nPremium: {} bps\nAddress: {}\nCanister: {}\nNetwork: {}\nNonce: {}",
-            self.quantity, self.strike_price_cents, self.premium_basis_points,
+            "Create option offer\nQuantity: {} sats\nStrike: {} bps\nPremium: {} bps\nAddress: {}\nCanister: {}\nNetwork: {}\nNonce: {}",
+            self.quantity, self.strike_basis_points, self.premium_basis_points,
             address, context.canister_id, context.network, context.nonce
         )
     }
@@ -41,7 +41,7 @@ pub struct CreateOfferResponse {
 pub fn get_create_offer_message(
     wallet_address: String,
     quantity: u64,
-    strike_price_cents: u64,
+    strike_basis_points: u16,
     premium_basis_points: u16,
 ) -> String {
     let wallet_key = WalletKey::from_address(&wallet_address);
@@ -49,7 +49,7 @@ pub fn get_create_offer_message(
     let req = CreateOfferRequest {
         asset: Asset::CkBtc,
         option_type: OptionType::Call,
-        strike_price_cents,
+        strike_basis_points,
         premium_basis_points,
         quantity,
         offer_valid_until: 0,
@@ -80,7 +80,7 @@ pub async fn create_offer(
     let params = usecases::CreateOfferParams {
         asset: req.data.asset,
         option_type: req.data.option_type,
-        strike_price_cents: req.data.strike_price_cents,
+        strike_basis_points: req.data.strike_basis_points,
         premium_basis_points: req.data.premium_basis_points,
         quantity: req.data.quantity,
         offer_valid_until: req.data.offer_valid_until,

@@ -104,7 +104,7 @@ pub struct Offer {
     pub writer: Principal,
     pub asset: Asset,
     pub option_type: OptionType,
-    pub strike_price_cents: u64,
+    pub strike_basis_points: u16,
     pub premium_basis_points: u16,
     pub total_quantity: u64,
     pub remaining_quantity: u64,
@@ -123,6 +123,7 @@ pub struct ActiveOption {
     pub asset: Asset,
     pub option_type: OptionType,
     pub quantity: u64,
+    pub entry_price_cents: u64,
     pub strike_price_cents: u64,
     pub premium_paid: u64,
     pub accepted_at: u64,
@@ -256,4 +257,55 @@ pub fn list_expired_active_options(current_time: u64) -> Vec<ActiveOption> {
 
 pub fn calculate_premium(quantity: u64, premium_basis_points: u16) -> u64 {
     (quantity as u128 * premium_basis_points as u128 / 10_000) as u64
+}
+
+pub fn calculate_strike_price(entry_price_cents: u64, strike_basis_points: u16) -> u64 {
+    let increase = (entry_price_cents as u128 * strike_basis_points as u128) / 10_000;
+    entry_price_cents.saturating_add(increase as u64)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_calculate_strike_price_5_percent() {
+        // given
+        let entry_price_cents: u64 = 100_000_00;
+        let strike_basis_points: u16 = 500;
+
+        // when
+        let strike = calculate_strike_price(entry_price_cents, strike_basis_points);
+
+        // then
+        let expected = 105_000_00;
+        assert_eq!(strike, expected);
+    }
+
+    #[test]
+    fn test_calculate_strike_price_10_percent() {
+        // given
+        let entry_price_cents: u64 = 100_000_00;
+        let strike_basis_points: u16 = 1000;
+
+        // when
+        let strike = calculate_strike_price(entry_price_cents, strike_basis_points);
+
+        // then
+        let expected = 110_000_00;
+        assert_eq!(strike, expected);
+    }
+
+    #[test]
+    fn test_calculate_strike_price_zero() {
+        // given
+        let entry_price_cents: u64 = 100_000_00;
+        let strike_basis_points: u16 = 0;
+
+        // when
+        let strike = calculate_strike_price(entry_price_cents, strike_basis_points);
+
+        // then
+        assert_eq!(strike, entry_price_cents);
+    }
 }

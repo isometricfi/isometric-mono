@@ -20,6 +20,7 @@ export interface ActiveOption {
   'status' : ActiveOptionStatus,
   'option_type' : OptionType,
   'fill_group_id' : [] | [bigint],
+  'entry_price_cents' : bigint,
   'asset' : Asset,
   'accepted_at' : bigint,
   'writer' : Principal,
@@ -68,10 +69,10 @@ export interface CreateOfferRequest {
   'option_type' : OptionType,
   'asset' : Asset,
   'offer_valid_until' : bigint,
+  'strike_basis_points' : number,
   'premium_basis_points' : number,
   'quantity' : bigint,
   'option_duration_seconds' : bigint,
-  'strike_price_cents' : bigint,
 }
 export interface CreateOfferResponse { 'offer' : Offer }
 export interface DepositInfo { 'account' : Account, 'btc_address' : string }
@@ -89,10 +90,10 @@ export interface Offer {
   'offer_valid_until' : bigint,
   'created_at' : bigint,
   'writer' : Principal,
+  'strike_basis_points' : number,
   'remaining_quantity' : bigint,
   'premium_basis_points' : number,
   'option_duration_seconds' : bigint,
-  'strike_price_cents' : bigint,
 }
 export type OfferStatus = { 'Open' : null } |
   { 'PartiallyFilled' : null } |
@@ -204,7 +205,7 @@ export interface _SERVICE {
   'get_ckbtc_balance' : ActorMethod<[string], Result_5>,
   'get_config' : ActorMethod<[], Config>,
   'get_create_offer_message' : ActorMethod<
-    [string, bigint, bigint, number],
+    [string, bigint, number, number],
     string
   >,
   'get_deposit_address' : ActorMethod<[string], Result_6>,
