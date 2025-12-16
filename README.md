@@ -27,11 +27,12 @@ Build a decentralized options trading MVP on ICP using ckAssets for collateral a
 
 ## 3. System Components
 
-### A) Collateral & Escrow (ckAssets)
+### A) Collateral & Balances (ckAssets)
 
-- All funds live as **ckAssets** inside canisters (escrow canister)
+- All funds live as **ckAssets** in user subaccounts within the canister
 - Writer must deposit collateral to create sell liquidity (sell calls / sell puts)
-- Buyer deposits premium at purchase time into escrow; escrow releases premium to writer instantly
+- When an option is accepted, collateral is locked (available → locked_as_writer)
+- Premium is transferred directly from buyer to writer at acceptance time
 
 ### B) Contract Standardization
 
@@ -77,7 +78,7 @@ This is the same "menu" idea that makes traditional options fungible and easy to
 - If you want payout in ckBTC, you'll compute a BTC-denominated payout from the USD intrinsic value using S
 - **Intrinsic USD value:** `(S - K) × q`
 - **Payout in BTC (conceptually):** `((S - K) / S) × q`
-- Escrow transfers payout ckBTC from locked collateral to buyer
+- Payout ckBTC is transferred from writer's locked collateral to buyer
 - Writer keeps premium, loses payout amount from collateral
 
 > **Note:** This "BTC-settled intrinsic" approach is the clean way to keep everything in ckBTC while referencing USD.

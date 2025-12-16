@@ -23,7 +23,7 @@ Offer {
 
 ### ActiveOption
 
-Created when a buyer accepts an offer. Collateral is locked in an escrow subaccount.
+Created when a buyer accepts an offer. Writer's collateral is locked (moved from available to locked_as_writer in their balance).
 
 ```rust
 ActiveOption {
@@ -36,7 +36,7 @@ ActiveOption {
     strike_price: u64,
     premium_paid: u64,
     expiry: u64,
-    status: Active | Exercised | Expired | Settled,
+    status: Active | Settling | Expired | Settled,
     accepted_at: u64,
 }
 ```
@@ -44,15 +44,16 @@ ActiveOption {
 ## Fund Flows
 
 ```
-Writer Subaccount ─────┬─────────────────────────────> Writer Subaccount
-                       │                                     ▲
-                       │ collateral                          │ premium
-                       ▼                                     │
-                Option Escrow                          Buyer Subaccount
-                       │
-                       │ settlement
-                       ▼
-              Winner's Subaccount
+ACCEPT OFFER:
+  Writer: available → locked_as_writer (collateral lock, no transfer)
+  Buyer → Writer: premium (ckBTC transfer)
+
+SETTLEMENT (ITM):
+  Writer: locked_as_writer → Buyer: available (payout, ckBTC transfer)
+  Writer: locked_as_writer → available (remaining collateral unlock)
+
+SETTLEMENT (OTM):
+  Writer: locked_as_writer → available (full collateral unlock)
 ```
 
 ## Example Flows
@@ -64,8 +65,8 @@ Alice offers 0.1 BTC. Bob accepts all of it.
 | Step | Action | Result |
 |------|--------|--------|
 | 1 | Alice: `create_offer(0.1 BTC)` | Offer #1 created, no funds moved |
-| 2 | Bob: `accept_offer(#1, 0.1 BTC)` | Collateral: Alice → Escrow #1 |
-| | | Premium: Bob → Alice |
+| 2 | Bob: `accept_offer(#1, 0.1 BTC)` | Alice: available → locked (collateral) |
+| | | Premium: Bob → Alice (transfer) |
 | | | ActiveOption #1 created |
 
 ### 2. Partial Fills
@@ -79,7 +80,7 @@ Alice offers 1 BTC. Three buyers each take a piece.
 | 3 | Carol: `accept_offer(#1, 0.5 BTC)` | PartiallyFilled (0.2 BTC) | #2: Carol, 0.5 BTC |
 | 4 | Dave: `accept_offer(#1, 0.2 BTC)` | Filled (0 BTC) | #3: Dave, 0.2 BTC |
 
-Result: 1 offer → 3 separate ActiveOptions, each with its own escrow.
+Result: 1 offer → 3 separate ActiveOptions, each with locked collateral from Alice.
 
 ### 3. Stitching
 

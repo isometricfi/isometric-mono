@@ -149,6 +149,31 @@ pub fn release_locked_to_recipient(
     })
 }
 
+// Reverses release_locked_to_recipient: moves funds from recipient's available back to writer's locked.
+// Used when a ledger transfer fails after the internal balance update succeeded.
+pub fn reverse_release_locked_to_recipient(
+    writer: Principal,
+    recipient: Principal,
+    amount: u64,
+) -> Result<(), InsufficientBalance> {
+    BALANCES.with_borrow_mut(|b| {
+        let mut recipient_balance = b.get(&recipient).map(|c| c.0).unwrap_or_default();
+        if recipient_balance.available < amount {
+            return Err(InsufficientBalance {
+                available: recipient_balance.available,
+                required: amount,
+            });
+        }
+        recipient_balance.available = recipient_balance.available.saturating_sub(amount);
+        b.insert(recipient, Cbor(recipient_balance));
+
+        let mut writer_balance = b.get(&writer).map(|c| c.0).unwrap_or_default();
+        writer_balance.locked_as_writer = writer_balance.locked_as_writer.saturating_add(amount);
+        b.insert(writer, Cbor(writer_balance));
+        Ok(())
+    })
+}
+
 #[derive(Debug, Clone)]
 pub struct InsufficientBalance {
     pub available: u64,

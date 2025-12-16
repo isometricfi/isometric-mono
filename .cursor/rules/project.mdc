@@ -1,6 +1,6 @@
 ---
 description: General project context for the Volumetric monorepo
-globs:
+alwaysApply: true
 ---
 
 # Volumetric Monorepo

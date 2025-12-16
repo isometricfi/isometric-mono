@@ -1,8 +1,12 @@
 pub mod accept_offers;
 pub mod cancel_offer;
 pub mod create_offer;
+pub mod deposit_ckbtc;
+pub mod register_account;
 pub mod settle_option;
 pub mod transfers;
+pub mod update_profile;
+pub mod withdraw_ckbtc;
 
 pub use accept_offers::{accept_offers, AcceptOfferItem, AcceptOffersResult};
 pub use cancel_offer::cancel_offer;
