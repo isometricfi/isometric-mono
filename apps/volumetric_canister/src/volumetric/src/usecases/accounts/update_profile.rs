@@ -9,7 +9,10 @@ pub struct UpdateProfileResult {
     pub username: Option<String>,
 }
 
-pub fn update_username(principal: Principal, username: String) -> Option<UpdateProfileResult> {
+pub fn update_username_use_case(
+    principal: Principal,
+    username: String,
+) -> Option<UpdateProfileResult> {
     let mut profile = get_profile(&principal)?;
     profile.username = Some(username);
     update_profile(principal, profile.clone());

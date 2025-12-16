@@ -3,23 +3,23 @@ use ic_cdk::{query, update};
 
 use crate::errors::VolumetricError;
 use crate::guards::is_controller;
-use crate::storage::WHITELIST;
+use crate::usecases;
 
 #[update]
 pub async fn add_whitelisted(principal: Principal) -> Result<(), VolumetricError> {
     is_controller().await?;
-    WHITELIST.with_borrow_mut(|whitelist| whitelist.insert(principal, true));
+    usecases::add_whitelisted_use_case(principal);
     Ok(())
 }
 
 #[update]
 pub async fn remove_whitelisted(principal: Principal) -> Result<(), VolumetricError> {
     is_controller().await?;
-    WHITELIST.with_borrow_mut(|whitelist| whitelist.remove(&principal));
+    usecases::remove_whitelisted_use_case(principal);
     Ok(())
 }
 
 #[query]
 pub fn list_whitelisted() -> Vec<Principal> {
-    WHITELIST.with_borrow(|whitelist| whitelist.iter().map(|entry| entry.key().clone()).collect())
+    usecases::list_whitelisted_use_case()
 }

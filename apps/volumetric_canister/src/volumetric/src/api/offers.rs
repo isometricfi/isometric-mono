@@ -2,16 +2,14 @@ use candid::CandidType;
 use serde::{Deserialize, Serialize};
 
 use crate::auth::types::{AuthenticatedPayload, ChallengeContext, SignableAction, WalletKey};
-use crate::auth::verify_btc_signature;
+use crate::auth::{build_challenge_context, verify_btc_signature};
 use crate::errors::VolumetricError;
 use crate::guards::is_whitelisted;
 use crate::storage::{
-    get_offer, get_principal_for_wallet, increment_nonce, list_offers_by_writer, list_open_offers,
-    Asset, Offer, OptionType,
+    get_offer, get_principal_for_wallet, increment_nonce, list_offers_by_writer, Asset, Offer,
+    OptionType,
 };
 use crate::usecases;
-
-use super::accounts::build_challenge_context;
 
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
 pub struct CreateOfferRequest {
@@ -149,11 +147,7 @@ pub fn get_my_offers(wallet_address: String) -> Result<Vec<Offer>, VolumetricErr
 
 #[ic_cdk::query]
 pub fn get_open_offers() -> Vec<Offer> {
-    let now = ic_cdk::api::time();
-    list_open_offers()
-        .into_iter()
-        .filter(|o| o.offer_valid_until > now)
-        .collect()
+    usecases::get_open_offers_use_case()
 }
 
 #[ic_cdk::query]
