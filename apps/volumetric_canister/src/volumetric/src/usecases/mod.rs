@@ -11,7 +11,7 @@ pub use accounts::{
 };
 pub use admin::{
     add_whitelisted_use_case, list_whitelisted_use_case, remove_whitelisted_use_case,
-    set_oracle_price_use_case, set_temp_use_case,
+    set_feature_flags_use_case, set_oracle_price_use_case,
 };
 pub use balances::{
     get_deposit_address, get_ledger_balance, mint_ckbtc_from_utxos, sync_balance_from_ledger,

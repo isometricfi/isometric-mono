@@ -59,10 +59,10 @@ export type BtcNetwork = { 'Mainnet' : null } |
   { 'Testnet' : null };
 export interface CancelOfferRequest { 'offer_id' : bigint }
 export interface Config {
-  'temp' : string,
   'ckbtc_minter' : Principal,
   'btc_network' : BtcNetwork,
   'ckbtc_ledger' : Principal,
+  'feature_flags' : FeatureFlags,
 }
 export interface CreateOfferRequest {
   'option_type' : OptionType,
@@ -76,6 +76,10 @@ export interface CreateOfferRequest {
 export interface CreateOfferResponse { 'offer' : Offer }
 export interface DepositInfo { 'account' : Account, 'btc_address' : string }
 export interface ErrorDetails { 'caller' : [] | [string] }
+export interface FeatureFlags {
+  'is_stitching_enabled' : boolean,
+  'is_partial_filling_enabled' : boolean,
+}
 export interface Offer {
   'id' : bigint,
   'status' : OfferStatus,
@@ -197,6 +201,7 @@ export interface _SERVICE {
     string
   >,
   'get_deposit_address' : ActorMethod<[string], Result_6>,
+  'get_feature_flags' : ActorMethod<[], FeatureFlags>,
   'get_message_to_sign' : ActorMethod<[string], string>,
   'get_my_offers' : ActorMethod<[string], Result_7>,
   'get_my_options' : ActorMethod<[string], Result_8>,
@@ -211,8 +216,8 @@ export interface _SERVICE {
   'list_users' : ActorMethod<[], Array<UserInfo>>,
   'list_whitelisted' : ActorMethod<[], Array<Principal>>,
   'remove_whitelisted' : ActorMethod<[Principal], Result_1>,
+  'set_feature_flags' : ActorMethod<[FeatureFlags], Result_1>,
   'set_oracle_price' : ActorMethod<[bigint], Result_1>,
-  'set_temp' : ActorMethod<[string], Result_1>,
   'settle_expired_options' : ActorMethod<[], Result_9>,
   'settle_option_by_id' : ActorMethod<[bigint], Result_10>,
   'testing_expire_option' : ActorMethod<[bigint], Result_11>,

@@ -7,7 +7,7 @@ use crate::storage::{
     add_available, add_platform_fee, calculate_platform_fee, calculate_premium, get_balance,
     get_offer, get_platform_fee_recipient, insert_active_option, lock_collateral, next_id,
     subtract_available, unlock_collateral, update_offer, ActiveOption, ActiveOptionStatus, Asset,
-    CounterKey, OfferStatus, OptionType, CKBTC_TRANSFER_FEE, MINIMUM_QUANTITY_SATS,
+    Config, CounterKey, OfferStatus, OptionType, CKBTC_TRANSFER_FEE, MINIMUM_QUANTITY_SATS,
 };
 
 use crate::usecases::balances::transfer_ckbtc;
@@ -60,6 +60,10 @@ pub async fn accept_offers_use_case(
         return Err(VolumetricError::internal("No items to accept"));
     }
 
+    if items.len() > 1 && !Config::is_stitching_enabled() {
+        return Err(VolumetricError::stitching_disabled());
+    }
+
     let now = ic_cdk::api::time();
     let fill_group_id = next_id(CounterKey::FillGroupId);
 
@@ -103,6 +107,10 @@ pub async fn accept_offers_use_case(
                 item.quantity,
                 offer.remaining_quantity,
             ));
+        }
+
+        if item.quantity < offer.remaining_quantity && !Config::is_partial_filling_enabled() {
+            return Err(VolumetricError::partial_filling_disabled());
         }
 
         let writer_balance = get_balance(&offer.writer);
