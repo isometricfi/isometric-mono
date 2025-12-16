@@ -29,4 +29,4 @@ pub use settlement::{
     SettleExpiredOptionsResponse, SettlementResult,
 };
 pub use whitelist::{add_whitelisted, list_whitelisted, remove_whitelisted};
-pub use withdrawals::{get_withdraw_message, withdraw_ckbtc_endpoint};
+pub use withdrawals::{get_withdraw_message, withdraw_ckbtc};

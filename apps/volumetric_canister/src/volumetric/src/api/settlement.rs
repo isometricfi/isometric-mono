@@ -48,14 +48,14 @@ impl From<usecases::SettleExpiredOptionsResult> for SettleExpiredOptionsResponse
 #[ic_cdk::update]
 pub async fn settle_expired_options() -> Result<SettleExpiredOptionsResponse, VolumetricError> {
     is_whitelisted().await?;
-    let result = usecases::settle_expired_options().await;
+    let result = usecases::settle_expired_options_use_case().await;
     Ok(result.into())
 }
 
 #[ic_cdk::update]
 pub async fn settle_option_by_id(option_id: u64) -> Result<SettlementResult, VolumetricError> {
     is_whitelisted().await?;
-    let result = usecases::settle_option_by_id(option_id).await?;
+    let result = usecases::settle_option_by_id_use_case(option_id).await?;
     Ok(result.into())
 }
 
@@ -109,6 +109,6 @@ pub async fn testing_set_option_expiry(
 #[ic_cdk::update]
 pub async fn testing_force_settle(option_id: u64) -> Result<SettlementResult, VolumetricError> {
     is_whitelisted().await?;
-    let result = usecases::testing_force_settle_option(option_id).await?;
+    let result = usecases::testing_force_settle_option_use_case(option_id).await?;
     Ok(result.into())
 }

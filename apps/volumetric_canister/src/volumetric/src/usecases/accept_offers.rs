@@ -52,7 +52,7 @@ struct LockedState {
     original_status: OfferStatus,
 }
 
-pub async fn accept_offers(
+pub async fn accept_offers_use_case(
     buyer_principal: Principal,
     items: Vec<AcceptOfferItem>,
 ) -> Result<AcceptOffersResult, VolumetricError> {

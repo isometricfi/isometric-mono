@@ -17,7 +17,7 @@ pub struct WithdrawResult {
     pub block_index: u64,
 }
 
-pub async fn withdraw_ckbtc(
+pub async fn withdraw_ckbtc_use_case(
     principal: Principal,
     params: WithdrawParams,
 ) -> Result<WithdrawResult, VolumetricError> {

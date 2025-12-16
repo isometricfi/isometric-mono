@@ -35,7 +35,7 @@ pub fn get_withdraw_message(address: String, btc_address: String, amount: u64) -
 }
 
 #[ic_cdk::update]
-pub async fn withdraw_ckbtc_endpoint(
+pub async fn withdraw_ckbtc(
     req: AuthenticatedPayload<WithdrawCkbtcRequest>,
 ) -> Result<WithdrawResult, VolumetricError> {
     is_whitelisted().await?;
@@ -58,6 +58,6 @@ pub async fn withdraw_ckbtc_endpoint(
         amount: req.data.amount,
     };
 
-    let result = withdraw_ckbtc::withdraw_ckbtc(principal, params).await?;
+    let result = withdraw_ckbtc::withdraw_ckbtc_use_case(principal, params).await?;
     Ok(result.into())
 }

@@ -19,7 +19,7 @@ pub struct CreateOfferParams {
     pub option_duration_seconds: u64,
 }
 
-pub fn create_offer(
+pub fn create_offer_use_case(
     writer: Principal,
     params: CreateOfferParams,
 ) -> Result<Offer, VolumetricError> {
