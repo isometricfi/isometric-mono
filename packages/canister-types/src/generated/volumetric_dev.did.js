@@ -111,11 +111,15 @@ export const idlFactory = ({ IDL }) => {
     'Err' : VolumetricError,
   });
   const Result_5 = IDL.Variant({ 'Ok' : IDL.Nat, 'Err' : VolumetricError });
+  const FeatureFlags = IDL.Record({
+    'is_stitching_enabled' : IDL.Bool,
+    'is_partial_filling_enabled' : IDL.Bool,
+  });
   const Config = IDL.Record({
-    'temp' : IDL.Text,
     'ckbtc_minter' : IDL.Principal,
     'btc_network' : BtcNetwork,
     'ckbtc_ledger' : IDL.Principal,
+    'feature_flags' : FeatureFlags,
   });
   const Account = IDL.Record({
     'owner' : IDL.Principal,
@@ -234,6 +238,7 @@ export const idlFactory = ({ IDL }) => {
         ['query'],
       ),
     'get_deposit_address' : IDL.Func([IDL.Text], [Result_6], []),
+    'get_feature_flags' : IDL.Func([], [FeatureFlags], ['query']),
     'get_message_to_sign' : IDL.Func([IDL.Text], [IDL.Text], ['query']),
     'get_my_offers' : IDL.Func([IDL.Text], [Result_7], ['query']),
     'get_my_options' : IDL.Func([IDL.Text], [Result_8], ['query']),
@@ -260,8 +265,8 @@ export const idlFactory = ({ IDL }) => {
     'list_users' : IDL.Func([], [IDL.Vec(UserInfo)], ['query']),
     'list_whitelisted' : IDL.Func([], [IDL.Vec(IDL.Principal)], ['query']),
     'remove_whitelisted' : IDL.Func([IDL.Principal], [Result_1], []),
+    'set_feature_flags' : IDL.Func([FeatureFlags], [Result_1], []),
     'set_oracle_price' : IDL.Func([IDL.Nat64], [Result_1], []),
-    'set_temp' : IDL.Func([IDL.Text], [Result_1], []),
     'settle_expired_options' : IDL.Func([], [Result_9], []),
     'settle_option_by_id' : IDL.Func([IDL.Nat64], [Result_10], []),
     'testing_expire_option' : IDL.Func([IDL.Nat64], [Result_11], []),

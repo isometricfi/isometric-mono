@@ -18,7 +18,7 @@ pub use balances::{
     PLATFORM_FEE_BASIS_POINTS,
 };
 pub use cbor::Cbor;
-pub use config::{BtcNetwork, Config};
+pub use config::{BtcNetwork, Config, FeatureFlags};
 pub use options::{
     calculate_premium, get_active_option, get_offer, insert_active_option, insert_offer,
     list_active_options_by_buyer, list_active_options_by_writer, list_expired_active_options,

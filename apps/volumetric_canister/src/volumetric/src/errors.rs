@@ -130,6 +130,16 @@ pub mod error_codes {
         name: "OPTION_SETTLING",
         message: "Option is currently being settled by another transaction",
     };
+    pub const PARTIAL_FILLING_DISABLED: ErrorDef = ErrorDef {
+        code: 5015,
+        name: "PARTIAL_FILLING_DISABLED",
+        message: "Partial filling is not enabled",
+    };
+    pub const STITCHING_DISABLED: ErrorDef = ErrorDef {
+        code: 5016,
+        name: "STITCHING_DISABLED",
+        message: "Stitching multiple offers is not enabled",
+    };
 
     // 9xxx: Internal/generic errors
     pub const INTERNAL_ERROR: ErrorDef = ErrorDef {
@@ -280,6 +290,14 @@ impl VolumetricError {
 
     pub fn option_settling() -> Self {
         Self::from_def(&error_codes::OPTION_SETTLING)
+    }
+
+    pub fn partial_filling_disabled() -> Self {
+        Self::from_def(&error_codes::PARTIAL_FILLING_DISABLED)
+    }
+
+    pub fn stitching_disabled() -> Self {
+        Self::from_def(&error_codes::STITCHING_DISABLED)
     }
 }
 

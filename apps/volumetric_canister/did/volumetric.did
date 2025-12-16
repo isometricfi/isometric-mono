@@ -48,10 +48,10 @@ type AuthenticatedPayload_4 = record {
 type BtcNetwork = variant { Mainnet; Testnet };
 type CancelOfferRequest = record { offer_id : nat64 };
 type Config = record {
-  temp : text;
   ckbtc_minter : principal;
   btc_network : BtcNetwork;
   ckbtc_ledger : principal;
+  feature_flags : FeatureFlags;
 };
 type CreateOfferRequest = record {
   option_type : OptionType;
@@ -65,6 +65,10 @@ type CreateOfferRequest = record {
 type CreateOfferResponse = record { offer : Offer };
 type DepositInfo = record { account : Account; btc_address : text };
 type ErrorDetails = record { caller : opt text };
+type FeatureFlags = record {
+  is_stitching_enabled : bool;
+  is_partial_filling_enabled : bool;
+};
 type Offer = record {
   id : nat64;
   status : OfferStatus;
@@ -159,6 +163,7 @@ service : (opt BtcNetwork) -> {
   get_config : () -> (Config) query;
   get_create_offer_message : (text, nat64, nat64, nat16) -> (text) query;
   get_deposit_address : (text) -> (Result_6);
+  get_feature_flags : () -> (FeatureFlags) query;
   get_message_to_sign : (text) -> (text) query;
   get_my_offers : (text) -> (Result_7) query;
   get_my_options : (text) -> (Result_8) query;
@@ -173,8 +178,8 @@ service : (opt BtcNetwork) -> {
   list_users : () -> (vec UserInfo) query;
   list_whitelisted : () -> (vec principal) query;
   remove_whitelisted : (principal) -> (Result_1);
+  set_feature_flags : (FeatureFlags) -> (Result_1);
   set_oracle_price : (nat64) -> (Result_1);
-  set_temp : (text) -> (Result_1);
   settle_expired_options : () -> (Result_9);
   settle_option_by_id : (nat64) -> (Result_10);
   testing_expire_option : (nat64) -> (Result_11);
