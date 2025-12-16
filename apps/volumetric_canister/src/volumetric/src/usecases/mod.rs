@@ -14,8 +14,9 @@ pub use admin::{
     set_feature_flags_use_case, set_oracle_price_use_case,
 };
 pub use balances::{
-    get_deposit_address, get_ledger_balance, mint_ckbtc_from_utxos, sync_balance_from_ledger,
-    transfer_ckbtc, withdraw_ckbtc_use_case, DepositAddressResult, WithdrawParams, WithdrawResult,
+    get_deposit_address, get_ledger_balance, get_user_balance_use_case, mint_ckbtc_from_utxos,
+    sync_balance_from_ledger, transfer_ckbtc, withdraw_ckbtc_use_case, DepositAddressResult,
+    UserBalanceResult, WithdrawParams, WithdrawResult,
 };
 pub use offers::{
     accept_offers_use_case, cancel_offer_use_case, create_offer_use_case, get_open_offers_use_case,

@@ -68,3 +68,30 @@ pub async fn testing_sync_balance_from_ledger(address: String) -> Result<u64, Vo
 
     usecases::sync_balance_from_ledger(principal).await
 }
+
+#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
+pub struct UserBalanceInfo {
+    pub total: u64,
+    pub available: u64,
+    pub locked: u64,
+}
+
+impl From<usecases::UserBalanceResult> for UserBalanceInfo {
+    fn from(result: usecases::UserBalanceResult) -> Self {
+        Self {
+            total: result.total,
+            available: result.available,
+            locked: result.locked,
+        }
+    }
+}
+
+#[ic_cdk::query]
+pub fn get_user_balance(address: String) -> Result<UserBalanceInfo, VolumetricError> {
+    let wallet_key = WalletKey::from_address(&address);
+    let principal =
+        get_principal_for_wallet(&wallet_key).ok_or_else(VolumetricError::profile_not_found)?;
+
+    let result = usecases::get_user_balance_use_case(principal);
+    Ok(result.into())
+}

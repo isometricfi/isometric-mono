@@ -13,7 +13,8 @@ pub use accounts::{
 };
 pub use config::{get_config, get_feature_flags, set_feature_flags, set_oracle_price};
 pub use deposits::{
-    get_ckbtc_balance, get_deposit_address, testing_sync_balance_from_ledger, update_ckbtc_balance,
+    get_ckbtc_balance, get_deposit_address, get_user_balance, testing_sync_balance_from_ledger,
+    update_ckbtc_balance, UserBalanceInfo,
 };
 pub use offers::{
     cancel_offer, create_offer, get_cancel_offer_message, get_create_offer_message, get_my_offers,

@@ -110,15 +110,17 @@ export type Result = { 'Ok' : AcceptOffersResponse } |
   { 'Err' : VolumetricError };
 export type Result_1 = { 'Ok' : null } |
   { 'Err' : VolumetricError };
-export type Result_10 = { 'Ok' : SettlementResult } |
+export type Result_10 = { 'Ok' : SettleExpiredOptionsResponse } |
   { 'Err' : VolumetricError };
-export type Result_11 = { 'Ok' : ActiveOption } |
+export type Result_11 = { 'Ok' : SettlementResult } |
   { 'Err' : VolumetricError };
-export type Result_12 = { 'Ok' : bigint } |
+export type Result_12 = { 'Ok' : ActiveOption } |
   { 'Err' : VolumetricError };
-export type Result_13 = { 'Ok' : Array<UtxoStatus> } |
+export type Result_13 = { 'Ok' : bigint } |
   { 'Err' : VolumetricError };
-export type Result_14 = { 'Ok' : WithdrawResult } |
+export type Result_14 = { 'Ok' : Array<UtxoStatus> } |
+  { 'Err' : VolumetricError };
+export type Result_15 = { 'Ok' : WithdrawResult } |
   { 'Err' : VolumetricError };
 export type Result_2 = { 'Ok' : Offer } |
   { 'Err' : VolumetricError };
@@ -134,7 +136,7 @@ export type Result_7 = { 'Ok' : Array<Offer> } |
   { 'Err' : VolumetricError };
 export type Result_8 = { 'Ok' : Array<ActiveOption> } |
   { 'Err' : VolumetricError };
-export type Result_9 = { 'Ok' : SettleExpiredOptionsResponse } |
+export type Result_9 = { 'Ok' : UserBalanceInfo } |
   { 'Err' : VolumetricError };
 export interface SettleExpiredOptionsResponse {
   'settled' : Array<SettlementResult>,
@@ -148,6 +150,11 @@ export interface SettlementResult {
   'payout_to_writer' : bigint,
 }
 export interface UpdateUsernameRequest { 'username' : string }
+export interface UserBalanceInfo {
+  'total' : bigint,
+  'locked' : bigint,
+  'available' : bigint,
+}
 export interface UserInfo {
   'principal' : Principal,
   'username' : [] | [string],
@@ -210,6 +217,7 @@ export interface _SERVICE {
   'get_open_offers' : ActorMethod<[], Array<Offer>>,
   'get_pending_settlements' : ActorMethod<[], Array<ActiveOption>>,
   'get_platform_fee_info' : ActorMethod<[], [bigint, bigint]>,
+  'get_user_balance' : ActorMethod<[string], Result_9>,
   'get_username_update_message' : ActorMethod<[string, string], string>,
   'get_withdraw_message' : ActorMethod<[string, string, bigint], string>,
   'greet' : ActorMethod<[string], string>,
@@ -218,15 +226,15 @@ export interface _SERVICE {
   'remove_whitelisted' : ActorMethod<[Principal], Result_1>,
   'set_feature_flags' : ActorMethod<[FeatureFlags], Result_1>,
   'set_oracle_price' : ActorMethod<[bigint], Result_1>,
-  'settle_expired_options' : ActorMethod<[], Result_9>,
-  'settle_option_by_id' : ActorMethod<[bigint], Result_10>,
-  'testing_expire_option' : ActorMethod<[bigint], Result_11>,
-  'testing_force_settle' : ActorMethod<[bigint], Result_10>,
-  'testing_set_option_expiry' : ActorMethod<[bigint, bigint], Result_11>,
-  'testing_sync_balance_from_ledger' : ActorMethod<[string], Result_12>,
-  'update_ckbtc_balance' : ActorMethod<[string], Result_13>,
+  'settle_expired_options' : ActorMethod<[], Result_10>,
+  'settle_option_by_id' : ActorMethod<[bigint], Result_11>,
+  'testing_expire_option' : ActorMethod<[bigint], Result_12>,
+  'testing_force_settle' : ActorMethod<[bigint], Result_11>,
+  'testing_set_option_expiry' : ActorMethod<[bigint, bigint], Result_12>,
+  'testing_sync_balance_from_ledger' : ActorMethod<[string], Result_13>,
+  'update_ckbtc_balance' : ActorMethod<[string], Result_14>,
   'update_username' : ActorMethod<[AuthenticatedPayload_3], Result_3>,
-  'withdraw_ckbtc' : ActorMethod<[AuthenticatedPayload_4], Result_14>,
+  'withdraw_ckbtc' : ActorMethod<[AuthenticatedPayload_4], Result_15>,
 }
 export declare const idlFactory: IDL.InterfaceFactory;
 export declare const init: (args: { IDL: typeof IDL }) => IDL.Type[];
