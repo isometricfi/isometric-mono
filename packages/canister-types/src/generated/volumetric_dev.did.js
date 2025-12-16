@@ -24,6 +24,7 @@ export const idlFactory = ({ IDL }) => {
     'status' : ActiveOptionStatus,
     'option_type' : OptionType,
     'fill_group_id' : IDL.Opt(IDL.Nat64),
+    'entry_price_cents' : IDL.Nat64,
     'asset' : Asset,
     'accepted_at' : IDL.Nat64,
     'writer' : IDL.Principal,
@@ -75,10 +76,10 @@ export const idlFactory = ({ IDL }) => {
     'offer_valid_until' : IDL.Nat64,
     'created_at' : IDL.Nat64,
     'writer' : IDL.Principal,
+    'strike_basis_points' : IDL.Nat16,
     'remaining_quantity' : IDL.Nat64,
     'premium_basis_points' : IDL.Nat16,
     'option_duration_seconds' : IDL.Nat64,
-    'strike_price_cents' : IDL.Nat64,
   });
   const Result_2 = IDL.Variant({ 'Ok' : Offer, 'Err' : VolumetricError });
   const AuthenticatedPayload_1 = IDL.Record({
@@ -96,10 +97,10 @@ export const idlFactory = ({ IDL }) => {
     'option_type' : OptionType,
     'asset' : Asset,
     'offer_valid_until' : IDL.Nat64,
+    'strike_basis_points' : IDL.Nat16,
     'premium_basis_points' : IDL.Nat16,
     'quantity' : IDL.Nat64,
     'option_duration_seconds' : IDL.Nat64,
-    'strike_price_cents' : IDL.Nat64,
   });
   const AuthenticatedPayload_2 = IDL.Record({
     'data' : CreateOfferRequest,
@@ -242,7 +243,7 @@ export const idlFactory = ({ IDL }) => {
     'get_ckbtc_balance' : IDL.Func([IDL.Text], [Result_5], []),
     'get_config' : IDL.Func([], [Config], ['query']),
     'get_create_offer_message' : IDL.Func(
-        [IDL.Text, IDL.Nat64, IDL.Nat64, IDL.Nat16],
+        [IDL.Text, IDL.Nat64, IDL.Nat16, IDL.Nat16],
         [IDL.Text],
         ['query'],
       ),

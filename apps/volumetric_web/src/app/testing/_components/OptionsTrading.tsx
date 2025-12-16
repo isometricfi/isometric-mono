@@ -45,7 +45,7 @@ export function OptionsTrading() {
   const address = useBtcAddress("payment");
 
   const [quantity, setQuantity] = useState("100000");
-  const [strikePriceUsd, setStrikePriceUsd] = useState("100000");
+  const [strikeBasisPoints, setStrikeBasisPoints] = useState("500");
   const [premiumBasisPoints, setPremiumBasisPoints] = useState("500");
   const [acceptOfferId, setAcceptOfferId] = useState("");
   const [acceptQuantity, setAcceptQuantity] = useState("");
@@ -120,10 +120,10 @@ export function OptionsTrading() {
       }
 
       const qty = BigInt(quantity);
-      const strikeCents = BigInt(Math.round(Number(strikePriceUsd) * 100));
+      const strike = Number(strikeBasisPoints);
       const premium = Number(premiumBasisPoints);
 
-      const message = await canister.get_create_offer_message(address, qty, strikeCents, premium);
+      const message = await canister.get_create_offer_message(address, qty, strike, premium);
       const signature = await primaryWallet.signMessage(message, { addressType: "payment" });
 
       if (!signature) throw new Error("Failed to sign message");
@@ -139,7 +139,7 @@ export function OptionsTrading() {
           address,
           signature,
           quantity: qty.toString(),
-          strikePriceCents: strikeCents.toString(),
+          strikeBasisPoints: strike,
           premiumBasisPoints: premium,
           offerValidUntil: offerValidUntil.toString(),
           optionDurationSeconds: optionDurationSeconds.toString(),
@@ -255,14 +255,14 @@ export function OptionsTrading() {
 
           <div className="flex flex-col gap-2">
             <label htmlFor="strike" className="text-sm text-zinc-500">
-              Strike Price (USD)
+              Strike (basis points, e.g. 500 = 5% above entry)
             </label>
             <input
               id="strike"
               type="number"
-              value={strikePriceUsd}
-              onChange={(e) => setStrikePriceUsd(e.target.value)}
-              placeholder="100000"
+              value={strikeBasisPoints}
+              onChange={(e) => setStrikeBasisPoints(e.target.value)}
+              placeholder="500"
               className="w-full bg-zinc-800 border border-zinc-700 rounded px-4 py-2 focus:outline-none focus:border-zinc-600"
             />
           </div>
@@ -340,7 +340,7 @@ export function OptionsTrading() {
                   </div>
                 </div>
                 <div className="grid grid-cols-3 gap-2 text-xs text-zinc-400">
-                  <div>Strike: ${(Number(offer.strike_price_cents) / 100).toLocaleString()}</div>
+                  <div>Strike: +{offer.strike_basis_points / 100}%</div>
                   <div>Premium: {offer.premium_basis_points / 100}%</div>
                   <div>Duration: {Number(offer.option_duration_seconds)}s</div>
                 </div>
@@ -489,6 +489,7 @@ export function OptionsTrading() {
                 </div>
                 <div className="grid grid-cols-2 gap-2 text-xs text-zinc-400">
                   <div>Quantity: {formatSats(option.quantity)}</div>
+                  <div>Entry: ${(Number(option.entry_price_cents) / 100).toLocaleString()}</div>
                   <div>Strike: ${(Number(option.strike_price_cents) / 100).toLocaleString()}</div>
                   <div>Premium Paid: {formatSats(option.premium_paid)}</div>
                   <div>Expiry: {formatTimestamp(option.expiry)}</div>
@@ -527,6 +528,7 @@ export function OptionsTrading() {
                 </div>
                 <div className="grid grid-cols-2 gap-2 text-xs text-zinc-400">
                   <div>Quantity: {formatSats(option.quantity)}</div>
+                  <div>Entry: ${(Number(option.entry_price_cents) / 100).toLocaleString()}</div>
                   <div>Strike: ${(Number(option.strike_price_cents) / 100).toLocaleString()}</div>
                   <div>Premium Received: {formatSats(option.premium_paid)}</div>
                   <div>Expiry: {formatTimestamp(option.expiry)}</div>

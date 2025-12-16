@@ -3,11 +3,13 @@ use icrc_ledger_types::icrc1::account::Account;
 
 use crate::auth::derive_subaccount;
 use crate::errors::VolumetricError;
+use crate::oracle::get_btc_usd_price_cents;
 use crate::storage::{
-    add_available, add_platform_fee, calculate_platform_fee, calculate_premium, get_balance,
-    get_offer, get_platform_fee_recipient, insert_active_option, lock_collateral, next_id,
-    subtract_available, unlock_collateral, update_offer, ActiveOption, ActiveOptionStatus, Asset,
-    Config, CounterKey, OfferStatus, OptionType, CKBTC_TRANSFER_FEE, MINIMUM_QUANTITY_SATS,
+    add_available, add_platform_fee, calculate_platform_fee, calculate_premium,
+    calculate_strike_price, get_balance, get_offer, get_platform_fee_recipient,
+    insert_active_option, lock_collateral, next_id, subtract_available, unlock_collateral,
+    update_offer, ActiveOption, ActiveOptionStatus, Asset, Config, CounterKey, OfferStatus,
+    OptionType, CKBTC_TRANSFER_FEE, MINIMUM_QUANTITY_SATS,
 };
 
 use crate::usecases::balances::transfer_ckbtc;
@@ -27,7 +29,7 @@ struct ValidatedAccept {
     writer: Principal,
     asset: Asset,
     option_type: OptionType,
-    strike_price_cents: u64,
+    strike_basis_points: u16,
     quantity: u64,
     premium: u64,
     premium_to_writer: u64,
@@ -66,6 +68,7 @@ pub async fn accept_offers_use_case(
 
     let now = ic_cdk::api::time();
     let fill_group_id = next_id(CounterKey::FillGroupId);
+    let entry_price_cents = get_btc_usd_price_cents()?;
 
     let mut validated: Vec<ValidatedAccept> = Vec::with_capacity(items.len());
     let mut total_premium_required: u64 = 0;
@@ -171,7 +174,7 @@ pub async fn accept_offers_use_case(
             writer: offer.writer,
             asset: offer.asset,
             option_type: offer.option_type,
-            strike_price_cents: offer.strike_price_cents,
+            strike_basis_points: offer.strike_basis_points,
             quantity: item.quantity,
             premium,
             premium_to_writer,
@@ -238,6 +241,7 @@ pub async fn accept_offers_use_case(
     let mut active_options: Vec<ActiveOption> = Vec::with_capacity(validated.len());
 
     for v in validated.iter() {
+        let strike_price_cents = calculate_strike_price(entry_price_cents, v.strike_basis_points);
         let active_option = ActiveOption {
             id: v.option_id,
             offer_id: v.offer_id,
@@ -246,7 +250,8 @@ pub async fn accept_offers_use_case(
             asset: v.asset,
             option_type: v.option_type,
             quantity: v.quantity,
-            strike_price_cents: v.strike_price_cents,
+            entry_price_cents,
+            strike_price_cents,
             premium_paid: v.premium,
             accepted_at: now,
             expiry: v.expiry,

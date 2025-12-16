@@ -13,6 +13,7 @@ type ActiveOption = record {
   status : ActiveOptionStatus;
   option_type : OptionType;
   fill_group_id : opt nat64;
+  entry_price_cents : nat64;
   asset : Asset;
   accepted_at : nat64;
   writer : principal;
@@ -57,10 +58,10 @@ type CreateOfferRequest = record {
   option_type : OptionType;
   asset : Asset;
   offer_valid_until : nat64;
+  strike_basis_points : nat16;
   premium_basis_points : nat16;
   quantity : nat64;
   option_duration_seconds : nat64;
-  strike_price_cents : nat64;
 };
 type CreateOfferResponse = record { offer : Offer };
 type DepositInfo = record { account : Account; btc_address : text };
@@ -78,10 +79,10 @@ type Offer = record {
   offer_valid_until : nat64;
   created_at : nat64;
   writer : principal;
+  strike_basis_points : nat16;
   remaining_quantity : nat64;
   premium_basis_points : nat16;
   option_duration_seconds : nat64;
-  strike_price_cents : nat64;
 };
 type OfferStatus = variant {
   Open;
@@ -167,7 +168,7 @@ service : (opt BtcNetwork) -> {
   get_cancel_offer_message : (text, nat64) -> (text) query;
   get_ckbtc_balance : (text) -> (Result_5);
   get_config : () -> (Config) query;
-  get_create_offer_message : (text, nat64, nat64, nat16) -> (text) query;
+  get_create_offer_message : (text, nat64, nat16, nat16) -> (text) query;
   get_deposit_address : (text) -> (Result_6);
   get_feature_flags : () -> (FeatureFlags) query;
   get_message_to_sign : (text) -> (text) query;
