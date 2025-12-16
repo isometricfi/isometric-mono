@@ -47,7 +47,7 @@ pub async fn accept_offers(
         })
         .collect();
 
-    let result = usecases::accept_offers(buyer_principal, items).await?;
+    let result = usecases::accept_offers_use_case(buyer_principal, items).await?;
 
     Ok(AcceptOffersResponse {
         active_options: result.active_options,

@@ -89,7 +89,7 @@ pub async fn create_offer(
         option_duration_seconds: req.data.option_duration_seconds,
     };
 
-    let offer = usecases::create_offer(principal, params)?;
+    let offer = usecases::create_offer_use_case(principal, params)?;
 
     Ok(CreateOfferResponse { offer })
 }
@@ -135,7 +135,7 @@ pub async fn cancel_offer(
     let principal =
         get_principal_for_wallet(&wallet_key).ok_or_else(VolumetricError::profile_not_found)?;
 
-    usecases::cancel_offer(principal, req.data.offer_id)
+    usecases::cancel_offer_use_case(principal, req.data.offer_id)
 }
 
 #[ic_cdk::query]

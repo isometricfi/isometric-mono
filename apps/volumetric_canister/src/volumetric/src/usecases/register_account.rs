@@ -13,7 +13,7 @@ pub struct RegisterAccountResult {
     pub subaccount: [u8; 32],
 }
 
-pub fn register_account(params: RegisterAccountParams) -> RegisterAccountResult {
+pub fn register_account_use_case(params: RegisterAccountParams) -> RegisterAccountResult {
     let principal = derive_principal(&params.wallet_address);
     let subaccount = derive_subaccount(principal);
     let wallet_key = WalletKey::from_address(&params.wallet_address);

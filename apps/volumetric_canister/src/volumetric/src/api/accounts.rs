@@ -52,7 +52,7 @@ pub async fn create_account(
     let params = register_account::RegisterAccountParams {
         wallet_address: address.clone(),
     };
-    let result = register_account::register_account(params);
+    let result = register_account::register_account_use_case(params);
 
     Ok(ProfileInfo {
         principal: result.principal,
@@ -118,7 +118,7 @@ pub async fn update_username(
 
     increment_nonce(&wallet_key);
 
-    let result = update_profile::update_username(principal, req.data.username)
+    let result = update_profile::update_username_use_case(principal, req.data.username)
         .ok_or_else(VolumetricError::profile_not_found)?;
 
     Ok(ProfileInfo {

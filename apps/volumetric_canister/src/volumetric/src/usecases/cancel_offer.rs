@@ -3,7 +3,7 @@ use candid::Principal;
 use crate::errors::VolumetricError;
 use crate::storage::{get_offer, update_offer, Offer, OfferStatus};
 
-pub fn cancel_offer(writer: Principal, offer_id: u64) -> Result<Offer, VolumetricError> {
+pub fn cancel_offer_use_case(writer: Principal, offer_id: u64) -> Result<Offer, VolumetricError> {
     let mut offer =
         get_offer(offer_id).ok_or_else(|| VolumetricError::offer_not_found(offer_id))?;
 
