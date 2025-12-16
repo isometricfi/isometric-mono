@@ -62,7 +62,11 @@ fn verify_legacy_signature(
         31..=34 => header - RECOVERY_BASE_COMPRESSED,
         35..=38 => header - RECOVERY_BASE_SEGWIT,
         39..=42 => header - RECOVERY_BASE_SEGWIT_ALT,
-        _ => return Err(VolumetricError::invalid_signature("Invalid recovery header")),
+        _ => {
+            return Err(VolumetricError::invalid_signature(
+                "Invalid recovery header",
+            ))
+        }
     };
 
     let message_hash = legacy_message_hash(message.as_bytes());
@@ -100,8 +104,9 @@ fn verify_bip322_signature(
 ) -> Result<(), VolumetricError> {
     let witness = Witness::from_slice(&[signature_bytes]);
 
-    bip322::verify_simple(btc_address, message, witness)
-        .map_err(|e| VolumetricError::invalid_signature(&format!("BIP-322 verification failed: {}", e)))
+    bip322::verify_simple(btc_address, message, witness).map_err(|e| {
+        VolumetricError::invalid_signature(&format!("BIP-322 verification failed: {}", e))
+    })
 }
 
 fn legacy_message_hash(message: &[u8]) -> [u8; 32] {

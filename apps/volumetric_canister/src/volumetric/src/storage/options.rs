@@ -1,0 +1,259 @@
+use std::cell::RefCell;
+
+use candid::{CandidType, Principal};
+use ic_stable_structures::memory_manager::MemoryId;
+use ic_stable_structures::StableBTreeMap;
+use serde::{Deserialize, Serialize};
+
+use super::cbor::Cbor;
+use super::state::{Memory, MemoryIndex, MEMORY_MANAGER};
+
+pub const MINIMUM_QUANTITY_SATS: u64 = 50_000;
+
+thread_local! {
+    pub static OFFERS: RefCell<StableBTreeMap<u64, Cbor<Offer>, Memory>> = RefCell::new(
+        StableBTreeMap::init(
+            MEMORY_MANAGER.with_borrow(|m| m.get(MemoryId::new(MemoryIndex::OffersMemory as u8))),
+        )
+    );
+
+    pub static ACTIVE_OPTIONS: RefCell<StableBTreeMap<u64, Cbor<ActiveOption>, Memory>> = RefCell::new(
+        StableBTreeMap::init(
+            MEMORY_MANAGER.with_borrow(|m| m.get(MemoryId::new(MemoryIndex::ActiveOptionsMemory as u8))),
+        )
+    );
+
+    pub static COUNTERS: RefCell<StableBTreeMap<CounterKey, u64, Memory>> = RefCell::new(
+        StableBTreeMap::init(
+            MEMORY_MANAGER.with_borrow(|m| m.get(MemoryId::new(MemoryIndex::CountersMemory as u8))),
+        )
+    );
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+pub enum CounterKey {
+    OfferId = 0,
+    ActiveOptionId = 1,
+    FillGroupId = 2,
+}
+
+impl ic_stable_structures::Storable for CounterKey {
+    fn to_bytes(&self) -> std::borrow::Cow<'_, [u8]> {
+        std::borrow::Cow::Owned(vec![*self as u8])
+    }
+
+    fn from_bytes(bytes: std::borrow::Cow<[u8]>) -> Self {
+        match bytes.as_ref().first() {
+            Some(0) => CounterKey::OfferId,
+            Some(1) => CounterKey::ActiveOptionId,
+            Some(2) => CounterKey::FillGroupId,
+            _ => CounterKey::OfferId,
+        }
+    }
+
+    fn into_bytes(self) -> Vec<u8> {
+        vec![self as u8]
+    }
+
+    const BOUND: ic_stable_structures::storable::Bound =
+        ic_stable_structures::storable::Bound::Bounded {
+            max_size: 1,
+            is_fixed_size: true,
+        };
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, CandidType)]
+pub enum Asset {
+    CkBtc,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, CandidType)]
+pub enum OptionType {
+    Call,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, CandidType)]
+pub enum OfferStatus {
+    /// Offer is available for buyers to accept
+    Open,
+    /// Some quantity has been filled but more remains available
+    PartiallyFilled,
+    /// All quantity has been accepted, no more available
+    Filled,
+    /// Writer cancelled the offer, no longer accepting
+    Cancelled,
+    /// Transient state during accept_offers to prevent race conditions across await points
+    Processing,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, CandidType)]
+pub enum ActiveOptionStatus {
+    /// Option is live, awaiting expiry for settlement
+    Active,
+    /// Transient state during settlement to prevent race conditions across await points
+    Settling,
+    /// Option has been settled with payouts distributed
+    Settled,
+    /// Option expired without settlement (should not normally occur, settlement auto-runs)
+    Expired,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, CandidType)]
+pub struct Offer {
+    pub id: u64,
+    pub writer: Principal,
+    pub asset: Asset,
+    pub option_type: OptionType,
+    pub strike_price_cents: u64,
+    pub premium_basis_points: u16,
+    pub total_quantity: u64,
+    pub remaining_quantity: u64,
+    pub offer_valid_until: u64,
+    pub option_duration_seconds: u64,
+    pub status: OfferStatus,
+    pub created_at: u64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, CandidType)]
+pub struct ActiveOption {
+    pub id: u64,
+    pub offer_id: u64,
+    pub buyer: Principal,
+    pub writer: Principal,
+    pub asset: Asset,
+    pub option_type: OptionType,
+    pub quantity: u64,
+    pub strike_price_cents: u64,
+    pub premium_paid: u64,
+    pub accepted_at: u64,
+    pub expiry: u64,
+    pub status: ActiveOptionStatus,
+    pub fill_group_id: Option<u64>,
+}
+
+pub fn next_id(key: CounterKey) -> u64 {
+    COUNTERS.with_borrow_mut(|c| {
+        let current = c.get(&key).unwrap_or(0);
+        let next = current.saturating_add(1);
+        c.insert(key, next);
+        next
+    })
+}
+
+pub fn get_offer(id: u64) -> Option<Offer> {
+    OFFERS.with_borrow(|o| o.get(&id).map(|c| c.0))
+}
+
+pub fn insert_offer(offer: Offer) {
+    OFFERS.with_borrow_mut(|o| {
+        o.insert(offer.id, Cbor(offer));
+    });
+}
+
+pub fn update_offer(offer: Offer) {
+    OFFERS.with_borrow_mut(|o| {
+        o.insert(offer.id, Cbor(offer));
+    });
+}
+
+// TODO: Add secondary index (Principal -> Vec<u64>) for O(1) lookups as data grows.
+// Current implementation is O(n) full table scan.
+// TODO: ADD IF NEEDED LATER :D
+pub fn list_offers_by_writer(writer: Principal) -> Vec<Offer> {
+    OFFERS.with_borrow(|o| {
+        o.iter()
+            .filter_map(|entry| {
+                let offer = entry.value().0;
+                if offer.writer == writer {
+                    Some(offer)
+                } else {
+                    None
+                }
+            })
+            .collect()
+    })
+}
+
+// TODO: Add secondary index for open offers as data grows. Current implementation is O(n).
+pub fn list_open_offers() -> Vec<Offer> {
+    OFFERS.with_borrow(|o| {
+        o.iter()
+            .filter_map(|entry| {
+                let offer = entry.value().0;
+                if matches!(
+                    offer.status,
+                    OfferStatus::Open | OfferStatus::PartiallyFilled
+                ) {
+                    Some(offer)
+                } else {
+                    None
+                }
+            })
+            .collect()
+    })
+}
+
+pub fn get_active_option(id: u64) -> Option<ActiveOption> {
+    ACTIVE_OPTIONS.with_borrow(|a| a.get(&id).map(|c| c.0))
+}
+
+pub fn insert_active_option(option: ActiveOption) {
+    ACTIVE_OPTIONS.with_borrow_mut(|a| {
+        a.insert(option.id, Cbor(option));
+    });
+}
+
+pub fn update_active_option(option: ActiveOption) {
+    ACTIVE_OPTIONS.with_borrow_mut(|a| {
+        a.insert(option.id, Cbor(option));
+    });
+}
+
+pub fn list_active_options_by_buyer(buyer: Principal) -> Vec<ActiveOption> {
+    ACTIVE_OPTIONS.with_borrow(|a| {
+        a.iter()
+            .filter_map(|entry| {
+                let option = entry.value().0;
+                if option.buyer == buyer {
+                    Some(option)
+                } else {
+                    None
+                }
+            })
+            .collect()
+    })
+}
+
+pub fn list_active_options_by_writer(writer: Principal) -> Vec<ActiveOption> {
+    ACTIVE_OPTIONS.with_borrow(|a| {
+        a.iter()
+            .filter_map(|entry| {
+                let option = entry.value().0;
+                if option.writer == writer {
+                    Some(option)
+                } else {
+                    None
+                }
+            })
+            .collect()
+    })
+}
+
+pub fn list_expired_active_options(current_time: u64) -> Vec<ActiveOption> {
+    ACTIVE_OPTIONS.with_borrow(|a| {
+        a.iter()
+            .filter_map(|entry| {
+                let option = entry.value().0;
+                if option.status == ActiveOptionStatus::Active && option.expiry <= current_time {
+                    Some(option)
+                } else {
+                    None
+                }
+            })
+            .collect()
+    })
+}
+
+pub fn calculate_premium(quantity: u64, premium_basis_points: u16) -> u64 {
+    (quantity as u128 * premium_basis_points as u128 / 10_000) as u64
+}

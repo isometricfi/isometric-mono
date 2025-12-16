@@ -19,12 +19,19 @@ pub enum BtcNetwork {
     Testnet,
 }
 
+#[derive(Debug, Deserialize, Serialize, CandidType, Clone, Copy, Default)]
+pub struct FeatureFlags {
+    pub is_partial_filling_enabled: bool,
+    pub is_stitching_enabled: bool,
+}
+
 #[derive(Debug, Deserialize, Serialize, CandidType, Clone)]
 pub struct Config {
-    pub temp: String,
     pub btc_network: BtcNetwork,
     pub ckbtc_minter: Principal,
     pub ckbtc_ledger: Principal,
+    #[serde(default)]
+    pub feature_flags: FeatureFlags,
 }
 
 impl Default for Config {
@@ -40,27 +47,15 @@ impl Config {
             BtcNetwork::Testnet => (CKTESTBTC_MINTER, CKTESTBTC_LEDGER),
         };
         Self {
-            temp: String::new(),
             btc_network: network,
             ckbtc_minter: Principal::from_text(minter).unwrap(),
             ckbtc_ledger: Principal::from_text(ledger).unwrap(),
+            feature_flags: FeatureFlags::default(),
         }
     }
 }
 
 impl Config {
-    pub fn temp() -> String {
-        CONFIG.with_borrow(|c| c.get().0.temp.clone())
-    }
-
-    pub fn set_temp(value: String) {
-        CONFIG.with_borrow_mut(|c| {
-            let mut config = c.get().0.clone();
-            config.temp = value;
-            let _ = c.set(Cbor(config));
-        });
-    }
-
     pub fn btc_network() -> BtcNetwork {
         CONFIG.with_borrow(|c| c.get().0.btc_network)
     }
@@ -75,5 +70,25 @@ impl Config {
 
     pub fn get() -> Self {
         CONFIG.with_borrow(|c| c.get().0.clone())
+    }
+
+    pub fn feature_flags() -> FeatureFlags {
+        CONFIG.with_borrow(|c| c.get().0.feature_flags.clone())
+    }
+
+    pub fn set_feature_flags(flags: FeatureFlags) {
+        CONFIG.with_borrow_mut(|c| {
+            let mut config = c.get().0.clone();
+            config.feature_flags = flags;
+            let _ = c.set(Cbor(config));
+        });
+    }
+
+    pub fn is_partial_filling_enabled() -> bool {
+        CONFIG.with_borrow(|c| c.get().0.feature_flags.is_partial_filling_enabled)
+    }
+
+    pub fn is_stitching_enabled() -> bool {
+        CONFIG.with_borrow(|c| c.get().0.feature_flags.is_stitching_enabled)
     }
 }

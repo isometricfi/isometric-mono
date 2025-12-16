@@ -1,18 +1,13 @@
 use candid::Principal;
-use ic_cdk::api;
 
 use crate::auth::types::{
-    AuthenticatedPayload, ChallengeContext, CreateProfileRequest, SignableAction,
-    UpdateUsernameRequest, WalletKey,
+    AuthenticatedPayload, CreateProfileRequest, SignableAction, UpdateUsernameRequest, WalletKey,
 };
-use crate::auth::{derive_principal, derive_subaccount, verify_btc_signature};
+use crate::auth::{build_challenge_context, verify_btc_signature};
 use crate::errors::VolumetricError;
 use crate::guards::is_whitelisted;
-use crate::storage::{
-    create_profile, get_nonce, get_principal_for_wallet, get_profile, increment_nonce,
-    is_wallet_registered, list_all_profiles, register_wallet, update_profile, BtcNetwork, Config,
-    Profile,
-};
+use crate::storage::{get_nonce, get_principal_for_wallet, increment_nonce, is_wallet_registered};
+use crate::usecases;
 
 #[derive(candid::CandidType, serde::Serialize, serde::Deserialize)]
 pub struct ProfileInfo {
@@ -43,27 +38,20 @@ pub async fn create_account(
     }
 
     let context = build_challenge_context(&wallet_key);
-    let message = req.data.signing_message(address, &context);
+    let reconstructed_message = req.data.signing_message(address, &context);
 
-    verify_btc_signature(address, &message, &req.wallet_proof.signature)?;
+    verify_btc_signature(address, &reconstructed_message, &req.wallet_proof.signature)?;
 
     increment_nonce(&wallet_key);
 
-    let principal = derive_principal(address);
-    let subaccount = derive_subaccount(principal);
-
-    let profile = Profile {
+    let params = usecases::RegisterAccountParams {
         wallet_address: address.clone(),
-        username: None,
-        created_at: ic_cdk::api::time(),
     };
-
-    create_profile(principal, profile);
-    register_wallet(wallet_key, principal);
+    let result = usecases::register_account_use_case(params);
 
     Ok(ProfileInfo {
-        principal,
-        subaccount: subaccount.to_vec(),
+        principal: result.principal,
+        subaccount: result.subaccount.to_vec(),
         address: address.clone(),
         username: None,
     })
@@ -77,16 +65,12 @@ pub fn get_account_nonce(address: String) -> u64 {
 
 #[ic_cdk::query]
 pub fn get_account_info(address: String) -> Option<ProfileInfo> {
-    let wallet_key = WalletKey::from_address(&address);
-    let principal = get_principal_for_wallet(&wallet_key)?;
-    let subaccount = derive_subaccount(principal);
-    let profile = get_profile(&principal)?;
-
+    let info = usecases::get_account_info_use_case(address)?;
     Some(ProfileInfo {
-        principal,
-        subaccount: subaccount.to_vec(),
-        address,
-        username: profile.username,
+        principal: info.principal,
+        subaccount: info.subaccount.to_vec(),
+        address: info.address,
+        username: info.username,
     })
 }
 
@@ -118,50 +102,32 @@ pub async fn update_username(
     let principal =
         get_principal_for_wallet(&wallet_key).ok_or_else(VolumetricError::profile_not_found)?;
 
-    let mut profile = get_profile(&principal).ok_or_else(VolumetricError::profile_not_found)?;
-
     let context = build_challenge_context(&wallet_key);
-    let message = req.data.signing_message(address, &context);
+    let reconstructed_message = req.data.signing_message(address, &context);
 
-    verify_btc_signature(address, &message, &req.wallet_proof.signature)?;
+    verify_btc_signature(address, &reconstructed_message, &req.wallet_proof.signature)?;
 
     increment_nonce(&wallet_key);
 
-    profile.username = Some(req.data.username);
-    update_profile(principal, profile.clone());
-
-    let subaccount = derive_subaccount(principal);
+    let result = usecases::update_username_use_case(principal, req.data.username)
+        .ok_or_else(VolumetricError::profile_not_found)?;
 
     Ok(ProfileInfo {
-        principal,
-        subaccount: subaccount.to_vec(),
+        principal: result.principal,
+        subaccount: result.subaccount.to_vec(),
         address: address.clone(),
-        username: profile.username,
+        username: result.username,
     })
 }
 
 #[ic_cdk::query]
 pub fn list_users() -> Vec<UserInfo> {
-    list_all_profiles()
+    usecases::list_users_use_case()
         .into_iter()
-        .map(|(principal, profile)| UserInfo {
-            principal,
-            address: profile.wallet_address,
-            username: profile.username,
+        .map(|u| UserInfo {
+            principal: u.principal,
+            address: u.address,
+            username: u.username,
         })
         .collect()
-}
-
-pub fn build_challenge_context(wallet_key: &WalletKey) -> ChallengeContext {
-    let nonce = get_nonce(wallet_key);
-    let network = match Config::btc_network() {
-        BtcNetwork::Mainnet => "mainnet",
-        BtcNetwork::Testnet => "testnet",
-    };
-
-    ChallengeContext {
-        canister_id: api::canister_self().to_text(),
-        network,
-        nonce,
-    }
 }

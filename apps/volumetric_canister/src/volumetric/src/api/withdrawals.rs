@@ -1,35 +1,34 @@
-use candid::{CandidType, Nat};
-use icrc_ledger_types::icrc1::account::Account;
+use candid::CandidType;
 use serde::{Deserialize, Serialize};
 
 use crate::auth::types::{AuthenticatedPayload, SignableAction, WalletKey, WithdrawCkbtcRequest};
-use crate::auth::{derive_subaccount, verify_btc_signature};
+use crate::auth::{build_challenge_context, verify_btc_signature};
 use crate::errors::VolumetricError;
 use crate::guards::is_whitelisted;
-use crate::generated::ckbtc::{
-    RetrieveBtcOk, RetrieveBtcWithApprovalArgs, RetrieveBtcWithApprovalError,
-};
-use crate::storage::{get_principal_for_wallet, increment_nonce, Config};
-
-use super::accounts::build_challenge_context;
-
-fn get_user_subaccount(address: &str) -> Result<[u8; 32], VolumetricError> {
-    let wallet_key = WalletKey::from_address(address);
-    let principal =
-        get_principal_for_wallet(&wallet_key).ok_or_else(VolumetricError::profile_not_found)?;
-    Ok(derive_subaccount(principal))
-}
+use crate::storage::{get_principal_for_wallet, increment_nonce};
+use crate::usecases;
 
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
 pub struct WithdrawResult {
     pub block_index: u64,
 }
 
+impl From<usecases::WithdrawResult> for WithdrawResult {
+    fn from(r: usecases::WithdrawResult) -> Self {
+        Self {
+            block_index: r.block_index,
+        }
+    }
+}
+
 #[ic_cdk::query]
 pub fn get_withdraw_message(address: String, btc_address: String, amount: u64) -> String {
     let wallet_key = WalletKey::from_address(&address);
     let context = build_challenge_context(&wallet_key);
-    let req = WithdrawCkbtcRequest { btc_address, amount };
+    let req = WithdrawCkbtcRequest {
+        btc_address,
+        amount,
+    };
     req.signing_message(&address, &context)
 }
 
@@ -43,74 +42,20 @@ pub async fn withdraw_ckbtc(
     let wallet_key = WalletKey::from_address(address);
 
     let context = build_challenge_context(&wallet_key);
-    let message = req.data.signing_message(address, &context);
+    let reconstructed_message = req.data.signing_message(address, &context);
 
-    verify_btc_signature(address, &message, &req.wallet_proof.signature)?;
+    verify_btc_signature(address, &reconstructed_message, &req.wallet_proof.signature)?;
 
     increment_nonce(&wallet_key);
 
-    let subaccount = get_user_subaccount(address)?;
-    let minter = Config::ckbtc_minter();
-    let ledger = Config::ckbtc_ledger();
+    let principal =
+        get_principal_for_wallet(&wallet_key).ok_or_else(VolumetricError::profile_not_found)?;
 
-    let approve_args = icrc_ledger_types::icrc2::approve::ApproveArgs {
-        from_subaccount: Some(subaccount),
-        spender: Account {
-            owner: minter,
-            subaccount: None,
-        },
-        amount: Nat::from(req.data.amount),
-        expected_allowance: None,
-        expires_at: None,
-        fee: None,
-        memo: None,
-        created_at_time: None,
-    };
-
-    let approve_response = ic_cdk::call::Call::unbounded_wait(ledger, "icrc2_approve")
-        .with_arg(&approve_args)
-        .await
-        .map_err(|e| VolumetricError::inter_canister_call_failed(&format!("icrc2_approve: {:?}", e)))?;
-
-    let approve_result: Result<Nat, icrc_ledger_types::icrc2::approve::ApproveError> =
-        approve_response.candid().map_err(|e| {
-            VolumetricError::inter_canister_call_failed(&format!("icrc2_approve decode: {:?}", e))
-        })?;
-
-    approve_result.map_err(|e| {
-        VolumetricError::inter_canister_call_failed(&format!("icrc2_approve rejected: {:?}", e))
-    })?;
-
-    let retrieve_args = RetrieveBtcWithApprovalArgs {
-        address: req.data.btc_address,
+    let params = usecases::WithdrawParams {
+        btc_address: req.data.btc_address,
         amount: req.data.amount,
-        from_subaccount: Some(serde_bytes::ByteBuf::from(subaccount.to_vec())),
     };
 
-    let retrieve_response =
-        ic_cdk::call::Call::unbounded_wait(minter, "retrieve_btc_with_approval")
-            .with_arg(&retrieve_args)
-            .await
-            .map_err(|e| {
-                VolumetricError::inter_canister_call_failed(&format!(
-                    "retrieve_btc_with_approval: {:?}",
-                    e
-                ))
-            })?;
-
-    let retrieve_result: Result<RetrieveBtcOk, RetrieveBtcWithApprovalError> =
-        retrieve_response.candid().map_err(|e| {
-            VolumetricError::inter_canister_call_failed(&format!(
-                "retrieve_btc_with_approval decode: {:?}",
-                e
-            ))
-        })?;
-
-    let ok = retrieve_result.map_err(|_| {
-        VolumetricError::inter_canister_call_failed("retrieve_btc_with_approval rejected")
-    })?;
-
-    Ok(WithdrawResult {
-        block_index: ok.block_index,
-    })
+    let result = usecases::withdraw_ckbtc_use_case(principal, params).await?;
+    Ok(result.into())
 }

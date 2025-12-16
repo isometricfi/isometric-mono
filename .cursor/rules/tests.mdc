@@ -1,0 +1,44 @@
+---
+description: Testing conventions and patterns
+alwaysApply: true
+---
+
+# Testing Conventions
+
+## Structure
+
+Use the **given/when/then** pattern for all tests:
+
+```rust
+#[test]
+fn test_example() {
+    // given
+    let input = setup_test_data();
+
+    // when
+    let result = function_under_test(input);
+
+    // then
+    assert_eq!(result, expected);
+}
+```
+
+```typescript
+test("example test", () => {
+  // given
+  const input = setupTestData();
+
+  // when
+  const result = functionUnderTest(input);
+
+  // then
+  expect(result).toBe(expected);
+});
+```
+
+## Guidelines
+
+- Use descriptive variable names in tests to make assertions self-documenting
+- Avoid magic numbers in assertions; derive expected values from input variables when possible
+- Use constants for repeated values or domain-specific numbers (e.g., `SATS_PER_BTC`, `CENTS_PER_DOLLAR`)
+- Keep each test focused on a single behavior

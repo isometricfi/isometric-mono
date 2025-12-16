@@ -23,6 +23,7 @@ canister_ids.json
 # IDE
 .idea/
 .vscode/
+.cursor/plans/
 *.swp
 *.swo
 .DS_Store
@@ -37,4 +38,3 @@ coverage/
 
 # Misc
 *.pem
-

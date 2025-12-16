@@ -7,6 +7,7 @@ use std::fmt;
 /// - 2xxx: Profile/account errors
 /// - 3xxx: Inter-canister call errors
 /// - 4xxx: Config errors
+/// - 5xxx: Options errors
 /// - 9xxx: Internal/generic errors
 pub mod error_codes {
     pub struct ErrorDef {
@@ -56,6 +57,88 @@ pub mod error_codes {
         code: 4001,
         name: "CONFIG_ERROR",
         message: "Configuration error",
+    };
+
+    // 5xxx: Options errors
+    pub const INSUFFICIENT_BALANCE: ErrorDef = ErrorDef {
+        code: 5001,
+        name: "INSUFFICIENT_BALANCE",
+        message: "Insufficient available balance",
+    };
+    pub const OFFER_NOT_FOUND: ErrorDef = ErrorDef {
+        code: 5002,
+        name: "OFFER_NOT_FOUND",
+        message: "Offer not found",
+    };
+    pub const OFFER_EXPIRED: ErrorDef = ErrorDef {
+        code: 5003,
+        name: "OFFER_EXPIRED",
+        message: "Offer has expired",
+    };
+    pub const OFFER_CANCELLED: ErrorDef = ErrorDef {
+        code: 5004,
+        name: "OFFER_CANCELLED",
+        message: "Offer has been cancelled",
+    };
+    pub const OFFER_FILLED: ErrorDef = ErrorDef {
+        code: 5005,
+        name: "OFFER_FILLED",
+        message: "Offer has been fully filled",
+    };
+    pub const QUANTITY_BELOW_MINIMUM: ErrorDef = ErrorDef {
+        code: 5006,
+        name: "QUANTITY_BELOW_MINIMUM",
+        message: "Quantity is below minimum (50,000 sats)",
+    };
+    pub const QUANTITY_EXCEEDS_AVAILABLE: ErrorDef = ErrorDef {
+        code: 5007,
+        name: "QUANTITY_EXCEEDS_AVAILABLE",
+        message: "Quantity exceeds available in offer",
+    };
+    pub const NOT_OFFER_OWNER: ErrorDef = ErrorDef {
+        code: 5008,
+        name: "NOT_OFFER_OWNER",
+        message: "Caller is not the offer owner",
+    };
+    pub const OPTION_NOT_FOUND: ErrorDef = ErrorDef {
+        code: 5009,
+        name: "OPTION_NOT_FOUND",
+        message: "Active option not found",
+    };
+    pub const OPTION_NOT_EXPIRED: ErrorDef = ErrorDef {
+        code: 5010,
+        name: "OPTION_NOT_EXPIRED",
+        message: "Option has not expired yet",
+    };
+    pub const OPTION_ALREADY_SETTLED: ErrorDef = ErrorDef {
+        code: 5011,
+        name: "OPTION_ALREADY_SETTLED",
+        message: "Option has already been settled",
+    };
+    pub const CANNOT_ACCEPT_OWN_OFFER: ErrorDef = ErrorDef {
+        code: 5012,
+        name: "CANNOT_ACCEPT_OWN_OFFER",
+        message: "Cannot accept your own offer",
+    };
+    pub const OFFER_PROCESSING: ErrorDef = ErrorDef {
+        code: 5013,
+        name: "OFFER_PROCESSING",
+        message: "Offer is currently being processed by another transaction",
+    };
+    pub const OPTION_SETTLING: ErrorDef = ErrorDef {
+        code: 5014,
+        name: "OPTION_SETTLING",
+        message: "Option is currently being settled by another transaction",
+    };
+    pub const PARTIAL_FILLING_DISABLED: ErrorDef = ErrorDef {
+        code: 5015,
+        name: "PARTIAL_FILLING_DISABLED",
+        message: "Partial filling is not enabled",
+    };
+    pub const STITCHING_DISABLED: ErrorDef = ErrorDef {
+        code: 5016,
+        name: "STITCHING_DISABLED",
+        message: "Stitching multiple offers is not enabled",
     };
 
     // 9xxx: Internal/generic errors
@@ -139,6 +222,82 @@ impl VolumetricError {
 
     pub fn internal(reason: &str) -> Self {
         Self::from_def_with_reason(&error_codes::INTERNAL_ERROR, reason)
+    }
+
+    pub fn insufficient_balance(available: u64, required: u64) -> Self {
+        Self::from_def_with_reason(
+            &error_codes::INSUFFICIENT_BALANCE,
+            &format!("available: {}, required: {}", available, required),
+        )
+    }
+
+    pub fn offer_not_found(offer_id: u64) -> Self {
+        Self::from_def_with_reason(&error_codes::OFFER_NOT_FOUND, &format!("id: {}", offer_id))
+    }
+
+    pub fn offer_expired() -> Self {
+        Self::from_def(&error_codes::OFFER_EXPIRED)
+    }
+
+    pub fn offer_cancelled() -> Self {
+        Self::from_def(&error_codes::OFFER_CANCELLED)
+    }
+
+    pub fn offer_filled() -> Self {
+        Self::from_def(&error_codes::OFFER_FILLED)
+    }
+
+    pub fn quantity_below_minimum(quantity: u64, minimum: u64) -> Self {
+        Self::from_def_with_reason(
+            &error_codes::QUANTITY_BELOW_MINIMUM,
+            &format!("got: {}, minimum: {}", quantity, minimum),
+        )
+    }
+
+    pub fn quantity_exceeds_available(requested: u64, available: u64) -> Self {
+        Self::from_def_with_reason(
+            &error_codes::QUANTITY_EXCEEDS_AVAILABLE,
+            &format!("requested: {}, available: {}", requested, available),
+        )
+    }
+
+    pub fn not_offer_owner() -> Self {
+        Self::from_def(&error_codes::NOT_OFFER_OWNER)
+    }
+
+    pub fn option_not_found(option_id: u64) -> Self {
+        Self::from_def_with_reason(
+            &error_codes::OPTION_NOT_FOUND,
+            &format!("id: {}", option_id),
+        )
+    }
+
+    pub fn option_not_expired() -> Self {
+        Self::from_def(&error_codes::OPTION_NOT_EXPIRED)
+    }
+
+    pub fn option_already_settled() -> Self {
+        Self::from_def(&error_codes::OPTION_ALREADY_SETTLED)
+    }
+
+    pub fn cannot_accept_own_offer() -> Self {
+        Self::from_def(&error_codes::CANNOT_ACCEPT_OWN_OFFER)
+    }
+
+    pub fn offer_processing() -> Self {
+        Self::from_def(&error_codes::OFFER_PROCESSING)
+    }
+
+    pub fn option_settling() -> Self {
+        Self::from_def(&error_codes::OPTION_SETTLING)
+    }
+
+    pub fn partial_filling_disabled() -> Self {
+        Self::from_def(&error_codes::PARTIAL_FILLING_DISABLED)
+    }
+
+    pub fn stitching_disabled() -> Self {
+        Self::from_def(&error_codes::STITCHING_DISABLED)
     }
 }
 
