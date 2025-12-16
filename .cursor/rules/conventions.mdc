@@ -1,6 +1,6 @@
 ---
 description: Code conventions, quality, and security standards
-globs:
+alwaysApply: true
 ---
 
 # Conventions

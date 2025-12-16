@@ -8,8 +8,7 @@ use crate::storage::{
     reverse_release_locked_to_recipient, unlock_collateral, update_active_option, ActiveOption,
     ActiveOptionStatus, OptionType,
 };
-
-use super::transfer_ckbtc;
+use crate::usecases::balances::transfer_ckbtc;
 
 pub struct SettlementResult {
     pub option_id: u64,
@@ -175,7 +174,7 @@ pub async fn testing_force_settle_option(
     settle_single_option(&mut option, settlement_price_cents).await
 }
 
-// TODO: Re-enable automatic settlement timer for production.
 pub fn setup_settlement_timer() {
+    // TODO: Re-enable automatic settlement timer for production.
     // Disabled for testing - manually call settle_expired_options() or settle_option_by_id()
 }

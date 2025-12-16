@@ -1,6 +1,6 @@
 ---
 description: Testing conventions and patterns
-globs: **/*.test.{ts,tsx,js,jsx}, **/*.spec.{ts,tsx,js,jsx}, **/tests/**/*.rs, **/*_test.rs
+alwaysApply: true
 ---
 
 # Testing Conventions

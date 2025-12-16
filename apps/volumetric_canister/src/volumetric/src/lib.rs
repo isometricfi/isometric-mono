@@ -29,7 +29,7 @@ pub use api::{
     get_config, get_deposit_address, get_message_to_sign, get_username_update_message,
     get_withdraw_message, list_users, list_whitelisted, remove_whitelisted, set_oracle_price,
     set_temp, testing_sync_balance_from_ledger, update_ckbtc_balance, update_username,
-    withdraw_ckbtc,
+    withdraw_ckbtc_endpoint,
 };
 pub use auth::types::{
     AuthenticatedPayload, CreateProfileRequest, UpdateUsernameRequest, WithdrawCkbtcRequest,

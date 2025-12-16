@@ -44,7 +44,14 @@ const errorMessages: Record<ErrorCode, string> = {
 };
 
 export function getErrorMessage(err: CanisterError): string {
-  return errorMessages[err.code as ErrorCode] ?? err.message;
+  const baseMessage = errorMessages[err.code as ErrorCode];
+  if (!baseMessage) {
+    return err.message;
+  }
+  if (err.message && err.message !== baseMessage) {
+    return `${baseMessage}: ${err.message}`;
+  }
+  return baseMessage;
 }
 
 export class CanisterError extends Error {

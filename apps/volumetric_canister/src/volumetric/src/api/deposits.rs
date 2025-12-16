@@ -2,12 +2,12 @@ use candid::{CandidType, Nat};
 use icrc_ledger_types::icrc1::account::Account;
 use serde::{Deserialize, Serialize};
 
-use crate::auth::derive_subaccount;
 use crate::auth::types::WalletKey;
 use crate::errors::VolumetricError;
-use crate::generated::ckbtc::{GetBtcAddressArg, UpdateBalanceArg, UpdateBalanceError, UtxoStatus};
+use crate::generated::ckbtc::UtxoStatus;
 use crate::guards::is_whitelisted;
-use crate::storage::{add_available, get_principal_for_wallet, set_balance, Config, UserBalance};
+use crate::storage::get_principal_for_wallet;
+use crate::usecases::deposit_ckbtc;
 
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
 pub struct DepositInfo {
@@ -15,49 +15,25 @@ pub struct DepositInfo {
     pub account: Account,
 }
 
-fn get_user_subaccount(address: &str) -> Result<[u8; 32], VolumetricError> {
-    let wallet_key = WalletKey::from_address(address);
-    let principal =
-        get_principal_for_wallet(&wallet_key).ok_or_else(VolumetricError::profile_not_found)?;
-    Ok(derive_subaccount(principal))
-}
-
-fn get_user_account(address: &str) -> Result<Account, VolumetricError> {
-    let subaccount = get_user_subaccount(address)?;
-    Ok(Account {
-        owner: ic_cdk::api::canister_self(),
-        subaccount: Some(subaccount),
-    })
+impl From<deposit_ckbtc::DepositAddressResult> for DepositInfo {
+    fn from(info: deposit_ckbtc::DepositAddressResult) -> Self {
+        Self {
+            btc_address: info.btc_address,
+            account: info.account,
+        }
+    }
 }
 
 #[ic_cdk::update]
 pub async fn get_deposit_address(address: String) -> Result<DepositInfo, VolumetricError> {
     is_whitelisted().await?;
 
-    let subaccount = get_user_subaccount(&address)?;
-    let minter = Config::ckbtc_minter();
+    let wallet_key = WalletKey::from_address(&address);
+    let principal =
+        get_principal_for_wallet(&wallet_key).ok_or_else(VolumetricError::profile_not_found)?;
 
-    let args = GetBtcAddressArg {
-        owner: Some(ic_cdk::api::canister_self()),
-        subaccount: Some(serde_bytes::ByteBuf::from(subaccount.to_vec())),
-    };
-
-    let response = ic_cdk::call::Call::unbounded_wait(minter, "get_btc_address")
-        .with_arg(&args)
-        .await
-        .map_err(|e| {
-            VolumetricError::inter_canister_call_failed(&format!("get_btc_address: {:?}", e))
-        })?;
-
-    let btc_address: String = response.candid().map_err(|e| {
-        VolumetricError::inter_canister_call_failed(&format!("get_btc_address decode: {:?}", e))
-    })?;
-
-    let account = get_user_account(&address)?;
-    Ok(DepositInfo {
-        btc_address,
-        account,
-    })
+    let info = deposit_ckbtc::get_deposit_address(principal).await?;
+    Ok(info.into())
 }
 
 #[ic_cdk::update]
@@ -68,69 +44,18 @@ pub async fn update_ckbtc_balance(address: String) -> Result<Vec<UtxoStatus>, Vo
     let principal =
         get_principal_for_wallet(&wallet_key).ok_or_else(VolumetricError::profile_not_found)?;
 
-    let subaccount = get_user_subaccount(&address)?;
-    let minter = Config::ckbtc_minter();
-
-    let args = UpdateBalanceArg {
-        owner: Some(ic_cdk::api::canister_self()),
-        subaccount: Some(serde_bytes::ByteBuf::from(subaccount.to_vec())),
-    };
-
-    let response = ic_cdk::call::Call::unbounded_wait(minter, "update_balance")
-        .with_arg(&args)
-        .await
-        .map_err(|e| {
-            VolumetricError::inter_canister_call_failed(&format!("update_balance: {:?}", e))
-        })?;
-
-    let result: Result<Vec<UtxoStatus>, UpdateBalanceError> = response.candid().map_err(|e| {
-        VolumetricError::inter_canister_call_failed(&format!("update_balance decode: {:?}", e))
-    })?;
-
-    let statuses = result.map_err(|e| {
-        let msg = match e {
-            UpdateBalanceError::GenericError { error_message, .. } => error_message,
-            UpdateBalanceError::TemporarilyUnavailable(msg) => msg,
-            UpdateBalanceError::AlreadyProcessing => "Already processing".to_string(),
-            UpdateBalanceError::NoNewUtxos { .. } => "No new UTXOs".to_string(),
-        };
-        VolumetricError::inter_canister_call_failed(&format!("update_balance: {}", msg))
-    })?;
-
-    let total_minted: u64 = statuses
-        .iter()
-        .filter_map(|s| match s {
-            UtxoStatus::Minted { minted_amount, .. } => Some(*minted_amount),
-            _ => None,
-        })
-        .sum();
-
-    if total_minted > 0 {
-        add_available(principal, total_minted);
-    }
-
-    Ok(statuses)
+    deposit_ckbtc::mint_ckbtc_from_utxos(principal).await
 }
 
 #[ic_cdk::update]
 pub async fn get_ckbtc_balance(address: String) -> Result<Nat, VolumetricError> {
     is_whitelisted().await?;
 
-    let account = get_user_account(&address)?;
-    let ledger = Config::ckbtc_ledger();
+    let wallet_key = WalletKey::from_address(&address);
+    let principal =
+        get_principal_for_wallet(&wallet_key).ok_or_else(VolumetricError::profile_not_found)?;
 
-    let response = ic_cdk::call::Call::unbounded_wait(ledger, "icrc1_balance_of")
-        .with_arg(&account)
-        .await
-        .map_err(|e| {
-            VolumetricError::inter_canister_call_failed(&format!("icrc1_balance_of: {:?}", e))
-        })?;
-
-    let balance: Nat = response.candid().map_err(|e| {
-        VolumetricError::inter_canister_call_failed(&format!("icrc1_balance_of decode: {:?}", e))
-    })?;
-
-    Ok(balance)
+    deposit_ckbtc::get_ledger_balance(principal).await
 }
 
 #[ic_cdk::update]
@@ -141,32 +66,5 @@ pub async fn testing_sync_balance_from_ledger(address: String) -> Result<u64, Vo
     let principal =
         get_principal_for_wallet(&wallet_key).ok_or_else(VolumetricError::profile_not_found)?;
 
-    let account = get_user_account(&address)?;
-    let ledger = Config::ckbtc_ledger();
-
-    let response = ic_cdk::call::Call::unbounded_wait(ledger, "icrc1_balance_of")
-        .with_arg(&account)
-        .await
-        .map_err(|e| {
-            VolumetricError::inter_canister_call_failed(&format!("icrc1_balance_of: {:?}", e))
-        })?;
-
-    let balance: Nat = response.candid().map_err(|e| {
-        VolumetricError::inter_canister_call_failed(&format!("icrc1_balance_of decode: {:?}", e))
-    })?;
-
-    let balance_u64: u64 = balance
-        .0
-        .try_into()
-        .map_err(|_| VolumetricError::internal("Balance too large to fit in u64"))?;
-
-    set_balance(
-        principal,
-        UserBalance {
-            available: balance_u64,
-            locked_as_writer: 0,
-        },
-    );
-
-    Ok(balance_u64)
+    deposit_ckbtc::sync_balance_from_ledger(principal).await
 }

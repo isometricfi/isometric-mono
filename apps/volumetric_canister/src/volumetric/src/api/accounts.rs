@@ -5,14 +5,14 @@ use crate::auth::types::{
     AuthenticatedPayload, ChallengeContext, CreateProfileRequest, SignableAction,
     UpdateUsernameRequest, WalletKey,
 };
-use crate::auth::{derive_principal, derive_subaccount, verify_btc_signature};
+use crate::auth::{derive_subaccount, verify_btc_signature};
 use crate::errors::VolumetricError;
 use crate::guards::is_whitelisted;
 use crate::storage::{
-    create_profile, get_nonce, get_principal_for_wallet, get_profile, increment_nonce,
-    is_wallet_registered, list_all_profiles, register_wallet, update_profile, BtcNetwork, Config,
-    Profile,
+    get_nonce, get_principal_for_wallet, get_profile, increment_nonce, is_wallet_registered,
+    list_all_profiles, BtcNetwork, Config,
 };
+use crate::usecases::{register_account, update_profile};
 
 #[derive(candid::CandidType, serde::Serialize, serde::Deserialize)]
 pub struct ProfileInfo {
@@ -49,21 +49,14 @@ pub async fn create_account(
 
     increment_nonce(&wallet_key);
 
-    let principal = derive_principal(address);
-    let subaccount = derive_subaccount(principal);
-
-    let profile = Profile {
+    let params = register_account::RegisterAccountParams {
         wallet_address: address.clone(),
-        username: None,
-        created_at: ic_cdk::api::time(),
     };
-
-    create_profile(principal, profile);
-    register_wallet(wallet_key, principal);
+    let result = register_account::register_account(params);
 
     Ok(ProfileInfo {
-        principal,
-        subaccount: subaccount.to_vec(),
+        principal: result.principal,
+        subaccount: result.subaccount.to_vec(),
         address: address.clone(),
         username: None,
     })
@@ -118,8 +111,6 @@ pub async fn update_username(
     let principal =
         get_principal_for_wallet(&wallet_key).ok_or_else(VolumetricError::profile_not_found)?;
 
-    let mut profile = get_profile(&principal).ok_or_else(VolumetricError::profile_not_found)?;
-
     let context = build_challenge_context(&wallet_key);
     let reconstructed_message = req.data.signing_message(address, &context);
 
@@ -127,16 +118,14 @@ pub async fn update_username(
 
     increment_nonce(&wallet_key);
 
-    profile.username = Some(req.data.username);
-    update_profile(principal, profile.clone());
-
-    let subaccount = derive_subaccount(principal);
+    let result = update_profile::update_username(principal, req.data.username)
+        .ok_or_else(VolumetricError::profile_not_found)?;
 
     Ok(ProfileInfo {
-        principal,
-        subaccount: subaccount.to_vec(),
+        principal: result.principal,
+        subaccount: result.subaccount.to_vec(),
         address: address.clone(),
-        username: profile.username,
+        username: result.username,
     })
 }
 
