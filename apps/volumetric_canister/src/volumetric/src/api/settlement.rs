@@ -3,10 +3,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::errors::VolumetricError;
 use crate::guards::is_whitelisted;
-use crate::storage::{
-    get_active_option, list_expired_active_options, update_active_option, ActiveOption,
-    ActiveOptionStatus,
-};
+use crate::storage::{list_expired_active_options, ActiveOption, ActiveOptionStatus};
 use crate::usecases;
 
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
@@ -72,18 +69,7 @@ pub fn setup_settlement_timer() {
 #[ic_cdk::update]
 pub async fn testing_expire_option(option_id: u64) -> Result<ActiveOption, VolumetricError> {
     is_whitelisted().await?;
-
-    let mut option =
-        get_active_option(option_id).ok_or_else(|| VolumetricError::option_not_found(option_id))?;
-
-    if option.status != ActiveOptionStatus::Active {
-        return Err(VolumetricError::option_already_settled());
-    }
-
-    option.expiry = 0;
-    update_active_option(option.clone());
-
-    Ok(option)
+    usecases::testing_expire_option_use_case(option_id)
 }
 
 #[ic_cdk::update]
@@ -92,18 +78,7 @@ pub async fn testing_set_option_expiry(
     expiry_ns: u64,
 ) -> Result<ActiveOption, VolumetricError> {
     is_whitelisted().await?;
-
-    let mut option =
-        get_active_option(option_id).ok_or_else(|| VolumetricError::option_not_found(option_id))?;
-
-    if option.status != ActiveOptionStatus::Active {
-        return Err(VolumetricError::option_already_settled());
-    }
-
-    option.expiry = expiry_ns;
-    update_active_option(option.clone());
-
-    Ok(option)
+    usecases::testing_set_option_expiry_use_case(option_id, expiry_ns)
 }
 
 #[ic_cdk::update]

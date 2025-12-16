@@ -9,6 +9,7 @@ use crate::storage::{
     subtract_available, unlock_collateral, update_offer, ActiveOption, ActiveOptionStatus, Asset,
     CounterKey, OfferStatus, OptionType, CKBTC_TRANSFER_FEE, MINIMUM_QUANTITY_SATS,
 };
+
 use crate::usecases::balances::transfer_ckbtc;
 
 pub struct AcceptOfferItem {
@@ -51,7 +52,7 @@ struct LockedState {
     original_status: OfferStatus,
 }
 
-pub async fn accept_offers(
+pub async fn accept_offers_use_case(
     buyer_principal: Principal,
     items: Vec<AcceptOfferItem>,
 ) -> Result<AcceptOffersResult, VolumetricError> {

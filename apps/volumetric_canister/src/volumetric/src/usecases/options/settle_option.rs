@@ -8,6 +8,7 @@ use crate::storage::{
     reverse_release_locked_to_recipient, unlock_collateral, update_active_option, ActiveOption,
     ActiveOptionStatus, OptionType,
 };
+
 use crate::usecases::balances::transfer_ckbtc;
 
 pub struct SettlementResult {
@@ -118,7 +119,7 @@ pub async fn settle_single_option(
     })
 }
 
-pub async fn settle_expired_options() -> SettleExpiredOptionsResult {
+pub async fn settle_expired_options_use_case() -> SettleExpiredOptionsResult {
     let now = ic_cdk::api::time();
     let expired_options = list_expired_active_options(now);
 
@@ -143,7 +144,9 @@ pub async fn settle_expired_options() -> SettleExpiredOptionsResult {
     SettleExpiredOptionsResult { settled, errors }
 }
 
-pub async fn settle_option_by_id(option_id: u64) -> Result<SettlementResult, VolumetricError> {
+pub async fn settle_option_by_id_use_case(
+    option_id: u64,
+) -> Result<SettlementResult, VolumetricError> {
     let now = ic_cdk::api::time();
     let mut option =
         get_active_option(option_id).ok_or_else(|| VolumetricError::option_not_found(option_id))?;
@@ -160,7 +163,7 @@ pub async fn settle_option_by_id(option_id: u64) -> Result<SettlementResult, Vol
     settle_single_option(&mut option, settlement_price_cents).await
 }
 
-pub async fn testing_force_settle_option(
+pub async fn testing_force_settle_option_use_case(
     option_id: u64,
 ) -> Result<SettlementResult, VolumetricError> {
     let mut option =
@@ -174,7 +177,37 @@ pub async fn testing_force_settle_option(
     settle_single_option(&mut option, settlement_price_cents).await
 }
 
+pub fn testing_expire_option_use_case(option_id: u64) -> Result<ActiveOption, VolumetricError> {
+    let mut option =
+        get_active_option(option_id).ok_or_else(|| VolumetricError::option_not_found(option_id))?;
+
+    if option.status != ActiveOptionStatus::Active {
+        return Err(VolumetricError::option_already_settled());
+    }
+
+    option.expiry = 0;
+    update_active_option(option.clone());
+
+    Ok(option)
+}
+
+pub fn testing_set_option_expiry_use_case(
+    option_id: u64,
+    expiry_ns: u64,
+) -> Result<ActiveOption, VolumetricError> {
+    let mut option =
+        get_active_option(option_id).ok_or_else(|| VolumetricError::option_not_found(option_id))?;
+
+    if option.status != ActiveOptionStatus::Active {
+        return Err(VolumetricError::option_already_settled());
+    }
+
+    option.expiry = expiry_ns;
+    update_active_option(option.clone());
+
+    Ok(option)
+}
+
 pub fn setup_settlement_timer() {
-    // TODO: Re-enable automatic settlement timer for production.
     // Disabled for testing - manually call settle_expired_options() or settle_option_by_id()
 }

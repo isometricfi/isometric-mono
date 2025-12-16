@@ -2,21 +2,19 @@ use candid::CandidType;
 use serde::{Deserialize, Serialize};
 
 use crate::auth::types::{AuthenticatedPayload, SignableAction, WalletKey, WithdrawCkbtcRequest};
-use crate::auth::verify_btc_signature;
+use crate::auth::{build_challenge_context, verify_btc_signature};
 use crate::errors::VolumetricError;
 use crate::guards::is_whitelisted;
 use crate::storage::{get_principal_for_wallet, increment_nonce};
-use crate::usecases::withdraw_ckbtc;
-
-use super::accounts::build_challenge_context;
+use crate::usecases;
 
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
 pub struct WithdrawResult {
     pub block_index: u64,
 }
 
-impl From<withdraw_ckbtc::WithdrawResult> for WithdrawResult {
-    fn from(r: withdraw_ckbtc::WithdrawResult) -> Self {
+impl From<usecases::WithdrawResult> for WithdrawResult {
+    fn from(r: usecases::WithdrawResult) -> Self {
         Self {
             block_index: r.block_index,
         }
@@ -53,11 +51,11 @@ pub async fn withdraw_ckbtc(
     let principal =
         get_principal_for_wallet(&wallet_key).ok_or_else(VolumetricError::profile_not_found)?;
 
-    let params = withdraw_ckbtc::WithdrawParams {
+    let params = usecases::WithdrawParams {
         btc_address: req.data.btc_address,
         amount: req.data.amount,
     };
 
-    let result = withdraw_ckbtc::withdraw_ckbtc_use_case(principal, params).await?;
+    let result = usecases::withdraw_ckbtc_use_case(principal, params).await?;
     Ok(result.into())
 }

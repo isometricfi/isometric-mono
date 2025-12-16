@@ -19,7 +19,10 @@ pub struct CreateOfferParams {
     pub option_duration_seconds: u64,
 }
 
-pub fn create_offer(writer: Principal, params: CreateOfferParams) -> Result<Offer, VolumetricError> {
+pub fn create_offer_use_case(
+    writer: Principal,
+    params: CreateOfferParams,
+) -> Result<Offer, VolumetricError> {
     if params.quantity < MINIMUM_QUANTITY_SATS {
         return Err(VolumetricError::quantity_below_minimum(
             params.quantity,

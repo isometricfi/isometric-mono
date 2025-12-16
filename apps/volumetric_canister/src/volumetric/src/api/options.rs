@@ -4,10 +4,7 @@ use serde::{Deserialize, Serialize};
 use crate::auth::types::WalletKey;
 use crate::errors::VolumetricError;
 use crate::guards::is_whitelisted;
-use crate::storage::{
-    get_active_option, get_principal_for_wallet, list_active_options_by_buyer,
-    list_active_options_by_writer, ActiveOption,
-};
+use crate::storage::{get_active_option, get_principal_for_wallet, ActiveOption};
 use crate::usecases;
 
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
@@ -61,7 +58,7 @@ pub fn get_my_options(wallet_address: String) -> Result<Vec<ActiveOption>, Volum
     let principal =
         get_principal_for_wallet(&wallet_key).ok_or_else(VolumetricError::profile_not_found)?;
 
-    Ok(list_active_options_by_buyer(principal))
+    Ok(usecases::get_my_options_use_case(principal))
 }
 
 #[ic_cdk::query]
@@ -72,7 +69,7 @@ pub fn get_my_written_options(
     let principal =
         get_principal_for_wallet(&wallet_key).ok_or_else(VolumetricError::profile_not_found)?;
 
-    Ok(list_active_options_by_writer(principal))
+    Ok(usecases::get_my_written_options_use_case(principal))
 }
 
 #[ic_cdk::query]
