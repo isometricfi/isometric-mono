@@ -8,11 +8,12 @@ import { SlidingNumber } from "../ui/sliding-number";
 const MAX_DECIMALS = 5;
 const MAX_BTC_INPUT = 100;
 
-interface AmountInputProps {
+export interface AmountInputProps {
   value: string; // BTC string for display/input
   onChange: (value: string) => void;
   symbol?: string;
   maxAmountSats?: number;
+  minAmountSats?: number;
   onMaxClick?: () => void;
 }
 
@@ -44,6 +45,7 @@ export function AmountInput({
   onChange,
   symbol = "₿",
   maxAmountSats,
+  minAmountSats: _minAmountSats,
   onMaxClick,
 }: AmountInputProps) {
   const { data: priceData } = usePrices();
