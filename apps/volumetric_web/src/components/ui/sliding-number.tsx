@@ -1,12 +1,6 @@
 "use client";
+import { type MotionValue, motion, motionValue, useSpring, useTransform } from "motion/react";
 import { useEffect, useId } from "react";
-import {
-  MotionValue,
-  motion,
-  useSpring,
-  useTransform,
-  motionValue,
-} from "motion/react";
 import useMeasure from "react-use-measure";
 
 const TRANSITION = {
@@ -28,14 +22,14 @@ function Digit({ value, place }: { value: number; place: number }) {
   return (
     <div className="relative inline-block w-[1ch] overflow-x-visible overflow-y-clip leading-none tabular-nums">
       <div className="invisible">0</div>
-      {Array.from({ length: 10 }, (_, i) => (
-        <Number key={i} mv={animatedValue} number={i} />
+      {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9].map((digit) => (
+        <DigitNumber key={`digit-${digit}`} mv={animatedValue} number={digit} />
       ))}
     </div>
   );
 }
 
-function Number({ mv, number }: { mv: MotionValue<number>; number: number }) {
+function DigitNumber({ mv, number }: { mv: MotionValue<number>; number: number }) {
   const uniqueId = useId();
   const [ref, bounds] = useMeasure();
 
@@ -88,12 +82,9 @@ export function SlidingNumber({
   const absValue = Math.abs(value);
   const [integerPart, decimalPart] = absValue.toString().split(".");
   const integerValue = parseInt(integerPart, 10);
-  const paddedInteger =
-    padStart && integerValue < 10 ? `0${integerPart}` : integerPart;
+  const paddedInteger = padStart && integerValue < 10 ? `0${integerPart}` : integerPart;
   const integerDigits = paddedInteger.split("");
-  const integerPlaces = integerDigits.map((_, i) =>
-    Math.pow(10, integerDigits.length - i - 1)
-  );
+  const integerPlaces = integerDigits.map((_, i) => 10 ** (integerDigits.length - i - 1));
 
   return (
     <div className="flex items-center">
@@ -108,13 +99,12 @@ export function SlidingNumber({
       {decimalPart && (
         <>
           <span>{decimalSeparator}</span>
-          {decimalPart.split("").map((_, index) => (
-            <Digit
-              key={`decimal-${index}`}
-              value={parseInt(decimalPart, 10)}
-              place={Math.pow(10, decimalPart.length - index - 1)}
-            />
-          ))}
+          {decimalPart.split("").map((_, index) => {
+            const place = 10 ** (decimalPart.length - index - 1);
+            return (
+              <Digit key={`decimal-${place}`} value={parseInt(decimalPart, 10)} place={place} />
+            );
+          })}
         </>
       )}
     </div>

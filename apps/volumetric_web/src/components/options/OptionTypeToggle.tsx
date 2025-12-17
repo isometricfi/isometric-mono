@@ -1,12 +1,8 @@
 "use client";
 
-import { TrendingUp, TrendingDown } from "lucide-react";
-import {
-  AnimatedToggle,
-  type ToggleOption,
-} from "@/components/navigation/animated-toggle";
-
-export type OptionType = "call" | "put";
+import { TrendingDown, TrendingUp } from "lucide-react";
+import { AnimatedToggle, type ToggleOption } from "@/components/navigation/AnimatedToggle";
+import type { OptionType } from "@/store/optionsStore";
 
 const optionTypeOptions: ToggleOption<OptionType>[] = [
   { value: "call", label: "Call", icon: TrendingUp },
@@ -19,11 +15,7 @@ interface OptionTypeToggleProps {
   disabled?: boolean;
 }
 
-export function OptionTypeToggle({
-  value,
-  onChange,
-  disabled,
-}: OptionTypeToggleProps) {
+export function OptionTypeToggle({ value, onChange, disabled }: OptionTypeToggleProps) {
   return (
     <div className={disabled ? "opacity-50 pointer-events-none" : ""}>
       <AnimatedToggle
@@ -35,4 +27,3 @@ export function OptionTypeToggle({
     </div>
   );
 }
-

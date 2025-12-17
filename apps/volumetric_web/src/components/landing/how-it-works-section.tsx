@@ -3,7 +3,7 @@
 import { motion } from "framer-motion";
 import { ArrowRight, Clock, TrendingUp, Zap } from "lucide-react";
 import { useState } from "react";
-import { AnimatedToggle } from "@/components/navigation/AnimatedToggle";
+import { AnimatedToggle } from "@/components/navigation/animated-toggle";
 import { Button } from "@/components/ui/button";
 
 export function HowItWorksSection() {
@@ -54,7 +54,7 @@ export function HowItWorksSection() {
   const steps = activeTab === "writer" ? writerSteps : buyerSteps;
 
   return (
-    <section className="relative py-24 md:py-32">
+    <section className="relative px-4 py-24 md:py-32">
       <div className="max-w-5xl mx-auto">
         {/* header */}
         <motion.div

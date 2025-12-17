@@ -2,7 +2,6 @@
 
 import { motion } from "framer-motion";
 import type { LucideIcon } from "lucide-react";
-import { cn } from "@/lib/utils";
 
 export interface ToggleOption<T extends string> {
   value: T;
@@ -15,7 +14,6 @@ interface AnimatedToggleProps<T extends string> {
   value: T;
   onChange: (value: T) => void;
   layoutId?: string;
-  size?: "default" | "sm";
 }
 
 export function AnimatedToggle<T extends string>({
@@ -23,7 +21,6 @@ export function AnimatedToggle<T extends string>({
   value,
   onChange,
   layoutId = "activeTab",
-  size = "default",
 }: AnimatedToggleProps<T>) {
   return (
     <div className="inline-flex items-center p-1 rounded-full bg-muted">
@@ -36,11 +33,9 @@ export function AnimatedToggle<T extends string>({
             type="button"
             key={option.value}
             onClick={() => onChange(option.value)}
-            className={cn(
-              "relative font-medium rounded-full transition-all",
-              size === "sm" ? "px-3 py-1 text-xs" : "px-5 py-2 text-sm",
-              isActive ? "text-foreground" : "text-muted-foreground hover:text-foreground",
-            )}
+            className={`relative px-5 py-2 text-sm font-medium rounded-full transition-all ${
+              isActive ? "text-foreground" : "text-muted-foreground hover:text-foreground"
+            }`}
           >
             {isActive && (
               <motion.div
@@ -50,7 +45,7 @@ export function AnimatedToggle<T extends string>({
               />
             )}
             <span className="relative z-10 flex items-center gap-2">
-              {Icon && <Icon className={size === "sm" ? "size-3" : "size-3.5"} />}
+              {Icon && <Icon className="size-3.5" />}
               {option.label}
             </span>
           </button>

@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 
 export function ChainAbstractionSection() {
   return (
-    <section className="relative py-24 md:py-32 bg-muted/30">
+    <section className="relative px-4 py-24 md:py-32 bg-muted/30">
       <div className="max-w-5xl mx-auto">
         <div className="flex md:flex-row flex-col gap-5 md:gap-10 w-full">
           {/* left - content */}
