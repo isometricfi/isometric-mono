@@ -3,8 +3,8 @@
 import { Button } from "@/components/ui/button";
 import { SlidingNumber } from "@/components/ui/sliding-number";
 import { usePrices } from "@/hooks/usePrices";
-import { satsToBtc } from "@/lib/sats";
-import type { OptionOffer } from "@/store/optionsStore";
+import { satsToBtc } from "@/lib/utils";
+import type { OptionOffer } from "@/types/options";
 import { CallBuyHowItWorksModal } from "./CallBuyHowItWorksModal";
 
 interface CallBuyOptionSummaryProps {

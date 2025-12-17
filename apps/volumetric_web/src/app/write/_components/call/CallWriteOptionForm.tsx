@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { NumberCarousel } from "@/components/ui/number-carousel";
 import { generatePremiumValues, useConfig } from "@/hooks/useConfig";
 import { usePrices } from "@/hooks/usePrices";
-import { formatBtc, parseBtcToSats } from "@/lib/sats";
+import { formatBtc, parseBtcToSats } from "@/lib/utils";
 import { CallWriteOptionSummary } from "./CallWriteOptionSummary";
 
 export function CallWriteOptionForm() {

@@ -2,7 +2,7 @@
 
 import { TrendingDown, TrendingUp } from "lucide-react";
 import { AnimatedToggle, type ToggleOption } from "@/components/navigation/AnimatedToggle";
-import type { OptionType } from "@/store/optionsStore";
+import type { OptionType } from "@/types/ui";
 
 const optionTypeOptions: ToggleOption<OptionType>[] = [
   { value: "call", label: "Call", icon: TrendingUp },

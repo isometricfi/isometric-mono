@@ -3,7 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { SlidingNumber } from "@/components/ui/sliding-number";
 import { usePrices } from "@/hooks/usePrices";
-import { roundToN, satsToBtc } from "@/lib/sats";
+import { roundToN, satsToBtc } from "@/lib/utils";
 import { CallWriteHowItWorksModal } from "./CallWriteHowItWorksModal";
 
 interface CallWriteOptionSummaryProps {

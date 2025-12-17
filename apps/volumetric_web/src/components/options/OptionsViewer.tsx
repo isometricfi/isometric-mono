@@ -7,9 +7,9 @@ import { AnimatedToggle, type ToggleOption } from "@/components/navigation/Anima
 import { useConfig } from "@/hooks/useConfig";
 import { useOptions } from "@/hooks/useOptions";
 import { usePrices } from "@/hooks/usePrices";
-import { formatBtc } from "@/lib/sats";
-import { cn } from "@/lib/utils";
-import type { StrikeBucket, ViewerMode } from "@/store/optionsStore";
+import { cn, formatBtc } from "@/lib/utils";
+import type { StrikeBucket } from "@/types/options";
+import type { ViewerMode } from "@/types/ui";
 
 interface StrikeRowProps {
   bucket: StrikeBucket;
@@ -20,7 +20,6 @@ interface StrikeRowProps {
 }
 
 function StrikeRow({ bucket, btcPrice, isExpanded, onToggle, mode }: StrikeRowProps) {
-  // compute strike price in USD from percentage
   const strikeUsd = Math.round(btcPrice * (1 + bucket.strikePercent / 100));
   const scrollRef = useRef<HTMLDivElement>(null);
   const [hasScrolled, setHasScrolled] = useState(false);
@@ -190,7 +189,6 @@ export function OptionsViewer({ mode }: OptionsViewerProps) {
   const { data: config } = useConfig();
   const btcPrice = priceData?.btc ?? 0;
 
-  // build term options from config
   const termOptions: ToggleOption<string>[] = useMemo(() => {
     if (!config) return [];
     return config.termOptions.map((term) => ({
@@ -209,8 +207,8 @@ export function OptionsViewer({ mode }: OptionsViewerProps) {
     setExpandedStrikePercent((prev) => (prev === strikePercent ? null : strikePercent));
   };
 
-  const formatExpiryDate = (date: Date) => {
-    return date.toLocaleDateString("en-US", {
+  const formatExpiryDate = (dateStr: string) => {
+    return new Date(dateStr).toLocaleDateString("en-US", {
       month: "short",
       day: "numeric",
     });

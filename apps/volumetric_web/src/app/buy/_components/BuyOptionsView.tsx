@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { OptionsViewer } from "@/components/options/OptionsViewer";
 import { OptionTypeToggle } from "@/components/options/OptionTypeToggle";
-import type { OptionType } from "@/store/optionsStore";
+import type { OptionType } from "@/types/ui";
 import { CallOptionBuyForm } from "./call/CallOptionBuyForm";
 
 export function BuyOptionsView() {

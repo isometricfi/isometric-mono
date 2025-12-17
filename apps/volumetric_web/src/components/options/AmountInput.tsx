@@ -2,7 +2,7 @@
 
 import type { ChangeEvent } from "react";
 import { usePrices } from "@/hooks/usePrices";
-import { formatBtc } from "@/lib/sats";
+import { formatBtc } from "@/lib/utils";
 import { SlidingNumber } from "../ui/sliding-number";
 
 const MAX_DECIMALS = 5;
@@ -18,24 +18,19 @@ interface AmountInputProps {
 
 // sanitize and format BTC input
 function sanitizeBtcInput(input: string): string | null {
-  // allow empty
   if (input === "") return "";
 
-  // only allow digits and one decimal point
   if (!/^\d*\.?\d*$/.test(input)) return null;
 
-  // prevent leading zeros (except "0" or "0.")
   if (/^0\d+/.test(input) && !input.startsWith("0.")) {
     input = input.replace(/^0+/, "");
   }
 
-  // limit decimals to MAX_DECIMALS
   const parts = input.split(".");
   if (parts.length === 2 && parts[1].length > MAX_DECIMALS) {
     input = `${parts[0]}.${parts[1].slice(0, MAX_DECIMALS)}`;
   }
 
-  // prevent values >= MAX_BTC_INPUT
   const numValue = parseFloat(input);
   if (!Number.isNaN(numValue) && numValue >= MAX_BTC_INPUT) {
     return null;
