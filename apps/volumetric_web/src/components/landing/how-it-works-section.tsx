@@ -54,7 +54,7 @@ export function HowItWorksSection() {
   const steps = activeTab === "writer" ? writerSteps : buyerSteps;
 
   return (
-    <section className="relative py-24 md:py-32">
+    <section className="relative px-4 py-24 md:py-32">
       <div className="max-w-5xl mx-auto">
         {/* header */}
         <motion.div

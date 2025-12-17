@@ -16,7 +16,7 @@ export function Navbar() {
   const isLandingPage = pathname === "/";
 
   return (
-    <nav className="fixed top-4 left-1/2  -translate-x-1/2 z-50 w-full max-w-5xl md:px-0 px-4 ">
+    <nav className="fixed top-4 left-1/2  -translate-x-1/2 z-50 w-full max-w-5xl xl:px-0 px-4 ">
       <div className="border rounded-full bg-background/80 backdrop-blur-sm overflow-visible">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4">
           <Link href="/" className="flex items-center gap-2 text-xl font-semibold tracking-tight">
@@ -29,21 +29,33 @@ export function Navbar() {
             />
             <span className="md:block hidden">Volumetric</span>
           </Link>
-          <div className="flex items-center gap-3">
-            <Button variant="ghost" size="sm">
-              <Link href="/">Writers</Link>
-            </Button>
-            <Button variant="ghost" size="sm">
-              <Link href="/about">Buyers</Link>
-            </Button>
+          <div className="flex items-center gap-0 md:gap-3">
+            <Link href="/write" className={pathname === "/write" ? "font-bold" : ""}>
+              <Button variant="ghost" size="sm">
+                Write
+              </Button>
+            </Link>
+
+            <Link href="/buy" className={pathname === "/buy" ? "font-bold" : ""}>
+              <Button variant="ghost" size="sm">
+                Buy
+              </Button>
+            </Link>
+            {!isLandingPage && (
+              <Link href="/portfolio" className={pathname === "/portfolio" ? "font-bold" : ""}>
+                <Button variant="ghost" size="sm">
+                  Portfolio
+                </Button>
+              </Link>
+            )}
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 justify-center">
             <Button
               variant="ghost"
               size="icon"
               onClick={() => setTheme(theme === "light" ? "dark" : "light")}
               aria-label="Toggle theme"
-              className="md:block hidden"
+              className="md:flex hidden  items-center justify-center"
             >
               {theme === "light" ? <Moon className="size-5" /> : <Sun className="size-5" />}
             </Button>

@@ -51,7 +51,9 @@ export function CreateAccount() {
       }
 
       const message = await canister.get_message_to_sign(address);
-      const signature = await primaryWallet.signMessage(message, { addressType: "payment" });
+      const signature = await primaryWallet.signMessage(message, {
+        addressType: "payment",
+      });
 
       if (!signature) {
         throw new Error("Failed to sign message");

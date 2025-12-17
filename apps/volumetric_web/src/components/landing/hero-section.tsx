@@ -2,12 +2,12 @@
 
 import { motion } from "framer-motion";
 import { Sparkles, TrendingUp, Zap } from "lucide-react";
-import { PayoffVisualization } from "./PayoffVisualization";
-import { YieldDisplay } from "./YieldDisplay";
+import { PayoffVisualization } from "@/components/landing/payoff-visualization";
+import { YieldDisplay } from "@/components/landing/yield-display";
 
 export function HeroSection() {
   return (
-    <div className="relative z-10 flex flex-col items-center pt-20 pb-16">
+    <div className="relative z-10 flex flex-col items-center px-4 pt-20 pb-16">
       <div className="max-w-5xl w-full">
         {/* eyebrow */}
         <motion.div
