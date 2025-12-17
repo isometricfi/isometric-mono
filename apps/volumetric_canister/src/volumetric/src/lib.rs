@@ -20,9 +20,10 @@ pub use api::{
     accept_offers, cancel_offer, create_offer, get_active_option_by_id, get_cancel_offer_message,
     get_create_offer_message, get_my_offers, get_my_options, get_my_written_options,
     get_offer_by_id, get_open_offers, get_pending_settlements, settle_expired_options,
-    settle_option_by_id, testing_expire_option, testing_force_settle, testing_set_option_expiry,
-    AcceptOfferItem, AcceptOffersRequest, AcceptOffersResponse, CancelOfferRequest,
-    CreateOfferRequest, CreateOfferResponse, SettleExpiredOptionsResponse, SettlementResult,
+    settle_option_by_id, testing_clear_offers_and_options, testing_expire_option,
+    testing_force_settle, testing_set_option_expiry, AcceptOfferItem, AcceptOffersRequest,
+    AcceptOffersResponse, CancelOfferRequest, ClearStorageResponse, CreateOfferRequest,
+    CreateOfferResponse, SettleExpiredOptionsResponse, SettlementResult,
 };
 pub use api::{
     add_whitelisted, create_account, get_account_info, get_account_nonce, get_ckbtc_balance,

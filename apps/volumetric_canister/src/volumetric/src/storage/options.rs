@@ -264,6 +264,30 @@ pub fn calculate_strike_price(entry_price_cents: u64, strike_basis_points: u16) 
     entry_price_cents.saturating_add(increase as u64)
 }
 
+/// Clears all offers from storage. Used for testing/migration purposes.
+pub fn clear_offers() -> u64 {
+    OFFERS.with_borrow_mut(|o| {
+        let keys: Vec<u64> = o.iter().map(|entry| entry.key().clone()).collect();
+        let count = keys.len() as u64;
+        for key in keys {
+            o.remove(&key);
+        }
+        count
+    })
+}
+
+/// Clears all active options from storage. Used for testing/migration purposes.
+pub fn clear_active_options() -> u64 {
+    ACTIVE_OPTIONS.with_borrow_mut(|a| {
+        let keys: Vec<u64> = a.iter().map(|entry| entry.key().clone()).collect();
+        let count = keys.len() as u64;
+        for key in keys {
+            a.remove(&key);
+        }
+        count
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

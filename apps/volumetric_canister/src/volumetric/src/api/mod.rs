@@ -22,7 +22,8 @@ pub use offers::{
 };
 pub use options::{
     accept_offers, get_active_option_by_id, get_my_options, get_my_written_options,
-    AcceptOfferItem, AcceptOffersRequest, AcceptOffersResponse,
+    testing_clear_offers_and_options, AcceptOfferItem, AcceptOffersRequest, AcceptOffersResponse,
+    ClearStorageResponse,
 };
 pub use settlement::{
     get_pending_settlements, settle_expired_options, settle_option_by_id, setup_settlement_timer,

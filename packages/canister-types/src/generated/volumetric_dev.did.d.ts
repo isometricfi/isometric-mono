@@ -59,6 +59,10 @@ export interface AuthenticatedPayload_4 {
 export type BtcNetwork = { 'Mainnet' : null } |
   { 'Testnet' : null };
 export interface CancelOfferRequest { 'offer_id' : bigint }
+export interface ClearStorageResponse {
+  'options_cleared' : bigint,
+  'offers_cleared' : bigint,
+}
 export interface Config {
   'ckbtc_minter' : Principal,
   'btc_network' : BtcNetwork,
@@ -115,13 +119,15 @@ export type Result_10 = { 'Ok' : SettleExpiredOptionsResponse } |
   { 'Err' : VolumetricError };
 export type Result_11 = { 'Ok' : SettlementResult } |
   { 'Err' : VolumetricError };
-export type Result_12 = { 'Ok' : ActiveOption } |
+export type Result_12 = { 'Ok' : ClearStorageResponse } |
   { 'Err' : VolumetricError };
-export type Result_13 = { 'Ok' : bigint } |
+export type Result_13 = { 'Ok' : ActiveOption } |
   { 'Err' : VolumetricError };
-export type Result_14 = { 'Ok' : Array<UtxoStatus> } |
+export type Result_14 = { 'Ok' : bigint } |
   { 'Err' : VolumetricError };
-export type Result_15 = { 'Ok' : WithdrawResult } |
+export type Result_15 = { 'Ok' : Array<UtxoStatus> } |
+  { 'Err' : VolumetricError };
+export type Result_16 = { 'Ok' : WithdrawResult } |
   { 'Err' : VolumetricError };
 export type Result_2 = { 'Ok' : Offer } |
   { 'Err' : VolumetricError };
@@ -229,13 +235,18 @@ export interface _SERVICE {
   'set_oracle_price' : ActorMethod<[bigint], Result_1>,
   'settle_expired_options' : ActorMethod<[], Result_10>,
   'settle_option_by_id' : ActorMethod<[bigint], Result_11>,
-  'testing_expire_option' : ActorMethod<[bigint], Result_12>,
+  /**
+   * Testing endpoint to clear all offers and active options from storage.
+   * Use this for storage migration when schema changes break deserialization.
+   */
+  'testing_clear_offers_and_options' : ActorMethod<[], Result_12>,
+  'testing_expire_option' : ActorMethod<[bigint], Result_13>,
   'testing_force_settle' : ActorMethod<[bigint], Result_11>,
-  'testing_set_option_expiry' : ActorMethod<[bigint, bigint], Result_12>,
-  'testing_sync_balance_from_ledger' : ActorMethod<[string], Result_13>,
-  'update_ckbtc_balance' : ActorMethod<[string], Result_14>,
+  'testing_set_option_expiry' : ActorMethod<[bigint, bigint], Result_13>,
+  'testing_sync_balance_from_ledger' : ActorMethod<[string], Result_14>,
+  'update_ckbtc_balance' : ActorMethod<[string], Result_15>,
   'update_username' : ActorMethod<[AuthenticatedPayload_3], Result_3>,
-  'withdraw_ckbtc' : ActorMethod<[AuthenticatedPayload_4], Result_15>,
+  'withdraw_ckbtc' : ActorMethod<[AuthenticatedPayload_4], Result_16>,
 }
 export declare const idlFactory: IDL.InterfaceFactory;
 export declare const init: (args: { IDL: typeof IDL }) => IDL.Type[];

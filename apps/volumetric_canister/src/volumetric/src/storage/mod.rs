@@ -20,10 +20,10 @@ pub use balances::{
 pub use cbor::Cbor;
 pub use config::{BtcNetwork, Config, FeatureFlags};
 pub use options::{
-    calculate_premium, calculate_strike_price, get_active_option, get_offer, insert_active_option,
-    insert_offer, list_active_options_by_buyer, list_active_options_by_writer,
-    list_expired_active_options, list_offers_by_writer, list_open_offers, next_id,
-    update_active_option, update_offer, ActiveOption, ActiveOptionStatus, Asset, CounterKey, Offer,
-    OfferStatus, OptionType, MINIMUM_QUANTITY_SATS,
+    calculate_premium, calculate_strike_price, clear_active_options, clear_offers,
+    get_active_option, get_offer, insert_active_option, insert_offer, list_active_options_by_buyer,
+    list_active_options_by_writer, list_expired_active_options, list_offers_by_writer,
+    list_open_offers, next_id, update_active_option, update_offer, ActiveOption,
+    ActiveOptionStatus, Asset, CounterKey, Offer, OfferStatus, OptionType, MINIMUM_QUANTITY_SATS,
 };
 pub use state::{ConfigCell, MemoryIndex, CONFIG, MEMORY_MANAGER, WHITELIST};

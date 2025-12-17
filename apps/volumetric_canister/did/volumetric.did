@@ -48,6 +48,10 @@ type AuthenticatedPayload_4 = record {
 };
 type BtcNetwork = variant { Mainnet; Testnet };
 type CancelOfferRequest = record { offer_id : nat64 };
+type ClearStorageResponse = record {
+  options_cleared : nat64;
+  offers_cleared : nat64;
+};
 type Config = record {
   ckbtc_minter : principal;
   btc_network : BtcNetwork;
@@ -105,10 +109,11 @@ type Result_10 = variant {
   Err : VolumetricError;
 };
 type Result_11 = variant { Ok : SettlementResult; Err : VolumetricError };
-type Result_12 = variant { Ok : ActiveOption; Err : VolumetricError };
-type Result_13 = variant { Ok : nat64; Err : VolumetricError };
-type Result_14 = variant { Ok : vec UtxoStatus; Err : VolumetricError };
-type Result_15 = variant { Ok : WithdrawResult; Err : VolumetricError };
+type Result_12 = variant { Ok : ClearStorageResponse; Err : VolumetricError };
+type Result_13 = variant { Ok : ActiveOption; Err : VolumetricError };
+type Result_14 = variant { Ok : nat64; Err : VolumetricError };
+type Result_15 = variant { Ok : vec UtxoStatus; Err : VolumetricError };
+type Result_16 = variant { Ok : WithdrawResult; Err : VolumetricError };
 type Result_2 = variant { Ok : Offer; Err : VolumetricError };
 type Result_3 = variant { Ok : ProfileInfo; Err : VolumetricError };
 type Result_4 = variant { Ok : CreateOfferResponse; Err : VolumetricError };
@@ -190,11 +195,14 @@ service : (opt BtcNetwork) -> {
   set_oracle_price : (nat64) -> (Result_1);
   settle_expired_options : () -> (Result_10);
   settle_option_by_id : (nat64) -> (Result_11);
-  testing_expire_option : (nat64) -> (Result_12);
+  // Testing endpoint to clear all offers and active options from storage.
+  // Use this for storage migration when schema changes break deserialization.
+  testing_clear_offers_and_options : () -> (Result_12);
+  testing_expire_option : (nat64) -> (Result_13);
   testing_force_settle : (nat64) -> (Result_11);
-  testing_set_option_expiry : (nat64, nat64) -> (Result_12);
-  testing_sync_balance_from_ledger : (text) -> (Result_13);
-  update_ckbtc_balance : (text) -> (Result_14);
+  testing_set_option_expiry : (nat64, nat64) -> (Result_13);
+  testing_sync_balance_from_ledger : (text) -> (Result_14);
+  update_ckbtc_balance : (text) -> (Result_15);
   update_username : (AuthenticatedPayload_3) -> (Result_3);
-  withdraw_ckbtc : (AuthenticatedPayload_4) -> (Result_15);
+  withdraw_ckbtc : (AuthenticatedPayload_4) -> (Result_16);
 }
