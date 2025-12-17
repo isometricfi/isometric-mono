@@ -19,7 +19,7 @@ export function findBestOffer(
   strikePercent: number,
   amountSats: number,
 ): OptionOffer | null {
-  if (!data) return null;
+  if (!data || amountSats <= 0) return null;
 
   const termGroup = data.termGroups.find((g) => g.term === term);
   if (!termGroup) return null;

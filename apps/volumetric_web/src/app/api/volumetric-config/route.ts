@@ -4,8 +4,8 @@ import type { ConfigData } from "@/types/config";
 
 export async function GET() {
   const config: ConfigData = {
-    termOptions: [7, 14],
-    strikePercentOptions: [5, 10, 15],
+    termOptions: [1, 7, 14],
+    strikePercentOptions: [5, 10, 15, 20],
     premium: {
       min: 0.5,
       max: 5,

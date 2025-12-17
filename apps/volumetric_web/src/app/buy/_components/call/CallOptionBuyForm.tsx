@@ -1,10 +1,12 @@
 "use client";
 
+import { useDynamicContext } from "@dynamic-labs/sdk-react-core";
 import { useMemo, useState } from "react";
 import { AmountInput } from "@/components/options/AmountInput";
 import { TermSelector } from "@/components/options/TermSelector";
 import { Button } from "@/components/ui/button";
 import { NumberCarousel } from "@/components/ui/number-carousel";
+import { useAcceptOffer } from "@/hooks/use-accept-offer";
 import { useConfig } from "@/hooks/useConfig";
 import {
   findBestOffer,
@@ -21,9 +23,11 @@ function computeStrikeUsdValues(strikePercents: number[], btcPrice: number): num
 }
 
 export function CallOptionBuyForm() {
+  const { primaryWallet } = useDynamicContext();
   const { data } = useOptions();
   const { data: priceData } = usePrices();
   const { data: config } = useConfig();
+  const acceptOffer = useAcceptOffer();
   const btcPrice = priceData?.btc ?? 0;
 
   const minOfferAmountSats = config?.minOfferAmountSats ?? 100_000;
@@ -63,13 +67,29 @@ export function CallOptionBuyForm() {
     }
   };
 
-  const handleSubmit = () => {};
+  const handleSubmit = () => {
+    if (!bestOffer) return;
+    acceptOffer.mutate({
+      offerId: bestOffer.id,
+      quantitySats: amountSats,
+    });
+  };
 
   const handleMaxClick = () => {
     setAmountBtc(formatBtc(maxLiquiditySats, 8));
   };
 
+  const isWalletConnected = !!primaryWallet;
   const isValidAmount = amountSats > 0 && amountSats <= maxLiquiditySats;
+  const hasInsufficientLiquidity = amountSats > maxLiquiditySats;
+
+  const getButtonText = () => {
+    if (!isWalletConnected) return "Connect Wallet";
+    if (acceptOffer.isPending) return "Buying Option...";
+    if (hasInsufficientLiquidity) return "Insufficient liquidity";
+    if (!bestOffer && amountSats > 0) return "No offers available";
+    return "Buy Option";
+  };
 
   return (
     <div className="bg-card rounded-3xl border border-border p-6 space-y-5 h-fit">
@@ -111,10 +131,24 @@ export function CallOptionBuyForm() {
         onClick={handleSubmit}
         className="w-full rounded-full py-6 text-base font-semibold"
         size="lg"
-        disabled={!isValidAmount || !bestOffer}
+        disabled={!isWalletConnected || !isValidAmount || !bestOffer || acceptOffer.isPending}
       >
-        {!isValidAmount && amountSats > maxLiquiditySats ? "Insufficient liquidity" : "Buy Option"}
+        {getButtonText()}
       </Button>
+
+      {acceptOffer.isSuccess && (
+        <div className="p-3 bg-green-950 border border-green-800 rounded-lg">
+          <div className="text-sm text-green-400">
+            Option purchased! Fill Group: {acceptOffer.data.fillGroupId}
+          </div>
+        </div>
+      )}
+
+      {acceptOffer.isError && (
+        <div className="p-3 bg-red-950 border border-red-800 rounded-lg">
+          <div className="text-sm text-red-400">{acceptOffer.error?.message}</div>
+        </div>
+      )}
 
       <CallBuyOptionSummary
         amountSats={amountSats}

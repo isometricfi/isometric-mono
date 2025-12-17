@@ -193,7 +193,7 @@ export function OptionsViewer({ mode }: OptionsViewerProps) {
     if (!config) return [];
     return config.termOptions.map((term) => ({
       value: term.toString(),
-      label: `${term}d`,
+      label: term === 1 ? "<1d" : `${term}d`,
     }));
   }, [config]);
 

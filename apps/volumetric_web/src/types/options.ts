@@ -3,7 +3,10 @@ export interface OptionOffer {
   writerId: string;
   amountSats: number;
   premium: number;
+  strikePercent: number;
+  termDays: number;
   createdAt: string;
+  expiresAt: string;
 }
 
 export interface StrikeBucket {

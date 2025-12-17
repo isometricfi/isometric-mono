@@ -1,19 +1,23 @@
 "use client";
 
+import { useDynamicContext } from "@dynamic-labs/sdk-react-core";
 import { Sparkles } from "lucide-react";
 import { useMemo, useState } from "react";
 import { AmountInput } from "@/components/options/AmountInput";
 import { TermSelector } from "@/components/options/TermSelector";
 import { Button } from "@/components/ui/button";
 import { NumberCarousel } from "@/components/ui/number-carousel";
+import { useCreateOffer } from "@/hooks/use-create-offer";
 import { generatePremiumValues, useConfig } from "@/hooks/useConfig";
 import { usePrices } from "@/hooks/usePrices";
 import { formatBtc, parseBtcToSats } from "@/lib/utils";
 import { CallWriteOptionSummary } from "./CallWriteOptionSummary";
 
 export function CallWriteOptionForm() {
+  const { primaryWallet } = useDynamicContext();
   const { data: priceData } = usePrices();
   const { data: config } = useConfig();
+  const createOffer = useCreateOffer();
   const btcPrice = priceData?.btc ?? 0;
 
   const strikePercentOptions = config?.strikePercentOptions ?? [];
@@ -27,7 +31,14 @@ export function CallWriteOptionForm() {
   const [premium, setPremium] = useState(premiumValues[3] ?? 1);
   const [amountBtc, setAmountBtc] = useState("");
 
-  const handleSubmit = () => {};
+  const handleSubmit = () => {
+    createOffer.mutate({
+      quantitySats: amountSats,
+      strikePercent,
+      premiumPercent: premium,
+      termDays: term,
+    });
+  };
 
   const amountSats = parseBtcToSats(amountBtc);
 
@@ -35,6 +46,17 @@ export function CallWriteOptionForm() {
     () => Math.round(btcPrice * (1 + strikePercent / 100)),
     [btcPrice, strikePercent],
   );
+
+  const isValidAmount = amountSats >= minOfferAmountSats && amountSats <= maxOfferAmountSats;
+  const isWalletConnected = !!primaryWallet;
+
+  const getButtonText = () => {
+    if (!isWalletConnected) return "Connect Wallet";
+    if (createOffer.isPending) return "Creating Offer...";
+    if (amountSats < minOfferAmountSats) return `Min: ${formatBtc(minOfferAmountSats)} BTC`;
+    if (amountSats > maxOfferAmountSats) return `Max: ${formatBtc(maxOfferAmountSats)} BTC`;
+    return "Create Offer";
+  };
 
   return (
     <div className="bg-card rounded-3xl border border-border p-6 space-y-5 h-fit">
@@ -81,14 +103,24 @@ export function CallWriteOptionForm() {
         onClick={handleSubmit}
         className="w-full rounded-full py-6 text-base font-semibold"
         size="lg"
-        disabled={amountSats < minOfferAmountSats || amountSats > maxOfferAmountSats}
+        disabled={!isWalletConnected || !isValidAmount || createOffer.isPending}
       >
-        {amountSats < minOfferAmountSats
-          ? `Min: ${formatBtc(minOfferAmountSats)} BTC`
-          : amountSats > maxOfferAmountSats
-            ? `Max: ${formatBtc(maxOfferAmountSats)} BTC`
-            : "Create Offer"}
+        {getButtonText()}
       </Button>
+
+      {createOffer.isSuccess && (
+        <div className="p-3 bg-green-950 border border-green-800 rounded-lg">
+          <div className="text-sm text-green-400">
+            Offer created! ID: {createOffer.data.offerId}
+          </div>
+        </div>
+      )}
+
+      {createOffer.isError && (
+        <div className="p-3 bg-red-950 border border-red-800 rounded-lg">
+          <div className="text-sm text-red-400">{createOffer.error?.message}</div>
+        </div>
+      )}
 
       <CallWriteOptionSummary
         amountSats={amountSats}
