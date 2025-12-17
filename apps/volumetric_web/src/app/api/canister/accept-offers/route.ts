@@ -1,6 +1,7 @@
 import { unwrapResult } from "@volumetric/canister-types";
+import { NextResponse } from "next/server";
 import { z } from "zod";
-import { createApiHandler } from "@/lib/api-handler";
+import { validateRequest, withApiHandler } from "@/lib/api-handler";
 import { getCanisterActor } from "@/lib/canister-server";
 
 const AcceptOfferItemSchema = z.object({
@@ -21,7 +22,8 @@ export type AcceptOffersResponse = {
   activeOptionIds: string[];
 };
 
-export const POST = createApiHandler(RequestSchema, async ({ address, signature, items }) => {
+export const POST = withApiHandler(async (request: Request) => {
+  const { address, signature, items } = await validateRequest(request, RequestSchema);
   const actor = await getCanisterActor();
 
   const result = await actor.accept_offers({
@@ -36,8 +38,8 @@ export const POST = createApiHandler(RequestSchema, async ({ address, signature,
 
   const data = unwrapResult(result);
 
-  return {
+  return NextResponse.json({
     fillGroupId: data.fill_group_id.toString(),
     activeOptionIds: data.active_options.map((o) => o.id.toString()),
-  } satisfies AcceptOffersResponse;
+  } satisfies AcceptOffersResponse);
 });

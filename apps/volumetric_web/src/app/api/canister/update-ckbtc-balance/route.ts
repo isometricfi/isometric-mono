@@ -1,7 +1,8 @@
 import type { UtxoStatus } from "@volumetric/canister-types";
 import { unwrapResult } from "@volumetric/canister-types";
+import { NextResponse } from "next/server";
 import { z } from "zod";
-import { createApiHandler } from "@/lib/api-handler";
+import { validateRequest, withApiHandler } from "@/lib/api-handler";
 import { getCanisterActor } from "@/lib/canister-server";
 
 const RequestSchema = z.object({
@@ -70,9 +71,12 @@ function serializeUtxoStatus(status: UtxoStatus): SerializedUtxoStatus {
   throw new Error("Unknown UtxoStatus variant");
 }
 
-export const POST = createApiHandler(RequestSchema, async ({ address }) => {
+export const POST = withApiHandler(async (request: Request) => {
+  const { address } = await validateRequest(request, RequestSchema);
   const actor = await getCanisterActor();
   const result = await actor.update_ckbtc_balance(address);
   const statuses = unwrapResult(result);
-  return statuses.map(serializeUtxoStatus) satisfies UpdateCkbtcBalanceResponse;
+  return NextResponse.json(
+    statuses.map(serializeUtxoStatus),
+  ) satisfies NextResponse<UpdateCkbtcBalanceResponse>;
 });

@@ -1,6 +1,7 @@
 import { unwrapResult } from "@volumetric/canister-types";
+import { NextResponse } from "next/server";
 import { z } from "zod";
-import { createApiHandler } from "@/lib/api-handler";
+import { validateRequest, withApiHandler } from "@/lib/api-handler";
 import { getCanisterActor } from "@/lib/canister-server";
 
 const RequestSchema = z.object({
@@ -14,13 +15,14 @@ export type TestingExpireOptionResponse = {
   expiry: string;
 };
 
-export const POST = createApiHandler(RequestSchema, async ({ optionId }) => {
+export const POST = withApiHandler(async (request: Request) => {
+  const { optionId } = await validateRequest(request, RequestSchema);
   const actor = await getCanisterActor();
   const result = await actor.testing_expire_option(BigInt(optionId));
   const option = unwrapResult(result);
 
-  return {
+  return NextResponse.json({
     optionId: option.id.toString(),
     expiry: option.expiry.toString(),
-  } satisfies TestingExpireOptionResponse;
+  } satisfies TestingExpireOptionResponse);
 });

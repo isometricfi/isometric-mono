@@ -1,6 +1,7 @@
 import { unwrapResult } from "@volumetric/canister-types";
+import { NextResponse } from "next/server";
 import { z } from "zod";
-import { createApiHandler } from "@/lib/api-handler";
+import { validateRequest, withApiHandler } from "@/lib/api-handler";
 import { getCanisterActor } from "@/lib/canister-server";
 
 const RequestSchema = z.object({
@@ -19,7 +20,8 @@ const ResponseSchema = z.object({
 
 export type CreateAccountResponse = z.infer<typeof ResponseSchema>;
 
-export const POST = createApiHandler(RequestSchema, async ({ address, signature }) => {
+export const POST = withApiHandler(async (request: Request) => {
+  const { address, signature } = await validateRequest(request, RequestSchema);
   const actor = await getCanisterActor();
   const result = await actor.create_account({
     data: {},
@@ -28,10 +30,10 @@ export const POST = createApiHandler(RequestSchema, async ({ address, signature 
 
   const data = unwrapResult(result);
 
-  return {
+  return NextResponse.json({
     principal: data.principal.toText(),
     subaccount: Array.from(data.subaccount),
     address: data.address,
     username: data.username[0] ?? null,
-  } satisfies CreateAccountResponse;
+  } satisfies CreateAccountResponse);
 });

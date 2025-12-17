@@ -1,6 +1,7 @@
 import { unwrapResult } from "@volumetric/canister-types";
+import { NextResponse } from "next/server";
 import { z } from "zod";
-import { createApiHandler } from "@/lib/api-handler";
+import { validateRequest, withApiHandler } from "@/lib/api-handler";
 import { getCanisterActor } from "@/lib/canister-server";
 
 const RequestSchema = z.object({
@@ -18,20 +19,20 @@ const ResponseSchema = z.object({
 
 export type WithdrawCkbtcResponse = z.infer<typeof ResponseSchema>;
 
-export const POST = createApiHandler(
-  RequestSchema,
-  async ({ address, signature, btcAddress, amount }) => {
-    const actor = await getCanisterActor();
-    const result = await actor.withdraw_ckbtc({
-      data: {
-        btc_address: btcAddress,
-        amount: BigInt(amount),
-      },
-      wallet_proof: { address, signature },
-    });
+export const POST = withApiHandler(async (request: Request) => {
+  const { address, signature, btcAddress, amount } = await validateRequest(request, RequestSchema);
+  const actor = await getCanisterActor();
+  const result = await actor.withdraw_ckbtc({
+    data: {
+      btc_address: btcAddress,
+      amount: BigInt(amount),
+    },
+    wallet_proof: { address, signature },
+  });
 
-    const data = unwrapResult(result);
+  const data = unwrapResult(result);
 
-    return { block_index: data.block_index.toString() } satisfies WithdrawCkbtcResponse;
-  },
-);
+  return NextResponse.json({
+    block_index: data.block_index.toString(),
+  } satisfies WithdrawCkbtcResponse);
+});
