@@ -9,7 +9,8 @@ const AcceptOfferItemSchema = z.object({
 });
 
 const RequestSchema = z.object({
-  walletAddress: z.string().min(1),
+  address: z.string().min(1),
+  signature: z.string().min(1),
   items: z.array(AcceptOfferItemSchema).min(1),
 });
 
@@ -20,15 +21,17 @@ export type AcceptOffersResponse = {
   activeOptionIds: string[];
 };
 
-export const POST = createApiHandler(RequestSchema, async ({ walletAddress, items }) => {
+export const POST = createApiHandler(RequestSchema, async ({ address, signature, items }) => {
   const actor = await getCanisterActor();
 
   const result = await actor.accept_offers({
-    wallet_address: walletAddress,
-    items: items.map((item) => ({
-      offer_id: BigInt(item.offerId),
-      quantity: BigInt(item.quantity),
-    })),
+    wallet_proof: { address, signature },
+    data: {
+      items: items.map((item) => ({
+        offer_id: BigInt(item.offerId),
+        quantity: BigInt(item.quantity),
+      })),
+    },
   });
 
   const data = unwrapResult(result);

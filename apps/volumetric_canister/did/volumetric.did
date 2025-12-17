@@ -1,8 +1,5 @@
 type AcceptOfferItem = record { offer_id : nat64; quantity : nat64 };
-type AcceptOffersRequest = record {
-  wallet_address : text;
-  items : vec AcceptOfferItem;
-};
+type AcceptOffersRequest = record { items : vec AcceptOfferItem };
 type AcceptOffersResponse = record {
   fill_group_id : nat64;
   active_options : vec ActiveOption;
@@ -27,22 +24,26 @@ type ActiveOption = record {
 type ActiveOptionStatus = variant { Active; Settling; Expired; Settled };
 type Asset = variant { CkBtc };
 type AuthenticatedPayload = record {
-  data : CancelOfferRequest;
+  data : AcceptOffersRequest;
   wallet_proof : WalletProof;
 };
 type AuthenticatedPayload_1 = record {
-  data : record {};
+  data : CancelOfferRequest;
   wallet_proof : WalletProof;
 };
 type AuthenticatedPayload_2 = record {
-  data : CreateOfferRequest;
+  data : record {};
   wallet_proof : WalletProof;
 };
 type AuthenticatedPayload_3 = record {
-  data : UpdateUsernameRequest;
+  data : CreateOfferRequest;
   wallet_proof : WalletProof;
 };
 type AuthenticatedPayload_4 = record {
+  data : UpdateUsernameRequest;
+  wallet_proof : WalletProof;
+};
+type AuthenticatedPayload_5 = record {
   data : WithdrawCkbtcRequest;
   wallet_proof : WalletProof;
 };
@@ -162,11 +163,12 @@ type WalletProof = record { signature : text; address : text };
 type WithdrawCkbtcRequest = record { amount : nat64; btc_address : text };
 type WithdrawResult = record { block_index : nat64 };
 service : (opt BtcNetwork) -> {
-  accept_offers : (AcceptOffersRequest) -> (Result);
+  accept_offers : (AuthenticatedPayload) -> (Result);
   add_whitelisted : (principal) -> (Result_1);
-  cancel_offer : (AuthenticatedPayload) -> (Result_2);
-  create_account : (AuthenticatedPayload_1) -> (Result_3);
-  create_offer : (AuthenticatedPayload_2) -> (Result_4);
+  cancel_offer : (AuthenticatedPayload_1) -> (Result_2);
+  create_account : (AuthenticatedPayload_2) -> (Result_3);
+  create_offer : (AuthenticatedPayload_3) -> (Result_4);
+  get_accept_offers_message : (text, vec AcceptOfferItem) -> (text) query;
   get_account_info : (text) -> (opt ProfileInfo) query;
   get_account_nonce : (text) -> (nat64) query;
   get_active_option_by_id : (nat64) -> (opt ActiveOption) query;
@@ -203,6 +205,6 @@ service : (opt BtcNetwork) -> {
   testing_set_option_expiry : (nat64, nat64) -> (Result_13);
   testing_sync_balance_from_ledger : (text) -> (Result_14);
   update_ckbtc_balance : (text) -> (Result_15);
-  update_username : (AuthenticatedPayload_3) -> (Result_3);
-  withdraw_ckbtc : (AuthenticatedPayload_4) -> (Result_16);
+  update_username : (AuthenticatedPayload_4) -> (Result_3);
+  withdraw_ckbtc : (AuthenticatedPayload_5) -> (Result_16);
 }

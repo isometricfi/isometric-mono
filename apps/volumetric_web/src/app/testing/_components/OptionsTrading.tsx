@@ -187,13 +187,24 @@ export function OptionsTrading() {
 
   const acceptOfferMutation = useMutation({
     mutationFn: async (): Promise<AcceptOffersResponse> => {
-      if (!address) throw new Error("Not ready");
+      if (!canister || !address) throw new Error("Not ready");
+      if (!primaryWallet || !isBitcoinWallet(primaryWallet)) {
+        throw new Error("Bitcoin wallet not connected");
+      }
+
+      const items = [{ offer_id: BigInt(acceptOfferId), quantity: BigInt(acceptQuantity) }];
+
+      const message = await canister.get_accept_offers_message(address, items);
+      const signature = await primaryWallet.signMessage(message, { addressType: "payment" });
+
+      if (!signature) throw new Error("Failed to sign message");
 
       const response = await fetch("/api/canister/accept-offers", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          walletAddress: address,
+          address,
+          signature,
           items: [{ offerId: acceptOfferId, quantity: acceptQuantity }],
         }),
       });

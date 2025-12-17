@@ -8,8 +8,15 @@ export const idlFactory = ({ IDL }) => {
     'quantity' : IDL.Nat64,
   });
   const AcceptOffersRequest = IDL.Record({
-    'wallet_address' : IDL.Text,
     'items' : IDL.Vec(AcceptOfferItem),
+  });
+  const WalletProof = IDL.Record({
+    'signature' : IDL.Text,
+    'address' : IDL.Text,
+  });
+  const AuthenticatedPayload = IDL.Record({
+    'data' : AcceptOffersRequest,
+    'wallet_proof' : WalletProof,
   });
   const ActiveOptionStatus = IDL.Variant({
     'Active' : IDL.Null,
@@ -52,11 +59,7 @@ export const idlFactory = ({ IDL }) => {
   });
   const Result_1 = IDL.Variant({ 'Ok' : IDL.Null, 'Err' : VolumetricError });
   const CancelOfferRequest = IDL.Record({ 'offer_id' : IDL.Nat64 });
-  const WalletProof = IDL.Record({
-    'signature' : IDL.Text,
-    'address' : IDL.Text,
-  });
-  const AuthenticatedPayload = IDL.Record({
+  const AuthenticatedPayload_1 = IDL.Record({
     'data' : CancelOfferRequest,
     'wallet_proof' : WalletProof,
   });
@@ -82,7 +85,7 @@ export const idlFactory = ({ IDL }) => {
     'option_duration_seconds' : IDL.Nat64,
   });
   const Result_2 = IDL.Variant({ 'Ok' : Offer, 'Err' : VolumetricError });
-  const AuthenticatedPayload_1 = IDL.Record({
+  const AuthenticatedPayload_2 = IDL.Record({
     'data' : IDL.Record({}),
     'wallet_proof' : WalletProof,
   });
@@ -102,7 +105,7 @@ export const idlFactory = ({ IDL }) => {
     'quantity' : IDL.Nat64,
     'option_duration_seconds' : IDL.Nat64,
   });
-  const AuthenticatedPayload_2 = IDL.Record({
+  const AuthenticatedPayload_3 = IDL.Record({
     'data' : CreateOfferRequest,
     'wallet_proof' : WalletProof,
   });
@@ -209,7 +212,7 @@ export const idlFactory = ({ IDL }) => {
     'Err' : VolumetricError,
   });
   const UpdateUsernameRequest = IDL.Record({ 'username' : IDL.Text });
-  const AuthenticatedPayload_3 = IDL.Record({
+  const AuthenticatedPayload_4 = IDL.Record({
     'data' : UpdateUsernameRequest,
     'wallet_proof' : WalletProof,
   });
@@ -217,7 +220,7 @@ export const idlFactory = ({ IDL }) => {
     'amount' : IDL.Nat64,
     'btc_address' : IDL.Text,
   });
-  const AuthenticatedPayload_4 = IDL.Record({
+  const AuthenticatedPayload_5 = IDL.Record({
     'data' : WithdrawCkbtcRequest,
     'wallet_proof' : WalletProof,
   });
@@ -227,11 +230,16 @@ export const idlFactory = ({ IDL }) => {
     'Err' : VolumetricError,
   });
   return IDL.Service({
-    'accept_offers' : IDL.Func([AcceptOffersRequest], [Result], []),
+    'accept_offers' : IDL.Func([AuthenticatedPayload], [Result], []),
     'add_whitelisted' : IDL.Func([IDL.Principal], [Result_1], []),
-    'cancel_offer' : IDL.Func([AuthenticatedPayload], [Result_2], []),
-    'create_account' : IDL.Func([AuthenticatedPayload_1], [Result_3], []),
-    'create_offer' : IDL.Func([AuthenticatedPayload_2], [Result_4], []),
+    'cancel_offer' : IDL.Func([AuthenticatedPayload_1], [Result_2], []),
+    'create_account' : IDL.Func([AuthenticatedPayload_2], [Result_3], []),
+    'create_offer' : IDL.Func([AuthenticatedPayload_3], [Result_4], []),
+    'get_accept_offers_message' : IDL.Func(
+        [IDL.Text, IDL.Vec(AcceptOfferItem)],
+        [IDL.Text],
+        ['query'],
+      ),
     'get_account_info' : IDL.Func(
         [IDL.Text],
         [IDL.Opt(ProfileInfo)],
@@ -298,8 +306,8 @@ export const idlFactory = ({ IDL }) => {
       ),
     'testing_sync_balance_from_ledger' : IDL.Func([IDL.Text], [Result_14], []),
     'update_ckbtc_balance' : IDL.Func([IDL.Text], [Result_15], []),
-    'update_username' : IDL.Func([AuthenticatedPayload_3], [Result_3], []),
-    'withdraw_ckbtc' : IDL.Func([AuthenticatedPayload_4], [Result_16], []),
+    'update_username' : IDL.Func([AuthenticatedPayload_4], [Result_3], []),
+    'withdraw_ckbtc' : IDL.Func([AuthenticatedPayload_5], [Result_16], []),
   });
 };
 export const init = ({ IDL }) => {
