@@ -3,10 +3,7 @@ import type { ActorMethod } from '@dfinity/agent';
 import type { IDL } from '@dfinity/candid';
 
 export interface AcceptOfferItem { 'offer_id' : bigint, 'quantity' : bigint }
-export interface AcceptOffersRequest {
-  'wallet_address' : string,
-  'items' : Array<AcceptOfferItem>,
-}
+export interface AcceptOffersRequest { 'items' : Array<AcceptOfferItem> }
 export interface AcceptOffersResponse {
   'fill_group_id' : bigint,
   'active_options' : Array<ActiveOption>,
@@ -37,22 +34,26 @@ export type ActiveOptionStatus = { 'Active' : null } |
   { 'Settled' : null };
 export type Asset = { 'CkBtc' : null };
 export interface AuthenticatedPayload {
-  'data' : CancelOfferRequest,
+  'data' : AcceptOffersRequest,
   'wallet_proof' : WalletProof,
 }
 export interface AuthenticatedPayload_1 {
-  'data' : {},
+  'data' : CancelOfferRequest,
   'wallet_proof' : WalletProof,
 }
 export interface AuthenticatedPayload_2 {
-  'data' : CreateOfferRequest,
+  'data' : {},
   'wallet_proof' : WalletProof,
 }
 export interface AuthenticatedPayload_3 {
-  'data' : UpdateUsernameRequest,
+  'data' : CreateOfferRequest,
   'wallet_proof' : WalletProof,
 }
 export interface AuthenticatedPayload_4 {
+  'data' : UpdateUsernameRequest,
+  'wallet_proof' : WalletProof,
+}
+export interface AuthenticatedPayload_5 {
   'data' : WithdrawCkbtcRequest,
   'wallet_proof' : WalletProof,
 }
@@ -199,11 +200,15 @@ export interface WithdrawCkbtcRequest {
 }
 export interface WithdrawResult { 'block_index' : bigint }
 export interface _SERVICE {
-  'accept_offers' : ActorMethod<[AcceptOffersRequest], Result>,
+  'accept_offers' : ActorMethod<[AuthenticatedPayload], Result>,
   'add_whitelisted' : ActorMethod<[Principal], Result_1>,
-  'cancel_offer' : ActorMethod<[AuthenticatedPayload], Result_2>,
-  'create_account' : ActorMethod<[AuthenticatedPayload_1], Result_3>,
-  'create_offer' : ActorMethod<[AuthenticatedPayload_2], Result_4>,
+  'cancel_offer' : ActorMethod<[AuthenticatedPayload_1], Result_2>,
+  'create_account' : ActorMethod<[AuthenticatedPayload_2], Result_3>,
+  'create_offer' : ActorMethod<[AuthenticatedPayload_3], Result_4>,
+  'get_accept_offers_message' : ActorMethod<
+    [string, Array<AcceptOfferItem>],
+    string
+  >,
   'get_account_info' : ActorMethod<[string], [] | [ProfileInfo]>,
   'get_account_nonce' : ActorMethod<[string], bigint>,
   'get_active_option_by_id' : ActorMethod<[bigint], [] | [ActiveOption]>,
@@ -245,8 +250,8 @@ export interface _SERVICE {
   'testing_set_option_expiry' : ActorMethod<[bigint, bigint], Result_13>,
   'testing_sync_balance_from_ledger' : ActorMethod<[string], Result_14>,
   'update_ckbtc_balance' : ActorMethod<[string], Result_15>,
-  'update_username' : ActorMethod<[AuthenticatedPayload_3], Result_3>,
-  'withdraw_ckbtc' : ActorMethod<[AuthenticatedPayload_4], Result_16>,
+  'update_username' : ActorMethod<[AuthenticatedPayload_4], Result_3>,
+  'withdraw_ckbtc' : ActorMethod<[AuthenticatedPayload_5], Result_16>,
 }
 export declare const idlFactory: IDL.InterfaceFactory;
 export declare const init: (args: { IDL: typeof IDL }) => IDL.Type[];

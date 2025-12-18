@@ -1,10 +1,11 @@
 use candid::CandidType;
 use serde::{Deserialize, Serialize};
 
-use crate::auth::types::WalletKey;
+use crate::auth::types::{AuthenticatedPayload, ChallengeContext, SignableAction, WalletKey};
+use crate::auth::{build_challenge_context, verify_btc_signature};
 use crate::errors::VolumetricError;
 use crate::guards::is_whitelisted;
-use crate::storage::{get_active_option, get_principal_for_wallet, ActiveOption};
+use crate::storage::{get_active_option, get_principal_for_wallet, increment_nonce, ActiveOption};
 use crate::usecases;
 
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
@@ -15,8 +16,25 @@ pub struct AcceptOfferItem {
 
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
 pub struct AcceptOffersRequest {
-    pub wallet_address: String,
     pub items: Vec<AcceptOfferItem>,
+}
+
+impl SignableAction for AcceptOffersRequest {
+    fn signing_message(&self, address: &str, context: &ChallengeContext) -> String {
+        let items_desc: Vec<String> = self
+            .items
+            .iter()
+            .map(|item| format!("offer #{}: {} sats", item.offer_id, item.quantity))
+            .collect();
+        format!(
+            "Accept offers\n{}\nAddress: {}\nCanister: {}\nNetwork: {}\nNonce: {}",
+            items_desc.join("\n"),
+            address,
+            context.canister_id,
+            context.network,
+            context.nonce
+        )
+    }
 }
 
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
@@ -25,17 +43,35 @@ pub struct AcceptOffersResponse {
     pub fill_group_id: u64,
 }
 
+#[ic_cdk::query]
+pub fn get_accept_offers_message(wallet_address: String, items: Vec<AcceptOfferItem>) -> String {
+    let wallet_key = WalletKey::from_address(&wallet_address);
+    let context = build_challenge_context(&wallet_key);
+    let req = AcceptOffersRequest { items };
+    req.signing_message(&wallet_address, &context)
+}
+
 #[ic_cdk::update]
 pub async fn accept_offers(
-    req: AcceptOffersRequest,
+    req: AuthenticatedPayload<AcceptOffersRequest>,
 ) -> Result<AcceptOffersResponse, VolumetricError> {
     is_whitelisted().await?;
 
-    let wallet_key = WalletKey::from_address(&req.wallet_address);
+    let address = &req.wallet_proof.address;
+    let wallet_key = WalletKey::from_address(address);
+
+    let context = build_challenge_context(&wallet_key);
+    let reconstructed_message = req.data.signing_message(address, &context);
+
+    verify_btc_signature(address, &reconstructed_message, &req.wallet_proof.signature)?;
+
+    increment_nonce(&wallet_key);
+
     let buyer_principal =
         get_principal_for_wallet(&wallet_key).ok_or_else(VolumetricError::profile_not_found)?;
 
     let items: Vec<usecases::AcceptOfferItem> = req
+        .data
         .items
         .into_iter()
         .map(|i| usecases::AcceptOfferItem {
