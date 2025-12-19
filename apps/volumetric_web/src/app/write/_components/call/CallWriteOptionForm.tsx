@@ -4,12 +4,11 @@ import { useDynamicContext } from "@dynamic-labs/sdk-react-core";
 import { Sparkles } from "lucide-react";
 import { useMemo, useState } from "react";
 import { AmountInput } from "@/components/options/AmountInput";
+import { OfferResultModal } from "@/components/options/OfferResultModal";
 import { TermSelector } from "@/components/options/TermSelector";
 import { Button } from "@/components/ui/button";
 import { NumberCarousel } from "@/components/ui/number-carousel";
-import { useCreateOffer } from "@/hooks/use-create-offer";
-import { generatePremiumValues, useConfig } from "@/hooks/useConfig";
-import { usePrices } from "@/hooks/usePrices";
+import { generatePremiumValues, useConfig, useCreateOffer, usePrices } from "@/hooks";
 import { formatBtc, parseBtcToSats } from "@/lib/utils";
 import { CallWriteOptionSummary } from "./CallWriteOptionSummary";
 
@@ -31,6 +30,8 @@ export function CallWriteOptionForm() {
   const [premium, setPremium] = useState(premiumValues[3] ?? 1);
   const [amountBtc, setAmountBtc] = useState("");
 
+  const showModal = createOffer.step !== "idle";
+
   const handleSubmit = () => {
     createOffer.mutate({
       quantitySats: amountSats,
@@ -38,6 +39,15 @@ export function CallWriteOptionForm() {
       premiumPercent: premium,
       termDays: term,
     });
+  };
+
+  const handleModalClose = (open: boolean) => {
+    if (!open) {
+      if (createOffer.step === "success") {
+        setAmountBtc("");
+      }
+      createOffer.reset();
+    }
   };
 
   const amountSats = parseBtcToSats(amountBtc);
@@ -108,19 +118,14 @@ export function CallWriteOptionForm() {
         {getButtonText()}
       </Button>
 
-      {createOffer.isSuccess && (
-        <div className="p-3 bg-green-950 border border-green-800 rounded-lg">
-          <div className="text-sm text-green-400">
-            Offer created! ID: {createOffer.data.offerId}
-          </div>
-        </div>
-      )}
-
-      {createOffer.isError && (
-        <div className="p-3 bg-red-950 border border-red-800 rounded-lg">
-          <div className="text-sm text-red-400">{createOffer.error?.message}</div>
-        </div>
-      )}
+      <OfferResultModal
+        open={showModal}
+        onOpenChange={handleModalClose}
+        type="create"
+        step={createOffer.step}
+        offerId={createOffer.data?.offerId}
+        errorMessage={createOffer.error?.message}
+      />
 
       <CallWriteOptionSummary
         amountSats={amountSats}

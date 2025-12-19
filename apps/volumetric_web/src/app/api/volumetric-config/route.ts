@@ -11,7 +11,7 @@ export async function GET() {
       max: 5,
       step: 0.25,
     },
-    minOfferAmountSats: 100_000,
+    minOfferAmountSats: 90_000,
     maxOfferAmountSats: 100_000_000,
     minDepositAmountSats: 50_000,
     minWithdrawAmountSats: 50_000,

@@ -3,18 +3,19 @@
 import { useDynamicContext } from "@dynamic-labs/sdk-react-core";
 import { useMemo, useState } from "react";
 import { AmountInput } from "@/components/options/AmountInput";
+import { OfferResultModal } from "@/components/options/OfferResultModal";
 import { TermSelector } from "@/components/options/TermSelector";
 import { Button } from "@/components/ui/button";
 import { NumberCarousel } from "@/components/ui/number-carousel";
-import { useAcceptOffer } from "@/hooks/use-accept-offer";
-import { useConfig } from "@/hooks/useConfig";
 import {
   findBestOffer,
   getMaxLiquiditySats,
   getStrikePercentsForTerm,
+  useAcceptOffer,
+  useConfig,
   useOptions,
-} from "@/hooks/useOptions";
-import { usePrices } from "@/hooks/usePrices";
+  usePrices,
+} from "@/hooks";
 import { formatBtc, parseBtcToSats } from "@/lib/utils";
 import { CallBuyOptionSummary } from "./CallBuyOptionSummary";
 
@@ -35,6 +36,8 @@ export function CallOptionBuyForm() {
 
   const [term, setTerm] = useState(defaultTerm);
   const [amountBtc, setAmountBtc] = useState("");
+
+  const showModal = acceptOffer.step !== "idle";
 
   const strikePercents = useMemo(() => getStrikePercentsForTerm(data, term), [data, term]);
 
@@ -77,6 +80,15 @@ export function CallOptionBuyForm() {
 
   const handleMaxClick = () => {
     setAmountBtc(formatBtc(maxLiquiditySats, 8));
+  };
+
+  const handleModalClose = (open: boolean) => {
+    if (!open) {
+      if (acceptOffer.step === "success") {
+        setAmountBtc("");
+      }
+      acceptOffer.reset();
+    }
   };
 
   const isWalletConnected = !!primaryWallet;
@@ -136,19 +148,14 @@ export function CallOptionBuyForm() {
         {getButtonText()}
       </Button>
 
-      {acceptOffer.isSuccess && (
-        <div className="p-3 bg-green-950 border border-green-800 rounded-lg">
-          <div className="text-sm text-green-400">
-            Option purchased! Fill Group: {acceptOffer.data.fillGroupId}
-          </div>
-        </div>
-      )}
-
-      {acceptOffer.isError && (
-        <div className="p-3 bg-red-950 border border-red-800 rounded-lg">
-          <div className="text-sm text-red-400">{acceptOffer.error?.message}</div>
-        </div>
-      )}
+      <OfferResultModal
+        open={showModal}
+        onOpenChange={handleModalClose}
+        type="buy"
+        step={acceptOffer.step}
+        fillGroupId={acceptOffer.data?.fillGroupId}
+        errorMessage={acceptOffer.error?.message}
+      />
 
       <CallBuyOptionSummary
         amountSats={amountSats}

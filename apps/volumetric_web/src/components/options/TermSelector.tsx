@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { useConfig } from "@/hooks/useConfig";
+import { useConfig } from "@/hooks";
 
 interface TermSelectorProps {
   value: number;

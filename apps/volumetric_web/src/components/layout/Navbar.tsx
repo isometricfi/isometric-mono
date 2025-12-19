@@ -8,6 +8,7 @@ import { useTheme } from "next-themes";
 import { useDynamicConfig } from "@/app/providers/dynamic-provider";
 import { Button } from "@/components/ui/button";
 import { ConnectButton } from "@/components/wallet/ConnectButton";
+import { cn } from "@/lib/utils";
 
 export function Navbar() {
   const pathname = usePathname();
@@ -18,7 +19,7 @@ export function Navbar() {
   return (
     <nav className="fixed top-4 left-1/2  -translate-x-1/2 z-50 w-full max-w-5xl xl:px-0 px-4 ">
       <div className="border rounded-full bg-background/80 backdrop-blur-sm overflow-visible">
-        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4">
+        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 md:grid md:grid-cols-3">
           <Link href="/" className="flex items-center gap-2 text-xl font-semibold tracking-tight">
             <Image
               src="/logo.svg"
@@ -29,27 +30,35 @@ export function Navbar() {
             />
             <span className="md:block hidden">Volumetric</span>
           </Link>
-          <div className="flex items-center gap-0 md:gap-3">
-            <Link href="/write" className={pathname === "/write" ? "font-bold" : ""}>
-              <Button variant="ghost" size="sm">
+          <div className="flex items-center gap-0 md:gap-3 md:justify-center">
+            <Link href="/write">
+              <Button
+                variant="ghost"
+                size="sm"
+                className={cn(pathname === "/write" && "font-bold")}
+              >
                 Write
               </Button>
             </Link>
 
-            <Link href="/buy" className={pathname === "/buy" ? "font-bold" : ""}>
-              <Button variant="ghost" size="sm">
+            <Link href="/buy">
+              <Button variant="ghost" size="sm" className={cn(pathname === "/buy" && "font-bold")}>
                 Buy
               </Button>
             </Link>
             {!isLandingPage && (
-              <Link href="/portfolio" className={pathname === "/portfolio" ? "font-bold" : ""}>
-                <Button variant="ghost" size="sm">
+              <Link href="/portfolio">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className={cn(pathname === "/portfolio" && "font-bold")}
+                >
                   Portfolio
                 </Button>
               </Link>
             )}
           </div>
-          <div className="flex items-center gap-3 justify-center">
+          <div className="flex items-center gap-3 justify-center md:justify-end">
             <Button
               variant="ghost"
               size="icon"
@@ -62,7 +71,7 @@ export function Navbar() {
 
             {isLandingPage ? (
               <Button asChild>
-                <Link href="/testing">Open App</Link>
+                <Link href="/write">Open App</Link>
               </Button>
             ) : isConfigured ? (
               <ConnectButton />

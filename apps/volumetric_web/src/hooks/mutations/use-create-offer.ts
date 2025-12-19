@@ -3,14 +3,17 @@
 import { isBitcoinWallet } from "@dynamic-labs/bitcoin";
 import { useDynamicContext } from "@dynamic-labs/sdk-react-core";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import type { CreateOfferResponse } from "@/app/api/canister/create-offer/route";
+import { useState } from "react";
+import type { CreateOfferResponse } from "@/app/api/options/create/route";
 import { QueryKey } from "@/lib/query-keys";
-import { useBtcAddress } from "./use-btc-address";
-import { useCanister } from "./use-canister";
+import { useBtcAddress } from "../queries/use-btc-address";
+import { useCanister } from "../use-canister";
 
 const ONE_DAY_NS = BigInt(86400) * BigInt(1_000_000_000);
 const SECONDS_PER_DAY = 86400;
 const PERCENT_TO_BASIS_POINTS = 100;
+
+export type CreateOfferStep = "idle" | "signing" | "submitting" | "success" | "error";
 
 export interface CreateOfferParams {
   quantitySats: number;
@@ -25,7 +28,9 @@ export function useCreateOffer() {
   const address = useBtcAddress("payment");
   const queryClient = useQueryClient();
 
-  return useMutation({
+  const [step, setStep] = useState<CreateOfferStep>("idle");
+
+  const mutation = useMutation({
     mutationFn: async ({
       quantitySats,
       strikePercent,
@@ -39,6 +44,8 @@ export function useCreateOffer() {
         throw new Error("Bitcoin wallet not connected");
       }
 
+      setStep("signing");
+
       const quantity = BigInt(quantitySats);
       const strikeBasisPoints = Math.round(strikePercent * PERCENT_TO_BASIS_POINTS);
       const premiumBasisPoints = Math.round(premiumPercent * PERCENT_TO_BASIS_POINTS);
@@ -50,18 +57,18 @@ export function useCreateOffer() {
         strikeBasisPoints,
         premiumBasisPoints,
       );
-      const signature = await primaryWallet.signMessage(message, {
-        addressType: "payment",
-      });
+      const signature = await primaryWallet.signMessage(message, { addressType: "payment" });
 
       if (!signature) {
         throw new Error("Failed to sign message");
       }
 
+      setStep("submitting");
+
       const now = BigInt(Date.now()) * BigInt(1_000_000);
       const offerValidUntil = now + ONE_DAY_NS;
 
-      const response = await fetch("/api/canister/create-offer", {
+      const response = await fetch("/api/options/create", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -84,8 +91,20 @@ export function useCreateOffer() {
       return data;
     },
     onSuccess: () => {
+      setStep("success");
       queryClient.invalidateQueries({ queryKey: [QueryKey.Options] });
       queryClient.invalidateQueries({ queryKey: [QueryKey.OpenOffers] });
+      queryClient.invalidateQueries({ queryKey: [QueryKey.AccountInfo] });
+    },
+    onError: () => {
+      setStep("error");
     },
   });
+
+  const reset = () => {
+    setStep("idle");
+    mutation.reset();
+  };
+
+  return { ...mutation, step, reset };
 }

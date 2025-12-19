@@ -2,6 +2,7 @@
 
 import { TrendingDown, TrendingUp } from "lucide-react";
 import { AnimatedToggle, type ToggleOption } from "@/components/navigation/AnimatedToggle";
+import { cn } from "@/lib/utils";
 import type { OptionType } from "@/types/ui";
 
 const optionTypeOptions: ToggleOption<OptionType>[] = [
@@ -17,7 +18,7 @@ interface OptionTypeToggleProps {
 
 export function OptionTypeToggle({ value, onChange, disabled }: OptionTypeToggleProps) {
   return (
-    <div className={disabled ? "opacity-50 pointer-events-none" : ""}>
+    <div className={cn(disabled && "opacity-50 pointer-events-none")}>
       <AnimatedToggle
         options={optionTypeOptions}
         value={value}

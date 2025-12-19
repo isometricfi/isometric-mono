@@ -4,11 +4,10 @@ import { isBitcoinWallet } from "@dynamic-labs/bitcoin";
 import { useDynamicContext } from "@dynamic-labs/sdk-react-core";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import type { GetCkbtcBalanceResponse } from "@/app/api/canister/get-ckbtc-balance/route";
-import type { GetDepositAddressResponse } from "@/app/api/canister/get-deposit-address/route";
-import type { WithdrawCkbtcResponse } from "@/app/api/canister/withdraw-ckbtc/route";
-import { useBtcAddress } from "@/hooks/use-btc-address";
-import { useCanister } from "@/hooks/use-canister";
+import type { GetCkbtcBalanceResponse } from "@/app/api/account/balance/route";
+import type { GetDepositAddressResponse } from "@/app/api/account/deposit-address/route";
+import type { WithdrawCkbtcResponse } from "@/app/api/account/withdraw/route";
+import { useBtcAddress, useCanister } from "@/hooks";
 
 export function CkbtcWallet() {
   const { primaryWallet } = useDynamicContext();
@@ -38,7 +37,7 @@ export function CkbtcWallet() {
     queryFn: async (): Promise<GetDepositAddressResponse | null> => {
       if (!address) return null;
 
-      const response = await fetch("/api/canister/get-deposit-address", {
+      const response = await fetch("/api/account/deposit-address", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ address }),
@@ -64,7 +63,7 @@ export function CkbtcWallet() {
     queryFn: async (): Promise<bigint | null> => {
       if (!address) return null;
 
-      const response = await fetch("/api/canister/get-ckbtc-balance", {
+      const response = await fetch("/api/account/balance", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ address }),
@@ -86,7 +85,7 @@ export function CkbtcWallet() {
     mutationFn: async () => {
       if (!address) throw new Error("Not ready");
 
-      const response = await fetch("/api/canister/update-ckbtc-balance", {
+      const response = await fetch("/api/account/sync-balance/update", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ address }),
@@ -147,7 +146,7 @@ export function CkbtcWallet() {
         throw new Error("Failed to sign message");
       }
 
-      const response = await fetch("/api/canister/withdraw-ckbtc", {
+      const response = await fetch("/api/account/withdraw", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

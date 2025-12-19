@@ -50,7 +50,7 @@ export function AnimatedToggle<T extends string>({
               />
             )}
             <span className="relative z-10 flex items-center gap-2">
-              {Icon && <Icon className={size === "sm" ? "size-3" : "size-3.5"} />}
+              {Icon && <Icon className={cn(size === "sm" ? "size-3" : "size-3.5")} />}
               {option.label}
             </span>
           </button>

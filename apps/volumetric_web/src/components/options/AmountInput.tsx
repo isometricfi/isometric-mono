@@ -1,7 +1,7 @@
 "use client";
 
 import type { ChangeEvent } from "react";
-import { usePrices } from "@/hooks/usePrices";
+import { usePrices } from "@/hooks";
 import { formatBtc } from "@/lib/utils";
 import { SlidingNumber } from "../ui/sliding-number";
 

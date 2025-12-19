@@ -2,9 +2,9 @@
 
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import type { SetOraclePriceResponse } from "@/app/api/canister/set-oracle-price/route";
-import type { TestingForceSettleResponse } from "@/app/api/canister/testing-force-settle/route";
-import { useCanister } from "@/hooks/use-canister";
+import type { SetOraclePriceResponse } from "@/app/api/options/test-oracle/route";
+import type { TestingForceSettleResponse } from "@/app/api/options/test-settle/route";
+import { useCanister } from "@/hooks";
 
 function getOptionStatus(status: Record<string, null>): string {
   if ("Active" in status) return "Active";
@@ -35,7 +35,7 @@ export function Settlement() {
 
   const setOracleMutation = useMutation({
     mutationFn: async (priceCents: string): Promise<SetOraclePriceResponse> => {
-      const response = await fetch("/api/canister/set-oracle-price", {
+      const response = await fetch("/api/options/test-oracle", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ priceCents }),
@@ -50,7 +50,7 @@ export function Settlement() {
 
   const forceSettleMutation = useMutation({
     mutationFn: async (id: string): Promise<TestingForceSettleResponse> => {
-      const response = await fetch("/api/canister/testing-force-settle", {
+      const response = await fetch("/api/options/test-settle", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ optionId: id }),

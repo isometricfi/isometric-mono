@@ -6,10 +6,9 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import type { ActiveOption, Offer } from "@volumetric/canister-types";
 import { unwrapResult } from "@volumetric/canister-types";
 import { useState } from "react";
-import type { AcceptOffersResponse } from "@/app/api/canister/accept-offers/route";
-import type { CreateOfferResponse } from "@/app/api/canister/create-offer/route";
-import { useBtcAddress } from "@/hooks/use-btc-address";
-import { useCanister } from "@/hooks/use-canister";
+import type { AcceptOffersResponse } from "@/app/api/options/accept/route";
+import type { CreateOfferResponse } from "@/app/api/options/create/route";
+import { useBtcAddress, useCanister } from "@/hooks";
 
 const ONE_DAY_NS = BigInt(86400) * BigInt(1_000_000_000);
 
@@ -132,7 +131,7 @@ export function OptionsTrading() {
       const offerValidUntil = now + ONE_DAY_NS;
       const optionDurationSeconds = BigInt(3600);
 
-      const response = await fetch("/api/canister/create-offer", {
+      const response = await fetch("/api/options/create", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -199,7 +198,7 @@ export function OptionsTrading() {
 
       if (!signature) throw new Error("Failed to sign message");
 
-      const response = await fetch("/api/canister/accept-offers", {
+      const response = await fetch("/api/options/accept", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

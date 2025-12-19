@@ -4,7 +4,7 @@ import { isBitcoinWallet } from "@dynamic-labs/bitcoin";
 import { useDynamicContext } from "@dynamic-labs/sdk-react-core";
 import { useState } from "react";
 import { useDynamicConfig } from "@/app/providers/dynamic-provider";
-import { useBtcAddresses } from "@/hooks/use-btc-address";
+import { useBtcAddresses } from "@/hooks";
 
 export function BtcWallet() {
   const { isConfigured } = useDynamicConfig();

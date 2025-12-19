@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { SlidingNumber } from "@/components/ui/sliding-number";
-import { usePrices } from "@/hooks/usePrices";
+import { usePrices } from "@/hooks";
 import { roundToN, satsToBtc } from "@/lib/utils";
 import { CallWriteHowItWorksModal } from "./CallWriteHowItWorksModal";
 

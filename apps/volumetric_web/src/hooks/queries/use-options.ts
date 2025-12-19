@@ -1,14 +1,19 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { fetchOptions } from "@/lib/fetchers";
 import { QueryKey } from "@/lib/query-keys";
 import type { OptionOffer, OptionsData } from "@/types/options";
 
 export function useOptions() {
   return useQuery({
     queryKey: [QueryKey.Options],
-    queryFn: fetchOptions,
+    queryFn: async (): Promise<OptionsData> => {
+      const response = await fetch("/api/options");
+      if (!response.ok) {
+        throw new Error("Failed to fetch options");
+      }
+      return response.json();
+    },
     staleTime: 30000,
   });
 }
