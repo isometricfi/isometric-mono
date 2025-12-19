@@ -2,8 +2,8 @@
 
 import { useMutation } from "@tanstack/react-query";
 import { useState } from "react";
-import type { SyncBalanceResponse } from "@/app/api/canister/sync-balance/route";
-import { useBtcAddress } from "@/hooks/use-btc-address";
+import type { SyncBalanceResponse } from "@/app/api/account/sync-balance/route";
+import { useBtcAddress } from "@/hooks";
 
 export function SyncBalance() {
   const address = useBtcAddress("payment");
@@ -11,7 +11,7 @@ export function SyncBalance() {
 
   const syncMutation = useMutation({
     mutationFn: async (addr: string): Promise<SyncBalanceResponse> => {
-      const response = await fetch("/api/canister/sync-balance", {
+      const response = await fetch("/api/account/sync-balance", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ address: addr }),

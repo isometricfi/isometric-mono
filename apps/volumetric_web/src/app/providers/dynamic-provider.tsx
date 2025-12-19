@@ -13,19 +13,19 @@ export function useDynamicConfig() {
 }
 
 export function DynamicProvider({ children }: { children: React.ReactNode }) {
-  if (!environmentId) {
-    return (
-      <DynamicConfigContext.Provider value={{ isConfigured: false }}>
-        {children}
-      </DynamicConfigContext.Provider>
+  const isConfigured = Boolean(environmentId);
+
+  if (!isConfigured) {
+    console.error(
+      "[DynamicProvider] NEXT_PUBLIC_DYNAMIC_ENVIRONMENT_ID is missing. Wallet features will be disabled.",
     );
   }
 
   return (
-    <DynamicConfigContext.Provider value={{ isConfigured: true }}>
+    <DynamicConfigContext.Provider value={{ isConfigured }}>
       <DynamicContextProvider
         settings={{
-          environmentId,
+          environmentId: environmentId || "00000000-0000-0000-0000-000000000000",
           walletConnectors: [BitcoinWalletConnectors],
           initialAuthenticationMode: "connect-and-sign",
         }}

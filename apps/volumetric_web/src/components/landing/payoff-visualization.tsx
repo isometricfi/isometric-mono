@@ -3,6 +3,7 @@
 import { motion } from "framer-motion";
 import { useTheme } from "next-themes";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { cn } from "@/lib/utils";
 
 export function PayoffVisualization() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -197,7 +198,7 @@ export function PayoffVisualization() {
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
               <motion.div
-                className={`w-2 h-2 rounded-full ${inTheMoney ? "bg-green-500" : "bg-red-400"}`}
+                className={cn("w-2 h-2 rounded-full", inTheMoney ? "bg-green-500" : "bg-red-400")}
                 animate={{ opacity: [1, 0.5, 1] }}
                 transition={{ duration: 1.5, repeat: Infinity }}
               />

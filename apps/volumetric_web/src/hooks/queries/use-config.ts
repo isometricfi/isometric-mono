@@ -1,7 +1,6 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { fetchConfig } from "@/lib/fetchers";
 import { QueryKey } from "@/lib/query-keys";
 import type { ConfigData } from "@/types/config";
 
@@ -18,7 +17,13 @@ export function generatePremiumValues(config: ConfigData | undefined): number[] 
 export function useConfig() {
   return useQuery({
     queryKey: [QueryKey.Config],
-    queryFn: fetchConfig,
-    staleTime: 300000, // 5 min
+    queryFn: async (): Promise<ConfigData> => {
+      const response = await fetch("/api/volumetric-config");
+      if (!response.ok) {
+        throw new Error("Failed to fetch config");
+      }
+      return response.json();
+    },
+    staleTime: 300000,
   });
 }

@@ -4,9 +4,8 @@ import { isBitcoinWallet } from "@dynamic-labs/bitcoin";
 import { useDynamicContext } from "@dynamic-labs/sdk-react-core";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import type { CreateAccountResponse } from "@/app/api/canister/create-account/route";
-import { useBtcAddress } from "@/hooks/use-btc-address";
-import { useCanister } from "@/hooks/use-canister";
+import type { CreateAccountResponse } from "@/app/api/account/create/route";
+import { useBtcAddress, useCanister } from "@/hooks";
 
 export function CreateAccount() {
   const { primaryWallet } = useDynamicContext();
@@ -59,7 +58,7 @@ export function CreateAccount() {
         throw new Error("Failed to sign message");
       }
 
-      const response = await fetch("/api/canister/create-account", {
+      const response = await fetch("/api/account/create", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ address, signature }),

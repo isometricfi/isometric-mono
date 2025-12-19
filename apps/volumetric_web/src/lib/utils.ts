@@ -6,6 +6,7 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export const SATS_PER_BTC = 100_000_000;
+export const SATS_PER_BTC_BIGINT = BigInt(100_000_000);
 
 export function satsToBtc(sats: number): number {
   return sats / SATS_PER_BTC;
@@ -33,4 +34,40 @@ export function parseBtcToSats(btcString: string): number {
 export function roundToN(value: number, decimals = 2): number {
   const factor = 10 ** decimals;
   return Math.round(value * factor) / factor;
+}
+
+export function formatBtcBigint(sats: bigint, maxDecimals = 8): string {
+  const isNegative = sats < BigInt(0);
+  const absSats = isNegative ? -sats : sats;
+
+  const whole = absSats / SATS_PER_BTC_BIGINT;
+  const fraction = absSats % SATS_PER_BTC_BIGINT;
+
+  const decimals = Math.min(Math.max(maxDecimals, 0), 8);
+  if (decimals === 0) {
+    return `${isNegative ? "-" : ""}${whole.toString()}`;
+  }
+
+  const fractionPadded = fraction.toString().padStart(8, "0").slice(0, decimals);
+  const fractionTrimmed = fractionPadded.replace(/0+$/, "");
+
+  const value = fractionTrimmed ? `${whole.toString()}.${fractionTrimmed}` : whole.toString();
+  return isNegative ? `-${value}` : value;
+}
+
+export function formatBtcWithSymbolBigint(sats: bigint, maxDecimals = 8): string {
+  return `₿ ${formatBtcBigint(sats, maxDecimals)}`;
+}
+
+export function parseBtcToSatsBigint(btcString: string): bigint {
+  const input = btcString.trim();
+  if (!input) return BigInt(0);
+  if (!/^\d*\.?\d*$/.test(input)) return BigInt(0);
+
+  const [wholeRaw, fractionRaw = ""] = input.split(".");
+  const whole = wholeRaw ? BigInt(wholeRaw) : BigInt(0);
+  const fractionPadded = fractionRaw.slice(0, 8).padEnd(8, "0");
+  const fraction = fractionPadded ? BigInt(fractionPadded) : BigInt(0);
+
+  return whole * SATS_PER_BTC_BIGINT + fraction;
 }

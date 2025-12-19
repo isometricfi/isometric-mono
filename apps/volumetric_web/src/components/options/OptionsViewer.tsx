@@ -4,9 +4,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatedToggle, type ToggleOption } from "@/components/navigation/AnimatedToggle";
-import { useConfig } from "@/hooks/useConfig";
-import { useOptions } from "@/hooks/useOptions";
-import { usePrices } from "@/hooks/usePrices";
+import { useConfig, useOptions, usePrices } from "@/hooks";
 import { cn, formatBtc } from "@/lib/utils";
 import type { StrikeBucket } from "@/types/options";
 import type { ViewerMode } from "@/types/ui";
@@ -193,7 +191,7 @@ export function OptionsViewer({ mode }: OptionsViewerProps) {
     if (!config) return [];
     return config.termOptions.map((term) => ({
       value: term.toString(),
-      label: `${term}d`,
+      label: term === 1 ? "<1d" : `${term}d`,
     }));
   }, [config]);
 
