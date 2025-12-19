@@ -33,7 +33,7 @@ const CREATE_STEPS = [
   {
     id: "submitting",
     title: "Creating offer",
-    description: "Submitting your offer to the network.",
+    description: "Submitting your offer.",
     icon: Send,
   },
 ] as const;
@@ -84,7 +84,7 @@ export function OfferResultModal({
   };
 
   const content = (
-    <div className="space-y-6">
+    <div className="space-y-6 ">
       <AnimatePresence mode="wait">
         {(isProcessing || step === "idle") && (
           <motion.div
@@ -98,9 +98,6 @@ export function OfferResultModal({
               <h3 className="text-lg font-semibold">
                 {type === "create" ? "Creating Offer" : "Buying Option"}
               </h3>
-              <p className="text-sm text-muted-foreground">
-                Keep your wallet open to complete this action.
-              </p>
             </div>
 
             <div className="space-y-3">
@@ -150,7 +147,7 @@ export function OfferResultModal({
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0 }}
-            className="flex flex-col items-center justify-center py-6 space-y-4"
+            className="flex flex-col items-center justify-center  space-y-4"
           >
             <motion.div
               initial={{ scale: 0 }}
@@ -170,7 +167,7 @@ export function OfferResultModal({
               <h3 className="text-xl font-semibold">
                 {type === "create" ? "Offer Created!" : "Option Purchased!"}
               </h3>
-              <p className="text-sm text-muted-foreground max-w-xs">
+              <p className="text-sm text-muted-foreground">
                 {type === "create" ? (
                   <>Your offer is now live. You can manage it in your portfolio.</>
                 ) : (
@@ -186,11 +183,11 @@ export function OfferResultModal({
               <Button asChild className="w-full">
                 <Link href="/portfolio">
                   View Portfolio
-                  <ArrowRight className="size-4 ml-2" />
+                  <ArrowRight className="size-4" />
                 </Link>
               </Button>
               <Button variant="outline" className="w-full" onClick={() => onOpenChange(false)}>
-                {type === "create" ? "Create Another" : "Buy Another"}
+                {type === "create" ? "Close" : "Buy Another"}
               </Button>
             </div>
           </motion.div>

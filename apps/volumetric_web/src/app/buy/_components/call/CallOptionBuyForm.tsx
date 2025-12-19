@@ -123,7 +123,7 @@ export function CallOptionBuyForm() {
       ) : (
         <div className="space-y-2">
           <p className="text-sm font-medium text-foreground">Strike</p>
-          <div className="flex items-center justify-center py-3 px-4 bg-secondary/50 rounded-full">
+          <div className="flex items-center justify-center py-3 px-4 bg-secondary/50 rounded-full h-10">
             <span className="text-sm text-muted-foreground">
               {btcPrice === 0 ? "Loading price..." : "No strikes available"}
             </span>
