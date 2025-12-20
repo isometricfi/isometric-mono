@@ -139,6 +139,38 @@ The Dockerfile (`docker/Dockerfile`) pins:
 
 Dependencies are locked via `Cargo.lock`. The build uses `RUSTFLAGS` with `--remap-path-prefix` to ensure deterministic output regardless of build machine paths.
 
+## Admin commands
+
+### Set trading limits
+
+Update all trading limits at once. Query current values with `get_trading_limits` first, modify as needed:
+
+```bash
+# Get current limits
+dfx canister call volumetric_dev get_trading_limits --network ic
+
+# Set trading limits
+dfx canister call volumetric_dev set_trading_limits --network ic '(record {
+  quantity_sats = record { min = 90_000 : nat64; max = 100_000_000 : nat64 };
+  premium_basis_points = record { min = 50 : nat16; max = 500 : nat16 };
+  strike_basis_points = record { min = 500 : nat16; max = 2_000 : nat16 };
+  option_duration_seconds = record { min = 60 : nat64; max = 2_592_000 : nat64 };
+  term_days = record { min = 1 : nat64; max = 14 : nat64 };
+  deposit_amount_sats = 50_000 : nat64;
+  withdraw_amount_sats = 50_000 : nat64;
+})'
+```
+
+| Field | Description |
+|-------|-------------|
+| `quantity_sats` | Min/max offer size in satoshis |
+| `premium_basis_points` | Min/max premium (100 = 1%) |
+| `strike_basis_points` | Min/max strike price offset (100 = 1%) |
+| `option_duration_seconds` | Min/max option duration |
+| `term_days` | Min/max term length in days |
+| `deposit_amount_sats` | Minimum deposit amount |
+| `withdraw_amount_sats` | Minimum withdrawal amount |
+
 ## Resources
 
 - [Rust Canister Development Guide](https://internetcomputer.org/docs/current/developer-docs/backend/rust/)
