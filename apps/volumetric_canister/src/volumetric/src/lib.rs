@@ -27,10 +27,11 @@ pub use api::{
 };
 pub use api::{
     add_whitelisted, create_account, get_account_info, get_account_nonce, get_ckbtc_balance,
-    get_config, get_deposit_address, get_feature_flags, get_message_to_sign, get_user_balance,
-    get_username_update_message, get_withdraw_message, list_users, list_whitelisted,
-    remove_whitelisted, set_feature_flags, set_oracle_price, testing_sync_balance_from_ledger,
-    update_ckbtc_balance, update_username, withdraw_ckbtc, UserBalanceInfo,
+    get_config, get_deposit_address, get_feature_flags, get_message_to_sign, get_trading_limits,
+    get_user_balance, get_username_update_message, get_withdraw_message, list_users,
+    list_whitelisted, remove_whitelisted, set_feature_flags, set_oracle_price, set_trading_limits,
+    testing_sync_balance_from_ledger, update_ckbtc_balance, update_username, withdraw_ckbtc,
+    UserBalanceInfo,
 };
 pub use auth::types::{
     AuthenticatedPayload, CreateProfileRequest, UpdateUsernameRequest, WithdrawCkbtcRequest,
@@ -39,7 +40,7 @@ pub use errors::VolumetricError;
 pub use generated::ckbtc::{Utxo, UtxoOutpoint, UtxoStatus};
 pub use storage::{
     ActiveOption, ActiveOptionStatus, Asset, BtcNetwork, FeatureFlags, Offer, OfferStatus,
-    OptionType, UserBalance, MINIMUM_QUANTITY_SATS,
+    OptionType, TradingLimits, UserBalance, MINIMUM_QUANTITY_SATS,
 };
 
 use crate::storage::{Cbor, Config, CONFIG};

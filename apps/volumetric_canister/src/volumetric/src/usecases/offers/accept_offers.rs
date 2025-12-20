@@ -3,13 +3,14 @@ use icrc_ledger_types::icrc1::account::Account;
 
 use crate::auth::derive_subaccount;
 use crate::errors::VolumetricError;
+use crate::guards::{validate_offer_params, OfferParams};
 use crate::oracle::get_btc_usd_price_cents;
 use crate::storage::{
     add_available, add_platform_fee, calculate_platform_fee, calculate_premium,
     calculate_strike_price, get_balance, get_offer, get_platform_fee_recipient,
     insert_active_option, lock_collateral, next_id, subtract_available, unlock_collateral,
     update_offer, ActiveOption, ActiveOptionStatus, Asset, Config, CounterKey, OfferStatus,
-    OptionType, CKBTC_TRANSFER_FEE, MINIMUM_QUANTITY_SATS,
+    OptionType, CKBTC_TRANSFER_FEE,
 };
 
 use crate::usecases::balances::transfer_ckbtc;
@@ -75,15 +76,16 @@ pub async fn accept_offers_use_case(
     let mut pending_transfers: Vec<PendingTransfer> = Vec::new();
 
     for item in &items {
-        if item.quantity < MINIMUM_QUANTITY_SATS {
-            return Err(VolumetricError::quantity_below_minimum(
-                item.quantity,
-                MINIMUM_QUANTITY_SATS,
-            ));
-        }
-
         let offer = get_offer(item.offer_id)
             .ok_or_else(|| VolumetricError::offer_not_found(item.offer_id))?;
+
+        // Validate the accept parameters against current trading limits
+        validate_offer_params(&OfferParams {
+            quantity: item.quantity,
+            strike_basis_points: offer.strike_basis_points,
+            premium_basis_points: offer.premium_basis_points,
+            option_duration_seconds: offer.option_duration_seconds,
+        })?;
 
         if offer.writer == buyer_principal {
             return Err(VolumetricError::cannot_accept_own_offer());
