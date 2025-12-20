@@ -1,14 +1,10 @@
 use candid::Principal;
 
 use crate::errors::VolumetricError;
+use crate::guards::{validate_offer_params, OfferParams};
 use crate::storage::{
     get_balance, insert_offer, next_id, Asset, CounterKey, Offer, OfferStatus, OptionType,
-    MINIMUM_QUANTITY_SATS,
 };
-
-const MAX_PREMIUM_BASIS_POINTS: u16 = 10_000;
-const MAX_STRIKE_BASIS_POINTS: u16 = 10_000;
-const MIN_OPTION_DURATION_SECONDS: u64 = 60;
 
 pub struct CreateOfferParams {
     pub asset: Asset,
@@ -24,36 +20,18 @@ pub fn create_offer_use_case(
     writer: Principal,
     params: CreateOfferParams,
 ) -> Result<Offer, VolumetricError> {
-    if params.quantity < MINIMUM_QUANTITY_SATS {
-        return Err(VolumetricError::quantity_below_minimum(
-            params.quantity,
-            MINIMUM_QUANTITY_SATS,
-        ));
-    }
-
-    if params.strike_basis_points > MAX_STRIKE_BASIS_POINTS {
-        return Err(VolumetricError::internal(
-            "Strike basis points cannot exceed 10000 (100%)",
-        ));
-    }
-
-    if params.premium_basis_points > MAX_PREMIUM_BASIS_POINTS {
-        return Err(VolumetricError::internal(
-            "Premium basis points cannot exceed 10000 (100%)",
-        ));
-    }
+    validate_offer_params(&OfferParams {
+        quantity: params.quantity,
+        strike_basis_points: params.strike_basis_points,
+        premium_basis_points: params.premium_basis_points,
+        option_duration_seconds: params.option_duration_seconds,
+    })?;
 
     let now = ic_cdk::api::time();
 
     if params.offer_valid_until <= now {
         return Err(VolumetricError::internal(
             "Offer valid_until must be in the future",
-        ));
-    }
-
-    if params.option_duration_seconds < MIN_OPTION_DURATION_SECONDS {
-        return Err(VolumetricError::internal(
-            "Option duration must be at least 60 seconds",
         ));
     }
 

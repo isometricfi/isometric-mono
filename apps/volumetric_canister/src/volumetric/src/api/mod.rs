@@ -11,7 +11,10 @@ pub use accounts::{
     create_account, get_account_info, get_account_nonce, get_message_to_sign,
     get_username_update_message, list_users, update_username,
 };
-pub use config::{get_config, get_feature_flags, set_feature_flags, set_oracle_price};
+pub use config::{
+    get_config, get_feature_flags, get_trading_limits, set_feature_flags, set_oracle_price,
+    set_trading_limits,
+};
 pub use deposits::{
     get_ckbtc_balance, get_deposit_address, get_user_balance, testing_sync_balance_from_ledger,
     update_ckbtc_balance, UserBalanceInfo,

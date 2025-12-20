@@ -25,6 +25,49 @@ pub struct FeatureFlags {
     pub is_stitching_enabled: bool,
 }
 
+#[derive(Debug, Deserialize, Serialize, CandidType, Clone, Copy)]
+pub struct Range<T> {
+    pub min: T,
+    pub max: T,
+}
+
+#[derive(Debug, Deserialize, Serialize, CandidType, Clone, Copy)]
+pub struct TradingLimits {
+    pub quantity_sats: Range<u64>,
+    pub premium_basis_points: Range<u16>,
+    pub strike_basis_points: Range<u16>,
+    pub option_duration_seconds: Range<u64>,
+    pub term_days: Range<u64>,
+    pub deposit_amount_sats: u64,
+    pub withdraw_amount_sats: u64,
+}
+
+impl Default for TradingLimits {
+    fn default() -> Self {
+        Self {
+            quantity_sats: Range {
+                min: 90_000,
+                max: 100_000_000,
+            },
+            premium_basis_points: Range {
+                min: 50,
+                max: 10_000,
+            },
+            strike_basis_points: Range {
+                min: 500,
+                max: 10_000,
+            },
+            option_duration_seconds: Range {
+                min: 60,
+                max: 86400 * 30,
+            },
+            term_days: Range { min: 1, max: 30 },
+            deposit_amount_sats: 50_000,
+            withdraw_amount_sats: 50_000,
+        }
+    }
+}
+
 #[derive(Debug, Deserialize, Serialize, CandidType, Clone)]
 pub struct Config {
     pub btc_network: BtcNetwork,
@@ -32,6 +75,8 @@ pub struct Config {
     pub ckbtc_ledger: Principal,
     #[serde(default)]
     pub feature_flags: FeatureFlags,
+    #[serde(default)]
+    pub trading_limits: TradingLimits,
 }
 
 impl Default for Config {
@@ -51,6 +96,7 @@ impl Config {
             ckbtc_minter: Principal::from_text(minter).unwrap(),
             ckbtc_ledger: Principal::from_text(ledger).unwrap(),
             feature_flags: FeatureFlags::default(),
+            trading_limits: TradingLimits::default(),
         }
     }
 }
@@ -90,5 +136,17 @@ impl Config {
 
     pub fn is_stitching_enabled() -> bool {
         CONFIG.with_borrow(|c| c.get().0.feature_flags.is_stitching_enabled)
+    }
+
+    pub fn trading_limits() -> TradingLimits {
+        CONFIG.with_borrow(|c| c.get().0.trading_limits)
+    }
+
+    pub fn set_trading_limits(limits: TradingLimits) {
+        CONFIG.with_borrow_mut(|c| {
+            let mut config = c.get().0.clone();
+            config.trading_limits = limits;
+            let _ = c.set(Cbor(config));
+        });
     }
 }

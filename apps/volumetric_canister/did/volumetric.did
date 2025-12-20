@@ -55,6 +55,7 @@ type ClearStorageResponse = record {
 };
 type Config = record {
   ckbtc_minter : principal;
+  trading_limits : TradingLimits;
   btc_network : BtcNetwork;
   ckbtc_ledger : principal;
   feature_flags : FeatureFlags;
@@ -103,6 +104,8 @@ type ProfileInfo = record {
   subaccount : blob;
   address : text;
 };
+type Range = record { max : nat64; min : nat64 };
+type Range_1 = record { max : nat16; min : nat16 };
 type Result = variant { Ok : AcceptOffersResponse; Err : VolumetricError };
 type Result_1 = variant { Ok; Err : VolumetricError };
 type Result_10 = variant {
@@ -133,6 +136,15 @@ type SettlementResult = record {
   option_id : nat64;
   settlement_price_cents : nat64;
   payout_to_writer : nat64;
+};
+type TradingLimits = record {
+  term_days : Range;
+  deposit_amount_sats : nat64;
+  withdraw_amount_sats : nat64;
+  quantity_sats : Range;
+  strike_basis_points : Range_1;
+  premium_basis_points : Range_1;
+  option_duration_seconds : Range;
 };
 type UpdateUsernameRequest = record { username : text };
 type UserBalanceInfo = record {
@@ -186,6 +198,7 @@ service : (opt BtcNetwork) -> {
   get_open_offers : () -> (vec Offer) query;
   get_pending_settlements : () -> (vec ActiveOption) query;
   get_platform_fee_info : () -> (nat64, nat64) query;
+  get_trading_limits : () -> (TradingLimits) query;
   get_user_balance : (text) -> (Result_9) query;
   get_username_update_message : (text, text) -> (text) query;
   get_withdraw_message : (text, text, nat64) -> (text) query;
@@ -195,6 +208,7 @@ service : (opt BtcNetwork) -> {
   remove_whitelisted : (principal) -> (Result_1);
   set_feature_flags : (FeatureFlags) -> (Result_1);
   set_oracle_price : (nat64) -> (Result_1);
+  set_trading_limits : (TradingLimits) -> (Result_1);
   settle_expired_options : () -> (Result_10);
   settle_option_by_id : (nat64) -> (Result_11);
   // Testing endpoint to clear all offers and active options from storage.

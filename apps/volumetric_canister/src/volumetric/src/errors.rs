@@ -140,6 +140,41 @@ pub mod error_codes {
         name: "STITCHING_DISABLED",
         message: "Stitching multiple offers is not enabled",
     };
+    pub const QUANTITY_ABOVE_MAXIMUM: ErrorDef = ErrorDef {
+        code: 5017,
+        name: "QUANTITY_ABOVE_MAXIMUM",
+        message: "Quantity exceeds maximum allowed",
+    };
+    pub const STRIKE_BELOW_MINIMUM: ErrorDef = ErrorDef {
+        code: 5018,
+        name: "STRIKE_BELOW_MINIMUM",
+        message: "Strike basis points below minimum",
+    };
+    pub const STRIKE_ABOVE_MAXIMUM: ErrorDef = ErrorDef {
+        code: 5019,
+        name: "STRIKE_ABOVE_MAXIMUM",
+        message: "Strike basis points exceeds maximum",
+    };
+    pub const PREMIUM_BELOW_MINIMUM: ErrorDef = ErrorDef {
+        code: 5020,
+        name: "PREMIUM_BELOW_MINIMUM",
+        message: "Premium basis points below minimum",
+    };
+    pub const PREMIUM_ABOVE_MAXIMUM: ErrorDef = ErrorDef {
+        code: 5021,
+        name: "PREMIUM_ABOVE_MAXIMUM",
+        message: "Premium basis points exceeds maximum",
+    };
+    pub const DURATION_BELOW_MINIMUM: ErrorDef = ErrorDef {
+        code: 5022,
+        name: "DURATION_BELOW_MINIMUM",
+        message: "Option duration below minimum",
+    };
+    pub const DURATION_ABOVE_MAXIMUM: ErrorDef = ErrorDef {
+        code: 5023,
+        name: "DURATION_ABOVE_MAXIMUM",
+        message: "Option duration exceeds maximum",
+    };
 
     // 9xxx: Internal/generic errors
     pub const INTERNAL_ERROR: ErrorDef = ErrorDef {
@@ -298,6 +333,55 @@ impl VolumetricError {
 
     pub fn stitching_disabled() -> Self {
         Self::from_def(&error_codes::STITCHING_DISABLED)
+    }
+
+    pub fn quantity_above_maximum(quantity: u64, maximum: u64) -> Self {
+        Self::from_def_with_reason(
+            &error_codes::QUANTITY_ABOVE_MAXIMUM,
+            &format!("got: {}, maximum: {}", quantity, maximum),
+        )
+    }
+
+    pub fn strike_below_minimum(value: u16, minimum: u16) -> Self {
+        Self::from_def_with_reason(
+            &error_codes::STRIKE_BELOW_MINIMUM,
+            &format!("got: {}, minimum: {}", value, minimum),
+        )
+    }
+
+    pub fn strike_above_maximum(value: u16, maximum: u16) -> Self {
+        Self::from_def_with_reason(
+            &error_codes::STRIKE_ABOVE_MAXIMUM,
+            &format!("got: {}, maximum: {}", value, maximum),
+        )
+    }
+
+    pub fn premium_below_minimum(value: u16, minimum: u16) -> Self {
+        Self::from_def_with_reason(
+            &error_codes::PREMIUM_BELOW_MINIMUM,
+            &format!("got: {}, minimum: {}", value, minimum),
+        )
+    }
+
+    pub fn premium_above_maximum(value: u16, maximum: u16) -> Self {
+        Self::from_def_with_reason(
+            &error_codes::PREMIUM_ABOVE_MAXIMUM,
+            &format!("got: {}, maximum: {}", value, maximum),
+        )
+    }
+
+    pub fn duration_below_minimum(value: u64, minimum: u64) -> Self {
+        Self::from_def_with_reason(
+            &error_codes::DURATION_BELOW_MINIMUM,
+            &format!("got: {} seconds, minimum: {} seconds", value, minimum),
+        )
+    }
+
+    pub fn duration_above_maximum(value: u64, maximum: u64) -> Self {
+        Self::from_def_with_reason(
+            &error_codes::DURATION_ABOVE_MAXIMUM,
+            &format!("got: {} seconds, maximum: {} seconds", value, maximum),
+        )
     }
 }
 
