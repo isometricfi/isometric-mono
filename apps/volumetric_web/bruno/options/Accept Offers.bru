@@ -1,0 +1,24 @@
+meta {
+  name: Accept Offers
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/api/options/accept
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "address": "{{address}}",
+    "signature": "{{signature}}",
+    "items": [
+      {
+        "offerId": "1",
+        "quantity": "50000"
+      }
+    ]
+  }
+}

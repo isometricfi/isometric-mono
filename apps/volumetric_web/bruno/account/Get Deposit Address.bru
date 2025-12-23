@@ -1,0 +1,17 @@
+meta {
+  name: Get Deposit Address
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseUrl}}/api/account/deposit-address
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "address": "{{address}}"
+  }
+}

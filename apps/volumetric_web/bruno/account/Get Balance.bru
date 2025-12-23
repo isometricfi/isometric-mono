@@ -1,0 +1,17 @@
+meta {
+  name: Get Balance
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/api/account/balance
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "address": "{{address}}"
+  }
+}
