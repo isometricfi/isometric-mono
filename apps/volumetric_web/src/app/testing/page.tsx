@@ -6,9 +6,8 @@ import { CkbtcWallet } from "./_components/CkbtcWallet";
 import { CreateAccount } from "./_components/CreateAccount";
 import { OptionsTrading } from "./_components/OptionsTrading";
 import { Settlement } from "./_components/Settlement";
-import { SyncBalance } from "./_components/SyncBalance";
 
-type Tab = "wallet" | "options" | "settlement" | "admin";
+type Tab = "wallet" | "options" | "settlement";
 
 export default function TestingPage() {
   const [activeTab, setActiveTab] = useState<Tab>("wallet");
@@ -17,7 +16,6 @@ export default function TestingPage() {
     { id: "wallet", label: "Wallet" },
     { id: "options", label: "Options" },
     { id: "settlement", label: "Settlement" },
-    { id: "admin", label: "Admin" },
   ];
 
   return (
@@ -81,18 +79,6 @@ export default function TestingPage() {
             <h2 className="text-xl font-semibold text-zinc-300">Settlement</h2>
             <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-6">
               <Settlement />
-            </div>
-          </div>
-        )}
-
-        {activeTab === "admin" && (
-          <div className="space-y-4">
-            <h2 className="text-xl font-semibold text-zinc-300">Admin: Sync Balance</h2>
-            <p className="text-sm text-zinc-500">
-              Sync internal balance with actual ckBTC ledger balance. Whitelisted only.
-            </p>
-            <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-6">
-              <SyncBalance />
             </div>
           </div>
         )}
