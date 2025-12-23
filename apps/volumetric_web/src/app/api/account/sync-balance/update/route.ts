@@ -7,17 +7,13 @@ const RequestSchema = z.object({
   address: z.string().min(1),
 });
 
-export type SyncBalanceRequest = z.infer<typeof RequestSchema>;
+export type UpdateCkbtcBalanceRequest = z.infer<typeof RequestSchema>;
 
-const ResponseSchema = z.object({
-  balance: z.string(),
-});
-
-export type SyncBalanceResponse = z.infer<typeof ResponseSchema>;
+export type UpdateCkbtcBalanceResponse = { success: true };
 
 export const POST = createApiHandler(RequestSchema, async ({ address }) => {
   const actor = await getCanisterActor();
-  const result = await actor.testing_sync_balance_from_ledger(address);
-  const balance = unwrapResult(result);
-  return { balance: balance.toString() } satisfies SyncBalanceResponse;
+  const result = await actor.update_ckbtc_balance(address);
+  unwrapResult(result);
+  return { success: true } satisfies UpdateCkbtcBalanceResponse;
 });
