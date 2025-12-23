@@ -1,0 +1,19 @@
+meta {
+  name: Update Username
+  type: http
+  seq: 6
+}
+
+post {
+  url: {{baseUrl}}/api/account/username
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "address": "{{address}}",
+    "signature": "{{signature}}",
+    "username": "myusername"
+  }
+}

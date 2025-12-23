@@ -1,0 +1,17 @@
+meta {
+  name: Sync Balance
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{baseUrl}}/api/account/sync-balance/update
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "address": "{{address}}"
+  }
+}

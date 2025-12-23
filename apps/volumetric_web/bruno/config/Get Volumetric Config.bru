@@ -1,0 +1,15 @@
+meta {
+  name: Get Volumetric Config
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/api/volumetric-config
+  body: none
+  auth: none
+}
+
+docs {
+  Returns trading limits and UI configuration from the canister
+}
