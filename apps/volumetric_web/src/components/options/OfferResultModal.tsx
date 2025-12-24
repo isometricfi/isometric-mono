@@ -68,7 +68,7 @@ export function OfferResultModal({
   onOpenChange,
   type,
   step,
-  fillGroupId,
+  fillGroupId: _fillGroupId,
   errorMessage,
 }: OfferResultModalProps) {
   const isMobile = useMediaQuery({ query: "(max-width: 768px)" });
@@ -171,10 +171,7 @@ export function OfferResultModal({
                 {type === "create" ? (
                   <>Your offer is now live. You can manage it in your portfolio.</>
                 ) : (
-                  <>
-                    Your option{fillGroupId ? ` (${fillGroupId})` : ""} is now active. You can track
-                    it in your portfolio.
-                  </>
+                  <>Your option is now active. You can track it in your portfolio.</>
                 )}
               </p>
             </div>

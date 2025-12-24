@@ -3,7 +3,16 @@
 import { isBitcoinWallet } from "@dynamic-labs/bitcoin";
 import { useDynamicContext } from "@dynamic-labs/sdk-react-core";
 import { AnimatePresence, motion } from "framer-motion";
-import { CheckCircle2, CircleArrowDown, ClockCheck, Loader2, ScanSearch } from "lucide-react";
+import {
+  CheckCircle2,
+  CircleArrowDown,
+  ClockCheck,
+  ExternalLink,
+  Loader2,
+  ScanSearch,
+  XCircle,
+} from "lucide-react";
+import Link from "next/link";
 import { useMemo, useState } from "react";
 import QRCodeSVG from "react-qr-code";
 import { useMediaQuery } from "react-responsive";
@@ -45,10 +54,23 @@ export function DepositModal({
   const minDepositSats = BigInt(config?.minDepositAmountSats ?? 50_000);
   const isWalletReady = !!primaryWallet && isBitcoinWallet(primaryWallet);
 
-  const enteredAmountSats = useMemo(() => parseBtcToSatsBigint(amountBtc), [amountBtc]);
+  const enteredAmountSats = useMemo(() => {
+    const sats = parseBtcToSatsBigint(amountBtc);
+    console.log("[DepositModal] Parsed amount:", { amountBtc, sats: sats.toString() });
+    return sats;
+  }, [amountBtc]);
+
   const isBelowMinimum = enteredAmountSats < minDepositSats;
 
   const canDeposit = useMemo(() => {
+    console.log("[DepositModal] canDeposit check:", {
+      isWalletReady,
+      depositAddress,
+      amountBtc,
+      walletBalanceSats,
+      minDepositSats: minDepositSats.toString(),
+    });
+
     if (!isWalletReady) return false;
     if (!depositAddress) return false;
     const sats = parseBtcToSatsBigint(amountBtc);
@@ -81,10 +103,21 @@ export function DepositModal({
 
     try {
       const amountSats = parseBtcToSatsBigint(amountBtc);
+      const amountSatsNumber = Number(amountSats);
+
+      console.log("[DepositModal] Sending deposit:", {
+        amountBtc,
+        amountSats: amountSats.toString(),
+        amountSatsNumber,
+        depositAddress,
+      });
+
       const result = await primaryWallet.sendBitcoin({
         amount: amountSats,
         recipientAddress: depositAddress,
       });
+
+      console.log("[DepositModal] Send result:", result);
 
       if (result) {
         setTxid(result);
@@ -93,12 +126,13 @@ export function DepositModal({
         throw new Error("Transaction was cancelled");
       }
     } catch (err) {
+      console.error("[DepositModal] Send error:", err);
       setError(err instanceof Error ? err.message : "Failed to send");
       setStep("error");
     }
   };
 
-  const handleSyncDeposit = async () => {
+  const _handleSyncDeposit = async () => {
     try {
       await syncDeposit.mutateAsync();
       setStep("success");
@@ -192,7 +226,19 @@ export function DepositModal({
                       >
                         Close
                       </Button>
-                      <Button className="flex-1" onClick={handleDeposit} disabled={!canDeposit}>
+                      <Button
+                        className="flex-1"
+                        onClick={() => {
+                          console.log("[DepositModal] Deposit button clicked:", {
+                            amountBtc,
+                            canDeposit,
+                            isBelowMinimum,
+                          });
+                          handleDeposit();
+                        }}
+                        disabled={!canDeposit}
+                      >
+                        {" "}
                         {isBelowMinimum
                           ? `Min: ${formatBtcWithSymbol(Number(minDepositSats), 8)}`
                           : "Deposit"}
@@ -275,57 +321,10 @@ export function DepositModal({
         {step === "waiting" && (
           <motion.div
             key="waiting"
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            className="space-y-5"
-          >
-            <div className="flex flex-col items-center justify-center py-8 space-y-4">
-              <motion.div
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                transition={{ type: "spring", stiffness: 200, damping: 15 }}
-                className="size-16 rounded-full bg-primary/10 flex items-center justify-center"
-              >
-                <Loader2 className="size-8 text-primary animate-spin" />
-              </motion.div>
-              <div className="text-center">
-                <h3 className="font-semibold">Transaction sent</h3>
-                <p className="text-sm text-muted-foreground">
-                  Waiting for confirmations (~6 blocks)
-                </p>
-              </div>
-            </div>
-
-            {txid && (
-              <div className="rounded-2xl border p-4 bg-card/50">
-                <div className="text-xs text-muted-foreground mb-1">Transaction ID</div>
-                <div className="font-mono text-xs break-all">{txid}</div>
-              </div>
-            )}
-
-            <div className="flex gap-3">
-              <Button variant="outline" className="flex-1" onClick={() => handleClose(false)}>
-                Close
-              </Button>
-              <Button
-                className="flex-1"
-                onClick={handleSyncDeposit}
-                disabled={syncDeposit.isPending}
-              >
-                {syncDeposit.isPending ? "Checking..." : "Check for deposit"}
-              </Button>
-            </div>
-          </motion.div>
-        )}
-
-        {step === "success" && (
-          <motion.div
-            key="success"
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0 }}
-            className="flex flex-col items-center justify-center py-12 space-y-4"
+            className="flex flex-col items-center justify-center space-y-4"
           >
             <motion.div
               initial={{ scale: 0 }}
@@ -340,11 +339,74 @@ export function DepositModal({
             >
               <CheckCircle2 className="size-8 text-green-500" />
             </motion.div>
-            <div className="text-center">
-              <h3 className="font-semibold">Deposit complete</h3>
+
+            <div className="text-center space-y-2">
+              <h3 className="text-xl font-semibold">Deposit initiated</h3>
+              <p className="text-sm text-muted-foreground">
+                Your deposit will be accounted in 6 blocks (~60min)
+              </p>
+            </div>
+
+            {txid && (
+              <div className="w-full rounded-2xl border p-4 bg-card/50">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="text-xs text-muted-foreground mb-1">Transaction ID</div>
+                    <div className="font-mono text-xs break-all select-all">
+                      {txid.slice(0, 8)}...{txid.slice(-8)}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <CopyButton text={txid} />
+
+                    <Link
+                      href={`https://mempool.space/testnet/tx/${txid}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      <Button variant="outline" size="icon" asChild>
+                        <ExternalLink className="size-4" />
+                      </Button>
+                    </Link>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <Button className="w-full mt-2" onClick={() => handleClose(false)}>
+              Close
+            </Button>
+          </motion.div>
+        )}
+
+        {step === "success" && (
+          <motion.div
+            key="success"
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0 }}
+            className="flex flex-col items-center justify-center space-y-4"
+          >
+            <motion.div
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{
+                type: "spring",
+                stiffness: 200,
+                damping: 15,
+                delay: 0.1,
+              }}
+              className="size-16 rounded-full bg-green-500/10 flex items-center justify-center"
+            >
+              <CheckCircle2 className="size-8 text-green-500" />
+            </motion.div>
+
+            <div className="text-center space-y-2">
+              <h3 className="text-xl font-semibold">Deposit complete</h3>
               <p className="text-sm text-muted-foreground">Your balance has been updated</p>
             </div>
-            <Button className="mt-4" onClick={() => handleClose(false)}>
+
+            <Button className="w-full mt-2" onClick={() => handleClose(false)}>
               Done
             </Button>
           </motion.div>
@@ -356,23 +418,32 @@ export function DepositModal({
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
-            className="space-y-5"
+            className="flex flex-col items-center justify-center space-y-4"
           >
-            <div className="flex flex-col items-center justify-center py-8 space-y-4">
-              <div className="size-16 rounded-full bg-destructive/10 flex items-center justify-center">
-                <span className="text-2xl">⚠️</span>
-              </div>
-              <div className="text-center">
-                <h3 className="font-semibold">Something went wrong</h3>
-                <p className="text-sm text-destructive">{error}</p>
-              </div>
+            <motion.div
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{
+                type: "spring",
+                stiffness: 200,
+                damping: 15,
+              }}
+              className="size-16 rounded-full bg-destructive/10 flex items-center justify-center"
+            >
+              <XCircle className="size-8 text-destructive" />
+            </motion.div>
+
+            <div className="text-center space-y-2">
+              <h3 className="text-xl font-semibold">Something went wrong</h3>
+              <p className="text-sm text-destructive max-w-xs">{error}</p>
             </div>
-            <div className="flex gap-3">
+
+            <div className="flex gap-3 w-full pt-2">
               <Button variant="outline" className="flex-1" onClick={() => handleClose(false)}>
                 Close
               </Button>
               <Button className="flex-1" onClick={() => setStep("input")}>
-                Try again
+                Try Again
               </Button>
             </div>
           </motion.div>

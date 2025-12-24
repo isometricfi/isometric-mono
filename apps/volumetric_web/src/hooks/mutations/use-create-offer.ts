@@ -95,6 +95,7 @@ export function useCreateOffer() {
       queryClient.invalidateQueries({ queryKey: [QueryKey.Options] });
       queryClient.invalidateQueries({ queryKey: [QueryKey.OpenOffers] });
       queryClient.invalidateQueries({ queryKey: [QueryKey.AccountInfo] });
+      queryClient.invalidateQueries({ queryKey: [QueryKey.Portfolio] });
     },
     onError: () => {
       setStep("error");

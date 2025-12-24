@@ -2,7 +2,7 @@
 
 import type { ChangeEvent } from "react";
 import { usePrices } from "@/hooks";
-import { formatBtc } from "@/lib/utils";
+import { formatBtcWithSymbol } from "@/lib/utils";
 import { SlidingNumber } from "../ui/sliding-number";
 
 const MAX_DECIMALS = 5;
@@ -71,9 +71,9 @@ export function AmountInput({
           <button
             type="button"
             onClick={onMaxClick}
-            className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+            className="text-sm text-muted-foreground hover:text-foreground transition-colors"
           >
-            Max: {formatBtc(maxAmountSats, 4)} BTC
+            Max: {formatBtcWithSymbol(maxAmountSats, 6)}
           </button>
         )}
       </div>
