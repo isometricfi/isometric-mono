@@ -22,7 +22,7 @@ export function formatBtc(sats: number, maxDecimals = 8): string {
 }
 
 export function formatBtcWithSymbol(sats: number, maxDecimals = 8): string {
-  return `₿ ${formatBtc(sats, maxDecimals)}`;
+  return `₿${formatBtc(sats, maxDecimals)}`;
 }
 
 export function parseBtcToSats(btcString: string): number {
@@ -56,7 +56,7 @@ export function formatBtcBigint(sats: bigint, maxDecimals = 8): string {
 }
 
 export function formatBtcWithSymbolBigint(sats: bigint, maxDecimals = 8): string {
-  return `₿ ${formatBtcBigint(sats, maxDecimals)}`;
+  return `₿${formatBtcBigint(sats, maxDecimals)}`;
 }
 
 export function parseBtcToSatsBigint(btcString: string): bigint {
@@ -70,4 +70,22 @@ export function parseBtcToSatsBigint(btcString: string): bigint {
   const fraction = fractionPadded ? BigInt(fractionPadded) : BigInt(0);
 
   return whole * SATS_PER_BTC_BIGINT + fraction;
+}
+
+const SECONDS_PER_DAY = 86400;
+const NS_PER_MS = 1_000_000;
+const BASIS_POINTS_DIVISOR = 100;
+
+export function secondsToDays(seconds: bigint): number {
+  const days = Number(seconds) / SECONDS_PER_DAY;
+  if (days < 1) return 1;
+  return Math.round(days);
+}
+
+export function nsToISOString(ns: bigint): string {
+  return new Date(Number(ns / BigInt(NS_PER_MS))).toISOString();
+}
+
+export function basisPointsToPercent(basisPoints: number): number {
+  return basisPoints / BASIS_POINTS_DIVISOR;
 }

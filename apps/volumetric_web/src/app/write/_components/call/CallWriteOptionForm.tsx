@@ -8,7 +8,7 @@ import { OfferResultModal } from "@/components/options/OfferResultModal";
 import { TermSelector } from "@/components/options/TermSelector";
 import { Button } from "@/components/ui/button";
 import { NumberCarousel } from "@/components/ui/number-carousel";
-import { generatePremiumValues, useConfig, useCreateOffer, usePrices } from "@/hooks";
+import { generatePremiumValues, useAccount, useConfig, useCreateOffer, usePrices } from "@/hooks";
 import { formatBtc, parseBtcToSats } from "@/lib/utils";
 import { CallWriteOptionSummary } from "./CallWriteOptionSummary";
 
@@ -16,13 +16,16 @@ export function CallWriteOptionForm() {
   const { primaryWallet } = useDynamicContext();
   const { data: priceData } = usePrices();
   const { data: config } = useConfig();
+  const { data: accountData } = useAccount();
   const createOffer = useCreateOffer();
   const btcPrice = priceData?.btc ?? 0;
 
   const strikePercentOptions = config?.strikePercentOptions ?? [];
   const premiumValues = useMemo(() => generatePremiumValues(config), [config]);
   const minOfferAmountSats = config?.minOfferAmountSats ?? 100_000;
-  const maxOfferAmountSats = config?.maxOfferAmountSats ?? 100_000_000;
+  const configMaxOfferAmountSats = config?.maxOfferAmountSats ?? 100_000_000;
+  const availableBalanceSats = Number(accountData?.balance?.available ?? 0);
+  const maxOfferAmountSats = Math.min(configMaxOfferAmountSats, availableBalanceSats);
   const defaultTerm = config?.termOptions[0] ?? 7;
 
   const [term, setTerm] = useState(defaultTerm);
@@ -50,6 +53,10 @@ export function CallWriteOptionForm() {
     }
   };
 
+  const handleMaxClick = () => {
+    setAmountBtc(formatBtc(maxOfferAmountSats, 8));
+  };
+
   const amountSats = parseBtcToSats(amountBtc);
 
   const strikeUsd = useMemo(
@@ -63,8 +70,8 @@ export function CallWriteOptionForm() {
   const getButtonText = () => {
     if (!isWalletConnected) return "Connect Wallet";
     if (createOffer.isPending) return "Creating Offer...";
-    if (amountSats < minOfferAmountSats) return `Min: ${formatBtc(minOfferAmountSats)} BTC`;
-    if (amountSats > maxOfferAmountSats) return `Max: ${formatBtc(maxOfferAmountSats)} BTC`;
+    if (amountSats < minOfferAmountSats) return `Min: ₿${formatBtc(minOfferAmountSats)}`;
+    if (amountSats > maxOfferAmountSats) return `Max: ₿${formatBtc(maxOfferAmountSats)}`;
     return "Create Offer";
   };
 
@@ -107,7 +114,13 @@ export function CallWriteOptionForm() {
         </div>
       )}
 
-      <AmountInput value={amountBtc} onChange={setAmountBtc} minAmountSats={minOfferAmountSats} />
+      <AmountInput
+        value={amountBtc}
+        onChange={setAmountBtc}
+        minAmountSats={minOfferAmountSats}
+        maxAmountSats={maxOfferAmountSats}
+        onMaxClick={handleMaxClick}
+      />
 
       <Button
         onClick={handleSubmit}

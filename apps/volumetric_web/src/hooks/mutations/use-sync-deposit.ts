@@ -1,7 +1,7 @@
 "use client";
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import type { UpdateCkbtcBalanceResponse } from "@/app/api/account/sync-balance/update";
+import type { UpdateCkbtcBalanceResponse } from "@/app/api/account/sync-balance/update/route";
 import { QueryKey } from "@/lib/query-keys";
 import { useBtcAddress } from "../queries/use-btc-address";
 

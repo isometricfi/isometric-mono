@@ -17,17 +17,17 @@ const STEPS: { id: EnsureAccountStep; title: string; description: string }[] = [
   {
     id: "checking",
     title: "Setting up your account",
-    description: "We’re preparing your on-chain profile so you can deposit and trade.",
+    description: "Preparing account creation.",
   },
   {
     id: "awaiting_signature",
     title: "Approve account creation",
-    description: "Sign the message in your wallet to prove ownership of your address.",
+    description: "Sign the message in your wallet to prove creation",
   },
   {
     id: "creating",
     title: "Creating account",
-    description: "Finalizing account setup. This usually takes a few seconds.",
+    description: "Finalizing account setup.",
   },
 ];
 
@@ -55,7 +55,7 @@ export function AccountCreationModal({
   error: string | null;
   onClose: () => void;
 }) {
-  const showClose = step === "error";
+  const showClose = step === "error" || step === "awaiting_signature";
 
   return (
     <Dialog open={open} onOpenChange={(next) => (!next ? onClose() : undefined)}>
@@ -66,9 +66,7 @@ export function AccountCreationModal({
             Account setup
           </DialogTitle>
           <DialogDescription>
-            {error
-              ? "Something went wrong. You can close this and try again by reconnecting."
-              : "This only takes a moment. Keep your wallet open."}
+            {error ? "Something went wrong. You can close this and try again by reconnecting." : ""}
           </DialogDescription>
         </DialogHeader>
 

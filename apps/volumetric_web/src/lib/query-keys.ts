@@ -4,4 +4,5 @@ export enum QueryKey {
   OpenOffers = "openOffers",
   AccountInfo = "accountInfo",
   DepositAddress = "depositAddress",
+  Portfolio = "portfolio",
 }

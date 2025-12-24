@@ -71,8 +71,13 @@ function serializeUtxoStatus(status: UtxoStatus): SerializedUtxoStatus {
 }
 
 export const POST = createApiHandler(RequestSchema, async ({ address }) => {
-  const actor = await getCanisterActor();
-  const result = await actor.update_ckbtc_balance(address);
-  const statuses = unwrapResult(result);
-  return statuses.map(serializeUtxoStatus) satisfies UpdateCkbtcBalanceResponse;
+  try {
+    const actor = await getCanisterActor();
+    const result = await actor.update_ckbtc_balance(address);
+    const statuses = unwrapResult(result);
+    return statuses.map(serializeUtxoStatus) satisfies UpdateCkbtcBalanceResponse;
+  } catch (error) {
+    console.error("Error updating ckBTC balance:", error);
+    throw new Error("Failed to update ckBTC balance");
+  }
 });

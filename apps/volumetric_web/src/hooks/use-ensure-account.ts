@@ -19,7 +19,7 @@ export type EnsureAccountStep =
   | "error";
 
 export function useEnsureAccount() {
-  const { primaryWallet } = useDynamicContext();
+  const { primaryWallet, handleLogOut } = useDynamicContext();
   const canister = useCanister();
   const address = useBtcAddress("payment");
   const queryClient = useQueryClient();
@@ -116,7 +116,8 @@ export function useEnsureAccount() {
   const isOpen = step !== "idle" && step !== "done";
 
   const close = () => {
-    if (step === "error") {
+    if (step === "error" || step === "awaiting_signature") {
+      handleLogOut();
       setStep("idle");
       setError(null);
     }
