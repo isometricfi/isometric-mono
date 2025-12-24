@@ -74,15 +74,23 @@ pub async fn mint_ckbtc_from_utxos(
         VolumetricError::inter_canister_call_failed(&format!("update_balance decode: {:?}", e))
     })?;
 
-    let statuses = result.map_err(|e| {
-        let msg = match e {
-            UpdateBalanceError::GenericError { error_message, .. } => error_message,
-            UpdateBalanceError::TemporarilyUnavailable(msg) => msg,
-            UpdateBalanceError::AlreadyProcessing => "Already processing".to_string(),
-            UpdateBalanceError::NoNewUtxos { .. } => "No new UTXOs".to_string(),
-        };
-        VolumetricError::inter_canister_call_failed(&format!("update_balance: {}", msg))
-    })?;
+    // NoNewUtxos is not an error - it just means no new deposits to process
+    let statuses = match result {
+        Ok(statuses) => statuses,
+        Err(UpdateBalanceError::NoNewUtxos { .. }) => vec![],
+        Err(e) => {
+            let msg = match e {
+                UpdateBalanceError::GenericError { error_message, .. } => error_message,
+                UpdateBalanceError::TemporarilyUnavailable(msg) => msg,
+                UpdateBalanceError::AlreadyProcessing => "Already processing".to_string(),
+                UpdateBalanceError::NoNewUtxos { .. } => unreachable!(),
+            };
+            return Err(VolumetricError::inter_canister_call_failed(&format!(
+                "update_balance: {}",
+                msg
+            )));
+        }
+    };
 
     let total_minted: u64 = statuses
         .iter()

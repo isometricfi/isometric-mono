@@ -287,16 +287,11 @@ export function CkbtcWallet() {
               {updateBalanceMutation.isPending ? "Checking..." : "Check for Deposits"}
             </button>
 
-            {updateBalanceMutation.isSuccess && updateBalanceMutation.data && (
+            {updateBalanceMutation.isSuccess && (
               <div className="p-3 bg-green-950 border border-green-800 rounded-lg">
-                <div className="text-sm text-green-400 mb-2">Deposit Result</div>
-                <pre className="text-xs text-zinc-300 overflow-auto">
-                  {JSON.stringify(
-                    updateBalanceMutation.data,
-                    (_, v) => (typeof v === "bigint" ? v.toString() : v),
-                    2,
-                  )}
-                </pre>
+                <div className="text-sm text-green-400">
+                  Deposit check complete. Balance refreshed.
+                </div>
               </div>
             )}
 

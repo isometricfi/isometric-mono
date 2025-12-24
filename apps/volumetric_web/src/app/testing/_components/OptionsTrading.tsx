@@ -10,7 +10,7 @@ import type { AcceptOffersResponse } from "@/app/api/options/accept/route";
 import type { CreateOfferResponse } from "@/app/api/options/create/route";
 import { useBtcAddress, useCanister } from "@/hooks";
 
-const ONE_DAY_NS = BigInt(86400) * BigInt(1_000_000_000);
+const TEN_YEARS_NS = BigInt(86400) * BigInt(1_000_000_000) * BigInt(365 * 10);
 
 function formatSats(sats: bigint): string {
   return `${sats.toLocaleString()} sats`;
@@ -128,7 +128,7 @@ export function OptionsTrading() {
       if (!signature) throw new Error("Failed to sign message");
 
       const now = BigInt(Date.now()) * BigInt(1_000_000);
-      const offerValidUntil = now + ONE_DAY_NS;
+      const offerValidUntil = now + TEN_YEARS_NS;
       const optionDurationSeconds = BigInt(3600);
 
       const response = await fetch("/api/options/create", {

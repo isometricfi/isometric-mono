@@ -10,4 +10,6 @@ export interface ConfigData {
   maxOfferAmountSats: number;
   minDepositAmountSats: number;
   minWithdrawAmountSats: number;
+  minTermDays: number;
+  maxTermDays: number;
 }

@@ -66,6 +66,7 @@ export interface ClearStorageResponse {
 }
 export interface Config {
   'ckbtc_minter' : Principal,
+  'trading_limits' : TradingLimits,
   'btc_network' : BtcNetwork,
   'ckbtc_ledger' : Principal,
   'feature_flags' : FeatureFlags,
@@ -112,6 +113,8 @@ export interface ProfileInfo {
   'subaccount' : Uint8Array | number[],
   'address' : string,
 }
+export interface Range { 'max' : bigint, 'min' : bigint }
+export interface Range_1 { 'max' : number, 'min' : number }
 export type Result = { 'Ok' : AcceptOffersResponse } |
   { 'Err' : VolumetricError };
 export type Result_1 = { 'Ok' : null } |
@@ -156,6 +159,15 @@ export interface SettlementResult {
   'option_id' : bigint,
   'settlement_price_cents' : bigint,
   'payout_to_writer' : bigint,
+}
+export interface TradingLimits {
+  'term_days' : Range,
+  'deposit_amount_sats' : bigint,
+  'withdraw_amount_sats' : bigint,
+  'quantity_sats' : Range,
+  'strike_basis_points' : Range_1,
+  'premium_basis_points' : Range_1,
+  'option_duration_seconds' : Range,
 }
 export interface UpdateUsernameRequest { 'username' : string }
 export interface UserBalanceInfo {
@@ -229,6 +241,7 @@ export interface _SERVICE {
   'get_open_offers' : ActorMethod<[], Array<Offer>>,
   'get_pending_settlements' : ActorMethod<[], Array<ActiveOption>>,
   'get_platform_fee_info' : ActorMethod<[], [bigint, bigint]>,
+  'get_trading_limits' : ActorMethod<[], TradingLimits>,
   'get_user_balance' : ActorMethod<[string], Result_9>,
   'get_username_update_message' : ActorMethod<[string, string], string>,
   'get_withdraw_message' : ActorMethod<[string, string, bigint], string>,
@@ -238,6 +251,7 @@ export interface _SERVICE {
   'remove_whitelisted' : ActorMethod<[Principal], Result_1>,
   'set_feature_flags' : ActorMethod<[FeatureFlags], Result_1>,
   'set_oracle_price' : ActorMethod<[bigint], Result_1>,
+  'set_trading_limits' : ActorMethod<[TradingLimits], Result_1>,
   'settle_expired_options' : ActorMethod<[], Result_10>,
   'settle_option_by_id' : ActorMethod<[bigint], Result_11>,
   /**

@@ -115,12 +115,24 @@ export const idlFactory = ({ IDL }) => {
     'Err' : VolumetricError,
   });
   const Result_5 = IDL.Variant({ 'Ok' : IDL.Nat, 'Err' : VolumetricError });
+  const Range = IDL.Record({ 'max' : IDL.Nat64, 'min' : IDL.Nat64 });
+  const Range_1 = IDL.Record({ 'max' : IDL.Nat16, 'min' : IDL.Nat16 });
+  const TradingLimits = IDL.Record({
+    'term_days' : Range,
+    'deposit_amount_sats' : IDL.Nat64,
+    'withdraw_amount_sats' : IDL.Nat64,
+    'quantity_sats' : Range,
+    'strike_basis_points' : Range_1,
+    'premium_basis_points' : Range_1,
+    'option_duration_seconds' : Range,
+  });
   const FeatureFlags = IDL.Record({
     'is_stitching_enabled' : IDL.Bool,
     'is_partial_filling_enabled' : IDL.Bool,
   });
   const Config = IDL.Record({
     'ckbtc_minter' : IDL.Principal,
+    'trading_limits' : TradingLimits,
     'btc_network' : BtcNetwork,
     'ckbtc_ledger' : IDL.Principal,
     'feature_flags' : FeatureFlags,
@@ -277,6 +289,7 @@ export const idlFactory = ({ IDL }) => {
         ['query'],
       ),
     'get_platform_fee_info' : IDL.Func([], [IDL.Nat64, IDL.Nat64], ['query']),
+    'get_trading_limits' : IDL.Func([], [TradingLimits], ['query']),
     'get_user_balance' : IDL.Func([IDL.Text], [Result_9], ['query']),
     'get_username_update_message' : IDL.Func(
         [IDL.Text, IDL.Text],
@@ -294,6 +307,7 @@ export const idlFactory = ({ IDL }) => {
     'remove_whitelisted' : IDL.Func([IDL.Principal], [Result_1], []),
     'set_feature_flags' : IDL.Func([FeatureFlags], [Result_1], []),
     'set_oracle_price' : IDL.Func([IDL.Nat64], [Result_1], []),
+    'set_trading_limits' : IDL.Func([TradingLimits], [Result_1], []),
     'settle_expired_options' : IDL.Func([], [Result_10], []),
     'settle_option_by_id' : IDL.Func([IDL.Nat64], [Result_11], []),
     'testing_clear_offers_and_options' : IDL.Func([], [Result_12], []),

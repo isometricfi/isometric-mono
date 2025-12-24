@@ -1,0 +1,21 @@
+meta {
+  name: Test Set Oracle Price
+  type: http
+  seq: 6
+}
+
+post {
+  url: {{baseUrl}}/api/options/test-oracle
+  body: json
+  auth: none
+}
+
+docs {
+  Testing endpoint - sets the oracle price manually for testing
+}
+
+body:json {
+  {
+    "priceCents": "10000000"
+  }
+}

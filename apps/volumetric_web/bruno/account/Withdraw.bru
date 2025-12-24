@@ -1,0 +1,20 @@
+meta {
+  name: Withdraw
+  type: http
+  seq: 7
+}
+
+post {
+  url: {{baseUrl}}/api/account/withdraw
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "address": "{{address}}",
+    "signature": "{{signature}}",
+    "btcAddress": "tb1qwithdrawaddress",
+    "amount": "10000"
+  }
+}

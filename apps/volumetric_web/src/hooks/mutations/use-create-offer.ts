@@ -9,7 +9,7 @@ import { QueryKey } from "@/lib/query-keys";
 import { useBtcAddress } from "../queries/use-btc-address";
 import { useCanister } from "../use-canister";
 
-const ONE_DAY_NS = BigInt(86400) * BigInt(1_000_000_000);
+const TEN_YEARS_NS = BigInt(86400) * BigInt(1_000_000_000) * BigInt(365 * 10);
 const SECONDS_PER_DAY = 86400;
 const PERCENT_TO_BASIS_POINTS = 100;
 
@@ -66,7 +66,7 @@ export function useCreateOffer() {
       setStep("submitting");
 
       const now = BigInt(Date.now()) * BigInt(1_000_000);
-      const offerValidUntil = now + ONE_DAY_NS;
+      const offerValidUntil = now + TEN_YEARS_NS;
 
       const response = await fetch("/api/options/create", {
         method: "POST",
