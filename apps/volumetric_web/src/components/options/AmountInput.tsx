@@ -9,15 +9,14 @@ const MAX_DECIMALS = 5;
 const MAX_BTC_INPUT = 100;
 
 export interface AmountInputProps {
-  value: string; // BTC string for display/input
+  value: string;
   onChange: (value: string) => void;
   symbol?: string;
-  maxAmountSats?: number;
-  minAmountSats?: number;
+  maxAmountSats?: bigint;
+  minAmountSats?: bigint;
   onMaxClick?: () => void;
 }
 
-// sanitize and format BTC input
 function sanitizeBtcInput(input: string): string | null {
   if (input === "") return "";
 

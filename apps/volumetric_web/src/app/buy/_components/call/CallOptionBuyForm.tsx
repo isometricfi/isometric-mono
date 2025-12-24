@@ -31,7 +31,7 @@ export function CallOptionBuyForm() {
   const acceptOffer = useAcceptOffer();
   const btcPrice = priceData?.btc ?? 0;
 
-  const minOfferAmountSats = config?.minOfferAmountSats ?? 100_000;
+  const minOfferAmountSats = config?.minOfferAmountSats ?? BigInt(100_000);
   const defaultTerm = config?.termOptions[0] ?? 7;
 
   const [term, setTerm] = useState(defaultTerm);
@@ -72,7 +72,7 @@ export function CallOptionBuyForm() {
 
   const handleSubmit = () => {
     if (!bestOffer) return;
-    acceptOffer.mutate({
+    acceptOffer.mutateAsync({
       offerId: bestOffer.id,
       quantitySats: amountSats,
     });
@@ -92,14 +92,14 @@ export function CallOptionBuyForm() {
   };
 
   const isWalletConnected = !!primaryWallet;
-  const isValidAmount = amountSats > 0 && amountSats <= maxLiquiditySats;
+  const isValidAmount = amountSats > BigInt(0) && amountSats <= maxLiquiditySats;
   const hasInsufficientLiquidity = amountSats > maxLiquiditySats;
 
   const getButtonText = () => {
     if (!isWalletConnected) return "Connect Wallet";
     if (acceptOffer.isPending) return "Buying Option...";
     if (hasInsufficientLiquidity) return "Insufficient liquidity";
-    if (!bestOffer && amountSats > 0) return "No offers available";
+    if (!bestOffer && amountSats > BigInt(0)) return "No offers available";
     return "Buy Option";
   };
 
@@ -153,8 +153,8 @@ export function CallOptionBuyForm() {
         onOpenChange={handleModalClose}
         type="buy"
         step={acceptOffer.step}
-        fillGroupId={acceptOffer.data?.fillGroupId}
-        errorMessage={acceptOffer.error?.message}
+        fillGroupId={acceptOffer.data?.fill_group_id.toString()}
+        errorMessage={acceptOffer.errorMessage ?? undefined}
       />
 
       <CallBuyOptionSummary

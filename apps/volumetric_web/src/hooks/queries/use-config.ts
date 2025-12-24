@@ -1,8 +1,24 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
-import { QueryKey } from "@/lib/query-keys";
-import type { ConfigData } from "@/types/config";
+import { trpc } from "@/lib/trpc";
+
+interface ConfigData {
+  termOptions: number[];
+  strikePercentOptions: number[];
+  premium: {
+    min: number;
+    max: number;
+    step: number;
+  };
+  minOfferAmountSats: bigint;
+  maxOfferAmountSats: bigint;
+  minDepositAmountSats: bigint;
+  minWithdrawAmountSats: bigint;
+  minTermDays: number;
+  maxTermDays: number;
+  minOptionDurationSeconds: bigint;
+  maxOptionDurationSeconds: bigint;
+}
 
 export function generatePremiumValues(config: ConfigData | undefined): number[] {
   if (!config) return [];
@@ -15,15 +31,7 @@ export function generatePremiumValues(config: ConfigData | undefined): number[] 
 }
 
 export function useConfig() {
-  return useQuery({
-    queryKey: [QueryKey.Config],
-    queryFn: async (): Promise<ConfigData> => {
-      const response = await fetch("/api/volumetric-config");
-      if (!response.ok) {
-        throw new Error("Failed to fetch config");
-      }
-      return response.json();
-    },
+  return trpc.config.get.useQuery(undefined, {
     staleTime: 300000,
   });
 }

@@ -3,14 +3,8 @@
 import { PencilLine, Plus } from "lucide-react";
 import Link from "next/link";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  getOfferRank,
-  type PortfolioOffer,
-  useCancelOffer,
-  useOptions,
-  usePortfolio,
-  usePrices,
-} from "@/hooks";
+import { getOfferRank, useCancelOffer, useOptions, usePortfolio, usePrices } from "@/hooks";
+import { getOfferStatusKey, type OfferStatusKey } from "@/lib/type-helpers";
 import { OfferCard } from "./OfferCard";
 
 export function OffersTable() {
@@ -32,14 +26,17 @@ export function OffersTable() {
   }
 
   const sortedOffers = [...(portfolio?.offers ?? [])].sort((a, b) => {
-    const statusOrder: PortfolioOffer["status"][] = [
+    const statusOrder: OfferStatusKey[] = [
       "Open",
       "PartiallyFilled",
       "Processing",
       "Filled",
       "Cancelled",
     ];
-    return statusOrder.indexOf(a.status) - statusOrder.indexOf(b.status);
+    return (
+      statusOrder.indexOf(getOfferStatusKey(a.status)) -
+      statusOrder.indexOf(getOfferStatusKey(b.status))
+    );
   });
 
   if (sortedOffers.length === 0) {
@@ -63,21 +60,16 @@ export function OffersTable() {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-4">
       {sortedOffers.map((offer) => {
-        const term = Math.round(Number(offer.optionDurationSeconds) / 86400);
+        const term = Math.round(Number(offer.option_duration_seconds) / 86400);
 
-        const rankInfo = getOfferRank(
-          optionsData,
-          offer.id.toString(),
-          term,
-          offer.strikeBasisPoints / 100,
-        );
+        const rankInfo = getOfferRank(optionsData, offer.id, term, offer.strike_basis_points / 100);
 
         return (
           <OfferCard
             key={offer.id.toString()}
             offer={offer}
             btcPrice={currentBtcPrice}
-            onCancel={(id) => cancelOfferMutation.mutate(id)}
+            onCancel={(id) => cancelOfferMutation.mutateAsync(id)}
             isCancelling={
               cancelOfferMutation.isPending &&
               cancelOfferMutation.variables?.toString() === offer.id.toString()

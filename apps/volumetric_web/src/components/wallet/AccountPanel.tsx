@@ -12,7 +12,8 @@ import { DepositModal } from "@/components/wallet/DepositModal";
 import { ProceduralAvatar } from "@/components/wallet/ProceduralAvatar";
 import { WithdrawModal } from "@/components/wallet/WithdrawModal";
 import { useAccount, usePrices, useUpdateUsername } from "@/hooks";
-import { cn, formatBtcWithSymbolBigint, roundToN } from "@/lib/utils";
+import { unwrapOptional } from "@/lib/type-helpers";
+import { cn, formatBtcWithSymbol, roundToN, satsToBtc } from "@/lib/utils";
 import { Badge } from "../ui/badge";
 
 function shortenAddress(address: string) {
@@ -67,12 +68,13 @@ function AccountPanelContent({ onDisconnect }: { onDisconnect: () => void }) {
   const available = balance?.available ?? BigInt(0);
 
   const btcPrice = priceData?.btc ?? 0;
-  const depositedBtc = Number(deposited) / 100_000_000;
+  const depositedBtc = satsToBtc(deposited).toNumber();
   const depositedUsd = roundToN(depositedBtc * btcPrice, 0);
 
   const connectedAddress = profile?.address ?? primaryWallet?.address ?? null;
   const addressLabel = connectedAddress ? shortenAddress(connectedAddress) : null;
-  const displayName = profile?.username ?? "Wallet";
+  const username = unwrapOptional(profile?.username ?? []);
+  const displayName = username ?? "Wallet";
   const avatarSeed = connectedAddress ?? displayName;
 
   return (
@@ -93,7 +95,7 @@ function AccountPanelContent({ onDisconnect }: { onDisconnect: () => void }) {
             if (showSettings) {
               setShowSettings(false);
             } else {
-              setUsernameDraft(profile?.username ?? "");
+              setUsernameDraft(username ?? "");
               setShowSettings(true);
             }
           }}
@@ -148,7 +150,7 @@ function AccountPanelContent({ onDisconnect }: { onDisconnect: () => void }) {
                 <p className="text-sm text-muted-foreground">Deposited</p>
                 <div className="flex items-center gap-2 justify-between">
                   <p className="text-3xl font-semibold tracking-tight">
-                    {isLoadingBalance ? "—" : formatBtcWithSymbolBigint(deposited, 8)}
+                    {isLoadingBalance ? "—" : formatBtcWithSymbol(deposited, 8)}
                   </p>
                   {!isLoadingBalance && depositedUsd > 0 && (
                     <div className="text-muted-foreground text-sm bg-muted px-2 py-1 rounded-full">
@@ -156,9 +158,7 @@ function AccountPanelContent({ onDisconnect }: { onDisconnect: () => void }) {
                     </div>
                   )}
                 </div>
-                <Badge variant="secondary">
-                  Available {formatBtcWithSymbolBigint(available, 8)}
-                </Badge>
+                <Badge variant="secondary">Available {formatBtcWithSymbol(available, 8)}</Badge>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
@@ -218,7 +218,7 @@ function AccountPanelContent({ onDisconnect }: { onDisconnect: () => void }) {
               </div>
 
               <Button
-                onClick={() => updateUsername.mutate({ username: usernameDraft })}
+                onClick={() => updateUsername.mutateAsync({ username: usernameDraft })}
                 disabled={
                   updateUsername.isPending ||
                   usernameDraft.trim().length === 0 ||

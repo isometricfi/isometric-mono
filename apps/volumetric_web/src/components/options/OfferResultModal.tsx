@@ -84,7 +84,7 @@ export function OfferResultModal({
   };
 
   const content = (
-    <div className="space-y-6 ">
+    <div className="space-y-6 md:pt-0 pt-4">
       <AnimatePresence mode="wait">
         {(isProcessing || step === "idle") && (
           <motion.div
@@ -233,7 +233,7 @@ export function OfferResultModal({
   if (isMobile) {
     return (
       <Drawer open={open} onOpenChange={handleOpenChange}>
-        <DrawerContent className="px-5 pb-8 pt-4">{content}</DrawerContent>
+        <DrawerContent className="p-5">{content}</DrawerContent>
       </Drawer>
     );
   }

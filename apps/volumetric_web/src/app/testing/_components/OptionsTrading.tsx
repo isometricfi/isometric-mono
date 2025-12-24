@@ -2,23 +2,22 @@
 
 import { isBitcoinWallet } from "@dynamic-labs/bitcoin";
 import { useDynamicContext } from "@dynamic-labs/sdk-react-core";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import type { ActiveOption, Offer } from "@volumetric/canister-types";
 import { unwrapResult } from "@volumetric/canister-types";
 import { useState } from "react";
-import type { AcceptOffersResponse } from "@/app/api/options/accept/route";
-import type { CreateOfferResponse } from "@/app/api/options/create/route";
 import { useBtcAddress, useCanister } from "@/hooks";
+import { trpc } from "@/lib/trpc";
+import { formatBtc, formatUsd, nowNs, nsToDate } from "@/lib/utils";
 
 const TEN_YEARS_NS = BigInt(86400) * BigInt(1_000_000_000) * BigInt(365 * 10);
 
-function formatSats(sats: bigint): string {
-  return `${sats.toLocaleString()} sats`;
+function formatSatsDisplay(sats: bigint): string {
+  return `₿${formatBtc(sats, 6)}`;
 }
 
 function formatTimestamp(ns: bigint): string {
-  const ms = Number(ns / BigInt(1_000_000));
-  return new Date(ms).toLocaleString();
+  return nsToDate(ns).toLocaleString();
 }
 
 function getOfferStatus(offer: Offer): string {
@@ -63,13 +62,7 @@ export function OptionsTrading() {
     data: openOffers,
     isLoading: isLoadingOffers,
     refetch: refetchOffers,
-  } = useQuery({
-    queryKey: ["openOffers"],
-    queryFn: async () => {
-      if (!canister) return [];
-      return canister.get_open_offers();
-    },
-    enabled: !!canister,
+  } = trpc.options.list.useQuery(undefined, {
     refetchInterval: 10000,
   });
 
@@ -111,111 +104,21 @@ export function OptionsTrading() {
     enabled: !!canister && !!address && !!accountInfo,
   });
 
-  const createOfferMutation = useMutation({
-    mutationFn: async (): Promise<CreateOfferResponse> => {
-      if (!canister || !address) throw new Error("Not ready");
-      if (!primaryWallet || !isBitcoinWallet(primaryWallet)) {
-        throw new Error("Bitcoin wallet not connected");
-      }
-
-      const qty = BigInt(quantity);
-      const strike = Number(strikeBasisPoints);
-      const premium = Number(premiumBasisPoints);
-
-      const message = await canister.get_create_offer_message(address, qty, strike, premium);
-      const signature = await primaryWallet.signMessage(message, { addressType: "payment" });
-
-      if (!signature) throw new Error("Failed to sign message");
-
-      const now = BigInt(Date.now()) * BigInt(1_000_000);
-      const offerValidUntil = now + TEN_YEARS_NS;
-      const optionDurationSeconds = BigInt(3600);
-
-      const response = await fetch("/api/options/create", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          address,
-          signature,
-          quantity: qty.toString(),
-          strikeBasisPoints: strike,
-          premiumBasisPoints: premium,
-          offerValidUntil: offerValidUntil.toString(),
-          optionDurationSeconds: optionDurationSeconds.toString(),
-        }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error?.message || data.error || "Failed to create offer");
-      }
-
-      return data;
-    },
+  const createOfferMutation = trpc.options.create.useMutation({
     onSuccess: () => {
       refetchOffers();
       refetchMyOffers();
     },
   });
 
-  const cancelOfferMutation = useMutation({
-    mutationFn: async (offerId: bigint) => {
-      if (!canister || !address) throw new Error("Not ready");
-      if (!primaryWallet || !isBitcoinWallet(primaryWallet)) {
-        throw new Error("Bitcoin wallet not connected");
-      }
-
-      const message = await canister.get_cancel_offer_message(address, offerId);
-      const signature = await primaryWallet.signMessage(message, { addressType: "payment" });
-
-      if (!signature) throw new Error("Failed to sign message");
-
-      const result = await canister.cancel_offer({
-        wallet_proof: { address, signature },
-        data: { offer_id: offerId },
-      });
-
-      return unwrapResult(result);
-    },
+  const cancelOfferMutation = trpc.options.cancel.useMutation({
     onSuccess: () => {
       refetchOffers();
       refetchMyOffers();
     },
   });
 
-  const acceptOfferMutation = useMutation({
-    mutationFn: async (): Promise<AcceptOffersResponse> => {
-      if (!canister || !address) throw new Error("Not ready");
-      if (!primaryWallet || !isBitcoinWallet(primaryWallet)) {
-        throw new Error("Bitcoin wallet not connected");
-      }
-
-      const items = [{ offer_id: BigInt(acceptOfferId), quantity: BigInt(acceptQuantity) }];
-
-      const message = await canister.get_accept_offers_message(address, items);
-      const signature = await primaryWallet.signMessage(message, { addressType: "payment" });
-
-      if (!signature) throw new Error("Failed to sign message");
-
-      const response = await fetch("/api/options/accept", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          address,
-          signature,
-          items: [{ offerId: acceptOfferId, quantity: acceptQuantity }],
-        }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error?.message || data.error || "Failed to accept offer");
-      }
-
-      return data;
-    },
+  const acceptOfferMutation = trpc.options.accept.useMutation({
     onSuccess: () => {
       refetchOffers();
       refetchMyOffers();
@@ -225,6 +128,73 @@ export function OptionsTrading() {
       setAcceptQuantity("");
     },
   });
+
+  const handleCreateOffer = async () => {
+    if (!canister || !address) throw new Error("Not ready");
+    if (!primaryWallet || !isBitcoinWallet(primaryWallet)) {
+      throw new Error("Bitcoin wallet not connected");
+    }
+
+    const qty = BigInt(quantity);
+    const strike = Number(strikeBasisPoints);
+    const premium = Number(premiumBasisPoints);
+
+    const message = await canister.get_create_offer_message(address, qty, strike, premium);
+    const signature = await primaryWallet.signMessage(message, { addressType: "payment" });
+
+    if (!signature) throw new Error("Failed to sign message");
+
+    const offerValidUntil = nowNs() + TEN_YEARS_NS;
+    const optionDurationSeconds = BigInt(3600);
+
+    await createOfferMutation.mutateAsync({
+      address,
+      signature,
+      quantity: qty,
+      strikeBasisPoints: strike,
+      premiumBasisPoints: premium,
+      offerValidUntil,
+      optionDurationSeconds,
+    });
+  };
+
+  const handleCancelOffer = async (offerId: bigint) => {
+    if (!canister || !address) throw new Error("Not ready");
+    if (!primaryWallet || !isBitcoinWallet(primaryWallet)) {
+      throw new Error("Bitcoin wallet not connected");
+    }
+
+    const message = await canister.get_cancel_offer_message(address, offerId);
+    const signature = await primaryWallet.signMessage(message, { addressType: "payment" });
+
+    if (!signature) throw new Error("Failed to sign message");
+
+    await cancelOfferMutation.mutateAsync({
+      address,
+      signature,
+      offerId,
+    });
+  };
+
+  const handleAcceptOffer = async () => {
+    if (!canister || !address) throw new Error("Not ready");
+    if (!primaryWallet || !isBitcoinWallet(primaryWallet)) {
+      throw new Error("Bitcoin wallet not connected");
+    }
+
+    const items = [{ offer_id: BigInt(acceptOfferId), quantity: BigInt(acceptQuantity) }];
+
+    const message = await canister.get_accept_offers_message(address, items);
+    const signature = await primaryWallet.signMessage(message, { addressType: "payment" });
+
+    if (!signature) throw new Error("Failed to sign message");
+
+    await acceptOfferMutation.mutateAsync({
+      address,
+      signature,
+      items: [{ offerId: BigInt(acceptOfferId), quantity: BigInt(acceptQuantity) }],
+    });
+  };
 
   if (!primaryWallet) {
     return <div className="text-zinc-500 text-sm">Connect your Bitcoin wallet first</div>;
@@ -294,7 +264,7 @@ export function OptionsTrading() {
 
         <button
           type="button"
-          onClick={() => createOfferMutation.mutate()}
+          onClick={handleCreateOffer}
           disabled={createOfferMutation.isPending}
           className="px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
@@ -304,7 +274,7 @@ export function OptionsTrading() {
         {createOfferMutation.isSuccess && (
           <div className="p-3 bg-green-950 border border-green-800 rounded-lg">
             <div className="text-sm text-green-400">
-              Offer created! ID: {createOfferMutation.data.offerId}
+              Offer created! ID: {createOfferMutation.data?.offer.id.toString()}
             </div>
           </div>
         )}
@@ -345,8 +315,10 @@ export function OptionsTrading() {
                     <div className="text-xs text-zinc-500">Status: {getOfferStatus(offer)}</div>
                   </div>
                   <div className="text-right text-sm">
-                    <div>{formatSats(offer.remaining_quantity)} available</div>
-                    <div className="text-zinc-500">of {formatSats(offer.total_quantity)}</div>
+                    <div>{formatSatsDisplay(offer.remaining_quantity)} available</div>
+                    <div className="text-zinc-500">
+                      of {formatSatsDisplay(offer.total_quantity)}
+                    </div>
                   </div>
                 </div>
                 <div className="grid grid-cols-3 gap-2 text-xs text-zinc-400">
@@ -402,7 +374,7 @@ export function OptionsTrading() {
 
         <button
           type="button"
-          onClick={() => acceptOfferMutation.mutate()}
+          onClick={handleAcceptOffer}
           disabled={acceptOfferMutation.isPending || !acceptOfferId || !acceptQuantity}
           className="px-4 py-2 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
@@ -412,7 +384,7 @@ export function OptionsTrading() {
         {acceptOfferMutation.isSuccess && (
           <div className="p-3 bg-green-950 border border-green-800 rounded-lg">
             <div className="text-sm text-green-400">
-              Option created! Fill Group: {acceptOfferMutation.data.fillGroupId}
+              Option created! Fill Group: {acceptOfferMutation.data?.fill_group_id.toString()}
             </div>
           </div>
         )}
@@ -450,13 +422,14 @@ export function OptionsTrading() {
                 <div>
                   <div className="text-sm font-medium">Offer #{offer.id.toString()}</div>
                   <div className="text-xs text-zinc-500">
-                    {getOfferStatus(offer)} | {formatSats(offer.remaining_quantity)} remaining
+                    {getOfferStatus(offer)} | {formatSatsDisplay(offer.remaining_quantity)}{" "}
+                    remaining
                   </div>
                 </div>
                 {("Open" in offer.status || "PartiallyFilled" in offer.status) && (
                   <button
                     type="button"
-                    onClick={() => cancelOfferMutation.mutate(offer.id)}
+                    onClick={() => handleCancelOffer(offer.id)}
                     disabled={cancelOfferMutation.isPending}
                     className="px-3 py-1 bg-red-600 text-white text-sm rounded hover:bg-red-700 disabled:opacity-50"
                   >
@@ -498,10 +471,10 @@ export function OptionsTrading() {
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-2 text-xs text-zinc-400">
-                  <div>Quantity: {formatSats(option.quantity)}</div>
-                  <div>Entry: ${(Number(option.entry_price_cents) / 100).toLocaleString()}</div>
-                  <div>Strike: ${(Number(option.strike_price_cents) / 100).toLocaleString()}</div>
-                  <div>Premium Paid: {formatSats(option.premium_paid)}</div>
+                  <div>Quantity: {formatSatsDisplay(option.quantity)}</div>
+                  <div>Entry: ${formatUsd(option.entry_price_cents)}</div>
+                  <div>Strike: ${formatUsd(option.strike_price_cents)}</div>
+                  <div>Premium Paid: {formatSatsDisplay(option.premium_paid)}</div>
                   <div>Expiry: {formatTimestamp(option.expiry)}</div>
                 </div>
               </div>
@@ -537,10 +510,10 @@ export function OptionsTrading() {
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-2 text-xs text-zinc-400">
-                  <div>Quantity: {formatSats(option.quantity)}</div>
-                  <div>Entry: ${(Number(option.entry_price_cents) / 100).toLocaleString()}</div>
-                  <div>Strike: ${(Number(option.strike_price_cents) / 100).toLocaleString()}</div>
-                  <div>Premium Received: {formatSats(option.premium_paid)}</div>
+                  <div>Quantity: {formatSatsDisplay(option.quantity)}</div>
+                  <div>Entry: ${formatUsd(option.entry_price_cents)}</div>
+                  <div>Strike: ${formatUsd(option.strike_price_cents)}</div>
+                  <div>Premium Received: {formatSatsDisplay(option.premium_paid)}</div>
                   <div>Expiry: {formatTimestamp(option.expiry)}</div>
                 </div>
               </div>

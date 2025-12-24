@@ -1,18 +1,9 @@
-export interface OptionOffer {
-  id: string;
-  writerId: string;
-  amountSats: number;
-  premium: number;
-  strikePercent: number;
-  termDays: number;
-  createdAt: string;
-  expiresAt: string;
-}
+import type { Offer } from "@volumetric/canister-types";
 
 export interface StrikeBucket {
   strikePercent: number;
-  offers: OptionOffer[];
-  totalLiquiditySats: number;
+  offers: Offer[];
+  totalLiquiditySats: bigint;
   lowestPremium: number;
   highestPremium: number;
 }

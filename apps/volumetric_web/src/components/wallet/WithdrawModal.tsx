@@ -10,12 +10,7 @@ import { AlertDialog, AlertDialogContent } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Drawer, DrawerContent } from "@/components/ui/drawer";
 import { useAccount, useConfig, useWithdraw } from "@/hooks";
-import {
-  formatBtcBigint,
-  formatBtcWithSymbol,
-  formatBtcWithSymbolBigint,
-  parseBtcToSatsBigint,
-} from "@/lib/utils";
+import { formatBtc, formatBtcWithSymbol, parseBtcToSats } from "@/lib/utils";
 import { Badge } from "../ui/badge";
 
 type WithdrawStep = "input" | "signing" | "processing" | "success" | "error";
@@ -43,16 +38,15 @@ export function WithdrawModal({
   const [amountBtc, setAmountBtc] = useState("");
   const [error, setError] = useState<string | null>(null);
 
-  const minWithdrawSats = BigInt(config?.minWithdrawAmountSats ?? 50_000);
+  const minWithdrawSats = config?.minWithdrawAmountSats ?? BigInt(50_000);
 
-  const enteredAmountSats = useMemo(() => parseBtcToSatsBigint(amountBtc), [amountBtc]);
+  const enteredAmountSats = useMemo(() => parseBtcToSats(amountBtc), [amountBtc]);
   const isBelowMinimum = enteredAmountSats < minWithdrawSats;
 
   const canWithdraw = useMemo(() => {
-    const sats = parseBtcToSatsBigint(amountBtc);
-    console.log("sats", sats < minWithdrawSats, sats > BigInt(availableSats), !destinationAddress);
+    const sats = parseBtcToSats(amountBtc);
     if (sats < minWithdrawSats) return false;
-    if (sats > BigInt(availableSats)) return false;
+    if (sats > availableSats) return false;
     if (!destinationAddress) return false;
     return true;
   }, [amountBtc, minWithdrawSats, availableSats, destinationAddress]);
@@ -76,7 +70,7 @@ export function WithdrawModal({
     setStep("signing");
 
     try {
-      const amountSats = parseBtcToSatsBigint(amountBtc);
+      const amountSats = parseBtcToSats(amountBtc);
 
       setStep("processing");
       await withdraw.mutateAsync({
@@ -122,14 +116,14 @@ export function WithdrawModal({
             <AmountInput
               value={amountBtc}
               onChange={setAmountBtc}
-              maxAmountSats={Number(availableSats)}
-              minAmountSats={Number(minWithdrawSats)}
-              onMaxClick={() => setAmountBtc(formatBtcBigint(availableSats, 8))}
+              maxAmountSats={availableSats}
+              minAmountSats={minWithdrawSats}
+              onMaxClick={() => setAmountBtc(formatBtc(availableSats, 8))}
             />
 
             {lockedSats > BigInt(0) && (
               <Badge variant="secondary" className="w-full">
-                {formatBtcWithSymbolBigint(lockedSats, 8)} locked in active options
+                {formatBtcWithSymbol(lockedSats, 8)} locked in active options
               </Badge>
             )}
 
@@ -138,9 +132,7 @@ export function WithdrawModal({
                 Close
               </Button>
               <Button className="flex-1" onClick={handleWithdraw} disabled={!canWithdraw}>
-                {isBelowMinimum
-                  ? `Min: ${formatBtcWithSymbol(Number(minWithdrawSats), 8)}`
-                  : "Withdraw"}
+                {isBelowMinimum ? `Min: ${formatBtcWithSymbol(minWithdrawSats, 8)}` : "Withdraw"}
               </Button>
             </div>
           </motion.div>

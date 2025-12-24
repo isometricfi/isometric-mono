@@ -1,5 +1,6 @@
 "use client";
 
+import type { ActiveOption } from "@volumetric/canister-types";
 import { format, intervalToDuration, isPast } from "date-fns";
 import { Eye, PenLine, ShoppingCart, TrendingUp } from "lucide-react";
 import { useState } from "react";
@@ -23,32 +24,29 @@ import {
 } from "@/components/ui/drawer";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
-import type { PortfolioOption } from "@/hooks";
-import { cn, formatBtcWithSymbolBigint, roundToN, SATS_PER_BTC } from "@/lib/utils";
+import { getOptionStatusKey } from "@/lib/type-helpers";
+import { centsToUsd, cn, formatBtcWithSymbol, nsToMs, roundToN, satsToBtc } from "@/lib/utils";
 import type { ViewerMode } from "@/types/ui";
 
 interface OptionCardProps {
-  option: PortfolioOption;
+  option: ActiveOption;
   btcPrice: number;
   role: ViewerMode;
 }
 
 function calculatePnL(
-  option: PortfolioOption,
+  option: ActiveOption,
   currentPrice: number,
 ): { valueBtc: number; valueUsd: number; percent: number; isProfit: boolean } | null {
   if (currentPrice <= 0) return null;
 
-  const strikePriceCents = Number(option.strikePriceCents);
-  const premiumSats = Number(option.premiumPaid);
-  const quantitySats = Number(option.quantity);
-
-  const strikePriceUsd = strikePriceCents / 100;
-  const premiumBtc = premiumSats / SATS_PER_BTC;
+  const strikePriceUsd = centsToUsd(option.strike_price_cents);
+  const premiumBtc = satsToBtc(option.premium_paid).toNumber();
   const premiumUsd = premiumBtc * currentPrice;
-  const quantityBtc = quantitySats / SATS_PER_BTC;
+  const quantityBtc = satsToBtc(option.quantity).toNumber();
 
-  if (option.status === "Active") {
+  const status = getOptionStatusKey(option.status);
+  if (status === "Active") {
     if (currentPrice > strikePriceUsd) {
       const maxPayoutBtc = quantityBtc;
       const maxPayoutUsd = maxPayoutBtc * currentPrice;
@@ -69,7 +67,6 @@ function calculatePnL(
     };
   }
 
-  // As a writer
   if (currentPrice > strikePriceUsd) {
     const maxPayoutBtc = quantityBtc;
     const maxPayoutUsd = maxPayoutBtc * currentPrice;
@@ -91,11 +88,11 @@ function calculatePnL(
 }
 
 function getTimeRemaining(
-  expiryNs: bigint,
-  acceptedAtNs: bigint,
+  expiry: bigint,
+  acceptedAt: bigint,
 ): { text: string; isExpired: boolean; progressPercent: number; expiryDate: Date } {
-  const expiryMs = Number(expiryNs / BigInt(1_000_000));
-  const acceptedAtMs = Number(acceptedAtNs / BigInt(1_000_000));
+  const expiryMs = nsToMs(expiry);
+  const acceptedAtMs = nsToMs(acceptedAt);
   const expiryDate = new Date(expiryMs);
   const now = Date.now();
 
@@ -140,16 +137,16 @@ function OptionDetailContent({
   pnl,
   timeRemaining,
 }: {
-  option: PortfolioOption;
+  option: ActiveOption;
   btcPrice: number;
   role: ViewerMode;
   pnl: ReturnType<typeof calculatePnL>;
   timeRemaining: ReturnType<typeof getTimeRemaining>;
 }) {
-  const strikePrice = Number(option.strikePriceCents) / 100;
-  const entryPrice = Number(option.entryPriceCents) / 100;
-  const premiumBtc = Number(option.premiumPaid) / SATS_PER_BTC;
-  const quantityBtc = Number(option.quantity) / SATS_PER_BTC;
+  const strikePrice = centsToUsd(option.strike_price_cents);
+  const entryPrice = centsToUsd(option.entry_price_cents);
+  const premiumBtc = satsToBtc(option.premium_paid).toNumber();
+  const quantityBtc = satsToBtc(option.quantity).toNumber();
 
   const breakEvenPrice =
     role === "buyer"
@@ -193,7 +190,7 @@ function OptionDetailContent({
       <div className="border-t pt-4 space-y-3">
         <div className="flex justify-between text-sm">
           <span className="text-muted-foreground">Quantity</span>
-          <span className="font-mono">{formatBtcWithSymbolBigint(option.quantity)}</span>
+          <span className="font-mono">{formatBtcWithSymbol(option.quantity)}</span>
         </div>
         <div className="flex justify-between text-sm">
           <span className="text-muted-foreground">Premium Paid</span>
@@ -249,9 +246,10 @@ function OptionDetailContent({
 export function OptionCard({ option, btcPrice, role }: OptionCardProps) {
   const [open, setOpen] = useState(false);
   const isMobile = useMediaQuery({ query: "(max-width: 768px)" });
-  const timeRemaining = getTimeRemaining(option.expiry, option.acceptedAt);
+  const timeRemaining = getTimeRemaining(option.expiry, option.accepted_at);
   const pnl = calculatePnL(option, btcPrice);
-  const strikePrice = Number(option.strikePriceCents) / 100;
+  const strikePrice = centsToUsd(option.strike_price_cents);
+  const status = getOptionStatusKey(option.status);
 
   const cardContent = (
     <Card className="overflow-hidden transition-all hover:border-primary/50">
@@ -259,7 +257,7 @@ export function OptionCard({ option, btcPrice, role }: OptionCardProps) {
         <div className="flex justify-between items-start">
           <div className="flex flex-col gap-1">
             <div className="text-lg font-mono font-medium">
-              {formatBtcWithSymbolBigint(option.quantity)}
+              {formatBtcWithSymbol(option.quantity)}
             </div>
           </div>
           <div className="text-right flex items-center gap-1.5">
@@ -283,7 +281,7 @@ export function OptionCard({ option, btcPrice, role }: OptionCardProps) {
           </div>
         </div>
 
-        {option.status === "Settling" ? (
+        {status === "Settling" ? (
           <Badge className=" text-base w-full flex items-center gap-2 justify-center animate-pulse">
             Expired: Now settling...
           </Badge>

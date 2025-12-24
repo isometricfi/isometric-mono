@@ -22,10 +22,13 @@ export function CallWriteOptionForm() {
 
   const strikePercentOptions = config?.strikePercentOptions ?? [];
   const premiumValues = useMemo(() => generatePremiumValues(config), [config]);
-  const minOfferAmountSats = config?.minOfferAmountSats ?? 100_000;
-  const configMaxOfferAmountSats = config?.maxOfferAmountSats ?? 100_000_000;
-  const availableBalanceSats = Number(accountData?.balance?.available ?? 0);
-  const maxOfferAmountSats = Math.min(configMaxOfferAmountSats, availableBalanceSats);
+  const minOfferAmountSats = config?.minOfferAmountSats ?? BigInt(100_000);
+  const configMaxOfferAmountSats = config?.maxOfferAmountSats ?? BigInt(100_000_000);
+  const availableBalanceSats = accountData?.balance?.available ?? BigInt(0);
+  const maxOfferAmountSats =
+    configMaxOfferAmountSats < availableBalanceSats
+      ? configMaxOfferAmountSats
+      : availableBalanceSats;
   const defaultTerm = config?.termOptions[0] ?? 7;
 
   const [term, setTerm] = useState(defaultTerm);
@@ -35,8 +38,10 @@ export function CallWriteOptionForm() {
 
   const showModal = createOffer.step !== "idle";
 
+  const amountSats = parseBtcToSats(amountBtc);
+
   const handleSubmit = () => {
-    createOffer.mutate({
+    createOffer.mutateAsync({
       quantitySats: amountSats,
       strikePercent,
       premiumPercent: premium,
@@ -56,8 +61,6 @@ export function CallWriteOptionForm() {
   const handleMaxClick = () => {
     setAmountBtc(formatBtc(maxOfferAmountSats, 8));
   };
-
-  const amountSats = parseBtcToSats(amountBtc);
 
   const strikeUsd = useMemo(
     () => Math.round(btcPrice * (1 + strikePercent / 100)),
@@ -136,8 +139,8 @@ export function CallWriteOptionForm() {
         onOpenChange={handleModalClose}
         type="create"
         step={createOffer.step}
-        offerId={createOffer.data?.offerId}
-        errorMessage={createOffer.error?.message}
+        offerId={createOffer.data?.offer.id.toString()}
+        errorMessage={createOffer.errorMessage ?? undefined}
       />
 
       <CallWriteOptionSummary

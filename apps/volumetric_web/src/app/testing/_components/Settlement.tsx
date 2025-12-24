@@ -1,10 +1,10 @@
 "use client";
 
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import type { SetOraclePriceResponse } from "@/app/api/options/test-oracle/route";
-import type { TestingForceSettleResponse } from "@/app/api/options/test-settle/route";
 import { useCanister } from "@/hooks";
+import { trpc } from "@/lib/trpc";
+import { formatUsd } from "@/lib/utils";
 
 function getOptionStatus(status: Record<string, null>): string {
   if ("Active" in status) return "Active";
@@ -33,34 +33,9 @@ export function Settlement() {
     refetchInterval: 10000,
   });
 
-  const setOracleMutation = useMutation({
-    mutationFn: async (priceCents: string): Promise<SetOraclePriceResponse> => {
-      const response = await fetch("/api/options/test-oracle", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ priceCents }),
-      });
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data.error?.message || data.error || "Failed to set oracle price");
-      }
-      return data;
-    },
-  });
+  const setOracleMutation = trpc.options.testingSetOraclePrice.useMutation();
 
-  const forceSettleMutation = useMutation({
-    mutationFn: async (id: string): Promise<TestingForceSettleResponse> => {
-      const response = await fetch("/api/options/test-settle", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ optionId: id }),
-      });
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data.error?.message || data.error || "Failed to force settle option");
-      }
-      return data;
-    },
+  const forceSettleMutation = trpc.options.testingForceSettle.useMutation({
     onSuccess: () => {
       refetchPending();
       setForceSettleOptionId("");
@@ -85,7 +60,9 @@ export function Settlement() {
           />
           <button
             type="button"
-            onClick={() => setOracleMutation.mutate((Number(oraclePrice) * 100).toString())}
+            onClick={() =>
+              setOracleMutation.mutate({ priceCents: BigInt(Number(oraclePrice) * 100) })
+            }
             disabled={setOracleMutation.isPending || !oraclePrice}
             className="px-4 py-2 bg-yellow-600 text-white rounded-lg font-medium hover:bg-yellow-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
@@ -135,7 +112,7 @@ export function Settlement() {
                   </div>
                   <div className="text-right text-xs text-zinc-400">
                     <div>Qty: {option.quantity.toLocaleString()} sats</div>
-                    <div>Strike: ${(Number(option.strike_price_cents) / 100).toLocaleString()}</div>
+                    <div>Strike: ${formatUsd(option.strike_price_cents)}</div>
                   </div>
                 </div>
               </div>
@@ -164,7 +141,7 @@ export function Settlement() {
           />
           <button
             type="button"
-            onClick={() => forceSettleMutation.mutate(forceSettleOptionId)}
+            onClick={() => forceSettleMutation.mutate({ optionId: BigInt(forceSettleOptionId) })}
             disabled={forceSettleMutation.isPending || !forceSettleOptionId}
             className="px-4 py-2 bg-orange-600 text-white rounded-lg font-medium hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
@@ -176,18 +153,18 @@ export function Settlement() {
           <div className="p-3 bg-green-950 border border-green-800 rounded-lg">
             <div className="text-sm text-green-400 mb-2">Option Settled!</div>
             <div className="text-xs text-zinc-300 space-y-1">
-              <div>Option ID: {forceSettleMutation.data.optionId}</div>
+              <div>Option ID: {forceSettleMutation.data?.option_id.toString()}</div>
               <div>
                 Settlement Price: $
-                {(Number(forceSettleMutation.data.settlementPriceCents) / 100).toLocaleString()}
+                {formatUsd(forceSettleMutation.data?.settlement_price_cents ?? BigInt(0))}
               </div>
               <div>
-                Payout to Buyer: {Number(forceSettleMutation.data.payoutToBuyer).toLocaleString()}{" "}
-                sats
+                Payout to Buyer:{" "}
+                {Number(forceSettleMutation.data?.payout_to_buyer).toLocaleString()} sats
               </div>
               <div>
-                Payout to Writer: {Number(forceSettleMutation.data.payoutToWriter).toLocaleString()}{" "}
-                sats
+                Payout to Writer:{" "}
+                {Number(forceSettleMutation.data?.payout_to_writer).toLocaleString()} sats
               </div>
             </div>
           </div>

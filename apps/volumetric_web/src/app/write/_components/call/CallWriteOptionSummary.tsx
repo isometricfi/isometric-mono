@@ -3,11 +3,11 @@
 import { Button } from "@/components/ui/button";
 import { SlidingNumber } from "@/components/ui/sliding-number";
 import { usePrices } from "@/hooks";
-import { roundToN, satsToBtc } from "@/lib/utils";
+import { multiplySats, roundToN, satsToBtc } from "@/lib/utils";
 import { CallWriteHowItWorksModal } from "./CallWriteHowItWorksModal";
 
 interface CallWriteOptionSummaryProps {
-  amountSats: number;
+  amountSats: bigint;
   premium: number;
   term: number;
   strikePercent: number;
@@ -21,14 +21,13 @@ export function CallWriteOptionSummary({
 }: CallWriteOptionSummaryProps) {
   const { data: priceData } = usePrices();
   const btcPrice = priceData?.btc ?? 0;
-  const premiumSats = Math.round(amountSats * (premium / 100));
+  const premiumSats = multiplySats(amountSats, premium / 100);
   const premiumBtc = satsToBtc(premiumSats);
-  const premiumUsd = roundToN(btcPrice * premiumBtc, 1);
+  const premiumUsd = roundToN(btcPrice * premiumBtc.toNumber(), 1);
 
   const apy = Math.round((premium / 100) * (365 / term) * 100);
 
-  // format to fixed decimal places for sliding number
-  const premiumDisplay = Number(premiumBtc.toFixed(6));
+  const premiumDisplay = premiumBtc.round(6).toNumber();
 
   return (
     <div className="space-y-3 pt-4 border-t border-border">

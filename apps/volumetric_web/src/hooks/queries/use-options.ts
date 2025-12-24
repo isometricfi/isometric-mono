@@ -1,30 +1,32 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
-import { QueryKey } from "@/lib/query-keys";
-import type { OptionOffer, OptionsData } from "@/types/options";
+import type { Offer } from "@volumetric/canister-types";
+import { groupOffersByTermAndStrike } from "@/lib/options-transformer";
+import { trpc } from "@/lib/trpc";
+import type { OptionsData } from "@/types/options";
 
 export function useOptions() {
-  return useQuery({
-    queryKey: [QueryKey.Options],
-    queryFn: async (): Promise<OptionsData> => {
-      const response = await fetch("/api/options");
-      if (!response.ok) {
-        throw new Error("Failed to fetch options");
-      }
-      return response.json();
-    },
+  const query = trpc.options.list.useQuery(undefined, {
     staleTime: 30000,
   });
+
+  const data: OptionsData | undefined = query.data
+    ? groupOffersByTermAndStrike(query.data)
+    : undefined;
+
+  return {
+    ...query,
+    data,
+  };
 }
 
 export function findBestOffer(
   data: OptionsData | undefined,
   term: number,
   strikePercent: number,
-  amountSats: number,
-): OptionOffer | null {
-  if (!data || amountSats <= 0) return null;
+  amountSats: bigint,
+): Offer | null {
+  if (!data || amountSats <= BigInt(0)) return null;
 
   const termGroup = data.termGroups.find((g) => g.term === term);
   if (!termGroup) return null;
@@ -33,27 +35,32 @@ export function findBestOffer(
   if (!strikeBucket) return null;
 
   const sortedOffers = [...strikeBucket.offers].sort((a, b) => {
-    if (a.premium !== b.premium) return a.premium - b.premium;
-    return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+    if (a.premium_basis_points !== b.premium_basis_points) {
+      return a.premium_basis_points - b.premium_basis_points;
+    }
+    return Number(a.created_at - b.created_at);
   });
 
-  return sortedOffers.find((offer) => offer.amountSats >= amountSats) ?? null;
+  return sortedOffers.find((offer) => offer.remaining_quantity >= amountSats) ?? null;
 }
 
 export function getMaxLiquiditySats(
   data: OptionsData | undefined,
   term: number,
   strikePercent: number,
-): number {
-  if (!data) return 0;
+): bigint {
+  if (!data) return BigInt(0);
 
   const termGroup = data.termGroups.find((g) => g.term === term);
-  if (!termGroup) return 0;
+  if (!termGroup) return BigInt(0);
 
   const strikeBucket = termGroup.strikes.find((s) => s.strikePercent === strikePercent);
-  if (!strikeBucket || strikeBucket.offers.length === 0) return 0;
+  if (!strikeBucket || strikeBucket.offers.length === 0) return BigInt(0);
 
-  return Math.max(...strikeBucket.offers.map((o) => o.amountSats));
+  return strikeBucket.offers.reduce(
+    (max, o) => (o.remaining_quantity > max ? o.remaining_quantity : max),
+    BigInt(0),
+  );
 }
 
 export function getStrikePercentsForTerm(data: OptionsData | undefined, term: number): number[] {
@@ -67,7 +74,7 @@ export function getStrikePercentsForTerm(data: OptionsData | undefined, term: nu
 
 export function getOfferRank(
   data: OptionsData | undefined,
-  offerId: string,
+  offerId: bigint,
   term: number,
   strikePercent: number,
 ): { rank: number; totalOffers: number; isBest: boolean } | null {
@@ -79,19 +86,14 @@ export function getOfferRank(
   const strikeBucket = termGroup.strikes.find((s) => s.strikePercent === strikePercent);
   if (!strikeBucket) return null;
 
-  // Sorting logic:
-  // 1. Lowest premium (asc)
-  // 2. Size of offer (desc) - assuming larger is better/more liquid
-  // 3. Date created (asc) - FIFO
   const sortedOffers = [...strikeBucket.offers].sort((a, b) => {
-    // 1. Premium
-    if (a.premium !== b.premium) return a.premium - b.premium;
-
-    // 2. Size (desc)
-    if (a.amountSats !== b.amountSats) return b.amountSats - a.amountSats;
-
-    // 3. Created At (asc)
-    return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+    if (a.premium_basis_points !== b.premium_basis_points) {
+      return a.premium_basis_points - b.premium_basis_points;
+    }
+    if (a.remaining_quantity !== b.remaining_quantity) {
+      return Number(b.remaining_quantity - a.remaining_quantity);
+    }
+    return Number(a.created_at - b.created_at);
   });
 
   const index = sortedOffers.findIndex((o) => o.id === offerId);

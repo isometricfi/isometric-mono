@@ -5,7 +5,7 @@ import { ChevronDown, ChevronRight } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatedToggle, type ToggleOption } from "@/components/navigation/AnimatedToggle";
 import { useConfig, useOptions, usePrices } from "@/hooks";
-import { cn, formatBtc } from "@/lib/utils";
+import { basisPointsToPercent, cn, formatBtc } from "@/lib/utils";
 import type { StrikeBucket } from "@/types/options";
 import type { ViewerMode } from "@/types/ui";
 
@@ -23,7 +23,6 @@ function StrikeRow({ bucket, btcPrice, isExpanded, onToggle, mode }: StrikeRowPr
   const [hasScrolled, setHasScrolled] = useState(false);
   const isScrollable = bucket.offers.length > 4;
 
-  // reset scroll state when collapsed
   useEffect(() => {
     if (!isExpanded) {
       setHasScrolled(false);
@@ -47,7 +46,6 @@ function StrikeRow({ bucket, btcPrice, isExpanded, onToggle, mode }: StrikeRowPr
           <ChevronRight className="size-4 text-muted-foreground" />
         </motion.div>
 
-        {/* strike - USD primary for buyers, % primary for writers */}
         <div className="flex-1 text-left">
           {mode === "buyer" ? (
             <>
@@ -74,7 +72,6 @@ function StrikeRow({ bucket, btcPrice, isExpanded, onToggle, mode }: StrikeRowPr
           )}
         </div>
 
-        {/* premium range */}
         <div className="w-16 md:w-24 text-right">
           <span className="text-xs md:text-sm text-muted-foreground">
             {bucket.lowestPremium === bucket.highestPremium
@@ -83,7 +80,6 @@ function StrikeRow({ bucket, btcPrice, isExpanded, onToggle, mode }: StrikeRowPr
           </span>
         </div>
 
-        {/* total liquidity */}
         <div className="w-20 md:w-28 text-right">
           <span className="text-sm md:text-base font-medium">
             {formatBtc(bucket.totalLiquiditySats, 4)}
@@ -91,7 +87,6 @@ function StrikeRow({ bucket, btcPrice, isExpanded, onToggle, mode }: StrikeRowPr
           <span className="text-xs text-muted-foreground ml-1">BTC</span>
         </div>
 
-        {/* offer count - hidden on small screens */}
         <div className="hidden md:block w-16 text-right">
           <span className="text-xs bg-secondary px-2 py-0.5 rounded-full">
             {bucket.offers.length}{" "}
@@ -109,7 +104,6 @@ function StrikeRow({ bucket, btcPrice, isExpanded, onToggle, mode }: StrikeRowPr
             className="overflow-hidden"
           >
             <div className="bg-secondary/20 border-t border-border/30">
-              {/* offers header */}
               <div
                 className={cn(
                   "px-4 py-2 grid text-xs text-muted-foreground border-b border-border/30",
@@ -121,26 +115,28 @@ function StrikeRow({ bucket, btcPrice, isExpanded, onToggle, mode }: StrikeRowPr
                 {mode === "buyer" && <span className="text-right">Action</span>}
               </div>
 
-              {/* scrollable offers container */}
               <div className="relative">
                 <div
                   ref={scrollRef}
                   onScroll={handleScroll}
                   className="max-h-[230px] overflow-y-auto"
                 >
-                  {/* individual offers */}
                   {bucket.offers
-                    .sort((a, b) => a.premium - b.premium)
+                    .sort((a, b) => a.premium_basis_points - b.premium_basis_points)
                     .map((offer) => (
                       <div
-                        key={offer.id}
+                        key={offer.id.toString()}
                         className={cn(
                           "px-4 py-2.5 grid items-center text-sm hover:bg-secondary/30 transition-colors",
                           mode === "buyer" ? "grid-cols-3" : "grid-cols-2",
                         )}
                       >
-                        <span className="pl-7 font-medium">{offer.premium}%</span>
-                        <span className="text-right">{formatBtc(offer.amountSats, 4)} BTC</span>
+                        <span className="pl-7 font-medium">
+                          {basisPointsToPercent(offer.premium_basis_points)}%
+                        </span>
+                        <span className="text-right">
+                          {formatBtc(offer.remaining_quantity, 4)} BTC
+                        </span>
                         {mode === "buyer" && (
                           <div className="text-right">
                             <button
@@ -154,7 +150,6 @@ function StrikeRow({ bucket, btcPrice, isExpanded, onToggle, mode }: StrikeRowPr
                       </div>
                     ))}
                 </div>
-                {/* scroll indicator badge */}
                 <AnimatePresence>
                   {isScrollable && !hasScrolled && (
                     <motion.div
@@ -233,7 +228,6 @@ export function OptionsViewer({ mode }: OptionsViewerProps) {
           </div>
 
           <div className=" overflow-hidden space-y-2">
-            {/* header row */}
             <div className="pl-0 pr-2 md:px-4 rounded-2xl py-2 grid grid-cols-[1fr_auto_auto] md:grid-cols-[1fr_auto_auto_auto] gap-2 md:gap-3 text-xs text-muted-foreground bg-secondary/30">
               <span className="pl-6 md:pl-7">Strike</span>
               <span className="w-16 md:w-24 text-right">Premium</span>
@@ -241,7 +235,6 @@ export function OptionsViewer({ mode }: OptionsViewerProps) {
               <span className="hidden md:block w-16 text-right">Offers</span>
             </div>
 
-            {/* strike rows */}
             <div className=" overflow-y-auto">
               {currentTermGroup.strikes.map((bucket) => (
                 <StrikeRow

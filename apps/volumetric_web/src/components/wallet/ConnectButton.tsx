@@ -5,6 +5,7 @@ import { useState } from "react";
 import { useMediaQuery } from "react-responsive";
 import { Button } from "@/components/ui/button";
 import { useAccount, useEnsureAccount } from "@/hooks";
+import { unwrapOptional } from "@/lib/type-helpers";
 import { cn } from "@/lib/utils";
 import { AccountCreationModal } from "./AccountCreationModal";
 import { AccountPanel } from "./AccountPanel";
@@ -30,7 +31,7 @@ export function ConnectButton() {
   if (primaryWallet) {
     const address = primaryWallet.address;
     const shortAddress = `${address.slice(0, 3)}...${address.slice(-3)}`;
-    const username = accountData?.profile?.username ?? null;
+    const username = unwrapOptional(accountData?.profile?.username ?? []);
     const displayName = username ? (isMobile ? getInitials(username) : username) : shortAddress;
     const seed = accountData?.profile?.address ?? address;
     return (

@@ -2,33 +2,44 @@
 
 import { isBitcoinWallet } from "@dynamic-labs/bitcoin";
 import { useDynamicContext } from "@dynamic-labs/sdk-react-core";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import type { AcceptOffersResponse } from "@/app/api/options/accept/route";
-import { QueryKey } from "@/lib/query-keys";
+import { trpc } from "@/lib/trpc";
+import { getErrorMessage } from "@/lib/utils";
 import { useBtcAddress } from "../queries/use-btc-address";
 import { useCanister } from "../use-canister";
 
 export type AcceptOfferStep = "idle" | "signing" | "submitting" | "success" | "error";
 
 export interface AcceptOfferParams {
-  offerId: string;
-  quantitySats: number;
+  offerId: bigint;
+  quantitySats: bigint;
 }
 
 export function useAcceptOffer() {
   const { primaryWallet } = useDynamicContext();
   const canister = useCanister();
   const address = useBtcAddress("payment");
-  const queryClient = useQueryClient();
+  const utils = trpc.useUtils();
 
   const [step, setStep] = useState<AcceptOfferStep>("idle");
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  const mutation = useMutation({
-    mutationFn: async ({
-      offerId,
-      quantitySats,
-    }: AcceptOfferParams): Promise<AcceptOffersResponse> => {
+  const mutation = trpc.options.accept.useMutation({
+    onSuccess: () => {
+      setStep("success");
+      setErrorMessage(null);
+      utils.options.list.invalidate();
+      utils.account.get.invalidate();
+      utils.portfolio.get.invalidate();
+    },
+    onError: (error) => {
+      setStep("error");
+      setErrorMessage(error.message);
+    },
+  });
+
+  const mutateAsync = async ({ offerId, quantitySats }: AcceptOfferParams) => {
+    try {
       if (!canister || !address) {
         throw new Error("Wallet not connected");
       }
@@ -38,49 +49,39 @@ export function useAcceptOffer() {
 
       setStep("signing");
 
-      const items = [{ offer_id: BigInt(offerId), quantity: BigInt(quantitySats) }];
+      const items = [{ offer_id: offerId, quantity: quantitySats }];
       const message = await canister.get_accept_offers_message(address, items);
       const signature = await primaryWallet.signMessage(message, { addressType: "payment" });
 
       if (!signature) {
-        throw new Error("Failed to sign message");
+        throw new Error("User canceled request");
       }
 
       setStep("submitting");
 
-      const response = await fetch("/api/options/accept", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          address,
-          signature,
-          items: [{ offerId, quantity: quantitySats.toString() }],
-        }),
+      return mutation.mutateAsync({
+        address,
+        signature,
+        items: [{ offerId, quantity: quantitySats }],
       });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error?.message || data.error || "Failed to accept offer");
-      }
-
-      return data;
-    },
-    onSuccess: () => {
-      setStep("success");
-      queryClient.invalidateQueries({ queryKey: [QueryKey.Options] });
-      queryClient.invalidateQueries({ queryKey: [QueryKey.OpenOffers] });
-      queryClient.invalidateQueries({ queryKey: [QueryKey.AccountInfo] });
-    },
-    onError: () => {
+    } catch (error) {
+      setErrorMessage(getErrorMessage(error));
       setStep("error");
-    },
-  });
+      throw error;
+    }
+  };
 
   const reset = () => {
     setStep("idle");
+    setErrorMessage(null);
     mutation.reset();
   };
 
-  return { ...mutation, step, reset };
+  return {
+    ...mutation,
+    mutateAsync,
+    step,
+    errorMessage,
+    reset,
+  };
 }

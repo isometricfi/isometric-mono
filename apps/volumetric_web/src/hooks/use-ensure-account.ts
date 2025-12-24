@@ -2,10 +2,8 @@
 
 import { isBitcoinWallet } from "@dynamic-labs/bitcoin";
 import { useDynamicContext } from "@dynamic-labs/sdk-react-core";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { CreateAccountResponse } from "@/app/api/account/create/route";
-import { QueryKey } from "@/lib/query-keys";
+import { trpc } from "@/lib/trpc";
 import { useAccount } from "./queries/use-account";
 import { useBtcAddress } from "./queries/use-btc-address";
 import { useCanister } from "./use-canister";
@@ -22,7 +20,7 @@ export function useEnsureAccount() {
   const { primaryWallet, handleLogOut } = useDynamicContext();
   const canister = useCanister();
   const address = useBtcAddress("payment");
-  const queryClient = useQueryClient();
+  const utils = trpc.useUtils();
 
   const {
     data: accountData,
@@ -43,47 +41,14 @@ export function useEnsureAccount() {
     return true;
   }, [primaryWallet, canister, address, isAccountFetched, isLoadingAccount, accountData]);
 
-  const createAccountMutation = useMutation<CreateAccountResponse, Error, void>({
-    mutationFn: async (): Promise<CreateAccountResponse> => {
-      setError(null);
-
-      if (!primaryWallet || !isBitcoinWallet(primaryWallet)) {
-        throw new Error("Bitcoin wallet not connected");
-      }
-      if (!canister || !address) {
-        throw new Error("Not ready");
-      }
-
-      setStep("awaiting_signature");
-      const message = await canister.get_message_to_sign(address);
-      const signature = await primaryWallet.signMessage(message, { addressType: "payment" });
-
-      if (!signature) {
-        throw new Error("Signature declined");
-      }
-
-      setStep("creating");
-      const response = await fetch("/api/account/create", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ address, signature }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error?.message || data.error || "Failed to create account");
-      }
-
-      return data;
-    },
+  const createAccountMutation = trpc.account.create.useMutation({
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: [QueryKey.AccountInfo] });
+      await utils.account.get.invalidate();
       setStep("done");
     },
     onError: (err) => {
       setStep("error");
-      setError(err instanceof Error ? err.message : "Failed to create account");
+      setError(err.message || "Failed to create account");
     },
   });
 
@@ -109,9 +74,41 @@ export function useEnsureAccount() {
     if (shouldCreate) {
       attemptedAddressRef.current = address;
       setStep("checking");
-      createAccountMutation.mutate();
+
+      (async () => {
+        try {
+          if (!primaryWallet || !isBitcoinWallet(primaryWallet)) {
+            throw new Error("Bitcoin wallet not connected");
+          }
+          if (!canister || !address) {
+            throw new Error("Not ready");
+          }
+
+          setStep("awaiting_signature");
+          const message = await canister.get_message_to_sign(address);
+          const signature = await primaryWallet.signMessage(message, { addressType: "payment" });
+
+          if (!signature) {
+            throw new Error("Signature declined");
+          }
+
+          setStep("creating");
+          await createAccountMutation.mutateAsync({ address, signature });
+        } catch (err) {
+          setStep("error");
+          setError(err instanceof Error ? err.message : "Failed to create account");
+        }
+      })();
     }
-  }, [isLoadingAccount, primaryWallet, address, accountData, shouldCreate, createAccountMutation]);
+  }, [
+    isLoadingAccount,
+    primaryWallet,
+    address,
+    accountData,
+    shouldCreate,
+    canister,
+    createAccountMutation,
+  ]);
 
   const isOpen = step !== "idle" && step !== "done";
 

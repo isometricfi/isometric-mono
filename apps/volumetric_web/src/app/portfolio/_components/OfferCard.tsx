@@ -1,5 +1,6 @@
 "use client";
 
+import type { Offer } from "@volumetric/canister-types";
 import { Info, Loader2, MoreHorizontal, Pencil, Trash, TrendingUp, Trophy } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -18,11 +19,11 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Progress } from "@/components/ui/progress";
-import type { PortfolioOffer } from "@/hooks";
-import { formatBtcBigint, roundToN, SATS_PER_BTC, secondsToDays } from "@/lib/utils";
+import { getOfferStatusKey } from "@/lib/type-helpers";
+import { formatBtc, roundToN, satsToBtc, secondsToDays } from "@/lib/utils";
 
 interface OfferCardProps {
-  offer: PortfolioOffer;
+  offer: Offer;
   btcPrice: number;
   onCancel?: (id: bigint) => void;
   isCancelling?: boolean;
@@ -30,35 +31,32 @@ interface OfferCardProps {
 }
 
 export function OfferCard({ offer, btcPrice, onCancel, isCancelling, rankInfo }: OfferCardProps) {
-  const remaining = Number(offer.remainingQuantity) / SATS_PER_BTC;
-  const total = Number(offer.totalQuantity) / SATS_PER_BTC;
+  const remaining = satsToBtc(offer.remaining_quantity).toNumber();
+  const total = satsToBtc(offer.total_quantity).toNumber();
   const filledAmount = total - remaining;
   const filledPercent = total > 0 ? (filledAmount / total) * 100 : 0;
 
-  const strikePrice = btcPrice > 0 ? btcPrice * (1 + offer.strikeBasisPoints / 10000) : null;
+  const strikePrice = btcPrice > 0 ? btcPrice * (1 + offer.strike_basis_points / 10000) : null;
 
-  const premiumBtc = (total * offer.premiumBasisPoints) / 10000;
+  const premiumBtc = (total * offer.premium_basis_points) / 10000;
+  const status = getOfferStatusKey(offer.status);
 
   return (
     <Card className="overflow-hidden transition-all hover:border-primary/50 relative">
       <CardContent className="p-4 space-y-3">
-        {/* Header: Offer Amount & Remaining */}
         <div className="flex justify-between items-start">
           <div>
             <div className="text-xs text-muted-foreground ">Offer</div>
-            <div className="text-lg font-mono font-medium">
-              ₿{formatBtcBigint(offer.totalQuantity)}
-            </div>
+            <div className="text-lg font-mono font-medium">₿{formatBtc(offer.total_quantity)}</div>
           </div>
           <div className="text-right">
             <div className="text-xs text-muted-foreground ">Remaining</div>
             <div className="text-lg font-mono font-medium text-muted-foreground">
-              ₿{formatBtcBigint(offer.remainingQuantity)}
+              ₿{formatBtc(offer.remaining_quantity)}
             </div>
           </div>
         </div>
 
-        {/* Progress Bar */}
         <div className="flex justify-between text-sm font-medium items-center gap-2">
           <span className="text-muted-foreground -mr-1">Filled:</span>
           <span>{roundToN(filledPercent, 0)}%</span>
@@ -68,7 +66,7 @@ export function OfferCard({ offer, btcPrice, onCancel, isCancelling, rankInfo }:
         <div className="flex justify-between text-sm font-medium items-center gap-2">
           <div className="flex items-center gap-1">
             <span className="text-muted-foreground ">Strike: </span>
-            <span>{offer.strikeBasisPoints / 100}%</span>
+            <span>{offer.strike_basis_points / 100}%</span>
           </div>
 
           <div>{strikePrice ? `~$${roundToN(strikePrice, 0).toLocaleString()}` : "-"}</div>
@@ -76,7 +74,7 @@ export function OfferCard({ offer, btcPrice, onCancel, isCancelling, rankInfo }:
         <div className="flex justify-between text-sm font-medium items-center gap-2">
           <div className="flex items-center gap-1">
             <span className="text-muted-foreground ">Premium: </span>
-            <span>{offer.premiumBasisPoints / 100}%</span>
+            <span>{offer.premium_basis_points / 100}%</span>
           </div>
 
           <div>₿{roundToN(premiumBtc, 5)}</div>
@@ -84,11 +82,10 @@ export function OfferCard({ offer, btcPrice, onCancel, isCancelling, rankInfo }:
         <div className="flex justify-between text-sm font-medium items-center gap-2">
           <div className="flex items-center gap-1">
             <span className="text-muted-foreground ">Term: </span>
-            <span>{secondsToDays(offer.optionDurationSeconds)} days</span>
+            <span>{secondsToDays(offer.option_duration_seconds)} days</span>
           </div>
         </div>
 
-        {/* Footer: Type & Actions */}
         <div className="flex items-center justify-between border-t pt-2">
           <div className="flex items-center gap-2">
             <Badge variant="secondary">
@@ -96,7 +93,6 @@ export function OfferCard({ offer, btcPrice, onCancel, isCancelling, rankInfo }:
               <span>Call</span>
             </Badge>
 
-            {/* Rank Badge */}
             {rankInfo &&
               (rankInfo.isBest ? (
                 <Badge
@@ -168,7 +164,7 @@ export function OfferCard({ offer, btcPrice, onCancel, isCancelling, rankInfo }:
                 <Pencil className="size-3.5" />
                 Edit Offer
               </DropdownMenuItem>
-              {(offer.status === "Open" || offer.status === "PartiallyFilled") && onCancel && (
+              {(status === "Open" || status === "PartiallyFilled") && onCancel && (
                 <DropdownMenuItem
                   className="text-destructive"
                   onClick={() => onCancel(offer.id)}

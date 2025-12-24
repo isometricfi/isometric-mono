@@ -1,13 +1,15 @@
 "use client";
 
+import type { ActiveOption } from "@volumetric/canister-types";
 import { PencilLine, ShoppingCart } from "lucide-react";
 import Link from "next/link";
 import { Skeleton } from "@/components/ui/skeleton";
-import { type PortfolioOption, usePortfolio, usePrices } from "@/hooks";
+import { usePortfolio, usePrices } from "@/hooks";
+import { getOptionStatusKey } from "@/lib/type-helpers";
 import { OptionCard } from "./OptionCard";
 
 type OptionRole = "buyer" | "writer";
-type OptionWithRole = PortfolioOption & { role: OptionRole };
+type OptionWithRole = ActiveOption & { role: OptionRole };
 
 export function OptionsTable() {
   const { data: portfolio, isLoading } = usePortfolio();
@@ -31,8 +33,10 @@ export function OptionsTable() {
   ];
 
   const sortedOptions = [...optionsWithRoles].sort((a, b) => {
-    if (a.status !== b.status) {
-      return a.status === "Settling" ? -1 : 1;
+    const aStatus = getOptionStatusKey(a.status);
+    const bStatus = getOptionStatusKey(b.status);
+    if (aStatus !== bStatus) {
+      return aStatus === "Settling" ? -1 : 1;
     }
     return Number(a.expiry - b.expiry);
   });

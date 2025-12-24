@@ -1,15 +1,15 @@
 "use client";
 
+import type { Offer } from "@volumetric/canister-types";
 import { Button } from "@/components/ui/button";
 import { SlidingNumber } from "@/components/ui/sliding-number";
 import { usePrices } from "@/hooks";
-import { satsToBtc } from "@/lib/utils";
-import type { OptionOffer } from "@/types/options";
+import { basisPointsToPercent, multiplySats, satsToBtc } from "@/lib/utils";
 import { CallBuyHowItWorksModal } from "./CallBuyHowItWorksModal";
 
 interface CallBuyOptionSummaryProps {
-  amountSats: number;
-  bestOffer: OptionOffer | null;
+  amountSats: bigint;
+  bestOffer: Offer | null;
   term: number;
   strikePercent: number;
 }
@@ -23,22 +23,19 @@ export function CallBuyOptionSummary({
   const { data: priceData } = usePrices();
   const btcPrice = priceData?.btc ?? 0;
 
-  const premium = bestOffer?.premium ?? 0;
-  const premiumSats = Math.round(amountSats * (premium / 100));
+  const premium = bestOffer ? basisPointsToPercent(bestOffer.premium_basis_points) : 0;
+  const premiumSats = multiplySats(amountSats, premium / 100);
   const premiumBtc = satsToBtc(premiumSats);
 
-  // max profit is amount minus premium paid (when BTC -> infinity)
   const maxProfitSats = amountSats - premiumSats;
   const maxProfitBtc = satsToBtc(maxProfitSats);
 
-  // compute strike USD
   const strikeUsd = Math.round(btcPrice * (1 + strikePercent / 100));
 
-  // format to fixed decimal places for sliding number
-  const premiumDisplay = Number(premiumBtc.toFixed(6));
-  const maxProfitDisplay = Number(maxProfitBtc.toFixed(6));
+  const premiumDisplay = premiumBtc.round(6).toNumber();
+  const maxProfitDisplay = maxProfitBtc.round(6).toNumber();
 
-  if (!bestOffer && amountSats > 0) {
+  if (!bestOffer && amountSats > BigInt(0)) {
     return (
       <div className="space-y-3 pt-4 border-t border-border">
         <p className="text-sm text-muted-foreground text-center">

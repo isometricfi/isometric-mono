@@ -22,7 +22,7 @@ import { Button } from "@/components/ui/button";
 import { CopyButton } from "@/components/ui/copy-button";
 import { Drawer, DrawerContent } from "@/components/ui/drawer";
 import { useConfig, useDepositAddress, useSyncDeposit, useWalletBalance } from "@/hooks";
-import { cn, formatBtc, formatBtcWithSymbol, parseBtcToSatsBigint } from "@/lib/utils";
+import { cn, formatBtc, formatBtcWithSymbol, parseBtcToSats } from "@/lib/utils";
 import { Badge } from "../ui/badge";
 import { Skeleton } from "../ui/skeleton";
 
@@ -51,35 +51,29 @@ export function DepositModal({
   const [txid, setTxid] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const minDepositSats = BigInt(config?.minDepositAmountSats ?? 50_000);
+  const minDepositSats = config?.minDepositAmountSats ?? BigInt(50_000);
   const isWalletReady = !!primaryWallet && isBitcoinWallet(primaryWallet);
 
+  const walletBalanceBigint = useMemo(() => {
+    if (walletBalanceSats === null || walletBalanceSats === undefined) return null;
+    return BigInt(Math.floor(walletBalanceSats));
+  }, [walletBalanceSats]);
+
   const enteredAmountSats = useMemo(() => {
-    const sats = parseBtcToSatsBigint(amountBtc);
-    console.log("[DepositModal] Parsed amount:", { amountBtc, sats: sats.toString() });
-    return sats;
+    return parseBtcToSats(amountBtc);
   }, [amountBtc]);
 
   const isBelowMinimum = enteredAmountSats < minDepositSats;
 
   const canDeposit = useMemo(() => {
-    console.log("[DepositModal] canDeposit check:", {
-      isWalletReady,
-      depositAddress,
-      amountBtc,
-      walletBalanceSats,
-      minDepositSats: minDepositSats.toString(),
-    });
-
     if (!isWalletReady) return false;
     if (!depositAddress) return false;
-    const sats = parseBtcToSatsBigint(amountBtc);
-    if (walletBalanceSats !== null && walletBalanceSats !== undefined) {
-      const walletBalanceBigInt = BigInt(Math.floor(walletBalanceSats));
-      if (sats > walletBalanceBigInt) return false;
+    const sats = parseBtcToSats(amountBtc);
+    if (walletBalanceBigint !== null) {
+      if (sats > walletBalanceBigint) return false;
     }
     return sats >= minDepositSats;
-  }, [isWalletReady, depositAddress, amountBtc, minDepositSats, walletBalanceSats]);
+  }, [isWalletReady, depositAddress, amountBtc, minDepositSats, walletBalanceBigint]);
 
   const isProcessing = step === "sending" || step === "waiting";
 
@@ -102,22 +96,12 @@ export function DepositModal({
     setStep("sending");
 
     try {
-      const amountSats = parseBtcToSatsBigint(amountBtc);
-      const amountSatsNumber = Number(amountSats);
-
-      console.log("[DepositModal] Sending deposit:", {
-        amountBtc,
-        amountSats: amountSats.toString(),
-        amountSatsNumber,
-        depositAddress,
-      });
+      const amountSats = parseBtcToSats(amountBtc);
 
       const result = await primaryWallet.sendBitcoin({
         amount: amountSats,
         recipientAddress: depositAddress,
       });
-
-      console.log("[DepositModal] Send result:", result);
 
       if (result) {
         setTxid(result);
@@ -206,11 +190,11 @@ export function DepositModal({
                     <AmountInput
                       value={amountBtc}
                       onChange={setAmountBtc}
-                      maxAmountSats={walletBalanceSats ?? undefined}
-                      minAmountSats={Number(minDepositSats)}
+                      maxAmountSats={walletBalanceBigint ?? undefined}
+                      minAmountSats={minDepositSats}
                       onMaxClick={
-                        walletBalanceSats !== null && walletBalanceSats !== undefined
-                          ? () => setAmountBtc(formatBtc(walletBalanceSats, 8))
+                        walletBalanceBigint !== null
+                          ? () => setAmountBtc(formatBtc(walletBalanceBigint, 8))
                           : undefined
                       }
                     />
@@ -226,21 +210,9 @@ export function DepositModal({
                       >
                         Close
                       </Button>
-                      <Button
-                        className="flex-1"
-                        onClick={() => {
-                          console.log("[DepositModal] Deposit button clicked:", {
-                            amountBtc,
-                            canDeposit,
-                            isBelowMinimum,
-                          });
-                          handleDeposit();
-                        }}
-                        disabled={!canDeposit}
-                      >
-                        {" "}
+                      <Button className="flex-1" onClick={handleDeposit} disabled={!canDeposit}>
                         {isBelowMinimum
-                          ? `Min: ${formatBtcWithSymbol(Number(minDepositSats), 8)}`
+                          ? `Min: ${formatBtcWithSymbol(minDepositSats, 8)}`
                           : "Deposit"}
                       </Button>
                     </div>
@@ -266,7 +238,7 @@ export function DepositModal({
                             </p>
                           </div>
                           <Badge variant="destructive" className="w-full">
-                            Minimum deposit: {formatBtcWithSymbol(Number(minDepositSats), 8)}
+                            Minimum deposit: {formatBtcWithSymbol(minDepositSats, 8)}
                           </Badge>
                         </div>
                       </div>
