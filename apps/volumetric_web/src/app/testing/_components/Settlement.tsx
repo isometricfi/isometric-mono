@@ -2,9 +2,9 @@
 
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import type { SetOraclePriceResponse } from "@/app/api/options/test-oracle/types";
-import type { TestingForceSettleResponse } from "@/app/api/options/test-settle/types";
 import { useCanister } from "@/hooks";
+import type { Output as ForceSettleOutput } from "@/lib/use-cases/testing/force-settle/schema";
+import { trpcClient } from "@/trpc/react";
 
 function getOptionStatus(status: Record<string, null>): string {
   if ("Active" in status) return "Active";
@@ -34,32 +34,14 @@ export function Settlement() {
   });
 
   const setOracleMutation = useMutation({
-    mutationFn: async (priceCents: string): Promise<SetOraclePriceResponse> => {
-      const response = await fetch("/api/options/test-oracle", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ priceCents }),
-      });
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data.error?.message || data.error || "Failed to set oracle price");
-      }
-      return data;
+    mutationFn: async (priceCents: string) => {
+      return trpcClient.testing.setOraclePrice.mutate({ priceCents });
     },
   });
 
   const forceSettleMutation = useMutation({
-    mutationFn: async (id: string): Promise<TestingForceSettleResponse> => {
-      const response = await fetch("/api/options/test-settle", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ optionId: id }),
-      });
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data.error?.message || data.error || "Failed to force settle option");
-      }
-      return data;
+    mutationFn: async (optionId: string): Promise<ForceSettleOutput> => {
+      return trpcClient.testing.forceSettle.mutate({ optionId });
     },
     onSuccess: () => {
       refetchPending();

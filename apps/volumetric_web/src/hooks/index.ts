@@ -3,8 +3,8 @@
 export type {
   OfferData as PortfolioOffer,
   OptionData as PortfolioOption,
-  PortfolioResponse as PortfolioData,
-} from "@/app/api/portfolio/types";
+  Output as PortfolioData,
+} from "@/lib/use-cases/portfolio/get-portfolio/schema";
 export {
   type AcceptOfferParams,
   type AcceptOfferStep,

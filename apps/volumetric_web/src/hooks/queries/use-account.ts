@@ -1,34 +1,18 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import superjson from "superjson";
-import type { AccountResponse } from "@/app/api/account/types";
-import { QueryKey } from "@/lib/query-keys";
+import type { Output as GetAccountOutput } from "@/lib/use-cases/account/get-account/schema";
+import { useTRPC } from "@/trpc/react";
 import { useBtcAddress } from "./use-btc-address";
 
-export type AccountData = AccountResponse;
+export type AccountData = GetAccountOutput;
 
 export function useAccount() {
+  const trpc = useTRPC();
   const address = useBtcAddress("payment");
 
   return useQuery({
-    queryKey: [QueryKey.AccountInfo, address],
-    queryFn: async (): Promise<AccountData | null> => {
-      if (!address) return null;
-
-      const response = await fetch("/api/account", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ address }),
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to fetch account data");
-      }
-
-      const text = await response.text();
-      return superjson.parse<AccountResponse>(text);
-    },
+    ...trpc.account.getAccount.queryOptions({ address: address ?? "" }),
     enabled: !!address,
     refetchInterval: 30000,
   });

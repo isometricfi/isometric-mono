@@ -2,6 +2,7 @@
 
 import { isServer, QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/sonner";
+import { TRPCProvider, trpcClient } from "@/trpc/react";
 import { DynamicProvider } from "./providers/dynamic-provider";
 
 function makeQueryClient() {
@@ -30,8 +31,10 @@ export default function Providers({ children }: { children: React.ReactNode }) {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <Toaster position="top-center" />
-      <DynamicProvider>{children}</DynamicProvider>
+      <TRPCProvider trpcClient={trpcClient} queryClient={queryClient}>
+        <Toaster position="top-center" />
+        <DynamicProvider>{children}</DynamicProvider>
+      </TRPCProvider>
     </QueryClientProvider>
   );
 }

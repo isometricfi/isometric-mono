@@ -1,30 +1,5 @@
 import { dehydrate, QueryClient } from "@tanstack/react-query";
-import { QueryKey } from "@/lib/query-keys";
-import type { ConfigData } from "@/types/config";
-import type { OptionsData } from "@/types/options";
-
-function getBaseUrl(): string {
-  if (process.env.NEXT_PUBLIC_URL) {
-    return process.env.NEXT_PUBLIC_URL;
-  }
-  return "http://localhost:4200";
-}
-
-async function fetchConfig(): Promise<ConfigData> {
-  const response = await fetch(`${getBaseUrl()}/api/volumetric-config`);
-  if (!response.ok) {
-    throw new Error("Failed to fetch config");
-  }
-  return response.json();
-}
-
-async function fetchOptions(): Promise<OptionsData> {
-  const response = await fetch(`${getBaseUrl()}/api/options`);
-  if (!response.ok) {
-    throw new Error("Failed to fetch options");
-  }
-  return response.json();
-}
+import { trpc } from "@/trpc/server";
 
 export async function prefetchOptionsPageData() {
   const queryClient = new QueryClient({
@@ -36,16 +11,16 @@ export async function prefetchOptionsPageData() {
   });
 
   try {
-    const config = await fetchConfig();
-    queryClient.setQueryData([QueryKey.Config], config);
+    const [config, options] = await Promise.all([
+      trpc.config.getConfig(),
+      trpc.options.listOptions(),
+    ]);
 
-    const options = await fetchOptions();
-    queryClient.setQueryData([QueryKey.Options], options);
+    queryClient.setQueryData([["config", "getConfig"]], config);
+    queryClient.setQueryData([["options", "listOptions"]], options);
   } catch (error) {
     console.error("[prefetch] error:", error);
   }
 
-  const state = dehydrate(queryClient);
-
-  return state;
+  return dehydrate(queryClient);
 }

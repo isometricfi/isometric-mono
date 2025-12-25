@@ -4,15 +4,15 @@ import { isBitcoinWallet } from "@dynamic-labs/bitcoin";
 import { useDynamicContext } from "@dynamic-labs/sdk-react-core";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import type { BalanceResponse } from "@/app/api/account/balance/types";
-import type { DepositAddressResponse } from "@/app/api/account/deposit-address/types";
-import type { WithdrawResponse } from "@/app/api/account/withdraw/types";
 import { useBtcAddress, useCanister } from "@/hooks";
+import type { Output as WithdrawOutput } from "@/lib/use-cases/account/withdraw/schema";
+import { trpcClient, useTRPC } from "@/trpc/react";
 
 export function CkbtcWallet() {
   const { primaryWallet } = useDynamicContext();
   const canister = useCanister();
   const address = useBtcAddress("payment");
+  const trpc = useTRPC();
 
   const [depositAmount, setDepositAmount] = useState("");
   const [withdrawAmount, setWithdrawAmount] = useState("");
@@ -33,24 +33,7 @@ export function CkbtcWallet() {
     isLoading: isLoadingDeposit,
     refetch: refetchDeposit,
   } = useQuery({
-    queryKey: ["depositAddress", address],
-    queryFn: async (): Promise<DepositAddressResponse | null> => {
-      if (!address) return null;
-
-      const response = await fetch("/api/account/deposit-address", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ address }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error?.message || data.error || "Failed to get deposit address");
-      }
-
-      return data;
-    },
+    ...trpc.account.getDepositAddress.queryOptions({ address: address ?? "" }),
     enabled: !!address && !!accountInfo,
   });
 
@@ -59,24 +42,7 @@ export function CkbtcWallet() {
     isLoading: isLoadingBalance,
     refetch: refetchBalance,
   } = useQuery({
-    queryKey: ["ckbtcBalance", address],
-    queryFn: async (): Promise<bigint | null> => {
-      if (!address) return null;
-
-      const response = await fetch("/api/account/balance", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ address }),
-      });
-
-      const data: BalanceResponse = await response.json();
-
-      if (!response.ok) {
-        throw new Error("Failed to get balance");
-      }
-
-      return BigInt(data.balance);
-    },
+    ...trpc.account.getBalance.queryOptions({ address: address ?? "" }),
     enabled: !!address && !!accountInfo,
     refetchInterval: 30000,
   });
@@ -84,20 +50,7 @@ export function CkbtcWallet() {
   const updateBalanceMutation = useMutation({
     mutationFn: async () => {
       if (!address) throw new Error("Not ready");
-
-      const response = await fetch("/api/account/sync-balance/update", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ address }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error?.message || data.error || "Failed to update balance");
-      }
-
-      return data;
+      return trpcClient.account.syncBalance.mutate({ address });
     },
     onSuccess: () => {
       refetchBalance();
@@ -131,7 +84,7 @@ export function CkbtcWallet() {
   });
 
   const withdrawMutation = useMutation({
-    mutationFn: async (): Promise<WithdrawResponse> => {
+    mutationFn: async (): Promise<WithdrawOutput> => {
       if (!canister || !address) throw new Error("Not ready");
       if (!primaryWallet || !isBitcoinWallet(primaryWallet)) {
         throw new Error("Bitcoin wallet not connected");
@@ -146,24 +99,12 @@ export function CkbtcWallet() {
         throw new Error("Failed to sign message");
       }
 
-      const response = await fetch("/api/account/withdraw", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          address,
-          signature,
-          btcAddress: withdrawBtcAddress,
-          amount: amount.toString(),
-        }),
+      return trpcClient.account.withdraw.mutate({
+        address,
+        signature,
+        btcAddress: withdrawBtcAddress,
+        amount: amount.toString(),
       });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error?.message || data.error || "Failed to withdraw");
-      }
-
-      return data;
     },
     onSuccess: () => {
       refetchBalance();
@@ -200,7 +141,7 @@ export function CkbtcWallet() {
           <div className="flex-1 p-4 bg-zinc-800 rounded-lg">
             <div className="text-sm text-zinc-500 mb-1">ckBTC Balance</div>
             <div className="text-xl font-mono">
-              {isLoadingBalance ? "Loading..." : formatSats(balance)}
+              {isLoadingBalance ? "Loading..." : formatSats(balance?.available)}
             </div>
           </div>
           <button
@@ -361,7 +302,7 @@ export function CkbtcWallet() {
           <div className="p-3 bg-green-950 border border-green-800 rounded-lg">
             <div className="text-sm text-green-400 mb-1">Withdrawal Submitted</div>
             <div className="text-xs text-zinc-300">
-              Block Index: {withdrawMutation.data.blockIndex}
+              Block Index: {withdrawMutation.data.blockIndex.toString()}
             </div>
           </div>
         )}

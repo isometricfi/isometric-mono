@@ -100,3 +100,4 @@ Writer loses: 0.05 BTC from collateral (kept 0.003 BTC premium)
 - **Backend**: ICP Rust canisters
 - **Oracle**: ICP exchange rate canister
 - **Wallet**: Dynamic.xyz for hot wallet integration
+

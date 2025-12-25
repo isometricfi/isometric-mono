@@ -1,19 +1,13 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { QueryKey } from "@/lib/query-keys";
+import { useTRPC } from "@/trpc/react";
 import type { OptionOffer, OptionsData } from "@/types/options";
 
 export function useOptions() {
+  const trpc = useTRPC();
   return useQuery({
-    queryKey: [QueryKey.Options],
-    queryFn: async (): Promise<OptionsData> => {
-      const response = await fetch("/api/options");
-      if (!response.ok) {
-        throw new Error("Failed to fetch options");
-      }
-      return response.json();
-    },
+    ...trpc.options.listOptions.queryOptions(),
     staleTime: 30000,
   });
 }
