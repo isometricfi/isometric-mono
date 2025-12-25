@@ -3,8 +3,8 @@
 import { isBitcoinWallet } from "@dynamic-labs/bitcoin";
 import { useDynamicContext } from "@dynamic-labs/sdk-react-core";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import type { UpdateUsernameResponse } from "@/app/api/account/username/types";
-import { QueryKey } from "@/lib/query-keys";
+import type { Output as UpdateUsernameOutput } from "@/lib/use-cases/account/update-username/schema";
+import { trpcClient } from "@/trpc/react";
 import { useBtcAddress } from "../queries/use-btc-address";
 import { useCanister } from "../use-canister";
 
@@ -18,8 +18,8 @@ export function useUpdateUsername() {
   const address = useBtcAddress("payment");
   const queryClient = useQueryClient();
 
-  return useMutation<UpdateUsernameResponse, Error, UpdateUsernameParams>({
-    mutationFn: async ({ username }: UpdateUsernameParams): Promise<UpdateUsernameResponse> => {
+  return useMutation<UpdateUsernameOutput, Error, UpdateUsernameParams>({
+    mutationFn: async ({ username }: UpdateUsernameParams): Promise<UpdateUsernameOutput> => {
       const trimmed = username.trim();
 
       if (!canister || !address) {
@@ -39,22 +39,14 @@ export function useUpdateUsername() {
         throw new Error("Failed to sign message");
       }
 
-      const response = await fetch("/api/account/username", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ address, signature, username: trimmed }),
+      return trpcClient.account.updateUsername.mutate({
+        address,
+        signature,
+        username: trimmed,
       });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error?.message || data.error || "Failed to update username");
-      }
-
-      return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [QueryKey.AccountInfo] });
+      queryClient.invalidateQueries({ queryKey: [["account"]] });
     },
   });
 }

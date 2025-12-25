@@ -4,8 +4,8 @@ import { isBitcoinWallet } from "@dynamic-labs/bitcoin";
 import { useDynamicContext } from "@dynamic-labs/sdk-react-core";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { CreateAccountResponse } from "@/app/api/account/create/types";
-import { QueryKey } from "@/lib/query-keys";
+import type { Output as CreateAccountOutput } from "@/lib/use-cases/account/create-account/schema";
+import { trpcClient } from "@/trpc/react";
 import { useAccount } from "./queries/use-account";
 import { useBtcAddress } from "./queries/use-btc-address";
 import { useCanister } from "./use-canister";
@@ -43,8 +43,8 @@ export function useEnsureAccount() {
     return true;
   }, [primaryWallet, canister, address, isAccountFetched, isLoadingAccount, accountData]);
 
-  const createAccountMutation = useMutation<CreateAccountResponse, Error, void>({
-    mutationFn: async (): Promise<CreateAccountResponse> => {
+  const createAccountMutation = useMutation<CreateAccountOutput, Error, void>({
+    mutationFn: async (): Promise<CreateAccountOutput> => {
       setError(null);
 
       if (!primaryWallet || !isBitcoinWallet(primaryWallet)) {
@@ -63,22 +63,10 @@ export function useEnsureAccount() {
       }
 
       setStep("creating");
-      const response = await fetch("/api/account/create", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ address, signature }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error?.message || data.error || "Failed to create account");
-      }
-
-      return data;
+      return trpcClient.account.createAccount.mutate({ address, signature });
     },
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: [QueryKey.AccountInfo] });
+      await queryClient.invalidateQueries({ queryKey: [["account"]] });
       setStep("done");
     },
     onError: (err) => {

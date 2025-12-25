@@ -1,22 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
 import { type _SERVICE, createActor } from "@volumetric/canister-types";
-
-interface Config {
-  canisterId: string | undefined;
-  icHost: string;
-}
-
-async function fetchConfig(): Promise<Config> {
-  const res = await fetch("/api/config");
-  if (!res.ok) throw new Error("Failed to load config");
-  return res.json();
-}
+import { useTRPC } from "@/trpc/react";
 
 export function useCanisterConfig() {
-  return useQuery({
-    queryKey: ["config"],
-    queryFn: fetchConfig,
-  });
+  const trpc = useTRPC();
+  return useQuery(trpc.config.getCanisterConfig.queryOptions());
 }
 
 export function useCanister(): _SERVICE | null {

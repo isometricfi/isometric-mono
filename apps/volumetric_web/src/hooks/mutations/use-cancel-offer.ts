@@ -5,8 +5,8 @@ import { useDynamicContext } from "@dynamic-labs/sdk-react-core";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
-import type { CancelOfferResponse } from "@/app/api/options/cancel/types";
-import { QueryKey } from "@/lib/query-keys";
+import type { Output as CancelOfferOutput } from "@/lib/use-cases/options/cancel-offer/schema";
+import { trpcClient } from "@/trpc/react";
 import { useBtcAddress } from "../queries/use-btc-address";
 import { useCanister } from "../use-canister";
 
@@ -21,7 +21,7 @@ export function useCancelOffer() {
   const [step, setStep] = useState<CancelOfferStep>("idle");
 
   const mutation = useMutation({
-    mutationFn: async (offerId: string): Promise<CancelOfferResponse> => {
+    mutationFn: async (offerId: string): Promise<CancelOfferOutput> => {
       if (!canister || !address) {
         throw new Error("Wallet not connected");
       }
@@ -45,24 +45,14 @@ export function useCancelOffer() {
         setStep("submitting");
         toast.loading(`Deleting offer #${offerId}...`, { id: toastId });
 
-        const response = await fetch("/api/options/cancel", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            address,
-            signature,
-            offerId: offerId.toString(),
-          }),
+        const result = await trpcClient.options.cancelOffer.mutate({
+          address,
+          signature,
+          offerId: offerId.toString(),
         });
 
-        const data = await response.json();
-
-        if (!response.ok) {
-          throw new Error(data.error?.message || data.error || "Failed to cancel offer");
-        }
-
         toast.success(`Offer #${offerId} deleted successfully`, { id: toastId });
-        return data;
+        return result;
       })();
 
       cancelPromise.catch((err) => {
@@ -73,9 +63,9 @@ export function useCancelOffer() {
     },
     onSuccess: () => {
       setStep("success");
-      queryClient.invalidateQueries({ queryKey: [QueryKey.Portfolio] });
-      queryClient.invalidateQueries({ queryKey: [QueryKey.Options] });
-      queryClient.invalidateQueries({ queryKey: [QueryKey.AccountInfo] });
+      queryClient.invalidateQueries({ queryKey: [["portfolio"]] });
+      queryClient.invalidateQueries({ queryKey: [["options"]] });
+      queryClient.invalidateQueries({ queryKey: [["account"]] });
     },
     onError: () => {
       setStep("error");

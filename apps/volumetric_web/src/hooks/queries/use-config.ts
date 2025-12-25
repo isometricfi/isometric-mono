@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { QueryKey } from "@/lib/query-keys";
+import { useTRPC } from "@/trpc/react";
 import type { ConfigData } from "@/types/config";
 
 export function generatePremiumValues(config: ConfigData | undefined): number[] {
@@ -15,15 +15,9 @@ export function generatePremiumValues(config: ConfigData | undefined): number[] 
 }
 
 export function useConfig() {
+  const trpc = useTRPC();
   return useQuery({
-    queryKey: [QueryKey.Config],
-    queryFn: async (): Promise<ConfigData> => {
-      const response = await fetch("/api/volumetric-config");
-      if (!response.ok) {
-        throw new Error("Failed to fetch config");
-      }
-      return response.json();
-    },
+    ...trpc.config.getConfig.queryOptions(),
     staleTime: 300000,
   });
 }

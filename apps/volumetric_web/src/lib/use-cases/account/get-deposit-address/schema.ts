@@ -1,0 +1,15 @@
+import { z } from "zod";
+
+export const inputSchema = z.object({
+  address: z.string().min(1),
+});
+
+export type Input = z.infer<typeof inputSchema>;
+
+export interface Output {
+  btcAddress: string;
+  account: {
+    owner: string;
+    subaccount: number[] | null;
+  };
+}
