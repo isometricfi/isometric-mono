@@ -7,7 +7,7 @@ import { useState } from "react";
 import { useMediaQuery } from "react-responsive";
 import { ThemeToggle } from "@/components/layout/ThemeToggle";
 import { Button } from "@/components/ui/button";
-import { Drawer, DrawerContent } from "@/components/ui/drawer";
+import { Drawer, DrawerContent, DrawerTitle } from "@/components/ui/drawer";
 import { DepositModal } from "@/components/wallet/DepositModal";
 import { ProceduralAvatar } from "@/components/wallet/ProceduralAvatar";
 import { WithdrawModal } from "@/components/wallet/WithdrawModal";
@@ -44,6 +44,7 @@ export function AccountPanel({
           isMobile ? "px-4 pb-4 min-h-[75vh]" : "px-5 py-4 mt-4 mb-4 mr-0  rounded-l-3xl",
         )}
       >
+        <DrawerTitle className="sr-only">Account</DrawerTitle>
         <AccountPanelContent onDisconnect={onDisconnect} />
       </DrawerContent>
     </Drawer>

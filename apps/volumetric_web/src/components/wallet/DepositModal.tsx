@@ -17,12 +17,18 @@ import { useMemo, useState } from "react";
 import QRCodeSVG from "react-qr-code";
 import { useMediaQuery } from "react-responsive";
 import { AmountInput } from "@/components/options/AmountInput";
-import { AlertDialog, AlertDialogContent } from "@/components/ui/alert-dialog";
+import { AlertDialog, AlertDialogContent, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { CopyButton } from "@/components/ui/copy-button";
-import { Drawer, DrawerContent } from "@/components/ui/drawer";
+import { Drawer, DrawerContent, DrawerTitle } from "@/components/ui/drawer";
 import { useConfig, useDepositAddress, useSyncDeposit, useWalletBalance } from "@/hooks";
-import { cn, formatBtc, formatBtcWithSymbol, parseBtcToSatsBigint } from "@/lib/utils";
+import {
+  cn,
+  DEFAULT_MIN_DEPOSIT_SATS,
+  formatBtc,
+  formatBtcWithSymbol,
+  parseBtcToSatsBigint,
+} from "@/lib/utils";
 import { Badge } from "../ui/badge";
 import { Skeleton } from "../ui/skeleton";
 
@@ -43,7 +49,7 @@ export function DepositModal({
   const { data: depositAddressData, isLoading: isLoadingDepositAddress } = useDepositAddress();
   const syncDeposit = useSyncDeposit();
 
-  const depositAddress = depositAddressData?.btc_address ?? null;
+  const depositAddress = depositAddressData?.btcAddress ?? null;
 
   const [step, setStep] = useState<DepositStep>("input");
   const [tab, setTab] = useState<DepositTab>("wallet");
@@ -51,7 +57,7 @@ export function DepositModal({
   const [txid, setTxid] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const minDepositSats = BigInt(config?.minDepositAmountSats ?? 50_000);
+  const minDepositSats = BigInt(config?.minDepositAmountSats ?? DEFAULT_MIN_DEPOSIT_SATS);
   const isWalletReady = !!primaryWallet && isBitcoinWallet(primaryWallet);
 
   const enteredAmountSats = useMemo(() => {
@@ -455,14 +461,20 @@ export function DepositModal({
   if (isMobile) {
     return (
       <Drawer open={open} onOpenChange={handleClose} repositionInputs={false}>
-        <DrawerContent className="px-5 pb-5 ">{content}</DrawerContent>
+        <DrawerContent className="px-5 pb-5 ">
+          <DrawerTitle className="sr-only">Deposit BTC</DrawerTitle>
+          {content}
+        </DrawerContent>
       </Drawer>
     );
   }
 
   return (
     <AlertDialog open={open} onOpenChange={handleClose}>
-      <AlertDialogContent className="sm:max-w-md">{content}</AlertDialogContent>
+      <AlertDialogContent className="sm:max-w-md">
+        <AlertDialogTitle className="sr-only">Deposit BTC</AlertDialogTitle>
+        {content}
+      </AlertDialogContent>
     </AlertDialog>
   );
 }

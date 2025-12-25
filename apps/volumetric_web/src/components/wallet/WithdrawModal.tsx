@@ -6,11 +6,12 @@ import { CheckCircle2, CircleArrowUp, Loader2, XCircle } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useMediaQuery } from "react-responsive";
 import { AmountInput } from "@/components/options/AmountInput";
-import { AlertDialog, AlertDialogContent } from "@/components/ui/alert-dialog";
+import { AlertDialog, AlertDialogContent, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
-import { Drawer, DrawerContent } from "@/components/ui/drawer";
+import { Drawer, DrawerContent, DrawerTitle } from "@/components/ui/drawer";
 import { useAccount, useConfig, useWithdraw } from "@/hooks";
 import {
+  DEFAULT_MIN_WITHDRAW_SATS,
   formatBtcBigint,
   formatBtcWithSymbol,
   formatBtcWithSymbolBigint,
@@ -43,7 +44,7 @@ export function WithdrawModal({
   const [amountBtc, setAmountBtc] = useState("");
   const [error, setError] = useState<string | null>(null);
 
-  const minWithdrawSats = BigInt(config?.minWithdrawAmountSats ?? 50_000);
+  const minWithdrawSats = BigInt(config?.minWithdrawAmountSats ?? DEFAULT_MIN_WITHDRAW_SATS);
 
   const enteredAmountSats = useMemo(() => parseBtcToSatsBigint(amountBtc), [amountBtc]);
   const isBelowMinimum = enteredAmountSats < minWithdrawSats;
@@ -264,14 +265,20 @@ export function WithdrawModal({
   if (isMobile) {
     return (
       <Drawer open={open} onOpenChange={handleClose} repositionInputs={false}>
-        <DrawerContent className="px-5 pb-4">{content}</DrawerContent>
+        <DrawerContent className="px-5 pb-4">
+          <DrawerTitle className="sr-only">Withdraw BTC</DrawerTitle>
+          {content}
+        </DrawerContent>
       </Drawer>
     );
   }
 
   return (
     <AlertDialog open={open} onOpenChange={handleClose}>
-      <AlertDialogContent className="sm:max-w-md">{content}</AlertDialogContent>
+      <AlertDialogContent className="sm:max-w-md">
+        <AlertDialogTitle className="sr-only">Withdraw BTC</AlertDialogTitle>
+        {content}
+      </AlertDialogContent>
     </AlertDialog>
   );
 }
