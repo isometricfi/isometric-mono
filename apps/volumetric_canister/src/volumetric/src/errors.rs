@@ -88,7 +88,7 @@ pub mod error_codes {
     pub const QUANTITY_BELOW_MINIMUM: ErrorDef = ErrorDef {
         code: 5006,
         name: "QUANTITY_BELOW_MINIMUM",
-        message: "Quantity is below minimum (50,000 sats)",
+        message: "Quantity is below minimum",
     };
     pub const QUANTITY_EXCEEDS_AVAILABLE: ErrorDef = ErrorDef {
         code: 5007,

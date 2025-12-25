@@ -16,7 +16,7 @@ import {
   useOptions,
   usePrices,
 } from "@/hooks";
-import { formatBtc, parseBtcToSats } from "@/lib/utils";
+import { DEFAULT_MIN_OFFER_AMOUNT_SATS, formatBtc, parseBtcToSats } from "@/lib/utils";
 import { CallBuyOptionSummary } from "./CallBuyOptionSummary";
 
 function computeStrikeUsdValues(strikePercents: number[], btcPrice: number): number[] {
@@ -31,7 +31,7 @@ export function CallOptionBuyForm() {
   const acceptOffer = useAcceptOffer();
   const btcPrice = priceData?.btc ?? 0;
 
-  const minOfferAmountSats = config?.minOfferAmountSats ?? 100_000;
+  const minOfferAmountSats = config?.minOfferAmountSats ?? DEFAULT_MIN_OFFER_AMOUNT_SATS;
   const defaultTerm = config?.termOptions[0] ?? 7;
 
   const [term, setTerm] = useState(defaultTerm);
