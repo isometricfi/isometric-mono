@@ -4,9 +4,9 @@ import { AnimatePresence, motion } from "framer-motion";
 import { ArrowRight, CheckCircle2, FileSignature, Loader2, Send, XCircle } from "lucide-react";
 import Link from "next/link";
 import { useMediaQuery } from "react-responsive";
-import { AlertDialog, AlertDialogContent } from "@/components/ui/alert-dialog";
+import { AlertDialog, AlertDialogContent, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
-import { Drawer, DrawerContent } from "@/components/ui/drawer";
+import { Drawer, DrawerContent, DrawerTitle } from "@/components/ui/drawer";
 import type { AcceptOfferStep, CreateOfferStep } from "@/hooks";
 import { cn } from "@/lib/utils";
 
@@ -77,6 +77,12 @@ export function OfferResultModal({
   const isProcessing = step === "signing" || step === "submitting";
   const isSuccess = step === "success";
   const isError = step === "error";
+
+  const getAccessibleTitle = () => {
+    if (isError) return "Something went wrong";
+    if (isSuccess) return type === "create" ? "Offer Created" : "Option Purchased";
+    return type === "create" ? "Creating Offer" : "Buying Option";
+  };
 
   const handleOpenChange = (nextOpen: boolean) => {
     if (isProcessing) return;
@@ -233,14 +239,20 @@ export function OfferResultModal({
   if (isMobile) {
     return (
       <Drawer open={open} onOpenChange={handleOpenChange}>
-        <DrawerContent className="px-5 pb-8 pt-4">{content}</DrawerContent>
+        <DrawerContent className="px-5 pb-8 pt-4">
+          <DrawerTitle className="sr-only">{getAccessibleTitle()}</DrawerTitle>
+          {content}
+        </DrawerContent>
       </Drawer>
     );
   }
 
   return (
     <AlertDialog open={open} onOpenChange={handleOpenChange}>
-      <AlertDialogContent className="sm:max-w-md">{content}</AlertDialogContent>
+      <AlertDialogContent className="sm:max-w-md">
+        <AlertDialogTitle className="sr-only">{getAccessibleTitle()}</AlertDialogTitle>
+        {content}
+      </AlertDialogContent>
     </AlertDialog>
   );
 }
