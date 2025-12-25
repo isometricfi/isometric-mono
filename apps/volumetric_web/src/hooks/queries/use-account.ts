@@ -1,22 +1,12 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import type { AccountResponse } from "@/app/api/account/route";
+import superjson from "superjson";
+import type { AccountResponse } from "@/app/api/account/types";
 import { QueryKey } from "@/lib/query-keys";
 import { useBtcAddress } from "./use-btc-address";
 
-export type AccountData = {
-  profile: {
-    address: string;
-    username: string | null;
-    principal: string;
-  } | null;
-  balance: {
-    total: bigint;
-    available: bigint;
-    locked: bigint;
-  } | null;
-};
+export type AccountData = AccountResponse;
 
 export function useAccount() {
   const address = useBtcAddress("payment");
@@ -32,22 +22,12 @@ export function useAccount() {
         body: JSON.stringify({ address }),
       });
 
-      const data: AccountResponse = await response.json();
-
       if (!response.ok) {
         throw new Error("Failed to fetch account data");
       }
 
-      return {
-        profile: data.profile,
-        balance: data.balance
-          ? {
-              total: BigInt(data.balance.total),
-              available: BigInt(data.balance.available),
-              locked: BigInt(data.balance.locked),
-            }
-          : null,
-      };
+      const text = await response.text();
+      return superjson.parse<AccountResponse>(text);
     },
     enabled: !!address,
     refetchInterval: 30000,

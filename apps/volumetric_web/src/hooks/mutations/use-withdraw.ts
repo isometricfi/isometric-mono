@@ -3,7 +3,7 @@
 import { isBitcoinWallet } from "@dynamic-labs/bitcoin";
 import { useDynamicContext } from "@dynamic-labs/sdk-react-core";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import type { WithdrawCkbtcResponse } from "@/app/api/account/withdraw/route";
+import type { WithdrawResponse } from "@/app/api/account/withdraw/types";
 import { QueryKey } from "@/lib/query-keys";
 import { useBtcAddress } from "../queries/use-btc-address";
 import { useCanister } from "../use-canister";
@@ -19,11 +19,8 @@ export function useWithdraw() {
   const address = useBtcAddress("payment");
   const queryClient = useQueryClient();
 
-  return useMutation<WithdrawCkbtcResponse, Error, WithdrawParams>({
-    mutationFn: async ({
-      amountSats,
-      btcAddress,
-    }: WithdrawParams): Promise<WithdrawCkbtcResponse> => {
+  return useMutation<WithdrawResponse, Error, WithdrawParams>({
+    mutationFn: async ({ amountSats, btcAddress }: WithdrawParams): Promise<WithdrawResponse> => {
       if (!canister || !address) {
         throw new Error("Wallet not connected");
       }

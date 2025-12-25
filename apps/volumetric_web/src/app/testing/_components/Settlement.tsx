@@ -2,8 +2,8 @@
 
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import type { SetOraclePriceResponse } from "@/app/api/options/test-oracle/route";
-import type { TestingForceSettleResponse } from "@/app/api/options/test-settle/route";
+import type { SetOraclePriceResponse } from "@/app/api/options/test-oracle/types";
+import type { TestingForceSettleResponse } from "@/app/api/options/test-settle/types";
 import { useCanister } from "@/hooks";
 
 function getOptionStatus(status: Record<string, null>): string {

@@ -1,26 +1,12 @@
 import { unwrapResult } from "@volumetric/canister-types";
-import { z } from "zod";
 import { createApiHandler } from "@/lib/api-handler";
 import { getCanisterActor } from "@/lib/canister-server";
-
-const RequestSchema = z.object({
-  address: z.string().min(1),
-  signature: z.string().min(1),
-  btcAddress: z.string().min(1),
-  amount: z.string().regex(/^\d+$/, "Amount must be a numeric string"),
-});
-
-export type WithdrawCkbtcRequest = z.infer<typeof RequestSchema>;
-
-const ResponseSchema = z.object({
-  block_index: z.string(),
-});
-
-export type WithdrawCkbtcResponse = z.infer<typeof ResponseSchema>;
+import { mapWithdraw } from "./mapper";
+import { WithdrawRequestSchema, type WithdrawResponse } from "./types";
 
 export const POST = createApiHandler(
-  RequestSchema,
-  async ({ address, signature, btcAddress, amount }) => {
+  WithdrawRequestSchema,
+  async ({ address, signature, btcAddress, amount }): Promise<WithdrawResponse> => {
     const actor = await getCanisterActor();
     const result = await actor.withdraw_ckbtc({
       data: {
@@ -32,6 +18,6 @@ export const POST = createApiHandler(
 
     const data = unwrapResult(result);
 
-    return { block_index: data.block_index.toString() } satisfies WithdrawCkbtcResponse;
+    return mapWithdraw(data);
   },
 );

@@ -4,9 +4,9 @@ import { isBitcoinWallet } from "@dynamic-labs/bitcoin";
 import { useDynamicContext } from "@dynamic-labs/sdk-react-core";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import type { GetCkbtcBalanceResponse } from "@/app/api/account/balance/route";
-import type { GetDepositAddressResponse } from "@/app/api/account/deposit-address/route";
-import type { WithdrawCkbtcResponse } from "@/app/api/account/withdraw/route";
+import type { BalanceResponse } from "@/app/api/account/balance/types";
+import type { DepositAddressResponse } from "@/app/api/account/deposit-address/types";
+import type { WithdrawResponse } from "@/app/api/account/withdraw/types";
 import { useBtcAddress, useCanister } from "@/hooks";
 
 export function CkbtcWallet() {
@@ -34,7 +34,7 @@ export function CkbtcWallet() {
     refetch: refetchDeposit,
   } = useQuery({
     queryKey: ["depositAddress", address],
-    queryFn: async (): Promise<GetDepositAddressResponse | null> => {
+    queryFn: async (): Promise<DepositAddressResponse | null> => {
       if (!address) return null;
 
       const response = await fetch("/api/account/deposit-address", {
@@ -69,7 +69,7 @@ export function CkbtcWallet() {
         body: JSON.stringify({ address }),
       });
 
-      const data: GetCkbtcBalanceResponse = await response.json();
+      const data: BalanceResponse = await response.json();
 
       if (!response.ok) {
         throw new Error("Failed to get balance");
@@ -119,7 +119,7 @@ export function CkbtcWallet() {
 
       const txid = await primaryWallet.sendBitcoin({
         amount,
-        recipientAddress: depositInfo.btc_address,
+        recipientAddress: depositInfo.btcAddress,
       });
 
       if (!txid) throw new Error("Transaction failed");
@@ -131,7 +131,7 @@ export function CkbtcWallet() {
   });
 
   const withdrawMutation = useMutation({
-    mutationFn: async (): Promise<WithdrawCkbtcResponse> => {
+    mutationFn: async (): Promise<WithdrawResponse> => {
       if (!canister || !address) throw new Error("Not ready");
       if (!primaryWallet || !isBitcoinWallet(primaryWallet)) {
         throw new Error("Bitcoin wallet not connected");
@@ -230,7 +230,7 @@ export function CkbtcWallet() {
             <div className="flex flex-col gap-2">
               <span className="text-sm text-zinc-500">BTC Deposit Address</span>
               <code className="text-xs bg-zinc-800 p-3 rounded break-all font-mono select-all">
-                {depositInfo.btc_address}
+                {depositInfo.btcAddress}
               </code>
             </div>
 
@@ -361,7 +361,7 @@ export function CkbtcWallet() {
           <div className="p-3 bg-green-950 border border-green-800 rounded-lg">
             <div className="text-sm text-green-400 mb-1">Withdrawal Submitted</div>
             <div className="text-xs text-zinc-300">
-              Block Index: {withdrawMutation.data.block_index}
+              Block Index: {withdrawMutation.data.blockIndex}
             </div>
           </div>
         )}

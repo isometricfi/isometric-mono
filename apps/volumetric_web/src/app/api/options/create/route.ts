@@ -1,26 +1,11 @@
 import { unwrapResult } from "@volumetric/canister-types";
-import { z } from "zod";
 import { createApiHandler } from "@/lib/api-handler";
 import { getCanisterActor } from "@/lib/canister-server";
-
-const RequestSchema = z.object({
-  address: z.string().min(1),
-  signature: z.string().min(1),
-  quantity: z.string(),
-  strikeBasisPoints: z.number(),
-  premiumBasisPoints: z.number(),
-  offerValidUntil: z.string(),
-  optionDurationSeconds: z.string(),
-});
-
-export type CreateOfferRequest = z.infer<typeof RequestSchema>;
-
-export type CreateOfferResponse = {
-  offerId: string;
-};
+import { mapCreateOffer } from "./mapper";
+import { CreateOfferRequestSchema, type CreateOfferResponse } from "./types";
 
 export const POST = createApiHandler(
-  RequestSchema,
+  CreateOfferRequestSchema,
   async ({
     address,
     signature,
@@ -29,7 +14,7 @@ export const POST = createApiHandler(
     premiumBasisPoints,
     offerValidUntil,
     optionDurationSeconds,
-  }) => {
+  }): Promise<CreateOfferResponse> => {
     const actor = await getCanisterActor();
     const result = await actor.create_offer({
       wallet_proof: { address, signature },
@@ -46,8 +31,6 @@ export const POST = createApiHandler(
 
     const data = unwrapResult(result);
 
-    return {
-      offerId: data.offer.id.toString(),
-    } satisfies CreateOfferResponse;
+    return mapCreateOffer(data);
   },
 );

@@ -1,4 +1,10 @@
 // mutations
+
+export type {
+  OfferData as PortfolioOffer,
+  OptionData as PortfolioOption,
+  PortfolioResponse as PortfolioData,
+} from "@/app/api/portfolio/types";
 export {
   type AcceptOfferParams,
   type AcceptOfferStep,
@@ -28,12 +34,7 @@ export {
   getStrikePercentsForTerm,
   useOptions,
 } from "./queries/use-options";
-export {
-  type PortfolioData,
-  type PortfolioOffer,
-  type PortfolioOption,
-  usePortfolio,
-} from "./queries/use-portfolio";
+export { usePortfolio } from "./queries/use-portfolio";
 export { usePrices } from "./queries/use-prices";
 export { useWalletBalance } from "./queries/use-wallet-balance";
 // internal (for message signing)

@@ -2,7 +2,7 @@
 
 import { useDynamicContext } from "@dynamic-labs/sdk-react-core";
 import { useQuery } from "@tanstack/react-query";
-import type { GetDepositAddressResponse } from "@/app/api/account/deposit-address/route";
+import type { DepositAddressResponse } from "@/app/api/account/deposit-address/types";
 import { QueryKey } from "@/lib/query-keys";
 import { useBtcAddress } from "./use-btc-address";
 
@@ -10,7 +10,7 @@ export function useDepositAddress() {
   const { primaryWallet } = useDynamicContext();
   const address = useBtcAddress("payment");
 
-  return useQuery<GetDepositAddressResponse>({
+  return useQuery<DepositAddressResponse>({
     queryKey: [QueryKey.DepositAddress, address],
     queryFn: async () => {
       if (!address) {
