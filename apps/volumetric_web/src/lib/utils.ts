@@ -8,6 +8,15 @@ export function cn(...inputs: ClassValue[]) {
 export const SATS_PER_BTC = 100_000_000;
 export const SATS_PER_BTC_BIGINT = BigInt(100_000_000);
 
+/**
+ * Fallback values for config - used while loading from canister.
+ * These should match the defaults in the canister's TradingLimits.
+ */
+export const DEFAULT_MIN_DEPOSIT_SATS = 50_000;
+export const DEFAULT_MIN_WITHDRAW_SATS = 50_000;
+export const DEFAULT_MIN_OFFER_AMOUNT_SATS = 90_000;
+export const DEFAULT_MAX_OFFER_AMOUNT_SATS = 100_000_000;
+
 export function satsToBtc(sats: number): number {
   return sats / SATS_PER_BTC;
 }

@@ -64,7 +64,7 @@ const errorMessages: Record<ErrorCode, string> = {
   [ErrorCode.OFFER_EXPIRED]: "This offer has expired",
   [ErrorCode.OFFER_CANCELLED]: "This offer has been cancelled",
   [ErrorCode.OFFER_FILLED]: "This offer has been fully filled",
-  [ErrorCode.QUANTITY_BELOW_MINIMUM]: "Quantity is below minimum (50,000 sats)",
+  [ErrorCode.QUANTITY_BELOW_MINIMUM]: "Quantity is below minimum",
   [ErrorCode.QUANTITY_EXCEEDS_AVAILABLE]: "Quantity exceeds available amount",
   [ErrorCode.NOT_OFFER_OWNER]: "You are not the owner of this offer",
   [ErrorCode.OPTION_NOT_FOUND]: "Option not found",

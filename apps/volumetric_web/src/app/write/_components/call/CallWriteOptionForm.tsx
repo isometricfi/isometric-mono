@@ -9,7 +9,12 @@ import { TermSelector } from "@/components/options/TermSelector";
 import { Button } from "@/components/ui/button";
 import { NumberCarousel } from "@/components/ui/number-carousel";
 import { generatePremiumValues, useAccount, useConfig, useCreateOffer, usePrices } from "@/hooks";
-import { formatBtc, parseBtcToSats } from "@/lib/utils";
+import {
+  DEFAULT_MAX_OFFER_AMOUNT_SATS,
+  DEFAULT_MIN_OFFER_AMOUNT_SATS,
+  formatBtc,
+  parseBtcToSats,
+} from "@/lib/utils";
 import { CallWriteOptionSummary } from "./CallWriteOptionSummary";
 
 export function CallWriteOptionForm() {
@@ -22,8 +27,8 @@ export function CallWriteOptionForm() {
 
   const strikePercentOptions = config?.strikePercentOptions ?? [];
   const premiumValues = useMemo(() => generatePremiumValues(config), [config]);
-  const minOfferAmountSats = config?.minOfferAmountSats ?? 100_000;
-  const configMaxOfferAmountSats = config?.maxOfferAmountSats ?? 100_000_000;
+  const minOfferAmountSats = config?.minOfferAmountSats ?? DEFAULT_MIN_OFFER_AMOUNT_SATS;
+  const configMaxOfferAmountSats = config?.maxOfferAmountSats ?? DEFAULT_MAX_OFFER_AMOUNT_SATS;
   const availableBalanceSats = Number(accountData?.balance?.available ?? 0);
   const maxOfferAmountSats = Math.min(configMaxOfferAmountSats, availableBalanceSats);
   const defaultTerm = config?.termOptions[0] ?? 7;
