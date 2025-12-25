@@ -3,7 +3,7 @@
 import { isBitcoinWallet } from "@dynamic-labs/bitcoin";
 import { useDynamicContext } from "@dynamic-labs/sdk-react-core";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import type { UpdateUsernameResponse } from "@/app/api/account/username/route";
+import type { UpdateUsernameResponse } from "@/app/api/account/username/types";
 import { QueryKey } from "@/lib/query-keys";
 import { useBtcAddress } from "../queries/use-btc-address";
 import { useCanister } from "../use-canister";

@@ -24,7 +24,7 @@ import { formatBtcBigint, roundToN, SATS_PER_BTC, secondsToDays } from "@/lib/ut
 interface OfferCardProps {
   offer: PortfolioOffer;
   btcPrice: number;
-  onCancel?: (id: bigint) => void;
+  onCancel?: (id: string) => void;
   isCancelling?: boolean;
   rankInfo?: { rank: number; totalOffers: number; isBest: boolean } | null;
 }

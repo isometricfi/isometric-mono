@@ -5,7 +5,7 @@ import { useDynamicContext } from "@dynamic-labs/sdk-react-core";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
-import type { CancelOfferResponse } from "@/app/api/options/cancel/route";
+import type { CancelOfferResponse } from "@/app/api/options/cancel/types";
 import { QueryKey } from "@/lib/query-keys";
 import { useBtcAddress } from "../queries/use-btc-address";
 import { useCanister } from "../use-canister";
@@ -21,7 +21,7 @@ export function useCancelOffer() {
   const [step, setStep] = useState<CancelOfferStep>("idle");
 
   const mutation = useMutation({
-    mutationFn: async (offerId: bigint): Promise<CancelOfferResponse> => {
+    mutationFn: async (offerId: string): Promise<CancelOfferResponse> => {
       if (!canister || !address) {
         throw new Error("Wallet not connected");
       }
@@ -35,7 +35,7 @@ export function useCancelOffer() {
         setStep("signing");
         toastId = toast.loading(`Approve deletion of offer #${offerId}`);
 
-        const message = await canister.get_cancel_offer_message(address, offerId);
+        const message = await canister.get_cancel_offer_message(address, BigInt(offerId));
         const signature = await primaryWallet.signMessage(message, { addressType: "payment" });
 
         if (!signature) {

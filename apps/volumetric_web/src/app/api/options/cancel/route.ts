@@ -1,31 +1,21 @@
 import { unwrapResult } from "@volumetric/canister-types";
-import { z } from "zod";
 import { createApiHandler } from "@/lib/api-handler";
 import { getCanisterActor } from "@/lib/canister-server";
+import { mapCancelOffer } from "./mapper";
+import { CancelOfferRequestSchema, type CancelOfferResponse } from "./types";
 
-const RequestSchema = z.object({
-  address: z.string().min(1),
-  signature: z.string().min(1),
-  offerId: z.string(),
-});
+export const POST = createApiHandler(
+  CancelOfferRequestSchema,
+  async ({ address, signature, offerId }): Promise<CancelOfferResponse> => {
+    const actor = await getCanisterActor();
 
-export type CancelOfferRequest = z.infer<typeof RequestSchema>;
+    const result = await actor.cancel_offer({
+      wallet_proof: { address, signature },
+      data: { offer_id: BigInt(offerId) },
+    });
 
-export type CancelOfferResponse = {
-  success: boolean;
-};
+    unwrapResult(result);
 
-export const POST = createApiHandler(RequestSchema, async ({ address, signature, offerId }) => {
-  const actor = await getCanisterActor();
-
-  const result = await actor.cancel_offer({
-    wallet_proof: { address, signature },
-    data: { offer_id: BigInt(offerId) },
-  });
-
-  unwrapResult(result);
-
-  return {
-    success: true,
-  } satisfies CancelOfferResponse;
-});
+    return mapCancelOffer();
+  },
+);

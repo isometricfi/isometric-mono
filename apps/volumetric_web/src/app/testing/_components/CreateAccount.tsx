@@ -4,7 +4,7 @@ import { isBitcoinWallet } from "@dynamic-labs/bitcoin";
 import { useDynamicContext } from "@dynamic-labs/sdk-react-core";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import type { CreateAccountResponse } from "@/app/api/account/create/route";
+import type { CreateAccountResponse } from "@/app/api/account/create/types";
 import { useBtcAddress, useCanister } from "@/hooks";
 
 export function CreateAccount() {

@@ -1,19 +1,16 @@
 import { unwrapResult } from "@volumetric/canister-types";
-import { z } from "zod";
 import { createApiHandler } from "@/lib/api-handler";
 import { getCanisterActor } from "@/lib/canister-server";
+import { mapSyncBalance } from "./mapper";
+import { SyncBalanceRequestSchema, type SyncBalanceResponse } from "./types";
 
-const RequestSchema = z.object({
-  address: z.string().min(1),
-});
+export const POST = createApiHandler(
+  SyncBalanceRequestSchema,
+  async ({ address }): Promise<SyncBalanceResponse> => {
+    const actor = await getCanisterActor();
+    const result = await actor.update_ckbtc_balance(address);
+    unwrapResult(result);
 
-export type UpdateCkbtcBalanceRequest = z.infer<typeof RequestSchema>;
-
-export type UpdateCkbtcBalanceResponse = { success: true };
-
-export const POST = createApiHandler(RequestSchema, async ({ address }) => {
-  const actor = await getCanisterActor();
-  const result = await actor.update_ckbtc_balance(address);
-  unwrapResult(result);
-  return { success: true } satisfies UpdateCkbtcBalanceResponse;
-});
+    return mapSyncBalance();
+  },
+);

@@ -4,7 +4,7 @@ import { isBitcoinWallet } from "@dynamic-labs/bitcoin";
 import { useDynamicContext } from "@dynamic-labs/sdk-react-core";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { CreateAccountResponse } from "@/app/api/account/create/route";
+import type { CreateAccountResponse } from "@/app/api/account/create/types";
 import { QueryKey } from "@/lib/query-keys";
 import { useAccount } from "./queries/use-account";
 import { useBtcAddress } from "./queries/use-btc-address";
