@@ -4,14 +4,8 @@ meta {
   seq: 3
 }
 
-post {
-  url: {{baseUrl}}/api/account/balance
-  body: json
+get {
+  url: {{baseUrl}}/api/trpc/account.getBalance?input={"json":{"address":"{{address}}"}}
+  body: none
   auth: none
-}
-
-body:json {
-  {
-    "address": "{{address}}"
-  }
 }

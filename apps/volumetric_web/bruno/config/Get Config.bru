@@ -5,11 +5,7 @@ meta {
 }
 
 get {
-  url: {{baseUrl}}/api/config
+  url: {{baseUrl}}/api/trpc/config.getConfig
   body: none
   auth: none
-}
-
-docs {
-  Returns canister ID and IC host configuration
 }

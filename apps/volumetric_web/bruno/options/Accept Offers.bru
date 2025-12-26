@@ -5,20 +5,22 @@ meta {
 }
 
 post {
-  url: {{baseUrl}}/api/options/accept
+  url: {{baseUrl}}/api/trpc/options.acceptOffers
   body: json
   auth: none
 }
 
 body:json {
   {
-    "address": "{{address}}",
-    "signature": "{{signature}}",
-    "items": [
-      {
-        "offerId": "1",
-        "quantity": "50000"
-      }
-    ]
+    "json": {
+      "address": "{{address}}",
+      "signature": "{{signature}}",
+      "items": [
+        {
+          "offerId": "1",
+          "quantity": "50000"
+        }
+      ]
+    }
   }
 }
