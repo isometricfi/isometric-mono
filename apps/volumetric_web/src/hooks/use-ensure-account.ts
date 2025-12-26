@@ -9,6 +9,7 @@ import { QueryKey } from "@/lib/query-keys";
 import { useAccount } from "./queries/use-account";
 import { useBtcAddress } from "./queries/use-btc-address";
 import { useCanister } from "./use-canister";
+import { useOnboarding } from "./use-onboarding";
 
 export type EnsureAccountStep =
   | "idle"
@@ -23,6 +24,7 @@ export function useEnsureAccount() {
   const canister = useCanister();
   const address = useBtcAddress("payment");
   const queryClient = useQueryClient();
+  const { hasCompletedOnboarding, openOnboarding } = useOnboarding();
 
   const {
     data: accountData,
@@ -80,6 +82,9 @@ export function useEnsureAccount() {
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: [QueryKey.AccountInfo] });
       setStep("done");
+      if (!hasCompletedOnboarding) {
+        setTimeout(() => openOnboarding(), 500);
+      }
     },
     onError: (err) => {
       setStep("error");

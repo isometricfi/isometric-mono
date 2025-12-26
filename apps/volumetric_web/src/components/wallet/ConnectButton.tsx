@@ -8,6 +8,7 @@ import { useAccount, useEnsureAccount } from "@/hooks";
 import { cn } from "@/lib/utils";
 import { AccountCreationModal } from "./AccountCreationModal";
 import { AccountPanel } from "./AccountPanel";
+import { OnboardingModal } from "./OnboardingModal";
 import { ProceduralAvatar } from "./ProceduralAvatar";
 
 function getInitials(name: string): string {
@@ -53,6 +54,7 @@ export function ConnectButton() {
           error={ensureAccount.error}
           onClose={ensureAccount.close}
         />
+        <OnboardingModal />
       </>
     );
   }

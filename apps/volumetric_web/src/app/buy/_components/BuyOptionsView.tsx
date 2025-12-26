@@ -1,20 +1,31 @@
 "use client";
 
+import { HelpCircle } from "lucide-react";
 import { useState } from "react";
 import { OptionsViewer } from "@/components/options/OptionsViewer";
 import { OptionTypeToggle } from "@/components/options/OptionTypeToggle";
+import { Button } from "@/components/ui/button";
+import { OnboardingModal } from "@/components/wallet/OnboardingModal";
+import { useOnboarding } from "@/hooks";
 import type { OptionType } from "@/types/ui";
 import { CallOptionBuyForm } from "./call/CallOptionBuyForm";
 
 export function BuyOptionsView() {
   const [optionType, setOptionType] = useState<OptionType>("call");
+  const { openOnboarding } = useOnboarding();
 
   const isPutDisabled = optionType === "put";
 
   return (
     <>
+      <OnboardingModal />
       <div className="text-center space-y-4 mb-8">
-        <h1 className="text-3xl font-bold">Buy options</h1>
+        <div className="flex items-center justify-center gap-2">
+          <h1 className="text-3xl font-bold">Buy options</h1>
+          <Button variant="ghost" size="icon" onClick={openOnboarding} className="size-8">
+            <HelpCircle className="size-4" />
+          </Button>
+        </div>
         <div className="flex justify-center">
           <OptionTypeToggle value={optionType} onChange={setOptionType} />
         </div>
