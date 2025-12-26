@@ -1,11 +1,11 @@
 meta {
   name: Test Set Oracle Price
   type: http
-  seq: 6
+  seq: 5
 }
 
 post {
-  url: {{baseUrl}}/api/options/test-oracle
+  url: {{baseUrl}}/api/trpc/testing.setOraclePrice
   body: json
   auth: none
 }
@@ -16,6 +16,8 @@ docs {
 
 body:json {
   {
-    "priceCents": "10000000"
+    "json": {
+      "priceCents": "10000000"
+    }
   }
 }

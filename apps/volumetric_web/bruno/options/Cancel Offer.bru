@@ -1,11 +1,11 @@
 meta {
-  name: Withdraw
+  name: Cancel Offer
   type: http
-  seq: 7
+  seq: 4
 }
 
 post {
-  url: {{baseUrl}}/api/trpc/account.withdraw
+  url: {{baseUrl}}/api/trpc/options.cancelOffer
   body: json
   auth: none
 }
@@ -15,8 +15,7 @@ body:json {
     "json": {
       "address": "{{address}}",
       "signature": "{{signature}}",
-      "btcAddress": "{{btcAddress}}",
-      "amount": "{{amount}}"
+      "offerId": "1"
     }
   }
 }

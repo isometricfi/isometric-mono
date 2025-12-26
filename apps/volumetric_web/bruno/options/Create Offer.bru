@@ -5,19 +5,21 @@ meta {
 }
 
 post {
-  url: {{baseUrl}}/api/options/create
+  url: {{baseUrl}}/api/trpc/options.createOffer
   body: json
   auth: none
 }
 
 body:json {
   {
-    "address": "{{address}}",
-    "signature": "{{signature}}",
-    "quantity": "100000",
-    "strikeBasisPoints": 1000,
-    "premiumBasisPoints": 500,
-    "offerValidUntil": "1735689600000000000",
-    "optionDurationSeconds": "86400"
+    "json": {
+      "address": "{{address}}",
+      "signature": "{{signature}}",
+      "quantity": "100000",
+      "strikeBasisPoints": 1000,
+      "premiumBasisPoints": 500,
+      "offerValidUntil": "1735689600000000000",
+      "optionDurationSeconds": "86400"
+    }
   }
 }

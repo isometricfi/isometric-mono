@@ -5,14 +5,16 @@ meta {
 }
 
 post {
-  url: {{baseUrl}}/api/account/create
+  url: {{baseUrl}}/api/trpc/account.createAccount
   body: json
   auth: none
 }
 
 body:json {
   {
-    "address": "{{address}}",
-    "signature": "{{signature}}"
+    "json": {
+      "address": "{{address}}",
+      "signature": "{{signature}}"
+    }
   }
 }
