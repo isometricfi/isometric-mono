@@ -1,11 +1,18 @@
+pub mod accepts;
 pub mod accounts;
 pub mod balances;
 pub mod cbor;
 pub mod config;
 pub mod options;
+pub mod settlements;
 pub mod state;
 pub mod withdrawals;
 
+pub use accepts::{
+    complete_accept, create_accept, fail_accept, get_accept, list_failed_accepts,
+    list_pending_accepts, remove_accept, update_accept_phase, AcceptPhase, AcceptedOffer,
+    PendingAccept,
+};
 pub use accounts::{
     create_profile, get_nonce, get_principal_for_wallet, get_profile, increment_nonce,
     is_profile_exists, is_wallet_registered, list_all_profiles, register_wallet, update_profile,
@@ -26,6 +33,11 @@ pub use options::{
     list_active_options_by_writer, list_expired_active_options, list_offers_by_writer,
     list_open_offers, next_id, update_active_option, update_offer, ActiveOption,
     ActiveOptionStatus, Asset, CounterKey, Offer, OfferStatus, OptionType, MINIMUM_QUANTITY_SATS,
+};
+pub use settlements::{
+    complete_settlement, create_settlement, fail_settlement, get_settlement,
+    list_failed_settlements, list_pending_settlements_journal, remove_settlement,
+    update_settlement_phase, PendingSettlement, SettlementPhase,
 };
 pub use state::{ConfigCell, MemoryIndex, CONFIG, MEMORY_MANAGER, WHITELIST};
 pub use withdrawals::{

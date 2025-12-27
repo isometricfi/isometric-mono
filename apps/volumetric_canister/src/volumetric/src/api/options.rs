@@ -4,8 +4,12 @@ use serde::{Deserialize, Serialize};
 use crate::auth::types::{AuthenticatedPayload, ChallengeContext, SignableAction, WalletKey};
 use crate::auth::{build_challenge_context, verify_btc_signature};
 use crate::errors::VolumetricError;
-use crate::guards::is_whitelisted;
-use crate::storage::{get_active_option, get_principal_for_wallet, increment_nonce, ActiveOption};
+use crate::guards::{is_controller, is_whitelisted};
+use crate::storage::{
+    get_accept, get_active_option, get_principal_for_wallet, get_settlement, increment_nonce,
+    list_failed_accepts, list_failed_settlements, list_pending_accepts,
+    list_pending_settlements_journal, ActiveOption, PendingAccept, PendingSettlement,
+};
 use crate::usecases;
 
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
@@ -132,4 +136,42 @@ pub async fn testing_clear_offers_and_options() -> Result<ClearStorageResponse, 
         offers_cleared,
         options_cleared,
     })
+}
+
+#[ic_cdk::query]
+pub async fn get_pending_accepts() -> Result<Vec<PendingAccept>, VolumetricError> {
+    is_controller().await?;
+    Ok(list_pending_accepts())
+}
+
+#[ic_cdk::query]
+pub async fn get_failed_accepts() -> Result<Vec<PendingAccept>, VolumetricError> {
+    is_controller().await?;
+    Ok(list_failed_accepts())
+}
+
+#[ic_cdk::query]
+pub async fn get_accept_by_id(id: u64) -> Result<Option<PendingAccept>, VolumetricError> {
+    is_controller().await?;
+    Ok(get_accept(id))
+}
+
+#[ic_cdk::query]
+pub async fn get_pending_settlements_journal() -> Result<Vec<PendingSettlement>, VolumetricError> {
+    is_controller().await?;
+    Ok(list_pending_settlements_journal())
+}
+
+#[ic_cdk::query]
+pub async fn get_failed_settlements() -> Result<Vec<PendingSettlement>, VolumetricError> {
+    is_controller().await?;
+    Ok(list_failed_settlements())
+}
+
+#[ic_cdk::query]
+pub async fn get_settlement_by_id(
+    option_id: u64,
+) -> Result<Option<PendingSettlement>, VolumetricError> {
+    is_controller().await?;
+    Ok(get_settlement(option_id))
 }

@@ -5,9 +5,10 @@ use crate::errors::VolumetricError;
 use crate::locks::SettlementLock;
 use crate::oracle::{calculate_call_option_payout, get_btc_usd_price_cents};
 use crate::storage::{
-    get_active_option, list_expired_active_options, release_locked_to_recipient,
-    reverse_release_locked_to_recipient, unlock_collateral, update_active_option, ActiveOption,
-    ActiveOptionStatus, OptionType,
+    complete_settlement, create_settlement, fail_settlement, get_active_option,
+    list_expired_active_options, release_locked_to_recipient, remove_settlement,
+    reverse_release_locked_to_recipient, unlock_collateral, update_active_option,
+    update_settlement_phase, ActiveOption, ActiveOptionStatus, OptionType, SettlementPhase,
 };
 
 use crate::usecases::balances::transfer_ckbtc;
@@ -64,9 +65,20 @@ pub async fn settle_single_option(
         payout_to_writer
     );
 
+    create_settlement(
+        option.id,
+        option.writer,
+        option.buyer,
+        payout_to_buyer,
+        payout_to_writer,
+        settlement_price_cents,
+    );
+
     if payout_to_buyer > 0 {
         release_locked_to_recipient(option.writer, option.buyer, payout_to_buyer)
             .map_err(|e| VolumetricError::insufficient_balance(e.available, e.required))?;
+
+        update_settlement_phase(option.id, SettlementPhase::BalanceReleased);
 
         let writer_subaccount = derive_subaccount(option.writer);
         let buyer_subaccount = derive_subaccount(option.buyer);
@@ -101,8 +113,11 @@ pub async fn settle_single_option(
             }
             option.status = ActiveOptionStatus::Active;
             update_active_option(option.clone());
+            fail_settlement(option.id, format!("transfer_ckbtc failed: {:?}", e));
             return Err(e);
         }
+
+        update_settlement_phase(option.id, SettlementPhase::TransferComplete);
     }
 
     if payout_to_writer > 0 {
@@ -112,6 +127,9 @@ pub async fn settle_single_option(
 
     option.status = ActiveOptionStatus::Settled;
     update_active_option(option.clone());
+
+    complete_settlement(option.id);
+    remove_settlement(option.id);
 
     Ok(SettlementResult {
         option_id: option.id,

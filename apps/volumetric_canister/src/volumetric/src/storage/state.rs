@@ -28,6 +28,10 @@ pub enum MemoryIndex {
     CountersMemory = 8,
     /// Pending withdrawals journal for recovery
     WithdrawalJournalMemory = 9,
+    /// Pending accepts journal for recovery
+    AcceptJournalMemory = 10,
+    /// Pending settlements journal for recovery
+    SettlementJournalMemory = 11,
 }
 
 pub type Memory = VirtualMemory<DefaultMemoryImpl>;
