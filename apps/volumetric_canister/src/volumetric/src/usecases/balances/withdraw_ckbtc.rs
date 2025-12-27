@@ -1,5 +1,6 @@
 use candid::{Nat, Principal};
 use icrc_ledger_types::icrc1::account::Account;
+use icrc_ledger_types::icrc2::approve::ApproveError;
 
 use crate::auth::derive_subaccount;
 use crate::errors::VolumetricError;
@@ -31,6 +32,7 @@ pub async fn withdraw_ckbtc_use_case(
     let subaccount = derive_subaccount(principal);
     let minter = Config::ckbtc_minter();
     let ledger = Config::ckbtc_ledger();
+    let created_at_time = ic_cdk::api::time();
 
     let approve_args = icrc_ledger_types::icrc2::approve::ApproveArgs {
         from_subaccount: Some(subaccount),
@@ -43,7 +45,7 @@ pub async fn withdraw_ckbtc_use_case(
         expires_at: None,
         fee: None,
         memo: None,
-        created_at_time: None,
+        created_at_time: Some(created_at_time),
     };
 
     let approve_response = ic_cdk::call::Call::unbounded_wait(ledger, "icrc2_approve")
@@ -58,18 +60,22 @@ pub async fn withdraw_ckbtc_use_case(
         )));
     }
 
-    let approve_result: Result<Nat, icrc_ledger_types::icrc2::approve::ApproveError> =
+    let approve_result: Result<Nat, ApproveError> =
         approve_response.unwrap().candid().map_err(|e| {
             add_available(principal, params.amount);
             VolumetricError::inter_canister_call_failed(&format!("icrc2_approve decode: {:?}", e))
         })?;
 
-    if let Err(e) = approve_result {
-        add_available(principal, params.amount);
-        return Err(VolumetricError::inter_canister_call_failed(&format!(
-            "icrc2_approve rejected: {:?}",
-            e
-        )));
+    match approve_result {
+        Ok(_) => {}
+        Err(ApproveError::Duplicate { duplicate_of: _ }) => {}
+        Err(e) => {
+            add_available(principal, params.amount);
+            return Err(VolumetricError::inter_canister_call_failed(&format!(
+                "icrc2_approve rejected: {:?}",
+                e
+            )));
+        }
     }
 
     let retrieve_args = RetrieveBtcWithApprovalArgs {
