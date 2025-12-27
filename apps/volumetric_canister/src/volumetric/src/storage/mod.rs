@@ -4,6 +4,7 @@ pub mod cbor;
 pub mod config;
 pub mod options;
 pub mod state;
+pub mod withdrawals;
 
 pub use accounts::{
     create_profile, get_nonce, get_principal_for_wallet, get_profile, increment_nonce,
@@ -27,3 +28,8 @@ pub use options::{
     ActiveOptionStatus, Asset, CounterKey, Offer, OfferStatus, OptionType, MINIMUM_QUANTITY_SATS,
 };
 pub use state::{ConfigCell, MemoryIndex, CONFIG, MEMORY_MANAGER, WHITELIST};
+pub use withdrawals::{
+    complete_withdrawal, create_withdrawal, fail_withdrawal, get_pending_withdrawals_by_principal,
+    get_withdrawal, list_failed_withdrawals, list_pending_withdrawals, remove_withdrawal,
+    update_withdrawal_phase, PendingWithdrawal, WithdrawalPhase,
+};

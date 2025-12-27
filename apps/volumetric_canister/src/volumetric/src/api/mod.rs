@@ -34,4 +34,7 @@ pub use settlement::{
     SettleExpiredOptionsResponse, SettlementResult,
 };
 pub use whitelist::{add_whitelisted, list_whitelisted, remove_whitelisted};
-pub use withdrawals::{get_withdraw_message, withdraw_ckbtc};
+pub use withdrawals::{
+    get_failed_withdrawals, get_my_pending_withdrawals, get_pending_withdrawals,
+    get_withdraw_message, get_withdrawal_by_id, withdraw_ckbtc,
+};
