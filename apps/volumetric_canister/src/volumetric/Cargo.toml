@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [lib]
-crate-type = ["cdylib"]
+crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 candid = "0.10"
@@ -21,3 +21,6 @@ bip322 = "0.0.10"
 bitcoin = "0.32"
 base64 = "0.22"
 getrandom = { version = "0.2", features = ["custom"] }
+
+[dev-dependencies]
+pocket-ic = "11.0"
