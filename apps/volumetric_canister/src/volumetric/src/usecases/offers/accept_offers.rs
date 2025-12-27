@@ -4,6 +4,7 @@ use icrc_ledger_types::icrc1::account::Account;
 use crate::auth::derive_subaccount;
 use crate::errors::VolumetricError;
 use crate::guards::{validate_offer_params, OfferParams};
+use crate::locks::AcceptLock;
 use crate::oracle::get_btc_usd_price_cents;
 use crate::storage::{
     add_available, add_platform_fee, calculate_platform_fee, calculate_premium,
@@ -59,6 +60,9 @@ pub async fn accept_offers_use_case(
     buyer_principal: Principal,
     items: Vec<AcceptOfferItem>,
 ) -> Result<AcceptOffersResult, VolumetricError> {
+    // bind to _lock, not `let _ =` which drops immediately
+    let _lock = AcceptLock::new(buyer_principal)?;
+
     if items.is_empty() {
         return Err(VolumetricError::internal("No items to accept"));
     }

@@ -9,6 +9,7 @@ pub mod auth;
 pub mod errors;
 pub mod generated;
 pub mod guards;
+pub mod locks;
 pub mod oracle;
 pub mod storage;
 pub mod usecases;
