@@ -62,6 +62,7 @@ pub async fn accept_offers_use_case(
 ) -> Result<AcceptOffersResult, VolumetricError> {
     // bind to _lock, not `let _ =` which drops immediately
     let _lock = AcceptLock::new(buyer_principal)?;
+    let created_at_time = ic_cdk::api::time();
 
     if items.is_empty() {
         return Err(VolumetricError::internal("No items to accept"));
@@ -236,7 +237,13 @@ pub async fn accept_offers_use_case(
     }
 
     for transfer in pending_transfers {
-        if let Err(e) = transfer_ckbtc(transfer.from_subaccount, transfer.to, transfer.amount).await
+        if let Err(e) = transfer_ckbtc(
+            transfer.from_subaccount,
+            transfer.to,
+            transfer.amount,
+            created_at_time,
+        )
+        .await
         {
             rollback_locks(&locked_states);
             add_available(buyer_principal, total_premium_required);

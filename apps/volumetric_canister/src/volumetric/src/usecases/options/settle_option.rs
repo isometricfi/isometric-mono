@@ -31,6 +31,7 @@ pub async fn settle_single_option(
 ) -> Result<SettlementResult, VolumetricError> {
     // bind to _lock, not `let _ =` which drops immediately
     let _lock = SettlementLock::new(option.id)?;
+    let created_at_time = ic_cdk::api::time();
 
     ic_cdk::println!(
         "settle_single_option: id={}, status={:?}, settlement_price={}",
@@ -82,6 +83,7 @@ pub async fn settle_single_option(
                 subaccount: Some(buyer_subaccount),
             },
             payout_to_buyer,
+            created_at_time,
         )
         .await
         {
