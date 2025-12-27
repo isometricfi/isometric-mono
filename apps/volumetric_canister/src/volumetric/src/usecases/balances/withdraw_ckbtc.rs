@@ -6,6 +6,7 @@ use crate::errors::VolumetricError;
 use crate::generated::ckbtc::{
     RetrieveBtcOk, RetrieveBtcWithApprovalArgs, RetrieveBtcWithApprovalError,
 };
+use crate::locks::WithdrawalLock;
 use crate::storage::{add_available, subtract_available, Config};
 
 pub struct WithdrawParams {
@@ -21,6 +22,9 @@ pub async fn withdraw_ckbtc_use_case(
     principal: Principal,
     params: WithdrawParams,
 ) -> Result<WithdrawResult, VolumetricError> {
+    // bind to _lock, not `let _ =` which drops immediately
+    let _lock = WithdrawalLock::new(principal)?;
+
     subtract_available(principal, params.amount)
         .map_err(|e| VolumetricError::insufficient_balance(e.available, e.required))?;
 

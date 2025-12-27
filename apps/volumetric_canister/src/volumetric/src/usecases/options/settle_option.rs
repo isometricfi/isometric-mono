@@ -2,6 +2,7 @@ use icrc_ledger_types::icrc1::account::Account;
 
 use crate::auth::derive_subaccount;
 use crate::errors::VolumetricError;
+use crate::locks::SettlementLock;
 use crate::oracle::{calculate_call_option_payout, get_btc_usd_price_cents};
 use crate::storage::{
     get_active_option, list_expired_active_options, release_locked_to_recipient,
@@ -28,6 +29,9 @@ pub async fn settle_single_option(
     option: &mut ActiveOption,
     settlement_price_cents: u64,
 ) -> Result<SettlementResult, VolumetricError> {
+    // bind to _lock, not `let _ =` which drops immediately
+    let _lock = SettlementLock::new(option.id)?;
+
     ic_cdk::println!(
         "settle_single_option: id={}, status={:?}, settlement_price={}",
         option.id,
@@ -35,9 +39,6 @@ pub async fn settle_single_option(
         settlement_price_cents
     );
 
-    if option.status == ActiveOptionStatus::Settling {
-        return Err(VolumetricError::option_settling());
-    }
     if option.status != ActiveOptionStatus::Active {
         return Err(VolumetricError::option_already_settled());
     }
