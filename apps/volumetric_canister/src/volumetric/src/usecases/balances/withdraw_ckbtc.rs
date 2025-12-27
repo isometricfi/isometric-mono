@@ -8,7 +8,10 @@ use crate::generated::ckbtc::{
     RetrieveBtcOk, RetrieveBtcWithApprovalArgs, RetrieveBtcWithApprovalError,
 };
 use crate::locks::WithdrawalLock;
-use crate::storage::{add_available, subtract_available, Config};
+use crate::storage::{
+    add_available, complete_withdrawal, create_withdrawal, fail_withdrawal, remove_withdrawal,
+    subtract_available, update_withdrawal_phase, Config, WithdrawalPhase,
+};
 
 pub struct WithdrawParams {
     pub btc_address: String,
@@ -34,6 +37,14 @@ pub async fn withdraw_ckbtc_use_case(
     let ledger = Config::ckbtc_ledger();
     let created_at_time = ic_cdk::api::time();
 
+    let withdrawal = create_withdrawal(
+        principal,
+        params.amount,
+        params.btc_address.clone(),
+        created_at_time,
+    );
+    let withdrawal_id = withdrawal.id;
+
     let approve_args = icrc_ledger_types::icrc2::approve::ApproveArgs {
         from_subaccount: Some(subaccount),
         spender: Account {
@@ -54,6 +65,7 @@ pub async fn withdraw_ckbtc_use_case(
 
     if let Err(e) = approve_response {
         add_available(principal, params.amount);
+        fail_withdrawal(withdrawal_id, format!("icrc2_approve call failed: {:?}", e));
         return Err(VolumetricError::inter_canister_call_failed(&format!(
             "icrc2_approve: {:?}",
             e
@@ -63,6 +75,10 @@ pub async fn withdraw_ckbtc_use_case(
     let approve_result: Result<Nat, ApproveError> =
         approve_response.unwrap().candid().map_err(|e| {
             add_available(principal, params.amount);
+            fail_withdrawal(
+                withdrawal_id,
+                format!("icrc2_approve decode failed: {:?}", e),
+            );
             VolumetricError::inter_canister_call_failed(&format!("icrc2_approve decode: {:?}", e))
         })?;
 
@@ -71,12 +87,15 @@ pub async fn withdraw_ckbtc_use_case(
         Err(ApproveError::Duplicate { duplicate_of: _ }) => {}
         Err(e) => {
             add_available(principal, params.amount);
+            fail_withdrawal(withdrawal_id, format!("icrc2_approve rejected: {:?}", e));
             return Err(VolumetricError::inter_canister_call_failed(&format!(
                 "icrc2_approve rejected: {:?}",
                 e
             )));
         }
     }
+
+    update_withdrawal_phase(withdrawal_id, WithdrawalPhase::Approved);
 
     let retrieve_args = RetrieveBtcWithApprovalArgs {
         address: params.btc_address,
@@ -91,6 +110,10 @@ pub async fn withdraw_ckbtc_use_case(
 
     if let Err(e) = retrieve_response {
         add_available(principal, params.amount);
+        fail_withdrawal(
+            withdrawal_id,
+            format!("retrieve_btc_with_approval call failed: {:?}", e),
+        );
         return Err(VolumetricError::inter_canister_call_failed(&format!(
             "retrieve_btc_with_approval: {:?}",
             e
@@ -100,6 +123,10 @@ pub async fn withdraw_ckbtc_use_case(
     let retrieve_result: Result<RetrieveBtcOk, RetrieveBtcWithApprovalError> =
         retrieve_response.unwrap().candid().map_err(|e| {
             add_available(principal, params.amount);
+            fail_withdrawal(
+                withdrawal_id,
+                format!("retrieve_btc_with_approval decode failed: {:?}", e),
+            );
             VolumetricError::inter_canister_call_failed(&format!(
                 "retrieve_btc_with_approval decode: {:?}",
                 e
@@ -107,11 +134,25 @@ pub async fn withdraw_ckbtc_use_case(
         })?;
 
     match retrieve_result {
-        Ok(ok) => Ok(WithdrawResult {
-            block_index: ok.block_index,
-        }),
+        Ok(ok) => {
+            update_withdrawal_phase(
+                withdrawal_id,
+                WithdrawalPhase::RetrieveRequested {
+                    block_index: ok.block_index,
+                },
+            );
+            complete_withdrawal(withdrawal_id, ok.block_index);
+            remove_withdrawal(withdrawal_id);
+            Ok(WithdrawResult {
+                block_index: ok.block_index,
+            })
+        }
         Err(_) => {
             add_available(principal, params.amount);
+            fail_withdrawal(
+                withdrawal_id,
+                "retrieve_btc_with_approval rejected".to_string(),
+            );
             Err(VolumetricError::inter_canister_call_failed(
                 "retrieve_btc_with_approval rejected",
             ))
