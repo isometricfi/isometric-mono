@@ -18,9 +18,11 @@ pub use api::accounts::{ProfileInfo, UserInfo};
 pub use api::deposits::DepositInfo;
 pub use api::withdrawals::WithdrawResult;
 pub use api::{
-    accept_offers, cancel_offer, create_offer, get_accept_offers_message, get_active_option_by_id,
-    get_cancel_offer_message, get_create_offer_message, get_my_offers, get_my_options,
-    get_my_written_options, get_offer_by_id, get_open_offers, get_pending_settlements,
+    accept_offers, cancel_offer, create_offer, get_accept_by_id, get_accept_offers_message,
+    get_active_option_by_id, get_cancel_offer_message, get_create_offer_message,
+    get_failed_accepts, get_failed_settlements, get_my_offers, get_my_options,
+    get_my_written_options, get_offer_by_id, get_open_offers, get_pending_accepts,
+    get_pending_settlements, get_pending_settlements_journal, get_settlement_by_id,
     settle_expired_options, settle_option_by_id, testing_clear_offers_and_options,
     testing_expire_option, testing_force_settle, testing_set_option_expiry, AcceptOfferItem,
     AcceptOffersRequest, AcceptOffersResponse, CancelOfferRequest, ClearStorageResponse,
@@ -41,9 +43,9 @@ pub use auth::types::{
 pub use errors::VolumetricError;
 pub use generated::ckbtc::{Utxo, UtxoOutpoint, UtxoStatus};
 pub use storage::{
-    ActiveOption, ActiveOptionStatus, Asset, BtcNetwork, FeatureFlags, Offer, OfferStatus,
-    OptionType, PendingWithdrawal, TradingLimits, UserBalance, WithdrawalPhase,
-    MINIMUM_QUANTITY_SATS,
+    AcceptPhase, ActiveOption, ActiveOptionStatus, Asset, BtcNetwork, FeatureFlags, Offer,
+    OfferStatus, OptionType, PendingAccept, PendingSettlement, PendingWithdrawal, SettlementPhase,
+    TradingLimits, UserBalance, WithdrawalPhase, MINIMUM_QUANTITY_SATS,
 };
 
 use crate::storage::{Cbor, Config, CONFIG};
