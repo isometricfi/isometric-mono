@@ -1,6 +1,13 @@
 // mutations
 
 export type {
+  HistoryEntry,
+  MoneyStatus,
+  Output as HistoryData,
+  TradeResult,
+  TradeRole,
+} from "@/lib/use-cases/history/get-history/schema";
+export type {
   OfferData as PortfolioOffer,
   OptionData as PortfolioOption,
   Output as PortfolioData,
@@ -27,6 +34,7 @@ export { type AccountData, useAccount } from "./queries/use-account";
 export { type BtcAddressType, useBtcAddress, useBtcAddresses } from "./queries/use-btc-address";
 export { generatePremiumValues, useConfig } from "./queries/use-config";
 export { useDepositAddress } from "./queries/use-deposit-address";
+export { useHistory } from "./queries/use-history";
 export {
   findBestOffer,
   getMaxLiquiditySats,

@@ -41,7 +41,7 @@ export function OfferCard({ offer, btcPrice, onCancel, isCancelling, rankInfo }:
 
   return (
     <Card className="overflow-hidden transition-all hover:border-primary/50 relative">
-      <CardContent className="p-4 space-y-3">
+      <CardContent className="p-4 pb-3 space-y-3">
         {/* Header: Offer Amount & Remaining */}
         <div className="flex justify-between items-start">
           <div>
