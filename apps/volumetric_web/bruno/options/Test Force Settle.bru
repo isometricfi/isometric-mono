@@ -1,11 +1,11 @@
 meta {
   name: Test Force Settle
   type: http
-  seq: 7
+  seq: 6
 }
 
 post {
-  url: {{baseUrl}}/api/options/test-settle
+  url: {{baseUrl}}/api/trpc/testing.forceSettle
   body: json
   auth: none
 }
@@ -16,6 +16,8 @@ docs {
 
 body:json {
   {
-    "optionId": "1"
+    "json": {
+      "optionId": "1"
+    }
   }
 }

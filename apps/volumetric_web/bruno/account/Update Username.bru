@@ -5,15 +5,21 @@ meta {
 }
 
 post {
-  url: {{baseUrl}}/api/account/username
+  url: {{baseUrl}}/api/trpc/account.updateUsername
   body: json
   auth: none
 }
 
 body:json {
   {
-    "address": "{{address}}",
-    "signature": "{{signature}}",
-    "username": "myusername"
+    "json": {
+      "address": "{{address}}",
+      "signature": "{{signature}}",
+      "username": "{{username}}"
+    }
   }
+}
+
+vars:pre-request {
+  username: dylan
 }

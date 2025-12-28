@@ -88,7 +88,7 @@ pub mod error_codes {
     pub const QUANTITY_BELOW_MINIMUM: ErrorDef = ErrorDef {
         code: 5006,
         name: "QUANTITY_BELOW_MINIMUM",
-        message: "Quantity is below minimum (50,000 sats)",
+        message: "Quantity is below minimum",
     };
     pub const QUANTITY_EXCEEDS_AVAILABLE: ErrorDef = ErrorDef {
         code: 5007,
@@ -174,6 +174,16 @@ pub mod error_codes {
         code: 5023,
         name: "DURATION_ABOVE_MAXIMUM",
         message: "Option duration exceeds maximum",
+    };
+    pub const ACCEPT_IN_PROGRESS: ErrorDef = ErrorDef {
+        code: 5024,
+        name: "ACCEPT_IN_PROGRESS",
+        message: "An accept operation is already in progress for this user",
+    };
+    pub const WITHDRAWAL_IN_PROGRESS: ErrorDef = ErrorDef {
+        code: 5025,
+        name: "WITHDRAWAL_IN_PROGRESS",
+        message: "A withdrawal is already in progress for this user",
     };
 
     // 9xxx: Internal/generic errors
@@ -382,6 +392,14 @@ impl VolumetricError {
             &error_codes::DURATION_ABOVE_MAXIMUM,
             &format!("got: {} seconds, maximum: {} seconds", value, maximum),
         )
+    }
+
+    pub fn accept_in_progress() -> Self {
+        Self::from_def(&error_codes::ACCEPT_IN_PROGRESS)
+    }
+
+    pub fn withdrawal_in_progress() -> Self {
+        Self::from_def(&error_codes::WITHDRAWAL_IN_PROGRESS)
     }
 }
 

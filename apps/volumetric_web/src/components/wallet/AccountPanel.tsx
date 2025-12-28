@@ -5,8 +5,9 @@ import { AnimatePresence, motion } from "framer-motion";
 import { ArrowLeft, Check, CircleArrowDown, CircleArrowUp, LogOut, Settings } from "lucide-react";
 import { useState } from "react";
 import { useMediaQuery } from "react-responsive";
+import { ThemeToggle } from "@/components/layout/ThemeToggle";
 import { Button } from "@/components/ui/button";
-import { Drawer, DrawerContent } from "@/components/ui/drawer";
+import { Drawer, DrawerContent, DrawerTitle } from "@/components/ui/drawer";
 import { DepositModal } from "@/components/wallet/DepositModal";
 import { ProceduralAvatar } from "@/components/wallet/ProceduralAvatar";
 import { WithdrawModal } from "@/components/wallet/WithdrawModal";
@@ -43,6 +44,7 @@ export function AccountPanel({
           isMobile ? "px-4 pb-4 min-h-[75vh]" : "px-5 py-4 mt-4 mb-4 mr-0  rounded-l-3xl",
         )}
       >
+        <DrawerTitle className="sr-only">Account</DrawerTitle>
         <AccountPanelContent onDisconnect={onDisconnect} />
       </DrawerContent>
     </Drawer>
@@ -103,10 +105,10 @@ function AccountPanelContent({ onDisconnect }: { onDisconnect: () => void }) {
             {showSettings ? (
               <motion.div
                 key="back"
-                initial={{ rotate: -90, opacity: 0 }}
-                animate={{ rotate: 0, opacity: 1 }}
-                exit={{ rotate: 90, opacity: 0 }}
-                transition={{ duration: 0.2 }}
+                initial={{ rotate: -90, filter: "blur(1px)" }}
+                animate={{ rotate: 0, filter: "blur(0px)", scale: 1 }}
+                exit={{ rotate: 90, filter: "blur(1px)" }}
+                transition={{ duration: 0.3 }}
               >
                 <ArrowLeft className="size-5" />
               </motion.div>
@@ -242,6 +244,14 @@ function AccountPanelContent({ onDisconnect }: { onDisconnect: () => void }) {
                   {updateUsername.error.message}
                 </Badge>
               )}
+
+              <div className="space-y-2 pt-2">
+                <div className="text-sm text-muted-foreground">System</div>
+                <div className="flex items-center justify-between bg-secondary/50 rounded-full px-4 py-3">
+                  <span className="text-sm font-medium">Appearance</span>
+                  <ThemeToggle />
+                </div>
+              </div>
             </motion.div>
           ) : null}
         </AnimatePresence>

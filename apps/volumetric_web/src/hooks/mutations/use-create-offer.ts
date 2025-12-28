@@ -4,8 +4,8 @@ import { isBitcoinWallet } from "@dynamic-labs/bitcoin";
 import { useDynamicContext } from "@dynamic-labs/sdk-react-core";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import type { CreateOfferResponse } from "@/app/api/options/create/route";
-import { QueryKey } from "@/lib/query-keys";
+import type { Output as CreateOfferOutput } from "@/lib/use-cases/options/create-offer/schema";
+import { trpcClient } from "@/trpc/react";
 import { useBtcAddress } from "../queries/use-btc-address";
 import { useCanister } from "../use-canister";
 
@@ -36,7 +36,7 @@ export function useCreateOffer() {
       strikePercent,
       premiumPercent,
       termDays,
-    }: CreateOfferParams): Promise<CreateOfferResponse> => {
+    }: CreateOfferParams): Promise<CreateOfferOutput> => {
       if (!canister || !address) {
         throw new Error("Wallet not connected");
       }
@@ -68,33 +68,21 @@ export function useCreateOffer() {
       const now = BigInt(Date.now()) * BigInt(1_000_000);
       const offerValidUntil = now + TEN_YEARS_NS;
 
-      const response = await fetch("/api/options/create", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          address,
-          signature,
-          quantity: quantity.toString(),
-          strikeBasisPoints,
-          premiumBasisPoints,
-          offerValidUntil: offerValidUntil.toString(),
-          optionDurationSeconds: optionDurationSeconds.toString(),
-        }),
+      return trpcClient.options.createOffer.mutate({
+        address,
+        signature,
+        quantity: quantity.toString(),
+        strikeBasisPoints,
+        premiumBasisPoints,
+        offerValidUntil: offerValidUntil.toString(),
+        optionDurationSeconds: optionDurationSeconds.toString(),
       });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error?.message || data.error || "Failed to create offer");
-      }
-
-      return data;
     },
     onSuccess: () => {
       setStep("success");
-      queryClient.invalidateQueries({ queryKey: [QueryKey.Options] });
-      queryClient.invalidateQueries({ queryKey: [QueryKey.OpenOffers] });
-      queryClient.invalidateQueries({ queryKey: [QueryKey.AccountInfo] });
+      queryClient.invalidateQueries({ queryKey: [["options"]] });
+      queryClient.invalidateQueries({ queryKey: [["account"]] });
+      queryClient.invalidateQueries({ queryKey: [["portfolio"]] });
     },
     onError: () => {
       setStep("error");

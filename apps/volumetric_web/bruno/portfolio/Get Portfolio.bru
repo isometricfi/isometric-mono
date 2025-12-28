@@ -1,0 +1,11 @@
+meta {
+  name: Get Portfolio
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/api/trpc/portfolio.getPortfolio?input={"json":{"address":"{{address}}"}}
+  body: none
+  auth: none
+}

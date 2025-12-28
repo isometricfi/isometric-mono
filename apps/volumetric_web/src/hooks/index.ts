@@ -1,11 +1,19 @@
-// queries
+// mutations
 
+export type {
+  OfferData as PortfolioOffer,
+  OptionData as PortfolioOption,
+  Output as PortfolioData,
+} from "@/lib/use-cases/portfolio/get-portfolio/schema";
 export {
   type AcceptOfferParams,
   type AcceptOfferStep,
   useAcceptOffer,
 } from "./mutations/use-accept-offer";
-// mutations
+export {
+  type CancelOfferStep,
+  useCancelOffer,
+} from "./mutations/use-cancel-offer";
 export {
   type CreateOfferParams,
   type CreateOfferStep,
@@ -14,6 +22,7 @@ export {
 export { useSyncDeposit } from "./mutations/use-sync-deposit";
 export { type UpdateUsernameParams, useUpdateUsername } from "./mutations/use-update-username";
 export { useWithdraw, type WithdrawParams } from "./mutations/use-withdraw";
+// queries
 export { type AccountData, useAccount } from "./queries/use-account";
 export { type BtcAddressType, useBtcAddress, useBtcAddresses } from "./queries/use-btc-address";
 export { generatePremiumValues, useConfig } from "./queries/use-config";
@@ -21,9 +30,11 @@ export { useDepositAddress } from "./queries/use-deposit-address";
 export {
   findBestOffer,
   getMaxLiquiditySats,
+  getOfferRank,
   getStrikePercentsForTerm,
   useOptions,
 } from "./queries/use-options";
+export { usePortfolio } from "./queries/use-portfolio";
 export { usePrices } from "./queries/use-prices";
 export { useWalletBalance } from "./queries/use-wallet-balance";
 // internal (for message signing)

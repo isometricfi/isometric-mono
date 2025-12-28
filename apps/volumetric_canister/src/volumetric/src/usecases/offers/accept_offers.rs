@@ -4,12 +4,14 @@ use icrc_ledger_types::icrc1::account::Account;
 use crate::auth::derive_subaccount;
 use crate::errors::VolumetricError;
 use crate::guards::{validate_offer_params, OfferParams};
+use crate::locks::AcceptLock;
 use crate::oracle::get_btc_usd_price_cents;
 use crate::storage::{
     add_available, add_platform_fee, calculate_platform_fee, calculate_premium,
-    calculate_strike_price, get_balance, get_offer, get_platform_fee_recipient,
-    insert_active_option, lock_collateral, next_id, subtract_available, unlock_collateral,
-    update_offer, ActiveOption, ActiveOptionStatus, Asset, Config, CounterKey, OfferStatus,
+    calculate_strike_price, complete_accept, create_accept, fail_accept, get_balance, get_offer,
+    get_platform_fee_recipient, insert_active_option, lock_collateral, next_id, remove_accept,
+    subtract_available, unlock_collateral, update_accept_phase, update_offer, AcceptPhase,
+    AcceptedOffer, ActiveOption, ActiveOptionStatus, Asset, Config, CounterKey, OfferStatus,
     OptionType, CKBTC_TRANSFER_FEE,
 };
 
@@ -59,6 +61,10 @@ pub async fn accept_offers_use_case(
     buyer_principal: Principal,
     items: Vec<AcceptOfferItem>,
 ) -> Result<AcceptOffersResult, VolumetricError> {
+    // bind to _lock, not `let _ =` which drops immediately
+    let _lock = AcceptLock::new(buyer_principal)?;
+    let created_at_time = ic_cdk::api::time();
+
     if items.is_empty() {
         return Err(VolumetricError::internal("No items to accept"));
     }
@@ -196,6 +202,27 @@ pub async fn accept_offers_use_case(
         ));
     }
 
+    let accepted_offers: Vec<AcceptedOffer> = validated
+        .iter()
+        .map(|v| AcceptedOffer {
+            offer_id: v.offer_id,
+            writer: v.writer,
+            quantity: v.quantity,
+            collateral_locked: v.quantity,
+            premium_to_writer: v.premium_to_writer,
+            platform_fee: v.platform_fee,
+            option_id: v.option_id,
+        })
+        .collect();
+
+    let journal_entry = create_accept(
+        buyer_principal,
+        total_premium_required,
+        accepted_offers,
+        fill_group_id,
+    );
+    let accept_id = journal_entry.id;
+
     let mut locked_states: Vec<LockedState> = Vec::with_capacity(validated.len());
 
     for v in &validated {
@@ -203,6 +230,7 @@ pub async fn accept_offers_use_case(
 
         if let Err(e) = lock_collateral(v.writer, collateral_to_lock) {
             rollback_locks(&locked_states);
+            fail_accept(accept_id, format!("lock_collateral failed: {:?}", e));
             return Err(VolumetricError::insufficient_balance(
                 e.available,
                 e.required,
@@ -223,22 +251,36 @@ pub async fn accept_offers_use_case(
         });
     }
 
+    update_accept_phase(accept_id, AcceptPhase::CollateralLocked);
+
     if let Err(e) = subtract_available(buyer_principal, total_premium_required) {
         rollback_locks(&locked_states);
+        fail_accept(accept_id, format!("subtract_available failed: {:?}", e));
         return Err(VolumetricError::insufficient_balance(
             e.available,
             e.required,
         ));
     }
 
+    update_accept_phase(accept_id, AcceptPhase::BuyerDebited);
+
     for transfer in pending_transfers {
-        if let Err(e) = transfer_ckbtc(transfer.from_subaccount, transfer.to, transfer.amount).await
+        if let Err(e) = transfer_ckbtc(
+            transfer.from_subaccount,
+            transfer.to,
+            transfer.amount,
+            created_at_time,
+        )
+        .await
         {
             rollback_locks(&locked_states);
             add_available(buyer_principal, total_premium_required);
+            fail_accept(accept_id, format!("transfer_ckbtc failed: {:?}", e));
             return Err(e);
         }
     }
+
+    update_accept_phase(accept_id, AcceptPhase::TransfersComplete);
 
     let mut active_options: Vec<ActiveOption> = Vec::with_capacity(validated.len());
 
@@ -275,6 +317,9 @@ pub async fn accept_offers_use_case(
 
         active_options.push(active_option);
     }
+
+    complete_accept(accept_id);
+    remove_accept(accept_id);
 
     Ok(AcceptOffersResult {
         active_options,

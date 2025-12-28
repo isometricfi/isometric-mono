@@ -4,8 +4,8 @@ import { isBitcoinWallet } from "@dynamic-labs/bitcoin";
 import { useDynamicContext } from "@dynamic-labs/sdk-react-core";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import type { CreateAccountResponse } from "@/app/api/account/create/route";
 import { useBtcAddress, useCanister } from "@/hooks";
+import type { Output as CreateAccountOutput } from "@/lib/use-cases/account/create-account/schema";
 
 export function CreateAccount() {
   const { primaryWallet } = useDynamicContext();
@@ -38,7 +38,7 @@ export function CreateAccount() {
   });
 
   const createAccountMutation = useMutation({
-    mutationFn: async (): Promise<CreateAccountResponse> => {
+    mutationFn: async (): Promise<CreateAccountOutput> => {
       setError(null);
 
       if (!primaryWallet || !isBitcoinWallet(primaryWallet)) {

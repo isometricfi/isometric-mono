@@ -5,16 +5,18 @@ meta {
 }
 
 post {
-  url: {{baseUrl}}/api/account/withdraw
+  url: {{baseUrl}}/api/trpc/account.withdraw
   body: json
   auth: none
 }
 
 body:json {
   {
-    "address": "{{address}}",
-    "signature": "{{signature}}",
-    "btcAddress": "tb1qwithdrawaddress",
-    "amount": "10000"
+    "json": {
+      "address": "{{address}}",
+      "signature": "{{signature}}",
+      "btcAddress": "{{btcAddress}}",
+      "amount": "{{amount}}"
+    }
   }
 }

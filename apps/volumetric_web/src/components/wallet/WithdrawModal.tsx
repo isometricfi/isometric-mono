@@ -2,15 +2,16 @@
 
 import { useDynamicContext } from "@dynamic-labs/sdk-react-core";
 import { AnimatePresence, motion } from "framer-motion";
-import { CheckCircle2, CircleArrowUp, Loader2 } from "lucide-react";
+import { CheckCircle2, CircleArrowUp, Loader2, XCircle } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useMediaQuery } from "react-responsive";
 import { AmountInput } from "@/components/options/AmountInput";
-import { AlertDialog, AlertDialogContent } from "@/components/ui/alert-dialog";
+import { AlertDialog, AlertDialogContent, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
-import { Drawer, DrawerContent } from "@/components/ui/drawer";
+import { Drawer, DrawerContent, DrawerTitle } from "@/components/ui/drawer";
 import { useAccount, useConfig, useWithdraw } from "@/hooks";
 import {
+  DEFAULT_MIN_WITHDRAW_SATS,
   formatBtcBigint,
   formatBtcWithSymbol,
   formatBtcWithSymbolBigint,
@@ -43,7 +44,7 @@ export function WithdrawModal({
   const [amountBtc, setAmountBtc] = useState("");
   const [error, setError] = useState<string | null>(null);
 
-  const minWithdrawSats = BigInt(config?.minWithdrawAmountSats ?? 50_000);
+  const minWithdrawSats = BigInt(config?.minWithdrawAmountSats ?? DEFAULT_MIN_WITHDRAW_SATS);
 
   const enteredAmountSats = useMemo(() => parseBtcToSatsBigint(amountBtc), [amountBtc]);
   const isBelowMinimum = enteredAmountSats < minWithdrawSats;
@@ -194,7 +195,7 @@ export function WithdrawModal({
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0 }}
-            className="flex flex-col items-center justify-center py-12 space-y-4"
+            className="flex flex-col items-center justify-center space-y-4"
           >
             <motion.div
               initial={{ scale: 0 }}
@@ -209,11 +210,13 @@ export function WithdrawModal({
             >
               <CheckCircle2 className="size-8 text-green-500" />
             </motion.div>
-            <div className="text-center">
-              <h3 className="font-semibold">Withdrawal submitted</h3>
+
+            <div className="text-center space-y-2">
+              <h3 className="text-xl font-semibold">Withdrawal submitted</h3>
               <p className="text-sm text-muted-foreground">Your BTC is on its way to your wallet</p>
             </div>
-            <Button className="mt-4" onClick={() => handleClose(false)}>
+
+            <Button className="w-full mt-2" onClick={() => handleClose(false)}>
               Done
             </Button>
           </motion.div>
@@ -225,23 +228,32 @@ export function WithdrawModal({
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
-            className="space-y-5"
+            className="flex flex-col items-center justify-center space-y-4"
           >
-            <div className="flex flex-col items-center justify-center py-8 space-y-4">
-              <div className="size-16 rounded-full bg-destructive/10 flex items-center justify-center">
-                <span className="text-2xl">⚠️</span>
-              </div>
-              <div className="text-center">
-                <h3 className="font-semibold">Something went wrong</h3>
-                <p className="text-sm text-destructive">{error}</p>
-              </div>
+            <motion.div
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{
+                type: "spring",
+                stiffness: 200,
+                damping: 15,
+              }}
+              className="size-16 rounded-full bg-destructive/10 flex items-center justify-center"
+            >
+              <XCircle className="size-8 text-destructive" />
+            </motion.div>
+
+            <div className="text-center space-y-2">
+              <h3 className="text-xl font-semibold">Something went wrong</h3>
+              <p className="text-sm text-destructive max-w-xs">{error}</p>
             </div>
-            <div className="flex gap-3">
+
+            <div className="flex gap-3 w-full pt-2">
               <Button variant="outline" className="flex-1" onClick={() => handleClose(false)}>
                 Close
               </Button>
               <Button className="flex-1" onClick={() => setStep("input")}>
-                Try again
+                Try Again
               </Button>
             </div>
           </motion.div>
@@ -253,14 +265,20 @@ export function WithdrawModal({
   if (isMobile) {
     return (
       <Drawer open={open} onOpenChange={handleClose} repositionInputs={false}>
-        <DrawerContent className="px-5 pb-4">{content}</DrawerContent>
+        <DrawerContent className="px-5 pb-4">
+          <DrawerTitle className="sr-only">Withdraw BTC</DrawerTitle>
+          {content}
+        </DrawerContent>
       </Drawer>
     );
   }
 
   return (
     <AlertDialog open={open} onOpenChange={handleClose}>
-      <AlertDialogContent className="sm:max-w-md">{content}</AlertDialogContent>
+      <AlertDialogContent className="sm:max-w-md">
+        <AlertDialogTitle className="sr-only">Withdraw BTC</AlertDialogTitle>
+        {content}
+      </AlertDialogContent>
     </AlertDialog>
   );
 }

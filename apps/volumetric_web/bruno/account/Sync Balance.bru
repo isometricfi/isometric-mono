@@ -5,13 +5,15 @@ meta {
 }
 
 post {
-  url: {{baseUrl}}/api/account/sync-balance/update
+  url: {{baseUrl}}/api/trpc/account.syncBalance
   body: json
   auth: none
 }
 
 body:json {
   {
-    "address": "{{address}}"
+    "json": {
+      "address": "{{address}}"
+    }
   }
 }

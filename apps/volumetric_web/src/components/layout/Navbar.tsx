@@ -1,18 +1,18 @@
 "use client";
 
-import { Moon, Sun } from "lucide-react";
+import { useDynamicContext } from "@dynamic-labs/sdk-react-core";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useTheme } from "next-themes";
 import { useDynamicConfig } from "@/app/providers/dynamic-provider";
+import { ThemeToggle } from "@/components/layout/ThemeToggle";
 import { Button } from "@/components/ui/button";
 import { ConnectButton } from "@/components/wallet/ConnectButton";
 import { cn } from "@/lib/utils";
 
 export function Navbar() {
   const pathname = usePathname();
-  const { theme, setTheme } = useTheme();
+  const { primaryWallet } = useDynamicContext();
   const { isConfigured } = useDynamicConfig();
   const isLandingPage = pathname === "/";
 
@@ -59,15 +59,11 @@ export function Navbar() {
             )}
           </div>
           <div className="flex items-center gap-3 justify-center md:justify-end">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setTheme(theme === "light" ? "dark" : "light")}
-              aria-label="Toggle theme"
-              className="md:flex hidden  items-center justify-center"
-            >
-              {theme === "light" ? <Moon className="size-5" /> : <Sun className="size-5" />}
-            </Button>
+            {!primaryWallet && (
+              <div className="md:flex hidden">
+                <ThemeToggle />
+              </div>
+            )}
 
             {isLandingPage ? (
               <Button asChild>

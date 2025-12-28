@@ -4,6 +4,23 @@ type AcceptOffersResponse = record {
   fill_group_id : nat64;
   active_options : vec ActiveOption;
 };
+type AcceptPhase = variant {
+  Started;
+  Failed : record { reason : text };
+  CollateralLocked;
+  BuyerDebited;
+  TransfersComplete;
+  Completed;
+};
+type AcceptedOffer = record {
+  writer : principal;
+  option_id : nat64;
+  collateral_locked : nat64;
+  offer_id : nat64;
+  quantity : nat64;
+  premium_to_writer : nat64;
+  platform_fee : nat64;
+};
 type Account = record { owner : principal; subaccount : opt blob };
 type ActiveOption = record {
   id : nat64;
@@ -40,10 +57,14 @@ type AuthenticatedPayload_3 = record {
   wallet_proof : WalletProof;
 };
 type AuthenticatedPayload_4 = record {
-  data : UpdateUsernameRequest;
+  data : null;
   wallet_proof : WalletProof;
 };
 type AuthenticatedPayload_5 = record {
+  data : UpdateUsernameRequest;
+  wallet_proof : WalletProof;
+};
+type AuthenticatedPayload_6 = record {
   data : WithdrawCkbtcRequest;
   wallet_proof : WalletProof;
 };
@@ -98,6 +119,37 @@ type OfferStatus = variant {
   Processing;
 };
 type OptionType = variant { Call };
+type PendingAccept = record {
+  id : nat64;
+  updated_at : nat64;
+  fill_group_id : nat64;
+  offers : vec AcceptedOffer;
+  created_at : nat64;
+  buyer : principal;
+  phase : AcceptPhase;
+  total_premium : nat64;
+};
+type PendingSettlement = record {
+  updated_at : nat64;
+  payout_to_buyer : nat64;
+  created_at : nat64;
+  writer : principal;
+  option_id : nat64;
+  buyer : principal;
+  phase : SettlementPhase;
+  settlement_price_cents : nat64;
+  payout_to_writer : nat64;
+};
+type PendingWithdrawal = record {
+  id : nat64;
+  updated_at : nat64;
+  "principal" : principal;
+  created_at : nat64;
+  phase : WithdrawalPhase;
+  created_at_time : nat64;
+  amount : nat64;
+  btc_address : text;
+};
 type ProfileInfo = record {
   "principal" : principal;
   username : opt text;
@@ -108,27 +160,40 @@ type Range = record { max : nat64; min : nat64 };
 type Range_1 = record { max : nat16; min : nat16 };
 type Result = variant { Ok : AcceptOffersResponse; Err : VolumetricError };
 type Result_1 = variant { Ok; Err : VolumetricError };
-type Result_10 = variant {
+type Result_10 = variant { Ok : vec PendingWithdrawal; Err : VolumetricError };
+type Result_11 = variant { Ok : vec Offer; Err : VolumetricError };
+type Result_12 = variant { Ok : vec ActiveOption; Err : VolumetricError };
+type Result_13 = variant { Ok : opt PendingSettlement; Err : VolumetricError };
+type Result_14 = variant { Ok : UserBalanceInfo; Err : VolumetricError };
+type Result_15 = variant { Ok : opt PendingWithdrawal; Err : VolumetricError };
+type Result_16 = variant {
   Ok : SettleExpiredOptionsResponse;
   Err : VolumetricError;
 };
-type Result_11 = variant { Ok : SettlementResult; Err : VolumetricError };
-type Result_12 = variant { Ok : ClearStorageResponse; Err : VolumetricError };
-type Result_13 = variant { Ok : ActiveOption; Err : VolumetricError };
-type Result_14 = variant { Ok : nat64; Err : VolumetricError };
-type Result_15 = variant { Ok : vec UtxoStatus; Err : VolumetricError };
-type Result_16 = variant { Ok : WithdrawResult; Err : VolumetricError };
+type Result_17 = variant { Ok : SettlementResult; Err : VolumetricError };
+type Result_18 = variant { Ok : ClearStorageResponse; Err : VolumetricError };
+type Result_19 = variant { Ok : ActiveOption; Err : VolumetricError };
 type Result_2 = variant { Ok : Offer; Err : VolumetricError };
+type Result_20 = variant { Ok : nat64; Err : VolumetricError };
+type Result_21 = variant { Ok : vec UtxoStatus; Err : VolumetricError };
+type Result_22 = variant { Ok : WithdrawResult; Err : VolumetricError };
 type Result_3 = variant { Ok : ProfileInfo; Err : VolumetricError };
 type Result_4 = variant { Ok : CreateOfferResponse; Err : VolumetricError };
-type Result_5 = variant { Ok : nat; Err : VolumetricError };
-type Result_6 = variant { Ok : DepositInfo; Err : VolumetricError };
-type Result_7 = variant { Ok : vec Offer; Err : VolumetricError };
-type Result_8 = variant { Ok : vec ActiveOption; Err : VolumetricError };
-type Result_9 = variant { Ok : UserBalanceInfo; Err : VolumetricError };
+type Result_5 = variant { Ok : opt PendingAccept; Err : VolumetricError };
+type Result_6 = variant { Ok : nat; Err : VolumetricError };
+type Result_7 = variant { Ok : DepositInfo; Err : VolumetricError };
+type Result_8 = variant { Ok : vec PendingAccept; Err : VolumetricError };
+type Result_9 = variant { Ok : vec PendingSettlement; Err : VolumetricError };
 type SettleExpiredOptionsResponse = record {
   settled : vec SettlementResult;
   errors : vec text;
+};
+type SettlementPhase = variant {
+  Started;
+  Failed : record { reason : text };
+  TransferComplete;
+  BalanceReleased;
+  Completed;
 };
 type SettlementResult = record {
   status : ActiveOptionStatus;
@@ -174,34 +239,51 @@ type VolumetricError = record {
 type WalletProof = record { signature : text; address : text };
 type WithdrawCkbtcRequest = record { amount : nat64; btc_address : text };
 type WithdrawResult = record { block_index : nat64 };
+type WithdrawalPhase = variant {
+  Started;
+  Failed : record { reason : text };
+  RetrieveRequested : record { block_index : nat64 };
+  Approved;
+  Completed : record { block_index : nat64 };
+};
 service : (opt BtcNetwork) -> {
   accept_offers : (AuthenticatedPayload) -> (Result);
   add_whitelisted : (principal) -> (Result_1);
   cancel_offer : (AuthenticatedPayload_1) -> (Result_2);
   create_account : (AuthenticatedPayload_2) -> (Result_3);
   create_offer : (AuthenticatedPayload_3) -> (Result_4);
+  get_accept_by_id : (nat64) -> (Result_5) query;
   get_accept_offers_message : (text, vec AcceptOfferItem) -> (text) query;
   get_account_info : (text) -> (opt ProfileInfo) query;
   get_account_nonce : (text) -> (nat64) query;
   get_active_option_by_id : (nat64) -> (opt ActiveOption) query;
   get_cancel_offer_message : (text, nat64) -> (text) query;
-  get_ckbtc_balance : (text) -> (Result_5);
+  get_ckbtc_balance : (text) -> (Result_6);
   get_config : () -> (Config) query;
   get_create_offer_message : (text, nat64, nat16, nat16) -> (text) query;
-  get_deposit_address : (text) -> (Result_6);
+  get_deposit_address : (text) -> (Result_7);
+  get_failed_accepts : () -> (Result_8) query;
+  get_failed_settlements : () -> (Result_9) query;
+  get_failed_withdrawals : () -> (Result_10) query;
   get_feature_flags : () -> (FeatureFlags) query;
   get_message_to_sign : (text) -> (text) query;
-  get_my_offers : (text) -> (Result_7) query;
-  get_my_options : (text) -> (Result_8) query;
-  get_my_written_options : (text) -> (Result_8) query;
+  get_my_offers : (text) -> (Result_11) query;
+  get_my_options : (text) -> (Result_12) query;
+  get_my_pending_withdrawals : (AuthenticatedPayload_4) -> (Result_10) query;
+  get_my_written_options : (text) -> (Result_12) query;
   get_offer_by_id : (nat64) -> (opt Offer) query;
   get_open_offers : () -> (vec Offer) query;
+  get_pending_accepts : () -> (Result_8) query;
   get_pending_settlements : () -> (vec ActiveOption) query;
+  get_pending_settlements_journal : () -> (Result_9) query;
+  get_pending_withdrawals : () -> (Result_10) query;
   get_platform_fee_info : () -> (nat64, nat64) query;
+  get_settlement_by_id : (nat64) -> (Result_13) query;
   get_trading_limits : () -> (TradingLimits) query;
-  get_user_balance : (text) -> (Result_9) query;
+  get_user_balance : (text) -> (Result_14) query;
   get_username_update_message : (text, text) -> (text) query;
   get_withdraw_message : (text, text, nat64) -> (text) query;
+  get_withdrawal_by_id : (nat64) -> (Result_15) query;
   greet : (text) -> (text) query;
   list_users : () -> (vec UserInfo) query;
   list_whitelisted : () -> (vec principal) query;
@@ -209,16 +291,16 @@ service : (opt BtcNetwork) -> {
   set_feature_flags : (FeatureFlags) -> (Result_1);
   set_oracle_price : (nat64) -> (Result_1);
   set_trading_limits : (TradingLimits) -> (Result_1);
-  settle_expired_options : () -> (Result_10);
-  settle_option_by_id : (nat64) -> (Result_11);
+  settle_expired_options : () -> (Result_16);
+  settle_option_by_id : (nat64) -> (Result_17);
   // Testing endpoint to clear all offers and active options from storage.
   // Use this for storage migration when schema changes break deserialization.
-  testing_clear_offers_and_options : () -> (Result_12);
-  testing_expire_option : (nat64) -> (Result_13);
-  testing_force_settle : (nat64) -> (Result_11);
-  testing_set_option_expiry : (nat64, nat64) -> (Result_13);
-  testing_sync_balance_from_ledger : (text) -> (Result_14);
-  update_ckbtc_balance : (text) -> (Result_15);
-  update_username : (AuthenticatedPayload_4) -> (Result_3);
-  withdraw_ckbtc : (AuthenticatedPayload_5) -> (Result_16);
+  testing_clear_offers_and_options : () -> (Result_18);
+  testing_expire_option : (nat64) -> (Result_19);
+  testing_force_settle : (nat64) -> (Result_17);
+  testing_set_option_expiry : (nat64, nat64) -> (Result_19);
+  testing_sync_balance_from_ledger : (text) -> (Result_20);
+  update_ckbtc_balance : (text) -> (Result_21);
+  update_username : (AuthenticatedPayload_5) -> (Result_3);
+  withdraw_ckbtc : (AuthenticatedPayload_6) -> (Result_22);
 }

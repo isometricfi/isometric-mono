@@ -1,0 +1,21 @@
+meta {
+  name: Cancel Offer
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseUrl}}/api/trpc/options.cancelOffer
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "json": {
+      "address": "{{address}}",
+      "signature": "{{signature}}",
+      "offerId": "1"
+    }
+  }
+}

@@ -1,15 +1,11 @@
 meta {
-  name: Get Volumetric Config
+  name: Get Canister Config
   type: http
   seq: 2
 }
 
 get {
-  url: {{baseUrl}}/api/volumetric-config
+  url: {{baseUrl}}/api/trpc/config.getCanisterConfig
   body: none
   auth: none
-}
-
-docs {
-  Returns trading limits and UI configuration from the canister
 }

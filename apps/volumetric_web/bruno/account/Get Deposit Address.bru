@@ -4,14 +4,8 @@ meta {
   seq: 4
 }
 
-post {
-  url: {{baseUrl}}/api/account/deposit-address
-  body: json
+get {
+  url: {{baseUrl}}/api/trpc/account.getDepositAddress?input={"json":{"address":"{{address}}"}}
+  body: none
   auth: none
-}
-
-body:json {
-  {
-    "address": "{{address}}"
-  }
 }

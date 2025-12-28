@@ -4,8 +4,8 @@ import { isBitcoinWallet } from "@dynamic-labs/bitcoin";
 import { useDynamicContext } from "@dynamic-labs/sdk-react-core";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import type { AcceptOffersResponse } from "@/app/api/options/accept/route";
-import { QueryKey } from "@/lib/query-keys";
+import type { Output as AcceptOffersOutput } from "@/lib/use-cases/options/accept-offers/schema";
+import { trpcClient } from "@/trpc/react";
 import { useBtcAddress } from "../queries/use-btc-address";
 import { useCanister } from "../use-canister";
 
@@ -28,7 +28,7 @@ export function useAcceptOffer() {
     mutationFn: async ({
       offerId,
       quantitySats,
-    }: AcceptOfferParams): Promise<AcceptOffersResponse> => {
+    }: AcceptOfferParams): Promise<AcceptOffersOutput> => {
       if (!canister || !address) {
         throw new Error("Wallet not connected");
       }
@@ -48,29 +48,17 @@ export function useAcceptOffer() {
 
       setStep("submitting");
 
-      const response = await fetch("/api/options/accept", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          address,
-          signature,
-          items: [{ offerId, quantity: quantitySats.toString() }],
-        }),
+      return trpcClient.options.acceptOffers.mutate({
+        address,
+        signature,
+        items: [{ offerId, quantity: quantitySats.toString() }],
       });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error?.message || data.error || "Failed to accept offer");
-      }
-
-      return data;
     },
     onSuccess: () => {
       setStep("success");
-      queryClient.invalidateQueries({ queryKey: [QueryKey.Options] });
-      queryClient.invalidateQueries({ queryKey: [QueryKey.OpenOffers] });
-      queryClient.invalidateQueries({ queryKey: [QueryKey.AccountInfo] });
+      queryClient.invalidateQueries({ queryKey: [["options"]] });
+      queryClient.invalidateQueries({ queryKey: [["account"]] });
+      queryClient.invalidateQueries({ queryKey: [["portfolio"]] });
     },
     onError: () => {
       setStep("error");

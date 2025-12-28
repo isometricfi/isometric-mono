@@ -24,9 +24,11 @@ pub use offers::{
     get_offer_by_id, get_open_offers, CancelOfferRequest, CreateOfferRequest, CreateOfferResponse,
 };
 pub use options::{
-    accept_offers, get_accept_offers_message, get_active_option_by_id, get_my_options,
-    get_my_written_options, testing_clear_offers_and_options, AcceptOfferItem, AcceptOffersRequest,
-    AcceptOffersResponse, ClearStorageResponse,
+    accept_offers, get_accept_by_id, get_accept_offers_message, get_active_option_by_id,
+    get_failed_accepts, get_failed_settlements, get_my_options, get_my_written_options,
+    get_pending_accepts, get_pending_settlements_journal, get_settlement_by_id,
+    testing_clear_offers_and_options, AcceptOfferItem, AcceptOffersRequest, AcceptOffersResponse,
+    ClearStorageResponse,
 };
 pub use settlement::{
     get_pending_settlements, settle_expired_options, settle_option_by_id, setup_settlement_timer,
@@ -34,4 +36,7 @@ pub use settlement::{
     SettleExpiredOptionsResponse, SettlementResult,
 };
 pub use whitelist::{add_whitelisted, list_whitelisted, remove_whitelisted};
-pub use withdrawals::{get_withdraw_message, withdraw_ckbtc};
+pub use withdrawals::{
+    get_failed_withdrawals, get_my_pending_withdrawals, get_pending_withdrawals,
+    get_withdraw_message, get_withdrawal_by_id, withdraw_ckbtc,
+};

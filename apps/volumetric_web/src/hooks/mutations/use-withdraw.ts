@@ -3,8 +3,8 @@
 import { isBitcoinWallet } from "@dynamic-labs/bitcoin";
 import { useDynamicContext } from "@dynamic-labs/sdk-react-core";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import type { WithdrawCkbtcResponse } from "@/app/api/account/withdraw/route";
-import { QueryKey } from "@/lib/query-keys";
+import type { Output as WithdrawOutput } from "@/lib/use-cases/account/withdraw/schema";
+import { trpcClient } from "@/trpc/react";
 import { useBtcAddress } from "../queries/use-btc-address";
 import { useCanister } from "../use-canister";
 
@@ -19,11 +19,8 @@ export function useWithdraw() {
   const address = useBtcAddress("payment");
   const queryClient = useQueryClient();
 
-  return useMutation<WithdrawCkbtcResponse, Error, WithdrawParams>({
-    mutationFn: async ({
-      amountSats,
-      btcAddress,
-    }: WithdrawParams): Promise<WithdrawCkbtcResponse> => {
+  return useMutation<WithdrawOutput, Error, WithdrawParams>({
+    mutationFn: async ({ amountSats, btcAddress }: WithdrawParams): Promise<WithdrawOutput> => {
       if (!canister || !address) {
         throw new Error("Wallet not connected");
       }
@@ -44,27 +41,15 @@ export function useWithdraw() {
         throw new Error("Failed to sign message");
       }
 
-      const response = await fetch("/api/account/withdraw", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          address,
-          signature,
-          btcAddress,
-          amount: amountSats.toString(),
-        }),
+      return trpcClient.account.withdraw.mutate({
+        address,
+        signature,
+        btcAddress,
+        amount: amountSats.toString(),
       });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error?.message || data.error || "Failed to withdraw");
-      }
-
-      return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [QueryKey.AccountInfo] });
+      queryClient.invalidateQueries({ queryKey: [["account"]] });
     },
   });
 }
