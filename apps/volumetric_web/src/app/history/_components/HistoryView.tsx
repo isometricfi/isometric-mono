@@ -30,12 +30,10 @@ export function HistoryView() {
   }
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-6 items-center">
       <div className="text-center space-y-2">
-        <h1 className="text-3xl font-bold">Trading History</h1>
-        <p className="text-muted-foreground">View all your completed trades</p>
+        <h1 className="text-3xl font-bold">Trading history</h1>
       </div>
-
       <HistoryTable />
     </div>
   );

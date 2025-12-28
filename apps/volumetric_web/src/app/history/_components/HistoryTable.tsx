@@ -10,10 +10,21 @@ import {
   type SortingState,
   useReactTable,
 } from "@tanstack/react-table";
-import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, X } from "lucide-react";
-import { useState } from "react";
+import { format } from "date-fns";
+import {
+  Calendar as CalendarIcon,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
+  X,
+} from "lucide-react";
+import { useMemo, useState } from "react";
+import type { DateRange } from "react-day-picker";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   Select,
   SelectContent,
@@ -31,20 +42,34 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useHistory } from "@/hooks";
+import { cn } from "@/lib/utils";
 import { columns } from "./columns";
 
-const PAGE_SIZE = 25;
+const PAGE_SIZE = 15;
 
 export function HistoryTable() {
   const { data: history, isLoading } = useHistory();
   const [sorting, setSorting] = useState<SortingState>([{ id: "settledAt", desc: true }]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [roleFilter, setRoleFilter] = useState<string>("all");
-  const [moneyStatusFilter, setMoneyStatusFilter] = useState<string>("all");
   const [resultFilter, setResultFilter] = useState<string>("all");
+  const [dateRange, setDateRange] = useState<DateRange | undefined>();
+
+  const filteredData = useMemo(() => {
+    const entries = history?.entries ?? [];
+    if (!dateRange?.from) return entries;
+
+    const fromTime = dateRange.from.getTime();
+    const toTime = dateRange.to ? dateRange.to.getTime() + 86400000 : fromTime + 86400000;
+
+    return entries.filter((entry) => {
+      const entryMs = Number(entry.settledAt / BigInt(1_000_000));
+      return entryMs >= fromTime && entryMs <= toTime;
+    });
+  }, [history?.entries, dateRange]);
 
   const table = useReactTable({
-    data: history?.entries ?? [],
+    data: filteredData,
     columns,
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
@@ -72,15 +97,6 @@ export function HistoryTable() {
     }
   };
 
-  const handleMoneyStatusFilterChange = (value: string) => {
-    setMoneyStatusFilter(value);
-    if (value === "all") {
-      table.getColumn("moneyStatus")?.setFilterValue(undefined);
-    } else {
-      table.getColumn("moneyStatus")?.setFilterValue([value]);
-    }
-  };
-
   const handleResultFilterChange = (value: string) => {
     setResultFilter(value);
     if (value === "all") {
@@ -92,17 +108,17 @@ export function HistoryTable() {
 
   const clearFilters = () => {
     setRoleFilter("all");
-    setMoneyStatusFilter("all");
     setResultFilter("all");
+    setDateRange(undefined);
     setColumnFilters([]);
   };
 
   const hasActiveFilters =
-    roleFilter !== "all" || moneyStatusFilter !== "all" || resultFilter !== "all";
+    roleFilter !== "all" || resultFilter !== "all" || dateRange !== undefined;
 
   if (isLoading) {
     return (
-      <div className="space-y-4">
+      <div className="space-y-4 w-full max-w-5xl">
         <div className="flex gap-2">
           <Skeleton className="h-10 w-32" />
           <Skeleton className="h-10 w-32" />
@@ -125,10 +141,44 @@ export function HistoryTable() {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4  w-full  ">
       <div className="flex flex-wrap gap-2 items-center">
+        <Popover>
+          <PopoverTrigger asChild className="md:flex hidden">
+            <Button
+              variant="outline"
+              className={cn(
+                "justify-start text-left font-normal h-9 px-3",
+                !dateRange && "text-muted-foreground",
+              )}
+            >
+              <CalendarIcon className=" size-4" />
+              {dateRange?.from ? (
+                dateRange.to ? (
+                  <>
+                    {format(dateRange.from, "dd/MM/yy")} - {format(dateRange.to, "dd/MM/yy")}
+                  </>
+                ) : (
+                  format(dateRange.from, "dd/MM/yy")
+                )
+              ) : (
+                <span>Date range</span>
+              )}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-0" align="start">
+            <Calendar
+              mode="range"
+              defaultMonth={dateRange?.from}
+              selected={dateRange}
+              onSelect={setDateRange}
+              numberOfMonths={2}
+            />
+          </PopoverContent>
+        </Popover>
+
         <Select value={roleFilter} onValueChange={handleRoleFilterChange}>
-          <SelectTrigger className="w-[130px]">
+          <SelectTrigger className=" h-9 md:flex hidden">
             <SelectValue placeholder="Role" />
           </SelectTrigger>
           <SelectContent>
@@ -138,20 +188,8 @@ export function HistoryTable() {
           </SelectContent>
         </Select>
 
-        <Select value={moneyStatusFilter} onValueChange={handleMoneyStatusFilterChange}>
-          <SelectTrigger className="w-[130px]">
-            <SelectValue placeholder="Status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Status</SelectItem>
-            <SelectItem value="itm">ITM</SelectItem>
-            <SelectItem value="otm">OTM</SelectItem>
-            <SelectItem value="atm">ATM</SelectItem>
-          </SelectContent>
-        </Select>
-
         <Select value={resultFilter} onValueChange={handleResultFilterChange}>
-          <SelectTrigger className="w-[130px]">
+          <SelectTrigger className=" h-9 md:flex hidden">
             <SelectValue placeholder="Result" />
           </SelectTrigger>
           <SelectContent>
@@ -163,20 +201,20 @@ export function HistoryTable() {
         </Select>
 
         {hasActiveFilters && (
-          <Button variant="ghost" size="sm" onClick={clearFilters} className="h-10">
+          <Button variant="ghost" size="sm" onClick={clearFilters} className="h-9 px-2">
             <X className="size-4 mr-1" />
-            Clear filters
+            Clear
           </Button>
         )}
 
         <div className="ml-auto flex items-center gap-2">
-          <Badge variant="outline" className="text-muted-foreground">
+          <Badge variant="outline" className="text-muted-foreground font-normal">
             {table.getFilteredRowModel().rows.length} trades
           </Badge>
         </div>
       </div>
 
-      <div className="rounded-lg border overflow-hidden">
+      <div className="rounded-[8px] border overflow-hidden">
         <Table>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (

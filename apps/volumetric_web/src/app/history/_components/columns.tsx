@@ -4,7 +4,6 @@ import type { ColumnDef } from "@tanstack/react-table";
 import { format } from "date-fns";
 import { ArrowDown, ArrowUp, ArrowUpDown, PenLine, ShoppingCart, TrendingUp } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import type { HistoryEntry } from "@/hooks";
 import { cn, formatBtcBigint, SATS_PER_BTC } from "@/lib/utils";
 
@@ -17,30 +16,40 @@ function formatUsd(cents: bigint): string {
 
 function formatDate(ns: bigint): string {
   const ms = Number(ns / NS_PER_MS);
-  return format(new Date(ms), "MMM d, yyyy");
+  return format(new Date(ms), "dd/MM/yyyy");
+}
+
+function formatTime(ns: bigint): string {
+  const ms = Number(ns / NS_PER_MS);
+  return format(new Date(ms), "HH:mm ");
 }
 
 export const columns: ColumnDef<HistoryEntry>[] = [
   {
     accessorKey: "settledAt",
     header: ({ column }) => (
-      <Button
-        variant="ghost"
+      <button
+        type="button"
+        className="flex items-center gap-1 cursor-pointer select-none"
         onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-        className="-ml-4"
       >
         Date
         {column.getIsSorted() === "asc" ? (
-          <ArrowUp className="ml-1 size-3" />
+          <ArrowUp className="size-3" />
         ) : column.getIsSorted() === "desc" ? (
-          <ArrowDown className="ml-1 size-3" />
+          <ArrowDown className="size-3" />
         ) : (
-          <ArrowUpDown className="ml-1 size-3" />
+          <ArrowUpDown className="size-3 text-muted-foreground" />
         )}
-      </Button>
+      </button>
     ),
     cell: ({ row }) => (
-      <span className="font-mono text-sm">{formatDate(row.getValue("settledAt"))}</span>
+      <div className="">
+        <div className="font-mono text-xs">{formatDate(row.getValue("settledAt"))}</div>
+        <div className="font-mono text-xs text-muted-foreground">
+          {formatTime(row.getValue("settledAt"))}
+        </div>
+      </div>
     ),
   },
   {
@@ -81,20 +90,20 @@ export const columns: ColumnDef<HistoryEntry>[] = [
   {
     accessorKey: "quantitySats",
     header: ({ column }) => (
-      <Button
-        variant="ghost"
+      <button
+        type="button"
+        className="flex items-center gap-1 cursor-pointer select-none"
         onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-        className="-ml-4"
       >
         Size
         {column.getIsSorted() === "asc" ? (
-          <ArrowUp className="ml-1 size-3" />
+          <ArrowUp className="size-3" />
         ) : column.getIsSorted() === "desc" ? (
-          <ArrowDown className="ml-1 size-3" />
+          <ArrowDown className="size-3" />
         ) : (
-          <ArrowUpDown className="ml-1 size-3" />
+          <ArrowUpDown className="size-3 text-muted-foreground" />
         )}
-      </Button>
+      </button>
     ),
     cell: ({ row }) => (
       <span className="font-mono">₿{formatBtcBigint(row.getValue("quantitySats"), 4)}</span>
@@ -108,20 +117,20 @@ export const columns: ColumnDef<HistoryEntry>[] = [
   {
     accessorKey: "strikePriceCents",
     header: ({ column }) => (
-      <Button
-        variant="ghost"
+      <button
+        type="button"
+        className="flex items-center gap-1 cursor-pointer select-none"
         onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-        className="-ml-4"
       >
         Strike
         {column.getIsSorted() === "asc" ? (
-          <ArrowUp className="ml-1 size-3" />
+          <ArrowUp className="size-3" />
         ) : column.getIsSorted() === "desc" ? (
-          <ArrowDown className="ml-1 size-3" />
+          <ArrowDown className="size-3" />
         ) : (
-          <ArrowUpDown className="ml-1 size-3" />
+          <ArrowUpDown className="size-3 text-muted-foreground" />
         )}
-      </Button>
+      </button>
     ),
     cell: ({ row }) => (
       <span className="font-mono">{formatUsd(row.getValue("strikePriceCents"))}</span>
@@ -135,20 +144,20 @@ export const columns: ColumnDef<HistoryEntry>[] = [
   {
     accessorKey: "premiumSats",
     header: ({ column }) => (
-      <Button
-        variant="ghost"
+      <button
+        type="button"
+        className="flex items-center gap-1 cursor-pointer select-none"
         onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-        className="-ml-4"
       >
         Premium
         {column.getIsSorted() === "asc" ? (
-          <ArrowUp className="ml-1 size-3" />
+          <ArrowUp className="size-3" />
         ) : column.getIsSorted() === "desc" ? (
-          <ArrowDown className="ml-1 size-3" />
+          <ArrowDown className="size-3" />
         ) : (
-          <ArrowUpDown className="ml-1 size-3" />
+          <ArrowUpDown className="size-3 text-muted-foreground" />
         )}
-      </Button>
+      </button>
     ),
     cell: ({ row }) => (
       <span className="font-mono">₿{formatBtcBigint(row.getValue("premiumSats"), 5)}</span>
@@ -167,40 +176,22 @@ export const columns: ColumnDef<HistoryEntry>[] = [
     ),
   },
   {
-    accessorKey: "moneyStatus",
-    header: "Status",
-    cell: ({ row }) => {
-      const status = row.getValue("moneyStatus") as string;
-      return (
-        <Badge
-          variant={status === "itm" ? "default" : status === "otm" ? "destructive" : "secondary"}
-          className="uppercase"
-        >
-          {status}
-        </Badge>
-      );
-    },
-    filterFn: (row, id, value) => {
-      return value.includes(row.getValue(id));
-    },
-  },
-  {
     accessorKey: "payoutSats",
     header: ({ column }) => (
-      <Button
-        variant="ghost"
+      <button
+        type="button"
+        className="flex items-center gap-1 cursor-pointer select-none"
         onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-        className="-ml-4"
       >
         Payout
         {column.getIsSorted() === "asc" ? (
-          <ArrowUp className="ml-1 size-3" />
+          <ArrowUp className="size-3" />
         ) : column.getIsSorted() === "desc" ? (
-          <ArrowDown className="ml-1 size-3" />
+          <ArrowDown className="size-3" />
         ) : (
-          <ArrowUpDown className="ml-1 size-3" />
+          <ArrowUpDown className="size-3 text-muted-foreground" />
         )}
-      </Button>
+      </button>
     ),
     cell: ({ row }) => (
       <span className="font-mono">₿{formatBtcBigint(row.getValue("payoutSats"), 5)}</span>
@@ -214,20 +205,20 @@ export const columns: ColumnDef<HistoryEntry>[] = [
   {
     accessorKey: "pnlSats",
     header: ({ column }) => (
-      <Button
-        variant="ghost"
+      <button
+        type="button"
+        className="flex items-center gap-1 cursor-pointer select-none"
         onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-        className="-ml-4"
       >
         PnL
         {column.getIsSorted() === "asc" ? (
-          <ArrowUp className="ml-1 size-3" />
+          <ArrowUp className="size-3" />
         ) : column.getIsSorted() === "desc" ? (
-          <ArrowDown className="ml-1 size-3" />
+          <ArrowDown className="size-3" />
         ) : (
-          <ArrowUpDown className="ml-1 size-3" />
+          <ArrowUpDown className="size-3 text-muted-foreground" />
         )}
-      </Button>
+      </button>
     ),
     cell: ({ row }) => {
       const pnlSats = row.getValue("pnlSats") as bigint;
@@ -271,23 +262,9 @@ export const columns: ColumnDef<HistoryEntry>[] = [
   },
   {
     accessorKey: "result",
-    header: "Result",
-    cell: ({ row }) => {
-      const result = row.getValue("result") as string;
-      return (
-        <Badge
-          variant={
-            result === "profit" ? "default" : result === "loss" ? "destructive" : "secondary"
-          }
-          className={cn(
-            "capitalize",
-            result === "profit" && "bg-green-500/20 text-green-500 border-green-500/30",
-          )}
-        >
-          {result}
-        </Badge>
-      );
-    },
+    header: () => null,
+    cell: () => null,
+    enableHiding: false,
     filterFn: (row, id, value) => {
       return value.includes(row.getValue(id));
     },

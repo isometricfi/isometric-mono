@@ -2,7 +2,16 @@
 
 import { useDynamicContext } from "@dynamic-labs/sdk-react-core";
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowLeft, Check, CircleArrowDown, CircleArrowUp, LogOut, Settings } from "lucide-react";
+import {
+  ArrowLeft,
+  Check,
+  CircleArrowDown,
+  CircleArrowUp,
+  History,
+  LogOut,
+  Settings,
+} from "lucide-react";
+import Link from "next/link";
 import { useState } from "react";
 import { useMediaQuery } from "react-responsive";
 import { ThemeToggle } from "@/components/layout/ThemeToggle";
@@ -179,6 +188,11 @@ function AccountPanelContent({ onDisconnect }: { onDisconnect: () => void }) {
                   <p>Withdraw</p>
                 </Button>
               </div>
+              <Link href="/history" className="md:absolute right-0 w-full">
+                <Button variant="outline" size="sm" className="w-full">
+                  <History className="size-4 " /> Trade history
+                </Button>
+              </Link>
             </motion.div>
           ) : null}
 
