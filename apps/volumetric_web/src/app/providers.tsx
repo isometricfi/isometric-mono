@@ -1,6 +1,7 @@
 "use client";
 
 import { isServer, QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { ModalProvider } from "@/components/layout/ModalProvider";
 import { DynamicProvider } from "./providers/dynamic-provider";
 
 function makeQueryClient() {
@@ -29,7 +30,10 @@ export default function Providers({ children }: { children: React.ReactNode }) {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <DynamicProvider>{children}</DynamicProvider>
+      <DynamicProvider>
+        {children}
+        <ModalProvider />
+      </DynamicProvider>
     </QueryClientProvider>
   );
 }

@@ -5,24 +5,28 @@ import { useState } from "react";
 import { OptionsViewer } from "@/components/options/OptionsViewer";
 import { OptionTypeToggle } from "@/components/options/OptionTypeToggle";
 import { Button } from "@/components/ui/button";
-import { OnboardingModal } from "@/components/wallet/OnboardingModal";
-import { useOnboarding } from "@/hooks";
+import { OnboardingContent } from "@/components/wallet/OnboardingModal";
+import { useModal } from "@/hooks";
 import type { OptionType } from "@/types/ui";
 import { CallWriteOptionForm } from "./call/CallWriteOptionForm";
 
 export function WriteOptionsView() {
   const [optionType, setOptionType] = useState<OptionType>("call");
-  const { openOnboarding } = useOnboarding();
+  const { openModal } = useModal();
 
   const isPutDisabled = optionType === "put";
 
   return (
     <>
-      <OnboardingModal />
       <div className="text-center space-y-4 mb-8">
         <div className="flex items-center justify-center gap-2">
           <h1 className="text-3xl font-bold">Write options</h1>
-          <Button variant="ghost" size="icon" onClick={openOnboarding} className="size-8">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => openModal(<OnboardingContent />)}
+            className="size-8"
+          >
             <HelpCircle className="size-4" />
           </Button>
         </div>

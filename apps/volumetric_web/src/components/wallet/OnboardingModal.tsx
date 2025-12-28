@@ -23,11 +23,8 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import { useCallback, useState } from "react";
-import { useMediaQuery } from "react-responsive";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { Drawer, DrawerContent } from "@/components/ui/drawer";
-import { useOnboarding } from "@/hooks/use-onboarding";
+import { useModal } from "@/hooks/use-modal";
 import { cn } from "@/lib/utils";
 
 // 0. Welcome: Intro
@@ -813,9 +810,9 @@ function ProgressDots({
   );
 }
 
-function OnboardingContent() {
+export function OnboardingContent() {
   const [currentSlide, setCurrentSlide] = useState(0);
-  const { completeOnboarding } = useOnboarding();
+  const { closeModal } = useModal();
 
   const totalSlides = SLIDES.length;
   const isLastSlide = currentSlide === totalSlides - 1;
@@ -827,11 +824,11 @@ function OnboardingContent() {
 
   const nextSlide = useCallback(() => {
     if (isLastSlide) {
-      completeOnboarding();
+      closeModal();
     } else {
       setCurrentSlide((prev) => prev + 1);
     }
-  }, [isLastSlide, completeOnboarding]);
+  }, [isLastSlide, closeModal]);
 
   const prevSlide = useCallback(() => {
     if (!isFirstSlide) {
@@ -843,10 +840,10 @@ function OnboardingContent() {
     <div className="flex flex-col h-full relative">
       {/* Top Bar: Skip */}
       <div className="absolute top-0 right-0 z-10">
-        {!isLastSlide && (
+        {!isLastSlide && !isFirstSlide && (
           <button
             type="button"
-            onClick={completeOnboarding}
+            onClick={closeModal}
             className="text-xs font-medium text-muted-foreground hover:text-foreground transition-colors px-3 py-1.5 rounded-full hover:bg-muted/50"
           >
             Skip
@@ -859,7 +856,7 @@ function OnboardingContent() {
         {(() => {
           const SlideComponent = SLIDES[currentSlide];
           if (currentSlide === 0) {
-            return <SlideComponent onStartTutorial={nextSlide} onSkip={completeOnboarding} />;
+            return <SlideComponent onStartTutorial={nextSlide} onSkip={closeModal} />;
           }
           return <SlideComponent />;
         })()}
@@ -902,28 +899,6 @@ function OnboardingContent() {
   );
 }
 
-export function OnboardingModal() {
-  const { showOnboarding, closeOnboarding } = useOnboarding();
-  const isMobile = useMediaQuery({ query: "(max-width: 768px)" });
-
-  if (isMobile) {
-    return (
-      <Drawer open={showOnboarding} onOpenChange={(open) => !open && closeOnboarding()}>
-        <DrawerContent className="px-4 pb-6 h-dvh! max-h-dvh! rounded-t-none!">
-          <OnboardingContent />
-        </DrawerContent>
-      </Drawer>
-    );
-  }
-
-  return (
-    <Dialog open={showOnboarding} onOpenChange={(open) => !open && closeOnboarding()}>
-      <DialogContent
-        showCloseButton={false}
-        className="sm:max-w-md p-5 overflow-visible min-h-[600px] border-0"
-      >
-        <OnboardingContent />
-      </DialogContent>
-    </Dialog>
-  );
+export function openOnboardingModal() {
+  useModal.getState().openModal(<OnboardingContent />);
 }

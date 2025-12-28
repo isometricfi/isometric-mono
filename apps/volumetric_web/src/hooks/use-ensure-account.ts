@@ -5,11 +5,11 @@ import { useDynamicContext } from "@dynamic-labs/sdk-react-core";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { CreateAccountResponse } from "@/app/api/account/create/route";
+import { openOnboardingModal } from "@/components/wallet/OnboardingModal";
 import { QueryKey } from "@/lib/query-keys";
 import { useAccount } from "./queries/use-account";
 import { useBtcAddress } from "./queries/use-btc-address";
 import { useCanister } from "./use-canister";
-import { useOnboarding } from "./use-onboarding";
 
 export type EnsureAccountStep =
   | "idle"
@@ -24,7 +24,6 @@ export function useEnsureAccount() {
   const canister = useCanister();
   const address = useBtcAddress("payment");
   const queryClient = useQueryClient();
-  const { hasCompletedOnboarding, openOnboarding } = useOnboarding();
 
   const {
     data: accountData,
@@ -82,9 +81,7 @@ export function useEnsureAccount() {
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: [QueryKey.AccountInfo] });
       setStep("done");
-      if (!hasCompletedOnboarding) {
-        setTimeout(() => openOnboarding(), 500);
-      }
+      setTimeout(() => openOnboardingModal(), 500);
     },
     onError: (err) => {
       setStep("error");
