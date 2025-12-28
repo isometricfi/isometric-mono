@@ -31,26 +31,72 @@ import { useOnboarding } from "@/hooks/use-onboarding";
 import { cn } from "@/lib/utils";
 
 // 0. Welcome: Intro
-function WelcomeSlide() {
+function WelcomeSlide({
+  onStartTutorial,
+  onSkip,
+}: {
+  onStartTutorial?: () => void;
+  onSkip?: () => void;
+} = {}) {
   return (
     <SlideWrapper>
       <div className="flex flex-col items-center text-center h-full justify-center">
-        <div className="relative mb-10">
+        <div className="relative mb-8">
           <div className="absolute inset-0 bg-primary/20 rounded-full blur-3xl" />
-          <div className="relative size-32 rounded-3xl bg-card border shadow-xl flex items-center justify-center">
-            <Image src="/logo.svg" alt="Volumetric" width={80} height={80} className="w-20 h-20" />
+          <div className="relative size-24 rounded-3xl bg-card border shadow-xl flex items-center justify-center">
+            <Image src="/logo.svg" alt="Volumetric" width={64} height={64} className="w-16 h-16" />
           </div>
         </div>
 
-        <h1 className="text-4xl font-bold mb-4 tracking-tight">Volumetric</h1>
+        <h1 className="text-4xl font-bold mb-3 tracking-tight">Volumetric</h1>
 
-        <p className="text-lg text-muted-foreground max-w-xs leading-relaxed">
+        <p className="text-base text-muted-foreground max-w-sm mb-8 leading-relaxed">
           The simplest way to trade Bitcoin options on-chain.
         </p>
-        {/* <div className="flex items-center justify-center gap-2 text-sm text-primary/80 font-medium mt-4">
-          <Shield className="size-4" />
-          <span>Decentralized & Trustless</span>
-        </div> */}
+
+        <div className="w-full max-w-[280px] space-y-3 mb-8">
+          <div className="flex items-center gap-3 text-sm">
+            <div className="size-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+              <Zap className="size-4 text-primary" />
+            </div>
+            <p className="text-left text-muted-foreground">
+              <span className="font-semibold text-foreground">Leverage</span> your Bitcoin exposure
+            </p>
+          </div>
+          <div className="flex items-center gap-3 text-sm">
+            <div className="size-8 rounded-lg bg-green-500/10 flex items-center justify-center shrink-0">
+              <PiggyBank className="size-4 text-green-600" />
+            </div>
+            <p className="text-left text-muted-foreground">
+              <span className="font-semibold text-foreground">Earn yield</span> on your holdings
+            </p>
+          </div>
+          <div className="flex items-center gap-3 text-sm">
+            <div className="size-8 rounded-lg bg-muted flex items-center justify-center shrink-0">
+              <Lock className="size-4 text-foreground" />
+            </div>
+            <p className="text-left text-muted-foreground">
+              <span className="font-semibold text-foreground">Fully on-chain</span> and trustless
+            </p>
+          </div>
+        </div>
+
+        <div className="w-full  space-y-3 flex-1 flex flex-col justify-end">
+          <Button
+            onClick={onStartTutorial}
+            className="w-full rounded-full h-12 text-base font-semibold shadow-lg shadow-primary/20"
+          >
+            Start tutorial
+            <ArrowRight className="size-4" />
+          </Button>
+          <Button
+            onClick={onSkip}
+            variant="ghost"
+            className="w-full rounded-full h-12 text-base font-medium"
+          >
+            Skip to app
+          </Button>
+        </div>
       </div>
     </SlideWrapper>
   );
@@ -99,7 +145,7 @@ function TermStrikeSlide() {
           </div>
         </div>
 
-        <h2 className="text-2xl font-bold mb-4">1. Strike Price</h2>
+        <h2 className="text-2xl font-bold mb-4">1. Strike price</h2>
         <p className="text-muted-foreground max-w-xs mb-8 leading-relaxed">
           The target price Bitcoin must reach for the contract to be valuable.
         </p>
@@ -229,7 +275,7 @@ function MechanicsSlide() {
     <SlideWrapper>
       <div className="flex flex-col h-full">
         <div className="text-center mb-8">
-          <h2 className="text-2xl font-bold mb-2">The Exchange</h2>
+          <h2 className="text-2xl font-bold mb-2">The exchange</h2>
           <p className="text-muted-foreground">How the lifecycle works</p>
         </div>
 
@@ -245,7 +291,7 @@ function MechanicsSlide() {
                   <PencilLine className="size-5 text-white" />
                 </div>
                 <div className="pt-1">
-                  <p className="font-bold text-sm mb-0.5">1. Writer Creates Offer</p>
+                  <p className="font-bold text-sm mb-0.5">1. Writer creates offer</p>
                   <p className="text-xs text-muted-foreground leading-snug">
                     Sets terms: strike, premium, expiry.
                   </p>
@@ -258,7 +304,7 @@ function MechanicsSlide() {
                   <Zap className="size-5 text-primary-foreground" />
                 </div>
                 <div className="pt-1">
-                  <p className="font-bold text-sm mb-0.5">2. Buyer Accepts</p>
+                  <p className="font-bold text-sm mb-0.5">2. Buyer accepts</p>
                   <p className="text-xs text-muted-foreground leading-snug">
                     Pays premium. Collateral locks instantly.
                   </p>
@@ -271,7 +317,7 @@ function MechanicsSlide() {
                   <Lock className="size-5 text-foreground" />
                 </div>
                 <div className="pt-1">
-                  <p className="font-bold text-sm mb-0.5">3. Active Contract</p>
+                  <p className="font-bold text-sm mb-0.5">3. Active contract</p>
                   <p className="text-xs text-muted-foreground leading-snug">
                     Collateral secured until expiry.
                   </p>
@@ -354,13 +400,13 @@ function ScenarioITMSlide() {
           <div className="grid grid-cols-2 gap-4">
             <div className="bg-primary/5 border border-primary/20 rounded-xl p-4 text-center">
               <Zap className="size-6 text-primary mx-auto mb-2" />
-              <p className="font-bold text-sm mb-1">Buyer Wins</p>
+              <p className="font-bold text-sm mb-1">Buyer wins</p>
               <p className="text-xs text-muted-foreground">Profits from the price difference</p>
             </div>
 
             <div className="bg-card border rounded-xl p-4 text-center">
               <PencilLine className="size-6 text-muted-foreground mx-auto mb-2" />
-              <p className="font-bold text-sm mb-1">Writer Caps</p>
+              <p className="font-bold text-sm mb-1">Writer caps</p>
               <p className="text-xs text-muted-foreground">Keeps premium, pays out excess</p>
             </div>
           </div>
@@ -501,13 +547,13 @@ function ScenarioOTMSlide() {
           <div className="grid grid-cols-2 gap-4">
             <div className="bg-card border rounded-xl p-4 text-center">
               <Zap className="size-6 text-muted-foreground mx-auto mb-2" />
-              <p className="font-bold text-sm mb-1">Buyer Loses</p>
+              <p className="font-bold text-sm mb-1">Buyer loses</p>
               <p className="text-xs text-muted-foreground">Premium is lost. Option expires.</p>
             </div>
 
             <div className="bg-green-500/5 border border-green-500/20 rounded-xl p-4 text-center">
               <PencilLine className="size-6 text-green-500 mx-auto mb-2" />
-              <p className="font-bold text-sm mb-1">Writer Wins</p>
+              <p className="font-bold text-sm mb-1">Writer wins</p>
               <p className="text-xs text-muted-foreground">Keeps premium + 100% collateral</p>
             </div>
           </div>
@@ -526,7 +572,7 @@ function ScenarioOTMPayoutSlide() {
           <div className="inline-flex items-center gap-2 px-3 py-1 bg-muted text-muted-foreground rounded-full text-xs font-bold uppercase tracking-wider  mb-1">
             Scenario B
           </div>
-          <h2 className="text-2xl font-bold mb-1">Example Payout</h2>
+          <h2 className="text-2xl font-bold mb-1">Example payout</h2>
           <p className="text-sm text-muted-foreground">Strike: $100k → Settles: $95k (-5%)</p>
         </div>
 
@@ -595,11 +641,11 @@ function RolesSlide() {
     <SlideWrapper>
       <div className="flex flex-col h-full">
         <div className="text-center mb-6">
-          <h2 className="text-2xl font-bold mb-2">Choose Your Side</h2>
+          <h2 className="text-2xl font-bold mb-2">Choose your side</h2>
           <p className="text-muted-foreground">Strategies for different market views</p>
         </div>
 
-        <div className="flex-1 grid gap-4">
+        <div className=" grid gap-4">
           {/* Writer Card */}
           <div className="bg-card border rounded-xl p-5  transition-colors group cursor-default">
             <div className="flex items-center gap-3 mb-3">
@@ -812,16 +858,19 @@ function OnboardingContent() {
       <div className="flex-1 relative mt-3 min-h-0 overflow-y-auto">
         {(() => {
           const SlideComponent = SLIDES[currentSlide];
+          if (currentSlide === 0) {
+            return <SlideComponent onStartTutorial={nextSlide} onSkip={completeOnboarding} />;
+          }
           return <SlideComponent />;
         })()}
       </div>
 
       {/* Bottom Bar: Navigation & Progress */}
-      <div className="pt-6 space-y-6 mt-auto shrink-0">
-        <ProgressDots current={currentSlide} onDotClick={goToSlide} />
+      {!isFirstSlide && (
+        <div className="pt-6 space-y-6 mt-auto shrink-0">
+          <ProgressDots current={currentSlide} onDotClick={goToSlide} />
 
-        <div className="flex gap-3">
-          {!isFirstSlide && (
+          <div className="flex gap-3">
             <Button
               variant="outline"
               size="icon"
@@ -830,25 +879,25 @@ function OnboardingContent() {
             >
               <ArrowLeft className="size-5" />
             </Button>
-          )}
-          <Button
-            onClick={nextSlide}
-            className="flex-1 rounded-full h-12 text-base font-semibold shadow-lg shadow-primary/20"
-          >
-            {isLastSlide ? (
-              <>
-                Get Started
-                <Sparkles className="size-4 ml-2" />
-              </>
-            ) : (
-              <>
-                Continue
-                <ArrowRight className="size-4 ml-2" />
-              </>
-            )}
-          </Button>
+            <Button
+              onClick={nextSlide}
+              className="flex-1 rounded-full h-12 text-base font-semibold shadow-lg shadow-primary/20"
+            >
+              {isLastSlide ? (
+                <>
+                  Get started
+                  <Sparkles className="size-4" />
+                </>
+              ) : (
+                <>
+                  Continue
+                  <ArrowRight className="size-4" />
+                </>
+              )}
+            </Button>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
