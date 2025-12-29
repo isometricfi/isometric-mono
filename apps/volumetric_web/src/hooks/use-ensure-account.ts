@@ -4,6 +4,7 @@ import { isBitcoinWallet } from "@dynamic-labs/bitcoin";
 import { useDynamicContext } from "@dynamic-labs/sdk-react-core";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { openOnboardingModal } from "@/components/wallet/OnboardingModal";
 import type { Output as CreateAccountOutput } from "@/lib/use-cases/account/create-account/schema";
 import { trpcClient } from "@/trpc/react";
 import { useAccount } from "./queries/use-account";
@@ -68,6 +69,7 @@ export function useEnsureAccount() {
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: [["account"]] });
       setStep("done");
+      setTimeout(() => openOnboardingModal(), 500);
     },
     onError: (err) => {
       setStep("error");
