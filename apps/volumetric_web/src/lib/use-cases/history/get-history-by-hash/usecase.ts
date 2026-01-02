@@ -1,17 +1,22 @@
+import { getCanisterActor } from "@/lib/canister-server";
 import { getHistory } from "../get-history/usecase";
 import type { HistoryByHashOutput } from "./schema";
 
-export async function getHistoryByHash(principalHash: string): Promise<HistoryByHashOutput> {
-  const history = await getHistory(principalHash);
+export async function getHistoryByHash(address: string): Promise<HistoryByHashOutput> {
+  const actor = await getCanisterActor();
+  const profileResult = await actor.get_account_info(address);
+  const profile = profileResult.length > 0 ? profileResult[0] : null;
 
-  // In a real app, we would look up the user profile by hash here.
-  // For now, we'll mock it based on the hash to be deterministic.
-  const isMockUser = principalHash.length > 0;
-  const username = isMockUser ? `User ${principalHash.slice(0, 4)}` : null;
+  if (!profile) {
+    return { entries: [], username: null, principal: undefined };
+  }
+
+  const principal = profile.principal.toString();
+  const history = await getHistory(principal);
 
   return {
     entries: history.entries,
-    username,
-    principal: principalHash, // Using hash as principal proxy for now
+    username: profile.username.length > 0 ? (profile.username[0] ?? null) : null,
+    principal,
   };
 }
