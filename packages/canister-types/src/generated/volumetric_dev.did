@@ -104,19 +104,30 @@ type EventData = variant {
   AccountCreated : record { wallet_address : text };
   OfferAcceptFailed : record { offer_ids : vec nat64; reason : text };
   Deposit : record { amount_sats : nat64 };
-  OfferCancelled : CancelOfferRequest;
+  OfferCancelled : record { offer_id : nat64; remaining_quantity_sats : nat64 };
   OfferAccepted : record {
+    fill_group_id : nat64;
+    entry_price_cents : nat64;
+    expiry_ns : nat64;
     role : TradeRole;
+    counterparty : principal;
     option_id : nat64;
     quantity_sats : nat64;
     offer_id : nat64;
     premium_sats : nat64;
+    strike_price_cents : nat64;
   };
   OptionSettled : record {
+    entry_price_cents : nat64;
     payout_sats : nat64;
     role : TradeRole;
     option_id : nat64;
+    quantity_sats : nat64;
+    accepted_at_ns : nat64;
+    settled_at_ns : nat64;
+    premium_sats : nat64;
     settlement_price_cents : nat64;
+    strike_price_cents : nat64;
   };
   Withdrawal : record { destination : text; amount_sats : nat64 };
   WithdrawalFailed : record { amount_sats : nat64; reason : text };
@@ -128,6 +139,7 @@ type EventData = variant {
     strike_basis_points : nat16;
     offer_id : nat64;
     premium_basis_points : nat16;
+    offer_valid_until_ns : nat64;
   };
   OptionSettlementFailed : record { option_id : nat64; reason : text };
 };
@@ -304,6 +316,7 @@ service : (opt BtcNetwork) -> {
   add_whitelisted : (principal) -> (Result_1);
   cancel_offer : (AuthenticatedPayload_1) -> (Result_2);
   cleanup_old_events : () -> (Result_3);
+  clear_all_events : () -> (Result_3);
   create_account : (AuthenticatedPayload_2) -> (Result_4);
   create_offer : (AuthenticatedPayload_3) -> (Result_5);
   get_accept_by_id : (nat64) -> (Result_6) query;

@@ -27,7 +27,10 @@ pub fn cancel_offer_use_case(writer: Principal, offer_id: u64) -> Result<Offer, 
     emit_event(
         writer,
         EventType::OfferCancelled,
-        EventData::OfferCancelled { offer_id },
+        EventData::OfferCancelled {
+            offer_id,
+            remaining_quantity_sats: offer.remaining_quantity,
+        },
     );
 
     Ok(offer)

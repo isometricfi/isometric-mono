@@ -48,11 +48,16 @@ function mapEventData(data: CanisterEventData): EventData {
       strikeBasisPoints: d.strike_basis_points,
       premiumBasisPoints: d.premium_basis_points,
       durationSeconds: Number(d.duration_seconds),
+      offerValidUntilNs: Number(d.offer_valid_until_ns),
     };
   }
   if ("OfferCancelled" in data) {
     const d = data.OfferCancelled;
-    return { type: "OfferCancelled", offerId: d.offer_id.toString() };
+    return {
+      type: "OfferCancelled",
+      offerId: d.offer_id.toString(),
+      remainingQuantitySats: Number(d.remaining_quantity_sats),
+    };
   }
   if ("OfferAccepted" in data) {
     const d = data.OfferAccepted;
@@ -60,8 +65,13 @@ function mapEventData(data: CanisterEventData): EventData {
       type: "OfferAccepted",
       offerId: d.offer_id.toString(),
       optionId: d.option_id.toString(),
+      fillGroupId: d.fill_group_id.toString(),
+      counterparty: d.counterparty.toText(),
       quantitySats: Number(d.quantity_sats),
       premiumSats: Number(d.premium_sats),
+      entryPriceCents: Number(d.entry_price_cents),
+      strikePriceCents: Number(d.strike_price_cents),
+      expiryNs: Number(d.expiry_ns),
       role: mapTradeRole(d.role),
     };
   }
@@ -78,8 +88,14 @@ function mapEventData(data: CanisterEventData): EventData {
     return {
       type: "OptionSettled",
       optionId: d.option_id.toString(),
+      quantitySats: Number(d.quantity_sats),
+      entryPriceCents: Number(d.entry_price_cents),
+      strikePriceCents: Number(d.strike_price_cents),
       settlementPriceCents: Number(d.settlement_price_cents),
+      premiumSats: Number(d.premium_sats),
       payoutSats: Number(d.payout_sats),
+      acceptedAtNs: Number(d.accepted_at_ns),
+      settledAtNs: Number(d.settled_at_ns),
       role: mapTradeRole(d.role),
     };
   }

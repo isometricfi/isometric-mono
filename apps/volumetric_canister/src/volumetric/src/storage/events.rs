@@ -75,15 +75,22 @@ pub enum EventData {
         strike_basis_points: u16,
         premium_basis_points: u16,
         duration_seconds: u64,
+        offer_valid_until_ns: u64,
     },
     OfferCancelled {
         offer_id: u64,
+        remaining_quantity_sats: u64,
     },
     OfferAccepted {
         offer_id: u64,
         option_id: u64,
+        fill_group_id: u64,
+        counterparty: Principal,
         quantity_sats: u64,
         premium_sats: u64,
+        entry_price_cents: u64,
+        strike_price_cents: u64,
+        expiry_ns: u64,
         role: TradeRole,
     },
     OfferAcceptFailed {
@@ -92,8 +99,14 @@ pub enum EventData {
     },
     OptionSettled {
         option_id: u64,
+        quantity_sats: u64,
+        entry_price_cents: u64,
+        strike_price_cents: u64,
         settlement_price_cents: u64,
+        premium_sats: u64,
         payout_sats: u64,
+        accepted_at_ns: u64,
+        settled_at_ns: u64,
         role: TradeRole,
     },
     OptionSettlementFailed {
@@ -211,4 +224,16 @@ pub fn delete_events_before(older_than_ns: u64) -> u64 {
 
 pub fn get_event_count() -> u64 {
     EVENTS.with_borrow(|e| e.len())
+}
+
+/// Clears all events from storage. Used for migration purposes.
+pub fn clear_events() -> u64 {
+    EVENTS.with_borrow_mut(|e| {
+        let keys: Vec<u64> = e.iter().map(|entry| entry.key().clone()).collect();
+        let count = keys.len() as u64;
+        for key in keys {
+            e.remove(&key);
+        }
+        count
+    })
 }

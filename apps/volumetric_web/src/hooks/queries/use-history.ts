@@ -2,14 +2,15 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { useTRPC } from "@/trpc/react";
-import { useBtcAddress } from "./use-btc-address";
+import { useAccount } from "./use-account";
 
 export function useHistory() {
   const trpc = useTRPC();
-  const address = useBtcAddress("payment");
+  const { data: account } = useAccount();
+  const principal = account?.profile?.principal;
 
   return useQuery({
-    ...trpc.history.getHistory.queryOptions({ address: address ?? "" }),
-    enabled: !!address,
+    ...trpc.history.getHistory.queryOptions({ principal: principal ?? "" }),
+    enabled: !!principal,
   });
 }

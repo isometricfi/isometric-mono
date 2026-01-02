@@ -117,22 +117,38 @@ export type EventData = { 'AccountCreated' : { 'wallet_address' : string } } |
     }
   } |
   { 'Deposit' : { 'amount_sats' : bigint } } |
-  { 'OfferCancelled' : CancelOfferRequest } |
+  {
+    'OfferCancelled' : {
+      'offer_id' : bigint,
+      'remaining_quantity_sats' : bigint,
+    }
+  } |
   {
     'OfferAccepted' : {
+      'fill_group_id' : bigint,
+      'entry_price_cents' : bigint,
+      'expiry_ns' : bigint,
       'role' : TradeRole,
+      'counterparty' : Principal,
       'option_id' : bigint,
       'quantity_sats' : bigint,
       'offer_id' : bigint,
       'premium_sats' : bigint,
+      'strike_price_cents' : bigint,
     }
   } |
   {
     'OptionSettled' : {
+      'entry_price_cents' : bigint,
       'payout_sats' : bigint,
       'role' : TradeRole,
       'option_id' : bigint,
+      'quantity_sats' : bigint,
+      'accepted_at_ns' : bigint,
+      'settled_at_ns' : bigint,
+      'premium_sats' : bigint,
       'settlement_price_cents' : bigint,
+      'strike_price_cents' : bigint,
     }
   } |
   { 'Withdrawal' : { 'destination' : string, 'amount_sats' : bigint } } |
@@ -151,6 +167,7 @@ export type EventData = { 'AccountCreated' : { 'wallet_address' : string } } |
       'strike_basis_points' : number,
       'offer_id' : bigint,
       'premium_basis_points' : number,
+      'offer_valid_until_ns' : bigint,
     }
   } |
   { 'OptionSettlementFailed' : { 'option_id' : bigint, 'reason' : string } };
@@ -354,6 +371,7 @@ export interface _SERVICE {
   'add_whitelisted' : ActorMethod<[Principal], Result_1>,
   'cancel_offer' : ActorMethod<[AuthenticatedPayload_1], Result_2>,
   'cleanup_old_events' : ActorMethod<[], Result_3>,
+  'clear_all_events' : ActorMethod<[], Result_3>,
   'create_account' : ActorMethod<[AuthenticatedPayload_2], Result_4>,
   'create_offer' : ActorMethod<[AuthenticatedPayload_3], Result_5>,
   'get_accept_by_id' : ActorMethod<[bigint], Result_6>,

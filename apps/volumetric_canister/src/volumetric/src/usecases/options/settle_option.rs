@@ -132,13 +132,21 @@ pub async fn settle_single_option(
     complete_settlement(option.id);
     remove_settlement(option.id);
 
+    let settled_at_ns = ic_cdk::api::time();
+
     emit_event(
         option.buyer,
         EventType::OptionSettled,
         EventData::OptionSettled {
             option_id: option.id,
+            quantity_sats: option.quantity,
+            entry_price_cents: option.entry_price_cents,
+            strike_price_cents: option.strike_price_cents,
             settlement_price_cents,
+            premium_sats: option.premium_paid,
             payout_sats: payout_to_buyer,
+            accepted_at_ns: option.accepted_at,
+            settled_at_ns,
             role: TradeRole::Buyer,
         },
     );
@@ -148,8 +156,14 @@ pub async fn settle_single_option(
         EventType::OptionSettled,
         EventData::OptionSettled {
             option_id: option.id,
+            quantity_sats: option.quantity,
+            entry_price_cents: option.entry_price_cents,
+            strike_price_cents: option.strike_price_cents,
             settlement_price_cents,
+            premium_sats: option.premium_paid,
             payout_sats: payout_to_writer,
+            accepted_at_ns: option.accepted_at,
+            settled_at_ns,
             role: TradeRole::Writer,
         },
     );

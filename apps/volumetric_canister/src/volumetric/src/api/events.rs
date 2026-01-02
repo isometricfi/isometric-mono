@@ -4,8 +4,8 @@ use ic_cdk::api::msg_caller;
 use crate::errors::VolumetricError;
 use crate::guards::is_controller;
 use crate::storage::{
-    get_all_events as storage_get_all_events, get_events_by_principal,
-    get_events_since as storage_get_events_since, Event,
+    clear_events as storage_clear_events, get_all_events as storage_get_all_events,
+    get_events_by_principal, get_events_since as storage_get_events_since, Event,
 };
 use crate::usecases::cleanup_old_events_use_case;
 
@@ -45,4 +45,10 @@ pub async fn cleanup_old_events() -> Result<u64, VolumetricError> {
     is_controller().await?;
     let result = cleanup_old_events_use_case();
     Ok(result.deleted_count)
+}
+
+#[ic_cdk::update]
+pub async fn clear_all_events() -> Result<u64, VolumetricError> {
+    is_controller().await?;
+    Ok(storage_clear_events())
 }
