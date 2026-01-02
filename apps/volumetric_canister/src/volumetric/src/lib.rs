@@ -12,6 +12,7 @@ pub mod guards;
 pub mod locks;
 pub mod oracle;
 pub mod storage;
+pub mod timers;
 pub mod usecases;
 
 pub use api::accounts::{ProfileInfo, UserInfo};
@@ -43,9 +44,10 @@ pub use auth::types::{
 pub use errors::VolumetricError;
 pub use generated::ckbtc::{Utxo, UtxoOutpoint, UtxoStatus};
 pub use storage::{
-    AcceptPhase, ActiveOption, ActiveOptionStatus, Asset, BtcNetwork, FeatureFlags, Offer,
-    OfferStatus, OptionType, PendingAccept, PendingSettlement, PendingWithdrawal, SettlementPhase,
-    TradingLimits, UserBalance, WithdrawalPhase, MINIMUM_QUANTITY_SATS,
+    AcceptPhase, ActiveOption, ActiveOptionStatus, Asset, BtcNetwork, Event, EventData, EventType,
+    FeatureFlags, Offer, OfferStatus, OptionType, PendingAccept, PendingSettlement,
+    PendingWithdrawal, SettlementPhase, TradeRole, TradingLimits, UserBalance, WithdrawalPhase,
+    MINIMUM_QUANTITY_SATS,
 };
 
 use crate::storage::{Cbor, Config, CONFIG};
@@ -63,7 +65,7 @@ fn init(btc_network: Option<BtcNetwork>) {
         });
     });
 
-    api::setup_settlement_timer();
+    timers::setup_timers();
 }
 
 #[ic_cdk::query]

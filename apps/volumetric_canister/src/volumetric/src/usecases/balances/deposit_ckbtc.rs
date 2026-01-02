@@ -4,7 +4,9 @@ use icrc_ledger_types::icrc1::account::Account;
 use crate::auth::derive_subaccount;
 use crate::errors::VolumetricError;
 use crate::generated::ckbtc::{GetBtcAddressArg, UpdateBalanceArg, UpdateBalanceError, UtxoStatus};
-use crate::storage::{add_available, set_balance, Config, UserBalance};
+use crate::storage::{
+    add_available, emit_event, set_balance, Config, EventData, EventType, UserBalance,
+};
 
 pub struct DepositAddressResult {
     pub btc_address: String,
@@ -102,6 +104,13 @@ pub async fn mint_ckbtc_from_utxos(
 
     if total_minted > 0 {
         add_available(principal, total_minted);
+        emit_event(
+            principal,
+            EventType::Deposit,
+            EventData::Deposit {
+                amount_sats: total_minted,
+            },
+        );
     }
 
     Ok(statuses)

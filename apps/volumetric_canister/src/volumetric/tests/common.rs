@@ -42,4 +42,3 @@ pub fn setup_canister() -> (PocketIc, Principal) {
 pub fn get_controller(pic: &PocketIc, canister_id: Principal) -> Principal {
     pic.get_controllers(canister_id)[0]
 }
-

@@ -24,7 +24,7 @@ pub enum MemoryIndex {
     OffersMemory = 6,
     /// Active options between buyers and writers
     ActiveOptionsMemory = 7,
-    /// Auto-increment ID counters (offers, options, fill groups)
+    /// Auto-increment ID counters (offers, options, fill groups, events)
     CountersMemory = 8,
     /// Pending withdrawals journal for recovery
     WithdrawalJournalMemory = 9,
@@ -32,6 +32,8 @@ pub enum MemoryIndex {
     AcceptJournalMemory = 10,
     /// Pending settlements journal for recovery
     SettlementJournalMemory = 11,
+    /// User activity events for history tracking
+    EventsMemory = 12,
 }
 
 pub type Memory = VirtualMemory<DefaultMemoryImpl>;

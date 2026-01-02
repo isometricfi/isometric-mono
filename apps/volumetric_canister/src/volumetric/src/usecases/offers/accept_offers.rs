@@ -8,11 +8,11 @@ use crate::locks::AcceptLock;
 use crate::oracle::get_btc_usd_price_cents;
 use crate::storage::{
     add_available, add_platform_fee, calculate_platform_fee, calculate_premium,
-    calculate_strike_price, complete_accept, create_accept, fail_accept, get_balance, get_offer,
-    get_platform_fee_recipient, insert_active_option, lock_collateral, next_id, remove_accept,
-    subtract_available, unlock_collateral, update_accept_phase, update_offer, AcceptPhase,
-    AcceptedOffer, ActiveOption, ActiveOptionStatus, Asset, Config, CounterKey, OfferStatus,
-    OptionType, CKBTC_TRANSFER_FEE,
+    calculate_strike_price, complete_accept, create_accept, emit_event, fail_accept, get_balance,
+    get_offer, get_platform_fee_recipient, insert_active_option, lock_collateral, next_id,
+    remove_accept, subtract_available, unlock_collateral, update_accept_phase, update_offer,
+    AcceptPhase, AcceptedOffer, ActiveOption, ActiveOptionStatus, Asset, Config, CounterKey,
+    EventData, EventType, OfferStatus, OptionType, TradeRole, CKBTC_TRANSFER_FEE,
 };
 
 use crate::usecases::balances::transfer_ckbtc;
@@ -314,6 +314,30 @@ pub async fn accept_offers_use_case(
             offer.status = OfferStatus::PartiallyFilled;
         }
         update_offer(offer);
+
+        emit_event(
+            buyer_principal,
+            EventType::OfferAccepted,
+            EventData::OfferAccepted {
+                offer_id: v.offer_id,
+                option_id: v.option_id,
+                quantity_sats: v.quantity,
+                premium_sats: v.premium,
+                role: TradeRole::Buyer,
+            },
+        );
+
+        emit_event(
+            v.writer,
+            EventType::OfferAccepted,
+            EventData::OfferAccepted {
+                offer_id: v.offer_id,
+                option_id: v.option_id,
+                quantity_sats: v.quantity,
+                premium_sats: v.premium,
+                role: TradeRole::Writer,
+            },
+        );
 
         active_options.push(active_option);
     }

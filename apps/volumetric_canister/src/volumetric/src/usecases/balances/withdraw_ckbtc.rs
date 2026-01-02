@@ -9,8 +9,9 @@ use crate::generated::ckbtc::{
 };
 use crate::locks::WithdrawalLock;
 use crate::storage::{
-    add_available, complete_withdrawal, create_withdrawal, fail_withdrawal, remove_withdrawal,
-    subtract_available, update_withdrawal_phase, Config, WithdrawalPhase,
+    add_available, complete_withdrawal, create_withdrawal, emit_event, fail_withdrawal,
+    remove_withdrawal, subtract_available, update_withdrawal_phase, Config, EventData, EventType,
+    WithdrawalPhase,
 };
 
 pub struct WithdrawParams {
@@ -97,6 +98,7 @@ pub async fn withdraw_ckbtc_use_case(
 
     update_withdrawal_phase(withdrawal_id, WithdrawalPhase::Approved);
 
+    let btc_address = params.btc_address.clone();
     let retrieve_args = RetrieveBtcWithApprovalArgs {
         address: params.btc_address,
         amount: params.amount,
@@ -143,16 +145,34 @@ pub async fn withdraw_ckbtc_use_case(
             );
             complete_withdrawal(withdrawal_id, ok.block_index);
             remove_withdrawal(withdrawal_id);
+
+            emit_event(
+                principal,
+                EventType::Withdrawal,
+                EventData::Withdrawal {
+                    amount_sats: params.amount,
+                    destination: btc_address,
+                },
+            );
+
             Ok(WithdrawResult {
                 block_index: ok.block_index,
             })
         }
         Err(_) => {
             add_available(principal, params.amount);
-            fail_withdrawal(
-                withdrawal_id,
-                "retrieve_btc_with_approval rejected".to_string(),
+            let reason = "retrieve_btc_with_approval rejected".to_string();
+            fail_withdrawal(withdrawal_id, reason.clone());
+
+            emit_event(
+                principal,
+                EventType::WithdrawalFailed,
+                EventData::WithdrawalFailed {
+                    amount_sats: params.amount,
+                    reason,
+                },
             );
+
             Err(VolumetricError::inter_canister_call_failed(
                 "retrieve_btc_with_approval rejected",
             ))

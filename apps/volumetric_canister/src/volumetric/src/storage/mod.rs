@@ -3,6 +3,7 @@ pub mod accounts;
 pub mod balances;
 pub mod cbor;
 pub mod config;
+pub mod events;
 pub mod options;
 pub mod settlements;
 pub mod state;
@@ -27,6 +28,10 @@ pub use balances::{
 };
 pub use cbor::Cbor;
 pub use config::{BtcNetwork, Config, FeatureFlags, Range, TradingLimits};
+pub use events::{
+    delete_events_before, emit_event, get_all_events, get_event_count, get_events_by_principal,
+    get_events_since, Event, EventData, EventType, TradeRole,
+};
 pub use options::{
     calculate_premium, calculate_strike_price, clear_active_options, clear_offers,
     get_active_option, get_offer, insert_active_option, insert_offer, list_active_options_by_buyer,
