@@ -6,8 +6,6 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { CopyButton } from "@/components/ui/copy-button";
 import { useAccount, useHistory, useModal } from "@/hooks";
-import { hashPrincipal } from "@/lib/utils";
-
 export function ShareSummaryModal() {
   const { closeModal } = useModal();
   const [copiedImage, setCopiedImage] = useState(false);
@@ -17,12 +15,11 @@ export function ShareSummaryModal() {
 
   if (!account?.profile || !history) return null;
 
-  const principal = account.profile.principal;
-  const principalHash = hashPrincipal(principal);
-  const shareUrl = `/s/${principalHash}`;
+  const address = account.profile.address;
+  const shareUrl = `/s/${address}`;
   const absoluteShareUrl =
     typeof window !== "undefined" ? window.location.origin + shareUrl : shareUrl;
-  const ogImageUrl = `/api/og/${principalHash}`;
+  const ogImageUrl = `/api/og/${address}`;
 
   const entries = history.entries ?? [];
   const totalPnlSats = entries.reduce((sum, e) => sum + e.pnlSats, BigInt(0));

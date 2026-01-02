@@ -26,28 +26,3 @@ export async function syncEventsFromCanister(): Promise<SyncEventsResult> {
     latestEventId: events.length > 0 ? events[events.length - 1].id : latestEventId,
   };
 }
-
-export async function syncEventsForPrincipal(principal: string): Promise<SyncEventsResult> {
-  const repository = getEventsRepository();
-  const actor = await getCanisterActor();
-  const { Principal } = await import("@dfinity/principal");
-
-  const latestEventId = await repository.getLatestEventId(principal);
-  const afterId: [] | [bigint] = latestEventId ? [BigInt(latestEventId)] : [];
-
-  const canisterEvents = await actor.get_events_for_principal(
-    Principal.fromText(principal),
-    afterId,
-    [1000],
-  );
-  const events = mapEvents(canisterEvents);
-
-  if (events.length > 0) {
-    await repository.saveEvents(events);
-  }
-
-  return {
-    syncedCount: events.length,
-    latestEventId: events.length > 0 ? events[events.length - 1].id : latestEventId,
-  };
-}

@@ -100,13 +100,3 @@ export function nsToISOString(ns: bigint): string {
 export function basisPointsToPercent(basisPoints: number): number {
   return basisPoints / BASIS_POINTS_DIVISOR;
 }
-
-export function hashPrincipal(principal: string): string {
-  let hash = 0;
-  for (let i = 0; i < principal.length; i++) {
-    const char = principal.charCodeAt(i);
-    hash = (hash << 5) - hash + char;
-    hash = hash & hash;
-  }
-  return Math.abs(hash).toString(36).slice(0, 8).padStart(8, "0");
-}
