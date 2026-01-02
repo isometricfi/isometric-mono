@@ -47,15 +47,26 @@ export function Navbar() {
               </Button>
             </Link>
             {!isLandingPage && (
-              <Link href="/portfolio">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className={cn(pathname === "/portfolio" && "font-bold")}
-                >
-                  Portfolio
-                </Button>
-              </Link>
+              <>
+                <Link href="/portfolio">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className={cn(pathname === "/portfolio" && "font-bold")}
+                  >
+                    Portfolio
+                  </Button>
+                </Link>
+                <Link href="/history">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className={cn(pathname === "/history" && "font-bold")}
+                  >
+                    History
+                  </Button>
+                </Link>
+              </>
             )}
           </div>
           <div className="flex items-center gap-3 justify-center md:justify-end">

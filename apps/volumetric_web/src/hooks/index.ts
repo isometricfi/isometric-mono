@@ -36,6 +36,12 @@ export { generatePremiumValues, useConfig } from "./queries/use-config";
 export { useDepositAddress } from "./queries/use-deposit-address";
 export { useHistory } from "./queries/use-history";
 export {
+  useAllEvents,
+  useEventsForPrincipal,
+  useEventsSince,
+  useMyEvents,
+} from "./queries/use-events";
+export {
   findBestOffer,
   getMaxLiquiditySats,
   getOfferRank,

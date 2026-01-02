@@ -1,0 +1,53 @@
+import { getCanisterActor } from "@/lib/canister-server";
+import { getEventsRepository } from "@/lib/repositories/events/get-events-repository";
+import { mapEvents } from "../get-events/mapper";
+
+export interface SyncEventsResult {
+  syncedCount: number;
+  latestEventId: string | null;
+}
+
+export async function syncEventsFromCanister(): Promise<SyncEventsResult> {
+  const repository = getEventsRepository();
+  const actor = await getCanisterActor();
+
+  const latestEventId = await repository.getLatestEventId();
+  const afterId: [] | [bigint] = latestEventId ? [BigInt(latestEventId)] : [];
+
+  const canisterEvents = await actor.get_all_events(afterId, [1000]);
+  const events = mapEvents(canisterEvents);
+
+  if (events.length > 0) {
+    await repository.saveEvents(events);
+  }
+
+  return {
+    syncedCount: events.length,
+    latestEventId: events.length > 0 ? events[events.length - 1].id : latestEventId,
+  };
+}
+
+export async function syncEventsForPrincipal(principal: string): Promise<SyncEventsResult> {
+  const repository = getEventsRepository();
+  const actor = await getCanisterActor();
+  const { Principal } = await import("@dfinity/principal");
+
+  const latestEventId = await repository.getLatestEventId(principal);
+  const afterId: [] | [bigint] = latestEventId ? [BigInt(latestEventId)] : [];
+
+  const canisterEvents = await actor.get_events_for_principal(
+    Principal.fromText(principal),
+    afterId,
+    [1000],
+  );
+  const events = mapEvents(canisterEvents);
+
+  if (events.length > 0) {
+    await repository.saveEvents(events);
+  }
+
+  return {
+    syncedCount: events.length,
+    latestEventId: events.length > 0 ? events[events.length - 1].id : latestEventId,
+  };
+}
