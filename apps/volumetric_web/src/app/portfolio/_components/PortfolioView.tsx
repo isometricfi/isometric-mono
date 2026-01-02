@@ -40,7 +40,7 @@ export function PortfolioView() {
 
   return (
     <div className="flex flex-col gap-4 relative">
-      <div className="text-center space-y-2 flex justify-center">
+      <div className="text-center space-y-2 flex justify-center gap-2">
         <h1 className="text-3xl font-bold">Portfolio</h1>
         <Link href="/history" className="md:absolute right-0">
           <Button variant="outline" size="sm">

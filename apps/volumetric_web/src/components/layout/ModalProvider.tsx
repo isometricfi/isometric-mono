@@ -6,7 +6,7 @@ import { Drawer, DrawerContent } from "@/components/ui/drawer";
 import { useModal } from "@/hooks/use-modal";
 
 export function ModalProvider() {
-  const { isOpen, content, closeModal } = useModal();
+  const { isOpen, content, closeModal, fullscreen, minHeight } = useModal();
   const isMobile = useMediaQuery({ query: "(max-width: 768px)" });
 
   if (!content) return null;
@@ -14,7 +14,7 @@ export function ModalProvider() {
   if (isMobile) {
     return (
       <Drawer open={isOpen} onOpenChange={(open) => !open && closeModal()}>
-        <DrawerContent className="px-4 pb-6 h-dvh! max-h-dvh! rounded-t-none!">
+        <DrawerContent className={fullscreen ? "h-dvh! max-h-dvh! rounded-t-none!" : "px-4 pb-6"}>
           {content}
         </DrawerContent>
       </Drawer>
@@ -25,7 +25,8 @@ export function ModalProvider() {
     <Dialog open={isOpen} onOpenChange={(open) => !open && closeModal()}>
       <DialogContent
         showCloseButton={false}
-        className="sm:max-w-md p-5 overflow-visible min-h-[600px] border-0"
+        className="sm:max-w-md p-5 overflow-visible border-0"
+        style={{ minHeight }}
       >
         {content}
       </DialogContent>

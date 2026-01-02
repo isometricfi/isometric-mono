@@ -34,18 +34,22 @@ function generateMockEntry(index: number): HistoryEntry {
   let payoutSats: bigint;
   let pnlSats: bigint;
 
-  if (role === "buyer") {
-    if (isItm) {
-      payoutSats = quantitySats;
-      pnlSats = quantitySats - premiumSats;
+  if (isItm) {
+    const gainPercent = (settlementPrice - strikePrice) / strikePrice;
+    const buyerGainSats = BigInt(Math.floor(quantityBtc * gainPercent * Number(SATS_PER_BTC)));
+    const cappedGain = buyerGainSats > quantitySats ? quantitySats : buyerGainSats;
+
+    if (role === "buyer") {
+      payoutSats = cappedGain;
+      pnlSats = cappedGain - premiumSats;
     } else {
-      payoutSats = ZERO;
-      pnlSats = -premiumSats;
+      payoutSats = quantitySats + premiumSats - cappedGain;
+      pnlSats = premiumSats - cappedGain;
     }
   } else {
-    if (isItm) {
+    if (role === "buyer") {
       payoutSats = ZERO;
-      pnlSats = premiumSats - quantitySats;
+      pnlSats = -premiumSats;
     } else {
       payoutSats = quantitySats + premiumSats;
       pnlSats = premiumSats;
@@ -54,7 +58,14 @@ function generateMockEntry(index: number): HistoryEntry {
 
   const premiumNum = Number(premiumSats);
   const pnlNum = Number(pnlSats);
-  const pnlPercent = premiumNum > 0 ? (pnlNum / premiumNum) * 100 : 0;
+  const quantityNum = Number(quantitySats);
+
+  let pnlPercent: number;
+  if (role === "buyer") {
+    pnlPercent = premiumNum > 0 ? (pnlNum / premiumNum) * 100 : 0;
+  } else {
+    pnlPercent = quantityNum > 0 ? (pnlNum / quantityNum) * 100 : 0;
+  }
 
   let result: TradeResult;
   if (pnlSats > ZERO) {

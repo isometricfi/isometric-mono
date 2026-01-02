@@ -4,6 +4,7 @@ import { type CSSProperties, useMemo } from "react";
 import { cn } from "@/lib/utils";
 
 function hash32(input: string): number {
+  if (!input) return 2166136261;
   let h = 2166136261;
   for (let i = 0; i < input.length; i += 1) {
     h ^= input.charCodeAt(i);
@@ -12,9 +13,9 @@ function hash32(input: string): number {
   return h >>> 0;
 }
 
-export function ProceduralAvatar({ seed, className }: { seed: string; className?: string }) {
+export function ProceduralAvatar({ seed, className }: { seed?: string; className?: string }) {
   const style = useMemo((): CSSProperties => {
-    const h = hash32(seed);
+    const h = hash32(seed || "");
     const h1 = h % 360;
     const h2 = (h * 7) % 360;
     const h3 = (h * 13) % 360;

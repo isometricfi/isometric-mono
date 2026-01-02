@@ -3,6 +3,7 @@
 import { useDynamicContext } from "@dynamic-labs/sdk-react-core";
 import { ConnectButton } from "@/components/wallet/ConnectButton";
 import { useAccount } from "@/hooks";
+import { HistoryStats } from "./HistoryStats";
 import { HistoryTable } from "./HistoryTable";
 
 export function HistoryView() {
@@ -34,6 +35,7 @@ export function HistoryView() {
       <div className="text-center space-y-2">
         <h1 className="text-3xl font-bold">Trading history</h1>
       </div>
+      <HistoryStats />
       <HistoryTable />
     </div>
   );

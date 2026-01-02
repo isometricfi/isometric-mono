@@ -2,10 +2,16 @@
 
 import { AnimatePresence, motion } from "framer-motion";
 import { Check, Copy } from "lucide-react";
-import { useState } from "react";
+import { type ButtonHTMLAttributes, type ReactNode, useState } from "react";
 import { Button } from "@/components/ui/button";
 
-export function CopyButton({ text }: { text: string }) {
+interface CopyButtonProps extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, "size"> {
+  text: string;
+  children?: ReactNode;
+  size?: "default" | "sm" | "lg" | "icon" | "icon-sm" | "icon-lg";
+}
+
+export function CopyButton({ text, children, size, ...buttonProps }: CopyButtonProps) {
   const [copied, setCopied] = useState(false);
 
   const handleCopy = async () => {
@@ -14,8 +20,17 @@ export function CopyButton({ text }: { text: string }) {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const isIconOnly = !children;
+  const defaultSize = isIconOnly ? "icon" : "default";
+  const defaultVariant = "outline";
+
   return (
-    <Button variant="outline" size="icon" onClick={handleCopy}>
+    <Button
+      variant={defaultVariant}
+      size={size ?? defaultSize}
+      onClick={handleCopy}
+      {...buttonProps}
+    >
       <AnimatePresence mode="wait" initial={false}>
         {copied ? (
           <motion.div
@@ -39,6 +54,7 @@ export function CopyButton({ text }: { text: string }) {
           </motion.div>
         )}
       </AnimatePresence>
+      {children}
     </Button>
   );
 }
