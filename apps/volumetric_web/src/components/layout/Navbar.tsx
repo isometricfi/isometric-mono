@@ -23,12 +23,12 @@ export function Navbar() {
           <Link href="/" className="flex items-center gap-2 text-xl font-semibold tracking-tight">
             <Image
               src="/logo.svg"
-              alt="Volumetric"
+              alt="Isometric"
               width={32}
               height={32}
               className="min-w-[32px] min-h-[32px]"
             />
-            <span className="md:block hidden">Volumetric</span>
+            <span className="md:block hidden">Isometric</span>
           </Link>
           <div className="flex items-center gap-0 md:gap-3 md:justify-center">
             <Link href="/write">

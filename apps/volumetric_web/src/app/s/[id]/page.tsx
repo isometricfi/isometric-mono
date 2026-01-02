@@ -12,14 +12,14 @@ export async function generateMetadata({
   params: Promise<{ id: string }>;
 }): Promise<Metadata> {
   const { id } = await params;
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://volumetric.app";
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://isometric.fi";
   const ogImageUrl = `${baseUrl}/api/og/${id}`;
 
   return {
-    title: "Trading Stats | Volumetric",
-    description: "Check out my Bitcoin options trading performance on Volumetric",
+    title: "Trading Stats | Isometric",
+    description: "Check out my Bitcoin options trading performance on Isometric",
     openGraph: {
-      title: "My Trading Stats on Volumetric",
+      title: "My Trading Stats on Isometric",
       description: "Bitcoin Options Trading Performance",
       images: [
         {
@@ -32,7 +32,7 @@ export async function generateMetadata({
     },
     twitter: {
       card: "summary_large_image",
-      title: "My Trading Stats on Volumetric",
+      title: "My Trading Stats on Isometric",
       description: "Bitcoin Options Trading Performance",
       images: [ogImageUrl],
     },
@@ -52,7 +52,7 @@ export default async function SharePage({ params }: { params: Promise<{ id: stri
         <h1 className="text-3xl font-bold mb-4">No Trading History</h1>
         <p className="text-muted-foreground mb-8">This user hasn't completed any trades yet.</p>
         <Button asChild>
-          <Link href="/">Visit Volumetric</Link>
+          <Link href="/">Visit Isometric</Link>
         </Button>
       </div>
     );

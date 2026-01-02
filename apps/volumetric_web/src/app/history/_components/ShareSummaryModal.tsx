@@ -31,7 +31,7 @@ export function ShareSummaryModal() {
   const winRate = (profitableTrades / totalTrades) * 100;
 
   const twitterText = encodeURIComponent(
-    `Check out my trading stats on Volumetric! 📈\n\n${(Number(totalPnlSats) / 100_000_000).toFixed(6)} BTC P&L | ${winRate.toFixed(1)}% Win Rate | ${totalTrades} Trades`,
+    `Check out my trading stats on Isometric! 📈\n\n${(Number(totalPnlSats) / 100_000_000).toFixed(6)} BTC P&L | ${winRate.toFixed(1)}% Win Rate | ${totalTrades} Trades`,
   );
   const twitterUrl = `https://twitter.com/intent/tweet?text=${twitterText}&url=${encodeURIComponent(absoluteShareUrl)}`;
 

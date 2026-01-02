@@ -27,7 +27,7 @@ export function ChainAbstractionSection() {
               <span className="text-muted-foreground">Smart contract power.</span>
             </h2>
             <p className="text-muted-foreground leading-relaxed mb-8">
-              Powered by ICP&apos;s chain-key technology, Volumetric bridges the gap between
+              Powered by ICP&apos;s chain-key technology, Isometric bridges the gap between
               Bitcoin&apos;s security and programmable smart contracts. Your BTC never leaves the
               Bitcoin network—it&apos;s represented 1:1 on-chain with full cryptographic
               verification.

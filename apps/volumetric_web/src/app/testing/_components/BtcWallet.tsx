@@ -27,7 +27,7 @@ function BtcWalletInner() {
   const { primaryWallet, user } = useDynamicContext();
   const addresses = useBtcAddresses();
   const [signature, setSignature] = useState<string | null>(null);
-  const [message, setMessage] = useState("Hello from Volumetric");
+  const [message, setMessage] = useState("Hello from Isometric");
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
