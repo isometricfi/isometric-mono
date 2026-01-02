@@ -4,11 +4,16 @@ import type { EventsQuery, IEventsRepository } from "./events-repository.interfa
 
 const EVENTS_COLLECTION = "events";
 
+interface FirestoreEvent extends Event {
+  idNum: number;
+}
+
 export class FirebaseEventsRepository implements IEventsRepository {
   constructor(private db: Firestore) {}
 
   async saveEvent(event: Event): Promise<void> {
-    await this.db.collection(EVENTS_COLLECTION).doc(event.id).set(event);
+    const doc: FirestoreEvent = { ...event, idNum: Number(event.id) };
+    await this.db.collection(EVENTS_COLLECTION).doc(event.id).set(doc);
   }
 
   async saveEvents(events: Event[]): Promise<void> {
@@ -16,8 +21,9 @@ export class FirebaseEventsRepository implements IEventsRepository {
 
     const batch = this.db.batch();
     for (const event of events) {
+      const doc: FirestoreEvent = { ...event, idNum: Number(event.id) };
       const docRef = this.db.collection(EVENTS_COLLECTION).doc(event.id);
-      batch.set(docRef, event);
+      batch.set(docRef, doc);
     }
     await batch.commit();
   }
@@ -55,7 +61,7 @@ export class FirebaseEventsRepository implements IEventsRepository {
   }
 
   async getLatestEventId(principal?: string): Promise<string | null> {
-    let q = this.db.collection(EVENTS_COLLECTION).orderBy("id", "desc").limit(1);
+    let q = this.db.collection(EVENTS_COLLECTION).orderBy("idNum", "desc").limit(1);
 
     if (principal) {
       q = q.where("principal", "==", principal);
