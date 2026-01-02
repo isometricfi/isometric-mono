@@ -49,3 +49,5 @@ export { useWalletBalance } from "./queries/use-wallet-balance";
 export { useCanister } from "./use-canister";
 // account flow
 export { type EnsureAccountStep, useEnsureAccount } from "./use-ensure-account";
+// modal
+export { useModal } from "./use-modal";

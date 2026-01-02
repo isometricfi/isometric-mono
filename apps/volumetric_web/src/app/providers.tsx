@@ -1,6 +1,7 @@
 "use client";
 
 import { isServer, QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { ModalProvider } from "@/components/layout/ModalProvider";
 import { Toaster } from "@/components/ui/sonner";
 import { TRPCProvider, trpcClient } from "@/trpc/react";
 import { DynamicProvider } from "./providers/dynamic-provider";
@@ -33,7 +34,10 @@ export default function Providers({ children }: { children: React.ReactNode }) {
     <QueryClientProvider client={queryClient}>
       <TRPCProvider trpcClient={trpcClient} queryClient={queryClient}>
         <Toaster position="top-center" />
-        <DynamicProvider>{children}</DynamicProvider>
+        <DynamicProvider>
+          {children}
+          <ModalProvider />
+        </DynamicProvider>
       </TRPCProvider>
     </QueryClientProvider>
   );
