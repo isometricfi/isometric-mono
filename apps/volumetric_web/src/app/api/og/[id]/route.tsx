@@ -55,7 +55,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
             color: "white",
           }}
         >
-          <div style={{ fontSize: 48, fontWeight: 800 }}>Volumetric</div>
+          <div style={{ fontSize: 48, fontWeight: 800 }}>Isometric</div>
           <div style={{ fontSize: 24, fontWeight: 500, marginTop: 20, opacity: 0.7 }}>
             No trading history found
           </div>
@@ -140,9 +140,9 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
               fill="none"
               style={{ marginRight: 16 }}
               role="img"
-              aria-label="Volumetric logo"
+              aria-label="Isometric logo"
             >
-              <title>Volumetric Logo</title>
+              <title>Isometric Logo</title>
               <path
                 d="M84.8747 12.2818C93.458 4.79205 106.226 4.79568 114.807 12.287C141.249 35.3696 164.63 58.7521 187.713 85.1932C195.204 93.7746 195.209 106.543 187.719 115.125C164.775 141.417 141.417 164.775 115.125 187.719C106.543 195.209 93.7747 195.204 85.1933 187.713C58.7521 164.63 35.3698 141.249 12.2871 114.807C4.79579 106.226 4.79219 93.4579 12.2819 84.8746C35.2253 58.5834 58.5835 35.2252 84.8747 12.2818Z"
                 fill="#FFCE51"
@@ -156,7 +156,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
                 fill="#E37B00"
               />
             </svg>
-            <div style={{ fontSize: 48, fontWeight: 800, color: TEXT_COLOR }}>Volumetric</div>
+            <div style={{ fontSize: 48, fontWeight: 800, color: TEXT_COLOR }}>Isometric</div>
           </div>
         </div>
 
@@ -279,8 +279,8 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
             letterSpacing: "0.05em",
           }}
         >
-          <div>volumetric.app</div>
-          <div>Decentralized Bitcoin Options</div>
+          <div>isometric.app</div>
+          <div>Bitcoin Options For Everyone</div>
         </div>
       </div>,
       {
@@ -303,7 +303,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
           color: "white",
         }}
       >
-        <div style={{ fontSize: 48, fontWeight: 800 }}>Volumetric</div>
+        <div style={{ fontSize: 48, fontWeight: 800 }}>Isometric</div>
         <div style={{ fontSize: 24, fontWeight: 500, marginTop: 20, opacity: 0.7 }}>
           Error loading stats
         </div>

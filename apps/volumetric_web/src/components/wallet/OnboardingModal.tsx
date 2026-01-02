@@ -41,11 +41,11 @@ function WelcomeSlide({
         <div className="relative mb-8">
           <div className="absolute inset-0 bg-primary/20 rounded-full blur-3xl" />
           <div className="relative size-24 rounded-3xl bg-card border shadow-xl flex items-center justify-center">
-            <Image src="/logo.svg" alt="Volumetric" width={64} height={64} className="w-16 h-16" />
+            <Image src="/logo.svg" alt="Isometric" width={64} height={64} className="w-16 h-16" />
           </div>
         </div>
 
-        <h1 className="text-4xl font-bold mb-3 tracking-tight">Volumetric</h1>
+        <h1 className="text-4xl font-bold mb-3 tracking-tight">Isometric</h1>
 
         <p className="text-base text-muted-foreground max-w-sm mb-8 leading-relaxed">
           The simplest way to trade Bitcoin options on-chain.

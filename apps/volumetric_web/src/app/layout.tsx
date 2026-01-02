@@ -16,8 +16,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Volumetric",
-  description: "Volumetric",
+  title: "Isometric",
+  description: "Isometric",
 };
 
 export default function RootLayout({

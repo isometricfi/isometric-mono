@@ -1,6 +1,42 @@
 import { HydrationBoundary } from "@tanstack/react-query";
+import type { Metadata } from "next";
 import { prefetchOptionsPageData } from "@/lib/prefetch";
 import { WriteOptionsView } from "./_components/WriteOptionsView";
+
+export const metadata: Metadata = {
+  title: "Write Bitcoin Options | Isometric",
+  description:
+    "Earn high APY on your idle BTC by writing call options. Let your assets work for you and collect premium instantly. No intermediaries, direct on-chain trading.",
+  keywords: [
+    "write Bitcoin options",
+    "write calls",
+    "BTC APY",
+    "BTC yield",
+    "earn on BTC",
+    "crypto income",
+  ],
+  openGraph: {
+    type: "website",
+    title: "Write Bitcoin Options | Isometric",
+    description:
+      "Earn high APY on your idle BTC by writing call options. Collect premium instantly.",
+    images: [
+      {
+        url: "/defaultOG.png",
+        width: 1200,
+        height: 630,
+        alt: "Write Bitcoin Options on Isometric",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Write Bitcoin Options | Isometric",
+    description:
+      "Earn high APY on your idle BTC by writing call options. Collect premium instantly.",
+    images: ["/defaultOG.png"],
+  },
+};
 
 export default async function WritePage() {
   const dehydratedState = await prefetchOptionsPageData();
