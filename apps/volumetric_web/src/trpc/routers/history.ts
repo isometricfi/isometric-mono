@@ -7,7 +7,7 @@ import { publicProcedure, router } from "../init";
 export const historyRouter = router({
   getHistory: publicProcedure
     .input(getHistorySchema)
-    .query(({ input }) => getHistory(input.address)),
+    .query(({ input }) => getHistory(input.principal)),
   getHistoryByHash: publicProcedure
     .input(getHistoryByHashSchema)
     .query(({ input }) => getHistoryByHash(input.principalHash)),

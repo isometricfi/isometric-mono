@@ -1,8 +1,35 @@
 import { ImageResponse } from "next/og";
-import { getHistoryByHash } from "@/lib/use-cases/history/get-history-by-hash/usecase";
+import type { HistoryEntry } from "@/lib/use-cases/history/get-history/schema";
 import { formatBtcBigint } from "@/lib/utils";
 
 export const runtime = "edge";
+
+interface HistoryByHashResponse {
+  entries: HistoryEntry[];
+  username: string | null;
+  principal: string;
+}
+
+async function fetchHistoryByHash(
+  principalHash: string,
+  baseUrl: string,
+): Promise<HistoryByHashResponse | null> {
+  try {
+    const url = new URL("/api/trpc/history.getHistoryByHash", baseUrl);
+    url.searchParams.set("input", JSON.stringify({ principalHash }));
+
+    const response = await fetch(url.toString(), {
+      headers: { "Content-Type": "application/json" },
+    });
+
+    if (!response.ok) return null;
+
+    const data = await response.json();
+    return data.result?.data ?? null;
+  } catch {
+    return null;
+  }
+}
 
 function formatBtcForOG(sats: bigint, maxDecimals = 8): string {
   const formatted = formatBtcBigint(sats, maxDecimals);
@@ -35,10 +62,11 @@ function getAvatarGradient(seed: string) {
   ].join(", ");
 }
 
-export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
-    const history = await getHistoryByHash(id);
+    const baseUrl = new URL(request.url).origin;
+    const history = await fetchHistoryByHash(id, baseUrl);
 
     const entries = history?.entries ?? [];
     if (entries.length === 0) {
@@ -67,8 +95,8 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
       );
     }
 
-    const username = history.username || `User ${id}`;
-    const principal = history.principal || id;
+    const username = history?.username || `User ${id}`;
+    const principal = history?.principal || id;
 
     // Sort entries by acceptedAt to find the first trade (oldest)
     const sortedEntries = [...entries].sort((a, b) => Number(a.acceptedAt - b.acceptedAt));

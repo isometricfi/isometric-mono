@@ -321,8 +321,13 @@ pub async fn accept_offers_use_case(
             EventData::OfferAccepted {
                 offer_id: v.offer_id,
                 option_id: v.option_id,
+                fill_group_id,
+                counterparty: v.writer,
                 quantity_sats: v.quantity,
                 premium_sats: v.premium,
+                entry_price_cents,
+                strike_price_cents,
+                expiry_ns: v.expiry,
                 role: TradeRole::Buyer,
             },
         );
@@ -333,8 +338,13 @@ pub async fn accept_offers_use_case(
             EventData::OfferAccepted {
                 offer_id: v.offer_id,
                 option_id: v.option_id,
+                fill_group_id,
+                counterparty: buyer_principal,
                 quantity_sats: v.quantity,
                 premium_sats: v.premium,
+                entry_price_cents,
+                strike_price_cents,
+                expiry_ns: v.expiry,
                 role: TradeRole::Writer,
             },
         );

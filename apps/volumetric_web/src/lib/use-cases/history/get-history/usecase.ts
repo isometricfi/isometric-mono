@@ -1,121 +1,99 @@
-import type { HistoryEntry, MoneyStatus, Output, TradeResult } from "./schema";
+import { getEventsRepository } from "@/lib/repositories/events/get-events-repository";
+import type { HistoryEntry, MoneyStatus, Output, TradeResult, TradeRole } from "./schema";
 
-const NS_PER_MS = BigInt(1_000_000);
-const SATS_PER_BTC = BigInt(100_000_000);
 const ZERO = BigInt(0);
 
-function generateMockEntry(index: number): HistoryEntry {
-  const roles = ["buyer", "writer"] as const;
-  const role = roles[index % 2];
-
-  const baseDate = Date.now() - index * 24 * 60 * 60 * 1000 * (1 + Math.random() * 2);
-  const acceptedAt = BigInt(Math.floor(baseDate)) * NS_PER_MS;
-  const settledAt =
-    BigInt(Math.floor(baseDate + 7 * 24 * 60 * 60 * 1000 * (1 + Math.random()))) * NS_PER_MS;
-
-  const entryPrice = 90000 + Math.random() * 20000;
-  const entryPriceCents = BigInt(Math.floor(entryPrice * 100));
-
-  const strikeMultiplier = 1 + (Math.random() * 0.2 - 0.05);
-  const strikePrice = entryPrice * strikeMultiplier;
-  const strikePriceCents = BigInt(Math.floor(strikePrice * 100));
-
-  const settlementMultiplier = 0.9 + Math.random() * 0.3;
-  const settlementPrice = entryPrice * settlementMultiplier;
-  const settlementPriceCents = BigInt(Math.floor(settlementPrice * 100));
-
-  const quantityBtc = 0.01 + Math.random() * 0.09;
-  const quantitySats = BigInt(Math.floor(quantityBtc * Number(SATS_PER_BTC)));
-
-  const premiumPercent = 0.02 + Math.random() * 0.03;
-  const premiumSats = BigInt(Math.floor(quantityBtc * premiumPercent * Number(SATS_PER_BTC)));
-
-  const isItm = settlementPrice > strikePrice;
-  let payoutSats: bigint;
-  let pnlSats: bigint;
-
-  if (isItm) {
-    const gainPercent = (settlementPrice - strikePrice) / strikePrice;
-    const buyerGainSats = BigInt(Math.floor(quantityBtc * gainPercent * Number(SATS_PER_BTC)));
-    const cappedGain = buyerGainSats > quantitySats ? quantitySats : buyerGainSats;
-
-    if (role === "buyer") {
-      payoutSats = cappedGain;
-      pnlSats = cappedGain - premiumSats;
-    } else {
-      payoutSats = quantitySats + premiumSats - cappedGain;
-      pnlSats = premiumSats - cappedGain;
-    }
-  } else {
-    if (role === "buyer") {
-      payoutSats = ZERO;
-      pnlSats = -premiumSats;
-    } else {
-      payoutSats = quantitySats + premiumSats;
-      pnlSats = premiumSats;
-    }
-  }
-
-  const premiumNum = Number(premiumSats);
-  const pnlNum = Number(pnlSats);
-  const quantityNum = Number(quantitySats);
-
-  let pnlPercent: number;
+function calculatePnl(
+  role: TradeRole,
+  premiumSats: bigint,
+  payoutSats: bigint,
+  quantitySats: bigint,
+): bigint {
   if (role === "buyer") {
-    pnlPercent = premiumNum > 0 ? (pnlNum / premiumNum) * 100 : 0;
+    // Buyer pays premium upfront, receives payout at settlement
+    return payoutSats - premiumSats;
   } else {
-    pnlPercent = quantityNum > 0 ? (pnlNum / quantityNum) * 100 : 0;
+    // Writer receives premium upfront, but locks quantity as collateral
+    // Payout is their remaining collateral + premium
+    // PnL = payout - quantity (their initial collateral)
+    // Which equals: premium - (what they paid to buyer)
+    return payoutSats - quantitySats;
   }
-
-  let result: TradeResult;
-  if (pnlSats > ZERO) {
-    result = "profit";
-  } else if (pnlSats < ZERO) {
-    result = "loss";
-  } else {
-    result = "breakeven";
-  }
-
-  let moneyStatus: MoneyStatus;
-  const strikePriceNum = Number(strikePriceCents) / 100;
-  const settlementPriceNum = Number(settlementPriceCents) / 100;
-  const threshold = strikePriceNum * 0.01;
-
-  if (Math.abs(settlementPriceNum - strikePriceNum) < threshold) {
-    moneyStatus = "atm";
-  } else if (settlementPriceNum > strikePriceNum) {
-    moneyStatus = "itm";
-  } else {
-    moneyStatus = "otm";
-  }
-
-  return {
-    id: `hist-${index + 1}`,
-    role,
-    optionType: "call",
-    quantitySats,
-    strikePriceCents,
-    entryPriceCents,
-    settlementPriceCents,
-    premiumSats,
-    payoutSats,
-    pnlSats,
-    pnlPercent,
-    result,
-    moneyStatus,
-    acceptedAt,
-    settledAt,
-  };
 }
 
-export async function getHistory(_address: string): Promise<Output> {
-  const entryCount = 35;
+function calculatePnlPercent(
+  role: TradeRole,
+  pnlSats: bigint,
+  premiumSats: bigint,
+  quantitySats: bigint,
+): number {
+  if (role === "buyer") {
+    // For buyers, PnL % is relative to premium paid
+    return premiumSats > ZERO ? (Number(pnlSats) / Number(premiumSats)) * 100 : 0;
+  } else {
+    // For writers, PnL % is relative to collateral locked
+    return quantitySats > ZERO ? (Number(pnlSats) / Number(quantitySats)) * 100 : 0;
+  }
+}
+
+function getTradeResult(pnlSats: bigint): TradeResult {
+  if (pnlSats > ZERO) return "profit";
+  if (pnlSats < ZERO) return "loss";
+  return "breakeven";
+}
+
+function getMoneyStatus(strikePriceCents: bigint, settlementPriceCents: bigint): MoneyStatus {
+  const threshold = Number(strikePriceCents) * 0.01;
+  const diff = Math.abs(Number(settlementPriceCents) - Number(strikePriceCents));
+
+  if (diff < threshold) return "atm";
+  if (settlementPriceCents > strikePriceCents) return "itm";
+  return "otm";
+}
+
+export async function getHistory(principal: string): Promise<Output> {
+  const repository = getEventsRepository();
+
+  // Get all events for the principal, we'll filter to OptionSettled
+  const events = await repository.getEventsByPrincipal(principal, { limit: 1000 });
+
   const entries: HistoryEntry[] = [];
 
-  for (let i = 0; i < entryCount; i++) {
-    entries.push(generateMockEntry(i));
+  for (const event of events) {
+    if (event.data.type !== "OptionSettled") continue;
+
+    const data = event.data;
+    const role: TradeRole = data.role === "Buyer" ? "buyer" : "writer";
+    const quantitySats = BigInt(data.quantitySats);
+    const premiumSats = BigInt(data.premiumSats);
+    const payoutSats = BigInt(data.payoutSats);
+    const strikePriceCents = BigInt(data.strikePriceCents);
+    const entryPriceCents = BigInt(data.entryPriceCents);
+    const settlementPriceCents = BigInt(data.settlementPriceCents);
+
+    const pnlSats = calculatePnl(role, premiumSats, payoutSats, quantitySats);
+    const pnlPercent = calculatePnlPercent(role, pnlSats, premiumSats, quantitySats);
+
+    entries.push({
+      id: `${event.id}-${data.optionId}`,
+      role,
+      optionType: "call", // Currently only calls are supported
+      quantitySats,
+      strikePriceCents,
+      entryPriceCents,
+      settlementPriceCents,
+      premiumSats,
+      payoutSats,
+      pnlSats,
+      pnlPercent,
+      result: getTradeResult(pnlSats),
+      moneyStatus: getMoneyStatus(strikePriceCents, settlementPriceCents),
+      acceptedAt: BigInt(data.acceptedAtNs),
+      settledAt: BigInt(data.settledAtNs),
+    });
   }
 
+  // Sort by settlement time, most recent first
   entries.sort((a, b) => Number(b.settledAt - a.settledAt));
 
   return { entries };

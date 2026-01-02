@@ -72,6 +72,7 @@ pub fn create_offer_use_case(
             strike_basis_points: params.strike_basis_points,
             premium_basis_points: params.premium_basis_points,
             duration_seconds: params.option_duration_seconds,
+            offer_valid_until_ns: params.offer_valid_until,
         },
     );
 
