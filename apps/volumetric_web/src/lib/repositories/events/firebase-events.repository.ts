@@ -3,6 +3,7 @@ import type { Event } from "@/lib/use-cases/events/get-events/schema";
 import type { EventsQuery, IEventsRepository } from "./events-repository.interface";
 
 const EVENTS_COLLECTION = "events";
+const BATCH_LIMIT = 500;
 
 interface FirestoreEvent extends Event {
   idNum: number;
@@ -19,13 +20,16 @@ export class FirebaseEventsRepository implements IEventsRepository {
   async saveEvents(events: Event[]): Promise<void> {
     if (events.length === 0) return;
 
-    const batch = this.db.batch();
-    for (const event of events) {
-      const doc: FirestoreEvent = { ...event, idNum: Number(event.id) };
-      const docRef = this.db.collection(EVENTS_COLLECTION).doc(event.id);
-      batch.set(docRef, doc);
+    for (let i = 0; i < events.length; i += BATCH_LIMIT) {
+      const chunk = events.slice(i, i + BATCH_LIMIT);
+      const batch = this.db.batch();
+      for (const event of chunk) {
+        const doc: FirestoreEvent = { ...event, idNum: Number(event.id) };
+        const docRef = this.db.collection(EVENTS_COLLECTION).doc(event.id);
+        batch.set(docRef, doc);
+      }
+      await batch.commit();
     }
-    await batch.commit();
   }
 
   async getEvents(query: EventsQuery): Promise<Event[]> {
