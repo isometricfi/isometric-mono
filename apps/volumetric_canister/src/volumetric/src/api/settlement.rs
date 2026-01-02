@@ -62,10 +62,6 @@ pub fn get_pending_settlements() -> Vec<ActiveOption> {
     list_expired_active_options(now)
 }
 
-pub fn setup_settlement_timer() {
-    usecases::setup_settlement_timer();
-}
-
 #[ic_cdk::update]
 pub async fn testing_expire_option(option_id: u64) -> Result<ActiveOption, VolumetricError> {
     is_whitelisted().await?;

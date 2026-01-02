@@ -102,6 +102,70 @@ export interface CreateOfferRequest {
 export interface CreateOfferResponse { 'offer' : Offer }
 export interface DepositInfo { 'account' : Account, 'btc_address' : string }
 export interface ErrorDetails { 'caller' : [] | [string] }
+export interface Event {
+  'id' : bigint,
+  'principal' : Principal,
+  'data' : EventData,
+  'timestamp' : bigint,
+  'event_type' : EventType,
+}
+export type EventData = { 'AccountCreated' : { 'wallet_address' : string } } |
+  {
+    'OfferAcceptFailed' : {
+      'offer_ids' : BigUint64Array | bigint[],
+      'reason' : string,
+    }
+  } |
+  { 'Deposit' : { 'amount_sats' : bigint } } |
+  { 'OfferCancelled' : CancelOfferRequest } |
+  {
+    'OfferAccepted' : {
+      'role' : TradeRole,
+      'option_id' : bigint,
+      'quantity_sats' : bigint,
+      'offer_id' : bigint,
+      'premium_sats' : bigint,
+    }
+  } |
+  {
+    'OptionSettled' : {
+      'payout_sats' : bigint,
+      'role' : TradeRole,
+      'option_id' : bigint,
+      'settlement_price_cents' : bigint,
+    }
+  } |
+  { 'Withdrawal' : { 'destination' : string, 'amount_sats' : bigint } } |
+  { 'WithdrawalFailed' : { 'amount_sats' : bigint, 'reason' : string } } |
+  { 'Unknown' : null } |
+  {
+    'UsernameUpdated' : {
+      'old_username' : [] | [string],
+      'new_username' : string,
+    }
+  } |
+  {
+    'OfferCreated' : {
+      'duration_seconds' : bigint,
+      'quantity_sats' : bigint,
+      'strike_basis_points' : number,
+      'offer_id' : bigint,
+      'premium_basis_points' : number,
+    }
+  } |
+  { 'OptionSettlementFailed' : { 'option_id' : bigint, 'reason' : string } };
+export type EventType = { 'AccountCreated' : null } |
+  { 'OfferAcceptFailed' : null } |
+  { 'Deposit' : null } |
+  { 'OfferCancelled' : null } |
+  { 'OfferAccepted' : null } |
+  { 'OptionSettled' : null } |
+  { 'Withdrawal' : null } |
+  { 'WithdrawalFailed' : null } |
+  { 'Unknown' : null } |
+  { 'UsernameUpdated' : null } |
+  { 'OfferCreated' : null } |
+  { 'OptionSettlementFailed' : null };
 export interface FeatureFlags {
   'is_stitching_enabled' : boolean,
   'is_partial_filling_enabled' : boolean,
@@ -169,47 +233,47 @@ export type Result = { 'Ok' : AcceptOffersResponse } |
   { 'Err' : VolumetricError };
 export type Result_1 = { 'Ok' : null } |
   { 'Err' : VolumetricError };
-export type Result_10 = { 'Ok' : Array<PendingWithdrawal> } |
+export type Result_10 = { 'Ok' : Array<PendingSettlement> } |
   { 'Err' : VolumetricError };
-export type Result_11 = { 'Ok' : Array<Offer> } |
+export type Result_11 = { 'Ok' : Array<PendingWithdrawal> } |
   { 'Err' : VolumetricError };
-export type Result_12 = { 'Ok' : Array<ActiveOption> } |
+export type Result_12 = { 'Ok' : Array<Offer> } |
   { 'Err' : VolumetricError };
-export type Result_13 = { 'Ok' : [] | [PendingSettlement] } |
+export type Result_13 = { 'Ok' : Array<ActiveOption> } |
   { 'Err' : VolumetricError };
-export type Result_14 = { 'Ok' : UserBalanceInfo } |
+export type Result_14 = { 'Ok' : [] | [PendingSettlement] } |
   { 'Err' : VolumetricError };
-export type Result_15 = { 'Ok' : [] | [PendingWithdrawal] } |
+export type Result_15 = { 'Ok' : UserBalanceInfo } |
   { 'Err' : VolumetricError };
-export type Result_16 = { 'Ok' : SettleExpiredOptionsResponse } |
+export type Result_16 = { 'Ok' : [] | [PendingWithdrawal] } |
   { 'Err' : VolumetricError };
-export type Result_17 = { 'Ok' : SettlementResult } |
+export type Result_17 = { 'Ok' : SettleExpiredOptionsResponse } |
   { 'Err' : VolumetricError };
-export type Result_18 = { 'Ok' : ClearStorageResponse } |
+export type Result_18 = { 'Ok' : SettlementResult } |
   { 'Err' : VolumetricError };
-export type Result_19 = { 'Ok' : ActiveOption } |
+export type Result_19 = { 'Ok' : ClearStorageResponse } |
   { 'Err' : VolumetricError };
 export type Result_2 = { 'Ok' : Offer } |
   { 'Err' : VolumetricError };
-export type Result_20 = { 'Ok' : bigint } |
+export type Result_20 = { 'Ok' : ActiveOption } |
   { 'Err' : VolumetricError };
 export type Result_21 = { 'Ok' : Array<UtxoStatus> } |
   { 'Err' : VolumetricError };
 export type Result_22 = { 'Ok' : WithdrawResult } |
   { 'Err' : VolumetricError };
-export type Result_3 = { 'Ok' : ProfileInfo } |
+export type Result_3 = { 'Ok' : bigint } |
   { 'Err' : VolumetricError };
-export type Result_4 = { 'Ok' : CreateOfferResponse } |
+export type Result_4 = { 'Ok' : ProfileInfo } |
   { 'Err' : VolumetricError };
-export type Result_5 = { 'Ok' : [] | [PendingAccept] } |
+export type Result_5 = { 'Ok' : CreateOfferResponse } |
   { 'Err' : VolumetricError };
-export type Result_6 = { 'Ok' : bigint } |
+export type Result_6 = { 'Ok' : [] | [PendingAccept] } |
   { 'Err' : VolumetricError };
-export type Result_7 = { 'Ok' : DepositInfo } |
+export type Result_7 = { 'Ok' : bigint } |
   { 'Err' : VolumetricError };
-export type Result_8 = { 'Ok' : Array<PendingAccept> } |
+export type Result_8 = { 'Ok' : DepositInfo } |
   { 'Err' : VolumetricError };
-export type Result_9 = { 'Ok' : Array<PendingSettlement> } |
+export type Result_9 = { 'Ok' : Array<PendingAccept> } |
   { 'Err' : VolumetricError };
 export interface SettleExpiredOptionsResponse {
   'settled' : Array<SettlementResult>,
@@ -227,6 +291,8 @@ export interface SettlementResult {
   'settlement_price_cents' : bigint,
   'payout_to_writer' : bigint,
 }
+export type TradeRole = { 'Buyer' : null } |
+  { 'Writer' : null };
 export interface TradingLimits {
   'term_days' : Range,
   'deposit_amount_sats' : bigint,
@@ -287,9 +353,10 @@ export interface _SERVICE {
   'accept_offers' : ActorMethod<[AuthenticatedPayload], Result>,
   'add_whitelisted' : ActorMethod<[Principal], Result_1>,
   'cancel_offer' : ActorMethod<[AuthenticatedPayload_1], Result_2>,
-  'create_account' : ActorMethod<[AuthenticatedPayload_2], Result_3>,
-  'create_offer' : ActorMethod<[AuthenticatedPayload_3], Result_4>,
-  'get_accept_by_id' : ActorMethod<[bigint], Result_5>,
+  'cleanup_old_events' : ActorMethod<[], Result_3>,
+  'create_account' : ActorMethod<[AuthenticatedPayload_2], Result_4>,
+  'create_offer' : ActorMethod<[AuthenticatedPayload_3], Result_5>,
+  'get_accept_by_id' : ActorMethod<[bigint], Result_6>,
   'get_accept_offers_message' : ActorMethod<
     [string, Array<AcceptOfferItem>],
     string
@@ -297,39 +364,46 @@ export interface _SERVICE {
   'get_account_info' : ActorMethod<[string], [] | [ProfileInfo]>,
   'get_account_nonce' : ActorMethod<[string], bigint>,
   'get_active_option_by_id' : ActorMethod<[bigint], [] | [ActiveOption]>,
+  'get_all_events' : ActorMethod<[[] | [bigint], [] | [number]], Array<Event>>,
   'get_cancel_offer_message' : ActorMethod<[string, bigint], string>,
-  'get_ckbtc_balance' : ActorMethod<[string], Result_6>,
+  'get_ckbtc_balance' : ActorMethod<[string], Result_7>,
   'get_config' : ActorMethod<[], Config>,
   'get_create_offer_message' : ActorMethod<
     [string, bigint, number, number],
     string
   >,
-  'get_deposit_address' : ActorMethod<[string], Result_7>,
-  'get_failed_accepts' : ActorMethod<[], Result_8>,
-  'get_failed_settlements' : ActorMethod<[], Result_9>,
-  'get_failed_withdrawals' : ActorMethod<[], Result_10>,
+  'get_deposit_address' : ActorMethod<[string], Result_8>,
+  'get_events_for_principal' : ActorMethod<
+    [Principal, [] | [bigint], [] | [number]],
+    Array<Event>
+  >,
+  'get_events_since' : ActorMethod<[bigint, [] | [number]], Array<Event>>,
+  'get_failed_accepts' : ActorMethod<[], Result_9>,
+  'get_failed_settlements' : ActorMethod<[], Result_10>,
+  'get_failed_withdrawals' : ActorMethod<[], Result_11>,
   'get_feature_flags' : ActorMethod<[], FeatureFlags>,
   'get_message_to_sign' : ActorMethod<[string], string>,
-  'get_my_offers' : ActorMethod<[string], Result_11>,
-  'get_my_options' : ActorMethod<[string], Result_12>,
+  'get_my_events' : ActorMethod<[[] | [bigint], [] | [number]], Array<Event>>,
+  'get_my_offers' : ActorMethod<[string], Result_12>,
+  'get_my_options' : ActorMethod<[string], Result_13>,
   'get_my_pending_withdrawals' : ActorMethod<
     [AuthenticatedPayload_4],
-    Result_10
+    Result_11
   >,
-  'get_my_written_options' : ActorMethod<[string], Result_12>,
+  'get_my_written_options' : ActorMethod<[string], Result_13>,
   'get_offer_by_id' : ActorMethod<[bigint], [] | [Offer]>,
   'get_open_offers' : ActorMethod<[], Array<Offer>>,
-  'get_pending_accepts' : ActorMethod<[], Result_8>,
+  'get_pending_accepts' : ActorMethod<[], Result_9>,
   'get_pending_settlements' : ActorMethod<[], Array<ActiveOption>>,
-  'get_pending_settlements_journal' : ActorMethod<[], Result_9>,
-  'get_pending_withdrawals' : ActorMethod<[], Result_10>,
+  'get_pending_settlements_journal' : ActorMethod<[], Result_10>,
+  'get_pending_withdrawals' : ActorMethod<[], Result_11>,
   'get_platform_fee_info' : ActorMethod<[], [bigint, bigint]>,
-  'get_settlement_by_id' : ActorMethod<[bigint], Result_13>,
+  'get_settlement_by_id' : ActorMethod<[bigint], Result_14>,
   'get_trading_limits' : ActorMethod<[], TradingLimits>,
-  'get_user_balance' : ActorMethod<[string], Result_14>,
+  'get_user_balance' : ActorMethod<[string], Result_15>,
   'get_username_update_message' : ActorMethod<[string, string], string>,
   'get_withdraw_message' : ActorMethod<[string, string, bigint], string>,
-  'get_withdrawal_by_id' : ActorMethod<[bigint], Result_15>,
+  'get_withdrawal_by_id' : ActorMethod<[bigint], Result_16>,
   'greet' : ActorMethod<[string], string>,
   'list_users' : ActorMethod<[], Array<UserInfo>>,
   'list_whitelisted' : ActorMethod<[], Array<Principal>>,
@@ -337,19 +411,19 @@ export interface _SERVICE {
   'set_feature_flags' : ActorMethod<[FeatureFlags], Result_1>,
   'set_oracle_price' : ActorMethod<[bigint], Result_1>,
   'set_trading_limits' : ActorMethod<[TradingLimits], Result_1>,
-  'settle_expired_options' : ActorMethod<[], Result_16>,
-  'settle_option_by_id' : ActorMethod<[bigint], Result_17>,
+  'settle_expired_options' : ActorMethod<[], Result_17>,
+  'settle_option_by_id' : ActorMethod<[bigint], Result_18>,
   /**
    * Testing endpoint to clear all offers and active options from storage.
    * Use this for storage migration when schema changes break deserialization.
    */
-  'testing_clear_offers_and_options' : ActorMethod<[], Result_18>,
-  'testing_expire_option' : ActorMethod<[bigint], Result_19>,
-  'testing_force_settle' : ActorMethod<[bigint], Result_17>,
-  'testing_set_option_expiry' : ActorMethod<[bigint, bigint], Result_19>,
-  'testing_sync_balance_from_ledger' : ActorMethod<[string], Result_20>,
+  'testing_clear_offers_and_options' : ActorMethod<[], Result_19>,
+  'testing_expire_option' : ActorMethod<[bigint], Result_20>,
+  'testing_force_settle' : ActorMethod<[bigint], Result_18>,
+  'testing_set_option_expiry' : ActorMethod<[bigint, bigint], Result_20>,
+  'testing_sync_balance_from_ledger' : ActorMethod<[string], Result_3>,
   'update_ckbtc_balance' : ActorMethod<[string], Result_21>,
-  'update_username' : ActorMethod<[AuthenticatedPayload_5], Result_3>,
+  'update_username' : ActorMethod<[AuthenticatedPayload_5], Result_4>,
   'withdraw_ckbtc' : ActorMethod<[AuthenticatedPayload_6], Result_22>,
 }
 export declare const idlFactory: IDL.InterfaceFactory;

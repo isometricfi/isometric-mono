@@ -35,6 +35,7 @@ pub enum CounterKey {
     OfferId = 0,
     ActiveOptionId = 1,
     FillGroupId = 2,
+    EventId = 3,
 }
 
 impl ic_stable_structures::Storable for CounterKey {
@@ -47,6 +48,7 @@ impl ic_stable_structures::Storable for CounterKey {
             Some(0) => CounterKey::OfferId,
             Some(1) => CounterKey::ActiveOptionId,
             Some(2) => CounterKey::FillGroupId,
+            Some(3) => CounterKey::EventId,
             _ => CounterKey::OfferId,
         }
     }

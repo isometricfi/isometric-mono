@@ -3,7 +3,8 @@ use candid::Principal;
 use crate::errors::VolumetricError;
 use crate::guards::{validate_offer_params, OfferParams};
 use crate::storage::{
-    get_balance, insert_offer, next_id, Asset, CounterKey, Offer, OfferStatus, OptionType,
+    emit_event, get_balance, insert_offer, next_id, Asset, CounterKey, EventData, EventType, Offer,
+    OfferStatus, OptionType,
 };
 
 pub struct CreateOfferParams {
@@ -61,6 +62,18 @@ pub fn create_offer_use_case(
     };
 
     insert_offer(offer.clone());
+
+    emit_event(
+        writer,
+        EventType::OfferCreated,
+        EventData::OfferCreated {
+            offer_id,
+            quantity_sats: params.quantity,
+            strike_basis_points: params.strike_basis_points,
+            premium_basis_points: params.premium_basis_points,
+            duration_seconds: params.option_duration_seconds,
+        },
+    );
 
     Ok(offer)
 }

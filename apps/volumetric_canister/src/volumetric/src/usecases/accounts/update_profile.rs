@@ -1,7 +1,7 @@
 use candid::Principal;
 
 use crate::auth::derive_subaccount;
-use crate::storage::{get_profile, update_profile};
+use crate::storage::{emit_event, get_profile, update_profile, EventData, EventType};
 
 pub struct UpdateProfileResult {
     pub principal: Principal,
@@ -14,8 +14,18 @@ pub fn update_username_use_case(
     username: String,
 ) -> Option<UpdateProfileResult> {
     let mut profile = get_profile(&principal)?;
-    profile.username = Some(username);
+    let old_username = profile.username.clone();
+    profile.username = Some(username.clone());
     update_profile(principal, profile.clone());
+
+    emit_event(
+        principal,
+        EventType::UsernameUpdated,
+        EventData::UsernameUpdated {
+            old_username,
+            new_username: username,
+        },
+    );
 
     let subaccount = derive_subaccount(principal);
 

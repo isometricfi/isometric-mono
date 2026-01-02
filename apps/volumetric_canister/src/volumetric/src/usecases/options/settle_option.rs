@@ -5,10 +5,11 @@ use crate::errors::VolumetricError;
 use crate::locks::SettlementLock;
 use crate::oracle::{calculate_call_option_payout, get_btc_usd_price_cents};
 use crate::storage::{
-    complete_settlement, create_settlement, fail_settlement, get_active_option,
+    complete_settlement, create_settlement, emit_event, fail_settlement, get_active_option,
     list_expired_active_options, release_locked_to_recipient, remove_settlement,
     reverse_release_locked_to_recipient, unlock_collateral, update_active_option,
-    update_settlement_phase, ActiveOption, ActiveOptionStatus, OptionType, SettlementPhase,
+    update_settlement_phase, ActiveOption, ActiveOptionStatus, EventData, EventType, OptionType,
+    SettlementPhase, TradeRole,
 };
 
 use crate::usecases::balances::transfer_ckbtc;
@@ -131,6 +132,28 @@ pub async fn settle_single_option(
     complete_settlement(option.id);
     remove_settlement(option.id);
 
+    emit_event(
+        option.buyer,
+        EventType::OptionSettled,
+        EventData::OptionSettled {
+            option_id: option.id,
+            settlement_price_cents,
+            payout_sats: payout_to_buyer,
+            role: TradeRole::Buyer,
+        },
+    );
+
+    emit_event(
+        option.writer,
+        EventType::OptionSettled,
+        EventData::OptionSettled {
+            option_id: option.id,
+            settlement_price_cents,
+            payout_sats: payout_to_writer,
+            role: TradeRole::Writer,
+        },
+    );
+
     Ok(SettlementResult {
         option_id: option.id,
         settlement_price_cents,
@@ -227,8 +250,4 @@ pub fn testing_set_option_expiry_use_case(
     update_active_option(option.clone());
 
     Ok(option)
-}
-
-pub fn setup_settlement_timer() {
-    // Disabled for testing - manually call settle_expired_options() or settle_option_by_id()
 }

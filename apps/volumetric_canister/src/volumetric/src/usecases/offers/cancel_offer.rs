@@ -1,7 +1,9 @@
 use candid::Principal;
 
 use crate::errors::VolumetricError;
-use crate::storage::{get_offer, update_offer, Offer, OfferStatus};
+use crate::storage::{
+    emit_event, get_offer, update_offer, EventData, EventType, Offer, OfferStatus,
+};
 
 pub fn cancel_offer_use_case(writer: Principal, offer_id: u64) -> Result<Offer, VolumetricError> {
     let mut offer =
@@ -21,6 +23,12 @@ pub fn cancel_offer_use_case(writer: Principal, offer_id: u64) -> Result<Offer, 
 
     offer.status = OfferStatus::Cancelled;
     update_offer(offer.clone());
+
+    emit_event(
+        writer,
+        EventType::OfferCancelled,
+        EventData::OfferCancelled { offer_id },
+    );
 
     Ok(offer)
 }
