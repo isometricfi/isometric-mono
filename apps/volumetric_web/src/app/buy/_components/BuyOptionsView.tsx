@@ -24,7 +24,7 @@ export function BuyOptionsView() {
           <Button
             variant="ghost"
             size="icon"
-            onClick={() => openModal(<OnboardingContent />)}
+            onClick={() => openModal(<OnboardingContent />, false, "600px")}
             className="size-8"
           >
             <HelpCircle className="size-4" />

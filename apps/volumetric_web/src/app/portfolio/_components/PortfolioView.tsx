@@ -1,9 +1,11 @@
 "use client";
 
 import { useDynamicContext } from "@dynamic-labs/sdk-react-core";
-import { PencilLine, Zap } from "lucide-react";
+import { History, PencilLine, Zap } from "lucide-react";
+import Link from "next/link";
 import { useState } from "react";
 import { AnimatedToggle } from "@/components/navigation/AnimatedToggle";
+import { Button } from "@/components/ui/button";
 import { ConnectButton } from "@/components/wallet/ConnectButton";
 import { useAccount } from "@/hooks";
 import { OffersTable } from "./OffersTable";
@@ -37,9 +39,14 @@ export function PortfolioView() {
   }
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="text-center space-y-2">
+    <div className="flex flex-col gap-4 relative">
+      <div className="text-center space-y-2 flex justify-center gap-2">
         <h1 className="text-3xl font-bold">Portfolio</h1>
+        <Link href="/history" className="md:absolute right-0">
+          <Button variant="outline" size="sm">
+            <History className="size-4 " /> History
+          </Button>
+        </Link>
       </div>
 
       <div className="flex flex-col gap-7">

@@ -900,5 +900,5 @@ export function OnboardingContent() {
 }
 
 export function openOnboardingModal() {
-  useModal.getState().openModal(<OnboardingContent />);
+  useModal.getState().openModal(<OnboardingContent />, false, "600px");
 }

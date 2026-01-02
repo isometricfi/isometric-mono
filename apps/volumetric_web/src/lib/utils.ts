@@ -65,7 +65,9 @@ export function formatBtcBigint(sats: bigint, maxDecimals = 8): string {
 }
 
 export function formatBtcWithSymbolBigint(sats: bigint, maxDecimals = 8): string {
-  return `₿${formatBtcBigint(sats, maxDecimals)}`;
+  const isNegative = sats < BigInt(0);
+  const absSats = isNegative ? -sats : sats;
+  return `${isNegative ? "-" : ""}₿${formatBtcBigint(absSats, maxDecimals)}`;
 }
 
 export function parseBtcToSatsBigint(btcString: string): bigint {
@@ -97,4 +99,14 @@ export function nsToISOString(ns: bigint): string {
 
 export function basisPointsToPercent(basisPoints: number): number {
   return basisPoints / BASIS_POINTS_DIVISOR;
+}
+
+export function hashPrincipal(principal: string): string {
+  let hash = 0;
+  for (let i = 0; i < principal.length; i++) {
+    const char = principal.charCodeAt(i);
+    hash = (hash << 5) - hash + char;
+    hash = hash & hash;
+  }
+  return Math.abs(hash).toString(36).slice(0, 8).padStart(8, "0");
 }
