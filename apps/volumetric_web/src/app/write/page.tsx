@@ -4,22 +4,22 @@ import { prefetchOptionsPageData } from "@/lib/prefetch";
 import { WriteOptionsView } from "./_components/WriteOptionsView";
 
 export const metadata: Metadata = {
-  title: "Write Bitcoin Options | Isometric",
+  title: "Write Bitcoin Options",
   description:
-    "Earn high APY on your idle BTC by writing call options. Let your assets work for you and collect premium instantly. No intermediaries, direct on-chain trading.",
+    "Earn high APY on your Bitcoin by writing call options. Collect premium instantly and let your BTC work for you. Fully on-chain and trustless.",
   keywords: [
     "write Bitcoin options",
-    "write calls",
     "BTC APY",
     "BTC yield",
-    "earn on BTC",
-    "crypto income",
+    "earn on Bitcoin",
+    "on-chain yield",
+    "trustless yield",
   ],
   openGraph: {
     type: "website",
     title: "Write Bitcoin Options | Isometric",
     description:
-      "Earn high APY on your idle BTC by writing call options. Collect premium instantly.",
+      "Earn high APY on your Bitcoin by writing call options. Collect premium instantly. Fully on-chain and trustless.",
     images: [
       {
         url: "/defaultOG.png",
@@ -33,7 +33,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "Write Bitcoin Options | Isometric",
     description:
-      "Earn high APY on your idle BTC by writing call options. Collect premium instantly.",
+      "Earn high APY on your Bitcoin by writing call options. Collect premium instantly. Fully on-chain and trustless.",
     images: ["/defaultOG.png"],
   },
 };
