@@ -2,19 +2,20 @@ import type { Metadata } from "next";
 import { HistoryView } from "./_components/HistoryView";
 
 export const metadata: Metadata = {
-  title: "Trade History | Isometric",
+  title: "History",
   description:
-    "View your complete Bitcoin options trading history. Track all your past trades, settlements, and performance. Full transparency with on-chain verification.",
+    "View your complete on-chain Bitcoin options history. All trades and settlements are verifiable on-chain with full transparency.",
   keywords: [
     "Bitcoin trading history",
-    "options history",
-    "crypto trading records",
-    "BTC trade tracker",
+    "on-chain history",
+    "options settlements",
+    "verifiable trades",
   ],
   openGraph: {
     type: "website",
-    title: "Trade History | Isometric",
-    description: "View your complete Bitcoin options trading history with full transparency.",
+    title: "History | Isometric",
+    description:
+      "View your complete on-chain Bitcoin options history. All trades and settlements are verifiable on-chain.",
     images: [
       {
         url: "/defaultOG.png",
@@ -26,8 +27,9 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Trade History | Isometric",
-    description: "View your complete Bitcoin options trading history with full transparency.",
+    title: "History | Isometric",
+    description:
+      "View your complete on-chain Bitcoin options history. All trades and settlements are verifiable on-chain.",
     images: ["/defaultOG.png"],
   },
 };

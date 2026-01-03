@@ -2,20 +2,20 @@ import type { Metadata } from "next";
 import { PortfolioView } from "./_components/PortfolioView";
 
 export const metadata: Metadata = {
-  title: "Portfolio | Isometric",
+  title: "Portfolio",
   description:
-    "View your Bitcoin options trading portfolio. Track open positions, P&L, and active yield from writing calls. Instant settlement and real-time updates.",
+    "Track your on-chain Bitcoin options positions. View active contracts, pending offers, and performance. Auto-settlement at expiry.",
   keywords: [
     "Bitcoin portfolio",
-    "options portfolio",
-    "BTC P&L",
-    "options tracking",
-    "crypto portfolio",
+    "options positions",
+    "on-chain portfolio",
+    "BTC options tracking",
   ],
   openGraph: {
     type: "website",
     title: "Portfolio | Isometric",
-    description: "View your Bitcoin options trading portfolio with instant settlement.",
+    description:
+      "Track your on-chain Bitcoin options positions. View active contracts, pending offers, and performance.",
     images: [
       {
         url: "/defaultOG.png",
@@ -28,7 +28,8 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
     title: "Portfolio | Isometric",
-    description: "View your Bitcoin options trading portfolio with instant settlement.",
+    description:
+      "Track your on-chain Bitcoin options positions. View active contracts, pending offers, and performance.",
     images: ["/defaultOG.png"],
   },
 };

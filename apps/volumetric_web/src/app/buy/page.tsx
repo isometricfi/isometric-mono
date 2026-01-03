@@ -4,21 +4,21 @@ import { prefetchOptionsPageData } from "@/lib/prefetch";
 import { BuyOptionsView } from "./_components/BuyOptionsView";
 
 export const metadata: Metadata = {
-  title: "Buy Bitcoin Options | Isometric",
+  title: "Buy Bitcoin Options",
   description:
-    "Get up to 100x leverage without liquidation risk. Browse and buy Bitcoin call and put options with defined risk. Asymmetric exposure with max loss limited to premium.",
+    "Get up to 100x leverage on Bitcoin with no liquidation risk. Your max loss is the premium paid. Fully on-chain and trustless.",
   keywords: [
     "buy Bitcoin options",
-    "BTC call options",
     "BTC leverage",
-    "options without liquidation",
-    "crypto leverage",
+    "no liquidation",
+    "on-chain options",
+    "trustless leverage",
   ],
   openGraph: {
     type: "website",
     title: "Buy Bitcoin Options | Isometric",
     description:
-      "Get leverage without liquidation. Browse and buy Bitcoin call and put options with defined risk.",
+      "Get up to 100x leverage on Bitcoin with no liquidation risk. Your max loss is the premium paid. Fully on-chain and trustless.",
     images: [
       {
         url: "/defaultOG.png",
@@ -32,7 +32,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "Buy Bitcoin Options | Isometric",
     description:
-      "Get leverage without liquidation. Browse and buy Bitcoin call and put options with defined risk.",
+      "Get up to 100x leverage on Bitcoin with no liquidation risk. Your max loss is the premium paid. Fully on-chain and trustless.",
     images: ["/defaultOG.png"],
   },
 };
