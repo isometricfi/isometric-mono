@@ -1,60 +1,60 @@
-import type { Firestore } from "firebase-admin/firestore";
+import type { FirestoreClient } from "firebase-rest-firestore";
 import type { Event } from "@/lib/use-cases/events/get-events/schema";
 import type { EventsQuery, IEventsRepository } from "./events-repository.interface";
 
 const EVENTS_COLLECTION = "events";
-const BATCH_LIMIT = 500;
 
-interface FirestoreEvent extends Event {
+interface StoredEvent extends Event {
   idNum: number;
 }
 
 export class FirebaseEventsRepository implements IEventsRepository {
-  constructor(private db: Firestore) {}
+  constructor(private client: FirestoreClient) {}
 
   async saveEvent(event: Event): Promise<void> {
-    const doc: FirestoreEvent = { ...event, idNum: Number(event.id) };
-    await this.db.collection(EVENTS_COLLECTION).doc(event.id).set(doc);
+    const doc: StoredEvent = { ...event, idNum: Number(event.id) };
+    await this.client.collection(EVENTS_COLLECTION).doc(event.id).set(doc);
   }
 
   async saveEvents(events: Event[]): Promise<void> {
     if (events.length === 0) return;
 
-    for (let i = 0; i < events.length; i += BATCH_LIMIT) {
-      const chunk = events.slice(i, i + BATCH_LIMIT);
-      const batch = this.db.batch();
-      for (const event of chunk) {
-        const doc: FirestoreEvent = { ...event, idNum: Number(event.id) };
-        const docRef = this.db.collection(EVENTS_COLLECTION).doc(event.id);
-        batch.set(docRef, doc);
-      }
-      await batch.commit();
+    const BATCH_SIZE = 500;
+    for (let i = 0; i < events.length; i += BATCH_SIZE) {
+      const batch = events.slice(i, i + BATCH_SIZE);
+      await Promise.all(
+        batch.map((event) => {
+          const doc: StoredEvent = { ...event, idNum: Number(event.id) };
+          return this.client.collection(EVENTS_COLLECTION).doc(event.id).set(doc);
+        }),
+      );
     }
   }
 
   async getEvents(query: EventsQuery): Promise<Event[]> {
-    let q = this.db.collection(EVENTS_COLLECTION).orderBy("timestamp", "desc");
+    type WhereClause = { field: string; op: string; value: unknown };
+    const where: WhereClause[] = [];
 
     if (query.principal) {
-      q = q.where("principal", "==", query.principal);
+      where.push({ field: "principal", op: "EQUAL", value: query.principal });
     }
 
     if (query.afterTimestamp) {
-      q = q.where("timestamp", ">", query.afterTimestamp);
+      where.push({ field: "timestamp", op: "GREATER_THAN", value: query.afterTimestamp });
     }
 
     if (query.afterId) {
-      const afterDoc = await this.db.collection(EVENTS_COLLECTION).doc(query.afterId).get();
-      if (afterDoc.exists) {
-        q = q.startAfter(afterDoc);
-      }
+      const afterIdNum = Number(query.afterId);
+      where.push({ field: "idNum", op: "GREATER_THAN", value: afterIdNum });
     }
 
-    const limit = query.limit ?? 100;
-    q = q.limit(limit);
+    const results = await this.client.query(EVENTS_COLLECTION, {
+      where: where.length > 0 ? where : undefined,
+      orderBy: "idNum",
+      limit: query.limit ?? 100,
+    });
 
-    const snapshot = await q.get();
-    return snapshot.docs.map((doc) => doc.data() as Event);
+    return (results as StoredEvent[]).reverse();
   }
 
   async getEventsByPrincipal(
@@ -65,16 +65,23 @@ export class FirebaseEventsRepository implements IEventsRepository {
   }
 
   async getLatestEventId(principal?: string): Promise<string | null> {
-    let q = this.db.collection(EVENTS_COLLECTION).orderBy("idNum", "desc").limit(1);
+    type WhereClause = { field: string; op: string; value: unknown };
+    const where: WhereClause[] = [];
 
     if (principal) {
-      q = q.where("principal", "==", principal);
+      where.push({ field: "principal", op: "EQUAL", value: principal });
     }
 
-    const snapshot = await q.get();
-    if (snapshot.empty) return null;
+    const results = await this.client.query(EVENTS_COLLECTION, {
+      where: where.length > 0 ? where : undefined,
+      orderBy: "idNum",
+      orderDirection: "DESCENDING",
+      limit: 1,
+    });
 
-    const event = snapshot.docs[0].data() as Event;
-    return event.id;
+    const events = results as StoredEvent[];
+    if (events.length === 0) return null;
+
+    return events[0].id;
   }
 }
