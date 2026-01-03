@@ -1,45 +1,26 @@
-import { type App, cert, getApps, initializeApp, type ServiceAccount } from "firebase-admin/app";
-import { type Firestore, getFirestore } from "firebase-admin/firestore";
+import "server-only";
+import { createFirestoreClient, type FirestoreClient } from "firebase-rest-firestore";
 
-let firebaseApp: App | null = null;
-let firestoreDb: Firestore | null = null;
+let firestoreClient: FirestoreClient | null = null;
 
-function getFirebaseApp(): App {
-  if (firebaseApp) {
-    return firebaseApp;
-  }
-
-  const existingApps = getApps();
-  if (existingApps.length > 0) {
-    firebaseApp = existingApps[0];
-    return firebaseApp;
+export function getFirestore(): FirestoreClient {
+  if (firestoreClient) {
+    return firestoreClient;
   }
 
   const projectId = process.env.FIREBASE_PROJECT_ID;
   const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
-  const privateKey = process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, "\n");
+  const privateKey = process.env.FIREBASE_PRIVATE_KEY;
 
   if (!projectId || !clientEmail || !privateKey) {
     throw new Error("Missing Firebase configuration environment variables");
   }
 
-  const serviceAccount: ServiceAccount = {
+  firestoreClient = createFirestoreClient({
     projectId,
     clientEmail,
-    privateKey,
-  };
-
-  firebaseApp = initializeApp({
-    credential: cert(serviceAccount),
+    privateKey: privateKey.replace(/\\n/g, "\n"),
   });
 
-  return firebaseApp;
-}
-
-export function getDb(): Firestore {
-  if (firestoreDb) {
-    return firestoreDb;
-  }
-  firestoreDb = getFirestore(getFirebaseApp());
-  return firestoreDb;
+  return firestoreClient;
 }
