@@ -54,6 +54,9 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Lint
+        run: pnpm lint
+
       - name: Test canister
         working-directory: apps/volumetric_canister
         run: cargo test
@@ -64,9 +67,6 @@ jobs:
 
       - name: Build web
         run: pnpm build
-
-      - name: Lint
-        run: pnpm lint
 
       - name: Test
         run: pnpm test
