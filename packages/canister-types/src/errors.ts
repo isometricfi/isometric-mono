@@ -44,6 +44,7 @@ export const ErrorCode = {
   OPTION_SETTLING: 5014,
   PARTIAL_FILLING_DISABLED: 5015,
   STITCHING_DISABLED: 5016,
+  OFFER_LIMIT_EXCEEDED: 5026,
 
   // 9xxx: Internal/generic errors
   INTERNAL_ERROR: 9001,
@@ -75,6 +76,7 @@ const errorMessages: Record<ErrorCode, string> = {
   [ErrorCode.OPTION_SETTLING]: "This option is being settled, please wait",
   [ErrorCode.PARTIAL_FILLING_DISABLED]: "Partial filling is not currently enabled",
   [ErrorCode.STITCHING_DISABLED]: "Accepting multiple offers at once is not currently enabled",
+  [ErrorCode.OFFER_LIMIT_EXCEEDED]: "Maximum offers per term exceeded",
   [ErrorCode.INTERNAL_ERROR]: "An unexpected error occurred",
 };
 

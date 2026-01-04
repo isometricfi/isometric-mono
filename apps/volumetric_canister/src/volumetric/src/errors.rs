@@ -185,6 +185,11 @@ pub mod error_codes {
         name: "WITHDRAWAL_IN_PROGRESS",
         message: "A withdrawal is already in progress for this user",
     };
+    pub const OFFER_LIMIT_EXCEEDED: ErrorDef = ErrorDef {
+        code: 5026,
+        name: "OFFER_LIMIT_EXCEEDED",
+        message: "Maximum offers per term exceeded",
+    };
 
     // 9xxx: Internal/generic errors
     pub const INTERNAL_ERROR: ErrorDef = ErrorDef {
@@ -400,6 +405,13 @@ impl VolumetricError {
 
     pub fn withdrawal_in_progress() -> Self {
         Self::from_def(&error_codes::WITHDRAWAL_IN_PROGRESS)
+    }
+
+    pub fn offer_limit_exceeded(current: usize, max: usize) -> Self {
+        Self::from_def_with_reason(
+            &error_codes::OFFER_LIMIT_EXCEEDED,
+            &format!("you have {} active offers (max {})", current, max),
+        )
     }
 }
 
