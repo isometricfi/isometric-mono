@@ -1,0 +1,20 @@
+{
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "name": "volumetric-cron",
+  "main": "cron-worker.ts",
+  "compatibility_date": "2025-01-03",
+  "compatibility_flags": ["nodejs_compat"],
+  "keep_vars": true,
+  "observability": {
+    "enabled": true
+  },
+  "services": [
+    {
+      "binding": "NEXT_APP",
+      "service": "volumetric-web"
+    }
+  ],
+  "triggers": {
+    "crons": ["* * * * *", "*/5 * * * *"]
+  }
+}

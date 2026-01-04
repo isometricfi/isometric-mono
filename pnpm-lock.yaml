@@ -155,9 +155,12 @@ importers:
         specifier: ^5.0.9
         version: 5.0.9(@types/react@19.2.7)(react@19.2.0)
     devDependencies:
+      '@cloudflare/workers-types':
+        specifier: ^4.20260103.0
+        version: 4.20260103.0
       '@opennextjs/cloudflare':
         specifier: ^1.14.7
-        version: 1.14.7(next@16.0.10(@opentelemetry/api@1.9.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(wrangler@4.54.0)
+        version: 1.14.7(next@16.0.10(@opentelemetry/api@1.9.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(wrangler@4.54.0(@cloudflare/workers-types@4.20260103.0))
       '@tailwindcss/postcss':
         specifier: ^4
         version: 4.1.17
@@ -184,7 +187,7 @@ importers:
         version: 5.9.3
       wrangler:
         specifier: ^4.54.0
-        version: 4.54.0
+        version: 4.54.0(@cloudflare/workers-types@4.20260103.0)
 
   packages/canister-types:
     dependencies:
@@ -663,6 +666,9 @@ packages:
     engines: {node: '>=16'}
     cpu: [x64]
     os: [win32]
+
+  '@cloudflare/workers-types@4.20260103.0':
+    resolution: {integrity: sha512-jANmoGpJcXARnwlkvrQOeWyjYD1quTfHcs+++Z544XRHOSfLc4XSlts7snIhbiIGgA5bo66zDhraF+9lKUr2hw==}
 
   '@cspotcode/source-map-support@0.8.1':
     resolution: {integrity: sha512-IchNf6dN4tHoMFIn/7OE8LWZ19Y6q/67Bmf6vnGREv8RSbBVb9LPJxEcnwrcwX6ixSvaiGoomAUvu4YSxXrVgw==}
@@ -5382,6 +5388,8 @@ snapshots:
   '@cloudflare/workerd-windows-64@1.20251210.0':
     optional: true
 
+  '@cloudflare/workers-types@4.20260103.0': {}
+
   '@cspotcode/source-map-support@0.8.1':
     dependencies:
       '@jridgewell/trace-mapping': 0.3.9
@@ -6171,7 +6179,7 @@ snapshots:
       - aws-crt
       - supports-color
 
-  '@opennextjs/cloudflare@1.14.7(next@16.0.10(@opentelemetry/api@1.9.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(wrangler@4.54.0)':
+  '@opennextjs/cloudflare@1.14.7(next@16.0.10(@opentelemetry/api@1.9.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(wrangler@4.54.0(@cloudflare/workers-types@4.20260103.0))':
     dependencies:
       '@ast-grep/napi': 0.40.0
       '@dotenvx/dotenvx': 1.31.0
@@ -6181,7 +6189,7 @@ snapshots:
       glob: 12.0.0
       next: 16.0.10(@opentelemetry/api@1.9.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
       ts-tqdm: 0.8.6
-      wrangler: 4.54.0
+      wrangler: 4.54.0(@cloudflare/workers-types@4.20260103.0)
       yargs: 18.0.0
     transitivePeerDependencies:
       - aws-crt
@@ -9024,7 +9032,7 @@ snapshots:
       '@cloudflare/workerd-linux-arm64': 1.20251210.0
       '@cloudflare/workerd-windows-64': 1.20251210.0
 
-  wrangler@4.54.0:
+  wrangler@4.54.0(@cloudflare/workers-types@4.20260103.0):
     dependencies:
       '@cloudflare/kv-asset-handler': 0.4.1
       '@cloudflare/unenv-preset': 2.7.13(unenv@2.0.0-rc.24)(workerd@1.20251210.0)
@@ -9035,6 +9043,7 @@ snapshots:
       unenv: 2.0.0-rc.24
       workerd: 1.20251210.0
     optionalDependencies:
+      '@cloudflare/workers-types': 4.20260103.0
       fsevents: 2.3.3
     transitivePeerDependencies:
       - bufferutil
