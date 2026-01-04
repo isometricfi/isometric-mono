@@ -12,7 +12,9 @@
     "cf:build": "opennextjs-cloudflare build",
     "cf:dev": "wrangler dev",
     "cf:preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
-    "cf:deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy"
+    "cf:deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy",
+    "cf:deploy-cron": "wrangler deploy --config workers/wrangler-cron.jsonc",
+    "cf:deploy-all": "pnpm cf:deploy && pnpm cf:deploy-cron"
   },
   "dependencies": {
     "@dfinity/agent": "^2.2.0",
@@ -60,6 +62,7 @@
     "zustand": "^5.0.9"
   },
   "devDependencies": {
+    "@cloudflare/workers-types": "^4.20260103.0",
     "@opennextjs/cloudflare": "^1.14.7",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
