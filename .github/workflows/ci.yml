@@ -57,6 +57,10 @@ jobs:
       - name: Lint
         run: pnpm lint
 
+      - name: Check canister formatting
+        working-directory: apps/volumetric_canister
+        run: cargo fmt --check
+
       - name: Test canister
         working-directory: apps/volumetric_canister
         run: cargo test
