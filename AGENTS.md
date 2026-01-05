@@ -36,6 +36,7 @@ Monorepo using pnpm workspaces and Turborepo.
 - Run `make generate` to update TypeScript types after API changes
 - Never commit without explicit permission
 - Minimal comments; only document non-obvious logic
+- Preserve existing comments unless they are outdated or incorrect
 - No emojis in logs or code
 
 ## Code Quality

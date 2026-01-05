@@ -313,6 +313,7 @@ export type TradeRole = { 'Buyer' : null } |
 export interface TradingLimits {
   'term_days' : Range,
   'deposit_amount_sats' : bigint,
+  'max_offers_per_term' : bigint,
   'withdraw_amount_sats' : bigint,
   'quantity_sats' : Range,
   'strike_basis_points' : Range_1,
@@ -426,9 +427,26 @@ export interface _SERVICE {
   'list_users' : ActorMethod<[], Array<UserInfo>>,
   'list_whitelisted' : ActorMethod<[], Array<Principal>>,
   'remove_whitelisted' : ActorMethod<[Principal], Result_1>,
-  'set_feature_flags' : ActorMethod<[FeatureFlags], Result_1>,
-  'set_oracle_price' : ActorMethod<[bigint], Result_1>,
-  'set_trading_limits' : ActorMethod<[TradingLimits], Result_1>,
+  'set_deposit_amount_sats_config' : ActorMethod<[bigint], Result_1>,
+  'set_feature_flags_config' : ActorMethod<[FeatureFlags], Result_1>,
+  'set_max_offers_per_term_config' : ActorMethod<[bigint], Result_1>,
+  'set_option_duration_seconds_range_config' : ActorMethod<
+    [bigint, bigint],
+    Result_1
+  >,
+  'set_oracle_price_config' : ActorMethod<[bigint], Result_1>,
+  'set_premium_basis_points_range_config' : ActorMethod<
+    [number, number],
+    Result_1
+  >,
+  'set_quantity_sats_range_config' : ActorMethod<[bigint, bigint], Result_1>,
+  'set_strike_basis_points_range_config' : ActorMethod<
+    [number, number],
+    Result_1
+  >,
+  'set_term_days_range_config' : ActorMethod<[bigint, bigint], Result_1>,
+  'set_trading_limits_config' : ActorMethod<[TradingLimits], Result_1>,
+  'set_withdraw_amount_sats_config' : ActorMethod<[bigint], Result_1>,
   'settle_expired_options' : ActorMethod<[], Result_17>,
   'settle_option_by_id' : ActorMethod<[bigint], Result_18>,
   /**

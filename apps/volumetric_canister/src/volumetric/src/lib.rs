@@ -35,9 +35,9 @@ pub use api::{
     get_config, get_deposit_address, get_failed_withdrawals, get_feature_flags,
     get_message_to_sign, get_my_pending_withdrawals, get_pending_withdrawals, get_trading_limits,
     get_user_balance, get_username_update_message, get_withdraw_message, get_withdrawal_by_id,
-    list_users, list_whitelisted, remove_whitelisted, set_feature_flags, set_oracle_price,
-    set_trading_limits, testing_sync_balance_from_ledger, update_ckbtc_balance, update_username,
-    withdraw_ckbtc, UserBalanceInfo,
+    list_users, list_whitelisted, remove_whitelisted, set_feature_flags_config,
+    set_oracle_price_config, set_trading_limits_config, testing_sync_balance_from_ledger,
+    update_ckbtc_balance, update_username, withdraw_ckbtc, UserBalanceInfo,
 };
 pub use auth::types::{
     AuthenticatedPayload, CreateProfileRequest, UpdateUsernameRequest, WithdrawCkbtcRequest,
