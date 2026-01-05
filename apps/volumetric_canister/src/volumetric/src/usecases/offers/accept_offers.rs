@@ -14,6 +14,7 @@ use crate::storage::{
     AcceptPhase, AcceptedOffer, ActiveOption, ActiveOptionStatus, Asset, Config, CounterKey,
     EventData, EventType, OfferStatus, OptionType, TradeRole, CKBTC_TRANSFER_FEE,
 };
+use crate::time::calculate_expiry_ns;
 
 use crate::usecases::balances::transfer_ckbtc;
 
@@ -146,12 +147,10 @@ pub async fn accept_offers_use_case(
 
         let option_id = next_id(CounterKey::ActiveOptionId);
 
-        let duration_nanos = offer
-            .option_duration_seconds
-            .checked_mul(1_000_000_000)
-            .ok_or_else(|| VolumetricError::internal("Option duration overflow"))?;
-        let expiry = now
-            .checked_add(duration_nanos)
+        // Round up to next hour boundary, then add full duration.
+        // This ensures users get at least their full duration and all expiries
+        // land on hour boundaries for efficient batch settlement.
+        let expiry = calculate_expiry_ns(now, offer.option_duration_seconds)
             .ok_or_else(|| VolumetricError::internal("Expiry timestamp overflow"))?;
 
         let buyer_subaccount = derive_subaccount(buyer_principal);

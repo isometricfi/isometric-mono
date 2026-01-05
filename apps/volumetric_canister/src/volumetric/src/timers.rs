@@ -1,8 +1,9 @@
 use std::time::Duration;
 
-use crate::usecases::cleanup_old_events_use_case;
+use crate::usecases::{cleanup_old_events_use_case, settle_expired_options_use_case};
 
-const ONE_DAY_SECS: u64 = 24 * 60 * 60;
+const ONE_HOUR_SECS: u64 = 60 * 60;
+const ONE_DAY_SECS: u64 = 24 * ONE_HOUR_SECS;
 
 pub fn setup_timers() {
     setup_event_cleanup_timer();
@@ -19,5 +20,19 @@ fn setup_event_cleanup_timer() {
     });
 }
 
-/// Disabled for testing - manually call settle_expired_options() or settle_option_by_id().
-fn setup_settlement_timer() {}
+/// Runs hourly to settle all expired options.
+fn setup_settlement_timer() {
+    ic_cdk_timers::set_timer_interval(Duration::from_secs(ONE_HOUR_SECS), || async {
+        let result = settle_expired_options_use_case().await;
+        if !result.settled.is_empty() {
+            ic_cdk::println!("Settlement cron: settled {} options", result.settled.len());
+        }
+        if !result.errors.is_empty() {
+            ic_cdk::println!(
+                "Settlement cron: {} errors: {:?}",
+                result.errors.len(),
+                result.errors
+            );
+        }
+    });
+}
