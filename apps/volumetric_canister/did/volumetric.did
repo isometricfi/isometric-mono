@@ -270,6 +270,7 @@ type TradeRole = variant { Buyer; Writer };
 type TradingLimits = record {
   term_days : Range;
   deposit_amount_sats : nat64;
+  max_offers_per_term : nat64;
   withdraw_amount_sats : nat64;
   quantity_sats : Range;
   strike_basis_points : Range_1;
@@ -361,9 +362,17 @@ service : (opt BtcNetwork) -> {
   list_users : () -> (vec UserInfo) query;
   list_whitelisted : () -> (vec principal) query;
   remove_whitelisted : (principal) -> (Result_1);
-  set_feature_flags : (FeatureFlags) -> (Result_1);
-  set_oracle_price : (nat64) -> (Result_1);
-  set_trading_limits : (TradingLimits) -> (Result_1);
+  set_deposit_amount_sats_config : (nat64) -> (Result_1);
+  set_feature_flags_config : (FeatureFlags) -> (Result_1);
+  set_max_offers_per_term_config : (nat64) -> (Result_1);
+  set_option_duration_seconds_range_config : (nat64, nat64) -> (Result_1);
+  set_oracle_price_config : (nat64) -> (Result_1);
+  set_premium_basis_points_range_config : (nat16, nat16) -> (Result_1);
+  set_quantity_sats_range_config : (nat64, nat64) -> (Result_1);
+  set_strike_basis_points_range_config : (nat16, nat16) -> (Result_1);
+  set_term_days_range_config : (nat64, nat64) -> (Result_1);
+  set_trading_limits_config : (TradingLimits) -> (Result_1);
+  set_withdraw_amount_sats_config : (nat64) -> (Result_1);
   settle_expired_options : () -> (Result_17);
   settle_option_by_id : (nat64) -> (Result_18);
   // Testing endpoint to clear all offers and active options from storage.

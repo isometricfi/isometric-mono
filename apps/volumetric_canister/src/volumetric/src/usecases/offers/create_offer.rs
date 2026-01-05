@@ -3,8 +3,8 @@ use candid::Principal;
 use crate::errors::VolumetricError;
 use crate::guards::{validate_offer_params, OfferParams};
 use crate::storage::{
-    emit_event, get_balance, insert_offer, list_offers_by_writer, next_id, Asset, CounterKey,
-    EventData, EventType, Offer, OfferStatus, OptionType,
+    emit_event, get_balance, insert_offer, list_offers_by_writer, next_id, Asset, Config,
+    CounterKey, EventData, EventType, Offer, OfferStatus, OptionType,
 };
 
 pub struct CreateOfferParams {
@@ -17,14 +17,13 @@ pub struct CreateOfferParams {
     pub option_duration_seconds: u64,
 }
 
-const MAX_OFFERS_PER_TERM: usize = 5;
-
 fn validate_offer_limit_per_term(
     writer: Principal,
     strike_basis_points: u16,
     option_duration_seconds: u64,
 ) -> Result<(), VolumetricError> {
     let existing_offers = list_offers_by_writer(writer);
+    let max_offers_per_term = Config::trading_limits().max_offers_per_term;
 
     let count = existing_offers
         .iter()
@@ -38,10 +37,10 @@ fn validate_offer_limit_per_term(
         })
         .count();
 
-    if count >= MAX_OFFERS_PER_TERM {
+    if count >= max_offers_per_term {
         return Err(VolumetricError::offer_limit_exceeded(
             count,
-            MAX_OFFERS_PER_TERM,
+            max_offers_per_term,
         ));
     }
 

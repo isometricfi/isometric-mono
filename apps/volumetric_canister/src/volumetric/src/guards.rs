@@ -184,6 +184,7 @@ mod tests {
             term_days: Range { min: 1, max: 30 },
             deposit_amount_sats: 50_000,
             withdraw_amount_sats: 50_000,
+            max_offers_per_term: 5,
         }
     }
 
