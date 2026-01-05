@@ -39,7 +39,10 @@ fn validate_offer_limit_per_term(
         .count();
 
     if count >= MAX_OFFERS_PER_TERM {
-        return Err(VolumetricError::offer_limit_exceeded(count, MAX_OFFERS_PER_TERM));
+        return Err(VolumetricError::offer_limit_exceeded(
+            count,
+            MAX_OFFERS_PER_TERM,
+        ));
     }
 
     Ok(())
