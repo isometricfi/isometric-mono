@@ -2,7 +2,7 @@
 
 import { useDynamicContext } from "@dynamic-labs/sdk-react-core";
 import { useTranslations } from "next-intl";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { AmountInput } from "@/components/options/AmountInput";
 import { OfferResultModal } from "@/components/options/OfferResultModal";
 import { TermSelector } from "@/components/options/TermSelector";
@@ -18,6 +18,7 @@ import {
   usePrices,
 } from "@/hooks";
 import { DEFAULT_MIN_OFFER_AMOUNT_SATS, formatBtc, parseBtcToSats } from "@/lib/utils";
+import { useChartOptionsStore } from "@/stores/chart-options-store";
 import { CallBuyOptionSummary } from "./CallBuyOptionSummary";
 
 function computeStrikeUsdValues(strikePercents: number[], btcPrice: number): number[] {
@@ -33,11 +34,19 @@ export function CallOptionBuyForm() {
   const btcPrice = priceData?.btc ?? 0;
   const t = useTranslations("Forms");
 
+  const { setStrikePercent: setChartStrikePercent, setTermDays: setChartTermDays } =
+    useChartOptionsStore();
+
   const minOfferAmountSats = config?.minOfferAmountSats ?? DEFAULT_MIN_OFFER_AMOUNT_SATS;
   const defaultTerm = config?.termOptions[0] ?? 7;
 
-  const [term, setTerm] = useState(defaultTerm);
+  const [term, setTermLocal] = useState(defaultTerm);
   const [amountBtc, setAmountBtc] = useState("");
+
+  const setTerm = (value: number) => {
+    setTermLocal(value);
+    setChartTermDays(value);
+  };
 
   const showModal = acceptOffer.step !== "idle";
 
@@ -48,13 +57,19 @@ export function CallOptionBuyForm() {
     [strikePercents, btcPrice],
   );
 
-  const [strikePercent, setStrikePercent] = useState<number>(strikePercents[0] ?? 5);
+  const [strikePercent, setStrikePercentLocal] = useState<number>(strikePercents[0] ?? 5);
 
-  useMemo(() => {
+  const setStrikePercent = (value: number) => {
+    setStrikePercentLocal(value);
+    setChartStrikePercent(value);
+  };
+
+  useEffect(() => {
     if (strikePercents.length > 0 && !strikePercents.includes(strikePercent)) {
-      setStrikePercent(strikePercents[0]);
+      setStrikePercentLocal(strikePercents[0]);
+      setChartStrikePercent(strikePercents[0]);
     }
-  }, [strikePercents, strikePercent]);
+  }, [strikePercents, strikePercent, setChartStrikePercent]);
 
   const amountSats = parseBtcToSats(amountBtc);
   const maxLiquiditySats = getMaxLiquiditySats(data, term, strikePercent);

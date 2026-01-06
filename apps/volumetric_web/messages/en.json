@@ -253,7 +253,10 @@
   },
   "Components": {
     "btcUsdPriceChart": "BTC/USD Price Chart",
-    "chartComingSoon": "Chart coming soon"
+    "chartComingSoon": "Chart coming soon",
+    "btcUsd": "BTC/USD",
+    "strike": "Strike",
+    "days": "{count} Days"
   },
   "OptionsViewer": {
     "premium": "Premium",

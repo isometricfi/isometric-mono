@@ -3,6 +3,7 @@
 import { HelpCircle } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
+import { BTCPriceChart } from "@/components/options/BTCPriceChart";
 import { OptionsViewer } from "@/components/options/OptionsViewer";
 import { OptionTypeToggle } from "@/components/options/OptionTypeToggle";
 import { Button } from "@/components/ui/button";
@@ -44,8 +45,11 @@ export function BuyOptionsView() {
       )}
 
       {!isPutDisabled && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <CallOptionBuyForm />
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <CallOptionBuyForm />
+            <BTCPriceChart mode="buyer" />
+          </div>
           <OptionsViewer mode="buyer" />
         </div>
       )}
