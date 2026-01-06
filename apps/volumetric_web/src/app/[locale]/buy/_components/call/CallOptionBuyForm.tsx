@@ -2,7 +2,7 @@
 
 import { useDynamicContext } from "@dynamic-labs/sdk-react-core";
 import { useTranslations } from "next-intl";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { AmountInput } from "@/components/options/AmountInput";
 import { OfferResultModal } from "@/components/options/OfferResultModal";
 import { TermSelector } from "@/components/options/TermSelector";
@@ -32,6 +32,7 @@ export function CallOptionBuyForm() {
   const acceptOffer = useAcceptOffer();
   const btcPrice = priceData?.btc ?? 0;
   const t = useTranslations("Forms");
+  const tCommon = useTranslations("Common");
 
   const minOfferAmountSats = config?.minOfferAmountSats ?? DEFAULT_MIN_OFFER_AMOUNT_SATS;
   const defaultTerm = config?.termOptions[0] ?? 7;
@@ -58,12 +59,27 @@ export function CallOptionBuyForm() {
 
   const amountSats = parseBtcToSats(amountBtc);
   const maxLiquiditySats = getMaxLiquiditySats(data, term, strikePercent);
+  const displayMaxSats = maxLiquiditySats >= minOfferAmountSats ? maxLiquiditySats : 0;
   const bestOffer = findBestOffer(data, term, strikePercent, amountSats);
 
   const selectedStrikeUsd = useMemo(
     () => Math.round(btcPrice * (1 + strikePercent / 100)),
     [btcPrice, strikePercent],
   );
+
+  useEffect(() => {
+    if (maxLiquiditySats < minOfferAmountSats) {
+      setAmountBtc("");
+      return;
+    }
+
+    if (maxLiquiditySats > 0) {
+      const halfMaxSats = Math.floor(maxLiquiditySats / 2);
+      const defaultAmountSats =
+        halfMaxSats >= minOfferAmountSats ? halfMaxSats : minOfferAmountSats;
+      setAmountBtc(formatBtc(defaultAmountSats, 5));
+    }
+  }, [maxLiquiditySats, minOfferAmountSats]);
 
   const handleStrikeUsdChange = (usdValue: number) => {
     const index = strikeUsdValues.indexOf(usdValue);
@@ -94,13 +110,15 @@ export function CallOptionBuyForm() {
   };
 
   const isWalletConnected = !!primaryWallet;
-  const isValidAmount = amountSats > 0 && amountSats <= maxLiquiditySats;
-  const hasInsufficientLiquidity = amountSats > maxLiquiditySats;
+  const isValidAmount = amountSats >= minOfferAmountSats && amountSats <= displayMaxSats;
+  const hasInsufficientLiquidity = amountSats > displayMaxSats && displayMaxSats > 0;
+  const isBelowMinimum = amountSats > 0 && amountSats < minOfferAmountSats;
 
   const getButtonText = () => {
     if (!isWalletConnected) return t("connectWallet");
     if (acceptOffer.isPending) return t("buyingOption");
     if (hasInsufficientLiquidity) return t("insufficientLiquidity");
+    if (isBelowMinimum) return `${tCommon("min")}: ₿${formatBtc(minOfferAmountSats)}`;
     if (!bestOffer && amountSats > 0) return t("noOffersAvailable");
     return t("buyOption");
   };
@@ -138,7 +156,7 @@ export function CallOptionBuyForm() {
       <AmountInput
         value={amountBtc}
         onChange={setAmountBtc}
-        maxAmountSats={maxLiquiditySats}
+        maxAmountSats={displayMaxSats}
         minAmountSats={minOfferAmountSats}
         onMaxClick={handleMaxClick}
       />
