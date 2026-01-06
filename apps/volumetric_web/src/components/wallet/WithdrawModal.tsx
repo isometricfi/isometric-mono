@@ -3,6 +3,7 @@
 import { useDynamicContext } from "@dynamic-labs/sdk-react-core";
 import { AnimatePresence, motion } from "framer-motion";
 import { CheckCircle2, CircleArrowUp, Loader2, XCircle } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useMemo, useState } from "react";
 import { useMediaQuery } from "react-responsive";
 import { AmountInput } from "@/components/options/AmountInput";
@@ -33,6 +34,8 @@ export function WithdrawModal({
   const { data: config } = useConfig();
   const { data: accountData } = useAccount();
   const withdraw = useWithdraw();
+  const t = useTranslations("Withdraw");
+  const tCommon = useTranslations("Common");
 
   const balance = accountData?.balance;
   const profile = accountData?.profile;
@@ -87,7 +90,7 @@ export function WithdrawModal({
 
       setStep("success");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to withdraw");
+      setError(err instanceof Error ? err.message : t("failedToWithdraw"));
       setStep("error");
     }
   };
@@ -108,15 +111,13 @@ export function WithdrawModal({
                 <CircleArrowUp className="size-5 text-primary" />
               </div>
               <div>
-                <h2 className="text-lg font-semibold">Withdraw BTC</h2>
-                <p className="text-sm text-muted-foreground">
-                  Withdraw deposited BTC to your wallet
-                </p>
+                <h2 className="text-lg font-semibold">{t("title")}</h2>
+                <p className="text-sm text-muted-foreground">{t("description")}</p>
               </div>
             </div>
 
             <div className="rounded-2xl border p-4 bg-card/50">
-              <div className="text-xs text-muted-foreground mb-1">Destination</div>
+              <div className="text-xs text-muted-foreground mb-1">{t("destination")}</div>
               <div className="font-mono text-xs break-all">{destinationAddress}</div>
             </div>
 
@@ -130,18 +131,18 @@ export function WithdrawModal({
 
             {lockedSats > BigInt(0) && (
               <Badge variant="secondary" className="w-full">
-                {formatBtcWithSymbolBigint(lockedSats, 8)} locked in active options
+                {t("lockedInOptions", { amount: formatBtcWithSymbolBigint(lockedSats, 8) })}
               </Badge>
             )}
 
             <div className="flex gap-3">
               <Button variant="outline" className="flex-1" onClick={() => handleClose(false)}>
-                Close
+                {tCommon("close")}
               </Button>
               <Button className="flex-1" onClick={handleWithdraw} disabled={!canWithdraw}>
                 {isBelowMinimum
-                  ? `Min: ${formatBtcWithSymbol(Number(minWithdrawSats), 8)}`
-                  : "Withdraw"}
+                  ? `${tCommon("min")}: ${formatBtcWithSymbol(Number(minWithdrawSats), 8)}`
+                  : t("title")}
               </Button>
             </div>
           </motion.div>
@@ -162,8 +163,8 @@ export function WithdrawModal({
               <Loader2 className="size-12 text-primary" />
             </motion.div>
             <div className="text-center">
-              <h3 className="font-semibold">Sign message</h3>
-              <p className="text-sm text-muted-foreground">Approve the withdrawal in your wallet</p>
+              <h3 className="font-semibold">{t("signMessage")}</h3>
+              <p className="text-sm text-muted-foreground">{t("approveWithdrawal")}</p>
             </div>
           </motion.div>
         )}
@@ -183,8 +184,8 @@ export function WithdrawModal({
               <Loader2 className="size-12 text-primary" />
             </motion.div>
             <div className="text-center">
-              <h3 className="font-semibold">Processing withdrawal</h3>
-              <p className="text-sm text-muted-foreground">This may take a moment...</p>
+              <h3 className="font-semibold">{t("processingWithdrawal")}</h3>
+              <p className="text-sm text-muted-foreground">{t("mayTakeMoment")}</p>
             </div>
           </motion.div>
         )}
@@ -212,12 +213,12 @@ export function WithdrawModal({
             </motion.div>
 
             <div className="text-center space-y-2">
-              <h3 className="text-xl font-semibold">Withdrawal submitted</h3>
-              <p className="text-sm text-muted-foreground">Your BTC is on its way to your wallet</p>
+              <h3 className="text-xl font-semibold">{t("withdrawalSubmitted")}</h3>
+              <p className="text-sm text-muted-foreground">{t("btcOnWay")}</p>
             </div>
 
             <Button className="w-full mt-2" onClick={() => handleClose(false)}>
-              Done
+              {tCommon("done")}
             </Button>
           </motion.div>
         )}
@@ -244,16 +245,16 @@ export function WithdrawModal({
             </motion.div>
 
             <div className="text-center space-y-2">
-              <h3 className="text-xl font-semibold">Something went wrong</h3>
+              <h3 className="text-xl font-semibold">{tCommon("somethingWentWrong")}</h3>
               <p className="text-sm text-destructive max-w-xs">{error}</p>
             </div>
 
             <div className="flex gap-3 w-full pt-2">
               <Button variant="outline" className="flex-1" onClick={() => handleClose(false)}>
-                Close
+                {tCommon("close")}
               </Button>
               <Button className="flex-1" onClick={() => setStep("input")}>
-                Try Again
+                {tCommon("tryAgain")}
               </Button>
             </div>
           </motion.div>
@@ -266,7 +267,7 @@ export function WithdrawModal({
     return (
       <Drawer open={open} onOpenChange={handleClose} repositionInputs={false}>
         <DrawerContent className="px-5 pb-4">
-          <DrawerTitle className="sr-only">Withdraw BTC</DrawerTitle>
+          <DrawerTitle className="sr-only">{t("title")}</DrawerTitle>
           {content}
         </DrawerContent>
       </Drawer>
@@ -276,7 +277,7 @@ export function WithdrawModal({
   return (
     <AlertDialog open={open} onOpenChange={handleClose}>
       <AlertDialogContent className="sm:max-w-md">
-        <AlertDialogTitle className="sr-only">Withdraw BTC</AlertDialogTitle>
+        <AlertDialogTitle className="sr-only">{t("title")}</AlertDialogTitle>
         {content}
       </AlertDialogContent>
     </AlertDialog>

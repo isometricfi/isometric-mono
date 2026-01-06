@@ -12,7 +12,8 @@ import {
   Settings,
 } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
+import { useLocale, useTranslations } from "next-intl";
+import { useState, useTransition } from "react";
 import { useMediaQuery } from "react-responsive";
 import { ThemeToggle } from "@/components/layout/ThemeToggle";
 import { Button } from "@/components/ui/button";
@@ -21,6 +22,7 @@ import { DepositModal } from "@/components/wallet/DepositModal";
 import { ProceduralAvatar } from "@/components/wallet/ProceduralAvatar";
 import { WithdrawModal } from "@/components/wallet/WithdrawModal";
 import { useAccount, usePrices, useUpdateUsername } from "@/hooks";
+import { usePathname, useRouter } from "@/i18n/routing";
 import { cn, formatBtcWithSymbolBigint, roundToN } from "@/lib/utils";
 import { Badge } from "../ui/badge";
 
@@ -65,6 +67,13 @@ function AccountPanelContent({ onDisconnect }: { onDisconnect: () => void }) {
   const { data: priceData } = usePrices();
   const { data: accountData, isLoading: isLoadingBalance } = useAccount();
   const updateUsername = useUpdateUsername();
+  const router = useRouter();
+  const pathname = usePathname();
+  const locale = useLocale();
+  const t = useTranslations("AccountPanel");
+  const tCommon = useTranslations("Common");
+  const tSettings = useTranslations("Settings");
+  const [isPending, startTransition] = useTransition();
 
   const [showSettings, setShowSettings] = useState(false);
   const [showDepositModal, setShowDepositModal] = useState(false);
@@ -82,8 +91,14 @@ function AccountPanelContent({ onDisconnect }: { onDisconnect: () => void }) {
 
   const connectedAddress = profile?.address ?? primaryWallet?.address ?? null;
   const addressLabel = connectedAddress ? shortenAddress(connectedAddress) : null;
-  const displayName = profile?.username ?? "Wallet";
+  const displayName = profile?.username ?? tCommon("wallet");
   const avatarSeed = connectedAddress ?? displayName;
+
+  const handleLocaleChange = (newLocale: string) => {
+    startTransition(() => {
+      router.replace(pathname, { locale: newLocale });
+    });
+  };
 
   return (
     <div className="flex flex-col gap-6 flex-1  ">
@@ -155,7 +170,7 @@ function AccountPanelContent({ onDisconnect }: { onDisconnect: () => void }) {
               className="space-y-6"
             >
               <div className="space-y-1">
-                <p className="text-sm text-muted-foreground">Deposited</p>
+                <p className="text-sm text-muted-foreground">{t("deposited")}</p>
                 <div className="flex items-center gap-2 justify-between">
                   <p className="text-3xl font-semibold tracking-tight">
                     {isLoadingBalance ? "—" : formatBtcWithSymbolBigint(deposited, 8)}
@@ -167,7 +182,7 @@ function AccountPanelContent({ onDisconnect }: { onDisconnect: () => void }) {
                   )}
                 </div>
                 <Badge variant="secondary">
-                  Available {formatBtcWithSymbolBigint(available, 8)}
+                  {t("available")} {formatBtcWithSymbolBigint(available, 8)}
                 </Badge>
               </div>
 
@@ -177,7 +192,7 @@ function AccountPanelContent({ onDisconnect }: { onDisconnect: () => void }) {
                   onClick={() => setShowDepositModal(true)}
                 >
                   <CircleArrowDown className="size-6" />
-                  <p>Deposit</p>
+                  <p>{t("deposit")}</p>
                 </Button>
                 <Button
                   className="flex flex-col items-start h-fit text-lg py-4 gap-2 pb-2 font-medium"
@@ -185,12 +200,12 @@ function AccountPanelContent({ onDisconnect }: { onDisconnect: () => void }) {
                   onClick={() => setShowWithdrawModal(true)}
                 >
                   <CircleArrowUp className="size-6" />
-                  <p>Withdraw</p>
+                  <p>{t("withdraw")}</p>
                 </Button>
               </div>
               <Link href="/history" className="md:absolute right-0 w-full">
                 <Button variant="outline" size="sm" className="w-full">
-                  <History className="size-4 " /> Trade history
+                  <History className="size-4 " /> {t("tradeHistory")}
                 </Button>
               </Link>
             </motion.div>
@@ -208,13 +223,13 @@ function AccountPanelContent({ onDisconnect }: { onDisconnect: () => void }) {
               exit={{ y: 70, opacity: 0, transition: { duration: 0.5, ease: [0.32, 0.72, 0, 1] } }}
               className="absolute inset-0 space-y-4  h-fit"
             >
-              <div className="font-semibold text-lg">Settings</div>
+              <div className="font-semibold text-lg">{tSettings("title")}</div>
 
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <div className="text-sm text-muted-foreground">Username</div>
+                  <div className="text-sm text-muted-foreground">{t("username")}</div>
                   <div className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded-full">
-                    Characters: {20 - usernameDraft.length}
+                    {t("charactersRemaining", { count: 20 - usernameDraft.length })}
                   </div>
                 </div>
                 <input
@@ -226,7 +241,7 @@ function AccountPanelContent({ onDisconnect }: { onDisconnect: () => void }) {
                       setUsernameDraft(value);
                     }
                   }}
-                  placeholder="Enter a username"
+                  placeholder={t("enterUsername")}
                   maxLength={25}
                   className="w-full py-3 px-4 bg-secondary/50 rounded-full text-sm font-medium placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                 />
@@ -242,14 +257,14 @@ function AccountPanelContent({ onDisconnect }: { onDisconnect: () => void }) {
                 className="w-full"
               >
                 {updateUsername.isPending ? (
-                  "Saving..."
+                  t("saving")
                 ) : updateUsername.isSuccess ? (
                   <span className="flex items-center gap-2">
                     <Check className="size-4" />
-                    Saved
+                    {t("saved")}
                   </span>
                 ) : (
-                  "Save"
+                  t("save")
                 )}
               </Button>
 
@@ -260,10 +275,33 @@ function AccountPanelContent({ onDisconnect }: { onDisconnect: () => void }) {
               )}
 
               <div className="space-y-2 pt-2">
-                <div className="text-sm text-muted-foreground">System</div>
+                <div className="text-sm text-muted-foreground">{t("system")}</div>
                 <div className="flex items-center justify-between bg-secondary/50 rounded-full px-4 py-3">
-                  <span className="text-sm font-medium">Appearance</span>
+                  <span className="text-sm font-medium">{tSettings("appearance")}</span>
                   <ThemeToggle />
+                </div>
+                <div className="flex items-center justify-between bg-secondary/50 rounded-full px-4 py-3">
+                  <span className="text-sm font-medium">{tSettings("language")}</span>
+                  <div className="flex gap-2">
+                    <Button
+                      variant={locale === "en" ? "default" : "ghost"}
+                      size="sm"
+                      onClick={() => handleLocaleChange("en")}
+                      disabled={isPending}
+                      className="h-8 px-3"
+                    >
+                      EN
+                    </Button>
+                    <Button
+                      variant={locale === "zh" ? "default" : "ghost"}
+                      size="sm"
+                      onClick={() => handleLocaleChange("zh")}
+                      disabled={isPending}
+                      className="h-8 px-3"
+                    >
+                      中文
+                    </Button>
+                  </div>
                 </div>
               </div>
             </motion.div>
@@ -275,9 +313,9 @@ function AccountPanelContent({ onDisconnect }: { onDisconnect: () => void }) {
         variant="outline"
         className="w-full mt-auto"
         onClick={onDisconnect}
-        aria-label="Disconnect"
+        aria-label={t("disconnect")}
       >
-        Disconnect <LogOut className="size-4" />
+        {t("disconnect")} <LogOut className="size-4" />
       </Button>
 
       <DepositModal open={showDepositModal} onOpenChange={setShowDepositModal} />

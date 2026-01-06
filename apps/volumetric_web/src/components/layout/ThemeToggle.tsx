@@ -2,11 +2,13 @@
 
 import { AnimatePresence, motion } from "framer-motion";
 import { Monitor, Moon, Sun } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useTheme } from "next-themes";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 
 export function ThemeToggle() {
+  const t = useTranslations("Settings");
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
 
@@ -19,7 +21,7 @@ export function ThemeToggle() {
       <Button
         variant="ghost"
         size="icon"
-        aria-label="Toggle theme"
+        aria-label={t("theme")}
         className="items-center justify-center"
         disabled
       >
@@ -51,7 +53,7 @@ export function ThemeToggle() {
       variant="ghost"
       size="icon"
       onClick={cycleTheme}
-      aria-label="Toggle theme"
+      aria-label={t("theme")}
       className="items-center justify-center"
     >
       <AnimatePresence mode="wait" initial={false}>

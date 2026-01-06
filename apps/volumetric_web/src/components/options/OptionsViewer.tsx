@@ -2,6 +2,7 @@
 
 import { AnimatePresence, motion } from "framer-motion";
 import { ChevronDown, ChevronRight } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatedToggle, type ToggleOption } from "@/components/navigation/AnimatedToggle";
 import { useConfig, useOptions, usePrices } from "@/hooks";
@@ -18,6 +19,7 @@ interface StrikeRowProps {
 }
 
 function StrikeRow({ bucket, btcPrice, isExpanded, onToggle, mode }: StrikeRowProps) {
+  const t = useTranslations("OptionsViewer");
   const strikeUsd = Math.round(btcPrice * (1 + bucket.strikePercent / 100));
   const scrollRef = useRef<HTMLDivElement>(null);
   const [hasScrolled, setHasScrolled] = useState(false);
@@ -116,9 +118,9 @@ function StrikeRow({ bucket, btcPrice, isExpanded, onToggle, mode }: StrikeRowPr
                   mode === "buyer" ? "grid-cols-3" : "grid-cols-2",
                 )}
               >
-                <span className="pl-7">Premium</span>
-                <span className="text-right">Amount</span>
-                {mode === "buyer" && <span className="text-right">Action</span>}
+                <span className="pl-7">{t("premium")}</span>
+                <span className="text-right">{t("amount")}</span>
+                {mode === "buyer" && <span className="text-right">{t("action")}</span>}
               </div>
 
               {/* scrollable offers container */}
@@ -147,7 +149,7 @@ function StrikeRow({ bucket, btcPrice, isExpanded, onToggle, mode }: StrikeRowPr
                               type="button"
                               className="text-xs bg-primary text-primary-foreground px-3 py-1 rounded-full hover:bg-primary/90 transition-colors"
                             >
-                              Buy
+                              {t("buy")}
                             </button>
                           </div>
                         )}
@@ -164,7 +166,7 @@ function StrikeRow({ bucket, btcPrice, isExpanded, onToggle, mode }: StrikeRowPr
                       className="absolute bottom-2 left-1/2 -translate-x-1/2 flex items-center gap-1 px-2 py-1 bg-secondary/80 backdrop-blur-sm rounded-full text-xs text-muted-foreground"
                     >
                       <ChevronDown className="size-3" />
-                      <span>Scroll for more</span>
+                      <span>{t("scrollForMore")}</span>
                     </motion.div>
                   )}
                 </AnimatePresence>
@@ -182,6 +184,7 @@ interface OptionsViewerProps {
 }
 
 export function OptionsViewer({ mode }: OptionsViewerProps) {
+  const t = useTranslations("OptionsViewer");
   const { data, isLoading } = useOptions();
   const { data: priceData } = usePrices();
   const { data: config } = useConfig();
@@ -189,11 +192,12 @@ export function OptionsViewer({ mode }: OptionsViewerProps) {
 
   const termOptions: ToggleOption<string>[] = useMemo(() => {
     if (!config) return [];
+    const daysLabel = t("daysShort");
     return config.termOptions.map((term) => ({
       value: term.toString(),
-      label: term === 1 ? "<1d" : `${term}d`,
+      label: term === 1 ? `<1${daysLabel}` : `${term}${daysLabel}`,
     }));
-  }, [config]);
+  }, [config, t]);
 
   const defaultTerm = config?.termOptions[0]?.toString() ?? "7";
   const [selectedTerm, setSelectedTerm] = useState<string>(defaultTerm);
@@ -215,7 +219,7 @@ export function OptionsViewer({ mode }: OptionsViewerProps) {
   return (
     <div className="bg-card rounded-3xl border border-border p-6 space-y-4">
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold">Available Options</h2>
+        <h2 className="text-lg font-semibold">{t("availableOptions")}</h2>
         <AnimatedToggle
           options={termOptions}
           value={selectedTerm}
@@ -228,17 +232,18 @@ export function OptionsViewer({ mode }: OptionsViewerProps) {
       {currentTermGroup && (
         <>
           <div className="flex items-center justify-between text-sm text-muted-foreground">
-            <span>Expires {formatExpiryDate(currentTermGroup.expiryDate)}</span>
+            <span>
+              {t("expires")} {formatExpiryDate(currentTermGroup.expiryDate)}
+            </span>
             {btcPrice > 0 && <span>BTC: ${btcPrice.toLocaleString()}</span>}
           </div>
 
           <div className=" overflow-hidden space-y-2">
-            {/* header row */}
             <div className="pl-0 pr-2 md:px-4 rounded-2xl py-2 grid grid-cols-[1fr_auto_auto] md:grid-cols-[1fr_auto_auto_auto] gap-2 md:gap-3 text-xs text-muted-foreground bg-secondary/30">
-              <span className="pl-6 md:pl-7">Strike</span>
-              <span className="w-16 md:w-24 text-right">Premium</span>
-              <span className="w-20 md:w-28 text-right">Liquidity</span>
-              <span className="hidden md:block w-16 text-right">Offers</span>
+              <span className="pl-6 md:pl-7">{t("strike")}</span>
+              <span className="w-16 md:w-24 text-right">{t("premium")}</span>
+              <span className="w-20 md:w-28 text-right">{t("liquidity")}</span>
+              <span className="hidden md:block w-16 text-right">{t("offers")}</span>
             </div>
 
             {/* strike rows */}
@@ -260,14 +265,14 @@ export function OptionsViewer({ mode }: OptionsViewerProps) {
 
       {isLoading && (
         <div className="text-center py-12">
-          <p className="text-muted-foreground">Loading options...</p>
+          <p className="text-muted-foreground">{t("loadingOptions")}</p>
         </div>
       )}
 
       {!isLoading && (!currentTermGroup || currentTermGroup.strikes.length === 0) && (
         <div className="text-center py-12">
-          <p className="text-muted-foreground">No options available</p>
-          <p className="text-sm text-muted-foreground mt-1">Be the first to write an option!</p>
+          <p className="text-muted-foreground">{t("noOptionsAvailable")}</p>
+          <p className="text-sm text-muted-foreground mt-1">{t("beFirstToWrite")}</p>
         </div>
       )}
     </div>

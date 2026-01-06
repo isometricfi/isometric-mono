@@ -4,8 +4,9 @@ import { useDynamicContext } from "@dynamic-labs/sdk-react-core";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { useDynamicConfig } from "@/app/providers/dynamic-provider";
-import { ThemeToggle } from "@/components/layout/ThemeToggle";
+import { SettingsDropdown } from "@/components/layout/SettingsDropdown";
 import { Button } from "@/components/ui/button";
 import { ConnectButton } from "@/components/wallet/ConnectButton";
 import { cn } from "@/lib/utils";
@@ -15,6 +16,7 @@ export function Navbar() {
   const { primaryWallet } = useDynamicContext();
   const { isConfigured } = useDynamicConfig();
   const isLandingPage = pathname === "/";
+  const t = useTranslations("Navbar");
 
   return (
     <nav className="fixed top-4 left-1/2  -translate-x-1/2 z-50 w-full max-w-5xl xl:px-0 px-4 ">
@@ -37,53 +39,42 @@ export function Navbar() {
                 size="sm"
                 className={cn(pathname === "/write" && "font-bold")}
               >
-                Write
+                {t("write")}
               </Button>
             </Link>
 
             <Link href="/buy">
               <Button variant="ghost" size="sm" className={cn(pathname === "/buy" && "font-bold")}>
-                Buy
+                {t("buy")}
               </Button>
             </Link>
             {!isLandingPage && (
-              <>
-                <Link href="/portfolio">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className={cn(pathname === "/portfolio" && "font-bold")}
-                  >
-                    Portfolio
-                  </Button>
-                </Link>
-                <Link href="/history">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className={cn(pathname === "/history" && "font-bold")}
-                  >
-                    History
-                  </Button>
-                </Link>
-              </>
+              <Link href="/portfolio">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className={cn(pathname === "/portfolio" && "font-bold")}
+                >
+                  {t("portfolio")}
+                </Button>
+              </Link>
             )}
           </div>
           <div className="flex items-center gap-3 justify-center md:justify-end">
             {!primaryWallet && (
               <div className="md:flex hidden">
-                <ThemeToggle />
+                <SettingsDropdown />
               </div>
             )}
 
             {isLandingPage ? (
               <Button asChild>
-                <Link href="/write">Open App</Link>
+                <Link href="/write">{t("openApp")}</Link>
               </Button>
             ) : isConfigured ? (
               <ConnectButton />
             ) : (
-              <Button disabled>Connect</Button>
+              <Button disabled>{t("connect")}</Button>
             )}
           </div>
         </div>

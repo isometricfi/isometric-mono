@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
+import { useTranslations } from "next-intl";
 import { useConfig } from "@/hooks";
 
 interface TermSelectorProps {
@@ -9,12 +10,13 @@ interface TermSelectorProps {
 }
 
 export function TermSelector({ value, onChange }: TermSelectorProps) {
+  const t = useTranslations("Forms");
   const { data: config } = useConfig();
   const termOptions = config?.termOptions ?? [];
 
   return (
     <div className="space-y-1">
-      <p className="text-sm font-medium text-foreground">Term</p>
+      <p className="text-sm font-medium text-foreground">{t("term")}</p>
       <div className="flex rounded-full bg-muted p-1">
         {termOptions.map((term) => {
           const isActive = value === term;
@@ -35,7 +37,9 @@ export function TermSelector({ value, onChange }: TermSelectorProps) {
                   transition={{ type: "spring", duration: 0.5 }}
                 />
               )}
-              <span className="relative z-10">{term} Days</span>
+              <span className="relative z-10">
+                {term} {t("days")}
+              </span>
             </button>
           );
         })}
