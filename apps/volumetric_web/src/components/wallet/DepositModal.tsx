@@ -13,6 +13,7 @@ import {
   XCircle,
 } from "lucide-react";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { useMemo, useState } from "react";
 import QRCodeSVG from "react-qr-code";
 import { useMediaQuery } from "react-responsive";
@@ -48,6 +49,8 @@ export function DepositModal({
   const { data: walletBalanceSats } = useWalletBalance();
   const { data: depositAddressData, isLoading: isLoadingDepositAddress } = useDepositAddress();
   const syncDeposit = useSyncDeposit();
+  const t = useTranslations("Deposit");
+  const tCommon = useTranslations("Common");
 
   const depositAddress = depositAddressData?.btcAddress ?? null;
 
@@ -129,11 +132,11 @@ export function DepositModal({
         setTxid(result);
         setStep("waiting");
       } else {
-        throw new Error("Transaction was cancelled");
+        throw new Error(t("transactionCancelled"));
       }
     } catch (err) {
       console.error("[DepositModal] Send error:", err);
-      setError(err instanceof Error ? err.message : "Failed to send");
+      setError(err instanceof Error ? err.message : t("failedToSend"));
       setStep("error");
     }
   };
@@ -143,7 +146,7 @@ export function DepositModal({
       await syncDeposit.mutateAsync();
       setStep("success");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to sync deposit");
+      setError(err instanceof Error ? err.message : t("failedToSync"));
       setStep("error");
     }
   };
@@ -164,10 +167,8 @@ export function DepositModal({
                 <CircleArrowDown className="size-5 text-primary" />
               </div>
               <div>
-                <h2 className="text-lg font-semibold">Deposit BTC</h2>
-                <p className="text-sm text-muted-foreground">
-                  Deposit BTC to make and accept offers
-                </p>
+                <h2 className="text-lg font-semibold">{t("title")}</h2>
+                <p className="text-sm text-muted-foreground">{t("description")}</p>
               </div>
             </div>
 
@@ -182,7 +183,7 @@ export function DepositModal({
                     : "text-muted-foreground hover:text-foreground",
                 )}
               >
-                Wallet
+                {t("wallet")}
               </button>
               <button
                 type="button"
@@ -194,14 +195,14 @@ export function DepositModal({
                     : "text-muted-foreground hover:text-foreground",
                 )}
               >
-                Deposit Address
+                {t("depositAddress")}
               </button>
             </div>
 
             {isLoadingDepositAddress ? (
               <div className=" space-y-4">
                 <Skeleton className="w-full h-32 flex items-center justify-center gap-3">
-                  Fetching deposit information...
+                  {t("fetchingInfo")}
                 </Skeleton>
                 <Skeleton className="w-full h-10" />
               </div>
@@ -222,7 +223,7 @@ export function DepositModal({
                     />
                     <div className="flex items-center gap-2">
                       <ClockCheck className="size-5" />
-                      <p className="text-sm text-muted-foreground">Requires 6 confirmations</p>
+                      <p className="text-sm text-muted-foreground">{t("requiresConfirmations")}</p>
                     </div>
                     <div className="flex gap-3">
                       <Button
@@ -230,7 +231,7 @@ export function DepositModal({
                         className="flex-1"
                         onClick={() => handleClose(false)}
                       >
-                        Close
+                        {tCommon("close")}
                       </Button>
                       <Button
                         className="flex-1"
@@ -246,8 +247,8 @@ export function DepositModal({
                       >
                         {" "}
                         {isBelowMinimum
-                          ? `Min: ${formatBtcWithSymbol(Number(minDepositSats), 8)}`
-                          : "Deposit"}
+                          ? `${tCommon("min")}: ${formatBtcWithSymbol(Number(minDepositSats), 8)}`
+                          : t("title")}
                       </Button>
                     </div>
                   </>
@@ -261,18 +262,18 @@ export function DepositModal({
                         <div className="space-y-2">
                           <div className="flex items-center gap-2">
                             <ScanSearch className="size-5" />
-                            <p className="text-sm text-muted-foreground">
-                              We will automatically detect your deposit
-                            </p>
+                            <p className="text-sm text-muted-foreground">{t("autoDetect")}</p>
                           </div>
                           <div className="flex items-center gap-2">
                             <ClockCheck className="size-5" />
                             <p className="text-sm text-muted-foreground">
-                              Requires 6 confirmations
+                              {t("requiresConfirmations")}
                             </p>
                           </div>
                           <Badge variant="destructive" className="w-full">
-                            Minimum deposit: {formatBtcWithSymbol(Number(minDepositSats), 8)}
+                            {t("minDeposit", {
+                              amount: formatBtcWithSymbol(Number(minDepositSats), 8),
+                            })}
                           </Badge>
                         </div>
                       </div>
@@ -281,7 +282,7 @@ export function DepositModal({
                         <div className="flex items-start justify-between gap-3">
                           <div className="min-w-0">
                             <div className="text-xs text-muted-foreground mb-1">
-                              Deposit address
+                              {t("depositAddressLabel")}
                             </div>
                             <div className="font-mono text-xs break-all select-all">
                               {depositAddress}
@@ -292,7 +293,7 @@ export function DepositModal({
                       </div>
                     </div>
                     <Button variant="outline" className="w-full" onClick={() => handleClose(false)}>
-                      Close
+                      {tCommon("close")}
                     </Button>
                   </>
                 )}
@@ -316,10 +317,8 @@ export function DepositModal({
               <Loader2 className="size-12 text-primary" />
             </motion.div>
             <div className="text-center">
-              <h3 className="font-semibold">Confirm in wallet</h3>
-              <p className="text-sm text-muted-foreground">
-                Approve the transaction in your wallet
-              </p>
+              <h3 className="font-semibold">{t("confirmInWallet")}</h3>
+              <p className="text-sm text-muted-foreground">{t("approveTransaction")}</p>
             </div>
           </motion.div>
         )}
@@ -347,17 +346,15 @@ export function DepositModal({
             </motion.div>
 
             <div className="text-center space-y-2">
-              <h3 className="text-xl font-semibold">Deposit initiated</h3>
-              <p className="text-sm text-muted-foreground">
-                Your deposit will be accounted in 6 blocks (~60min)
-              </p>
+              <h3 className="text-xl font-semibold">{t("depositInitiated")}</h3>
+              <p className="text-sm text-muted-foreground">{t("depositInBlocks")}</p>
             </div>
 
             {txid && (
               <div className="w-full rounded-2xl border p-4 bg-card/50">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <div className="text-xs text-muted-foreground mb-1">Transaction ID</div>
+                    <div className="text-xs text-muted-foreground mb-1">{t("transactionId")}</div>
                     <div className="font-mono text-xs break-all select-all">
                       {txid.slice(0, 8)}...{txid.slice(-8)}
                     </div>
@@ -380,7 +377,7 @@ export function DepositModal({
             )}
 
             <Button className="w-full mt-2" onClick={() => handleClose(false)}>
-              Close
+              {tCommon("close")}
             </Button>
           </motion.div>
         )}
@@ -408,12 +405,12 @@ export function DepositModal({
             </motion.div>
 
             <div className="text-center space-y-2">
-              <h3 className="text-xl font-semibold">Deposit complete</h3>
-              <p className="text-sm text-muted-foreground">Your balance has been updated</p>
+              <h3 className="text-xl font-semibold">{t("depositComplete")}</h3>
+              <p className="text-sm text-muted-foreground">{t("balanceUpdated")}</p>
             </div>
 
             <Button className="w-full mt-2" onClick={() => handleClose(false)}>
-              Done
+              {tCommon("done")}
             </Button>
           </motion.div>
         )}
@@ -440,16 +437,16 @@ export function DepositModal({
             </motion.div>
 
             <div className="text-center space-y-2">
-              <h3 className="text-xl font-semibold">Something went wrong</h3>
+              <h3 className="text-xl font-semibold">{tCommon("somethingWentWrong")}</h3>
               <p className="text-sm text-destructive max-w-xs">{error}</p>
             </div>
 
             <div className="flex gap-3 w-full pt-2">
               <Button variant="outline" className="flex-1" onClick={() => handleClose(false)}>
-                Close
+                {tCommon("close")}
               </Button>
               <Button className="flex-1" onClick={() => setStep("input")}>
-                Try Again
+                {tCommon("tryAgain")}
               </Button>
             </div>
           </motion.div>
@@ -462,7 +459,7 @@ export function DepositModal({
     return (
       <Drawer open={open} onOpenChange={handleClose} repositionInputs={false}>
         <DrawerContent className="px-5 pb-5 ">
-          <DrawerTitle className="sr-only">Deposit BTC</DrawerTitle>
+          <DrawerTitle className="sr-only">{t("title")}</DrawerTitle>
           {content}
         </DrawerContent>
       </Drawer>
@@ -472,7 +469,7 @@ export function DepositModal({
   return (
     <AlertDialog open={open} onOpenChange={handleClose}>
       <AlertDialogContent className="sm:max-w-md">
-        <AlertDialogTitle className="sr-only">Deposit BTC</AlertDialogTitle>
+        <AlertDialogTitle className="sr-only">{t("title")}</AlertDialogTitle>
         {content}
       </AlertDialogContent>
     </AlertDialog>

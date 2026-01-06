@@ -2,6 +2,7 @@
 
 import { motion } from "framer-motion";
 import { CheckCircle2, Loader2, ShieldCheck } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -13,23 +14,25 @@ import {
 import type { EnsureAccountStep } from "@/hooks";
 import { cn } from "@/lib/utils";
 
-const STEPS: { id: EnsureAccountStep; title: string; description: string }[] = [
-  {
-    id: "checking",
-    title: "Setting up your account",
-    description: "Preparing account creation.",
-  },
-  {
-    id: "awaiting_signature",
-    title: "Approve account creation",
-    description: "Sign the message in your wallet to prove creation",
-  },
-  {
-    id: "creating",
-    title: "Creating account",
-    description: "Finalizing account setup.",
-  },
-];
+function getSteps(t: ReturnType<typeof useTranslations>) {
+  return [
+    {
+      id: "checking" as EnsureAccountStep,
+      title: t("AccountCreation.settingUp"),
+      description: t("AccountCreation.preparing"),
+    },
+    {
+      id: "awaiting_signature" as EnsureAccountStep,
+      title: t("AccountCreation.approveCreation"),
+      description: t("AccountCreation.signMessage"),
+    },
+    {
+      id: "creating" as EnsureAccountStep,
+      title: t("AccountCreation.creating"),
+      description: t("AccountCreation.finalizing"),
+    },
+  ];
+}
 
 function isStepActive(current: EnsureAccountStep, step: EnsureAccountStep) {
   if (current === "checking") return step === "checking";
@@ -55,7 +58,10 @@ export function AccountCreationModal({
   error: string | null;
   onClose: () => void;
 }) {
+  const t = useTranslations();
+  const tCommon = useTranslations("Common");
   const showClose = step === "error" || step === "awaiting_signature";
+  const STEPS = getSteps(t);
 
   return (
     <Dialog open={open} onOpenChange={(next) => (!next ? onClose() : undefined)}>
@@ -63,10 +69,10 @@ export function AccountCreationModal({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <ShieldCheck className="size-5" />
-            Account setup
+            {t("AccountCreation.title")}
           </DialogTitle>
           <DialogDescription>
-            {error ? "Something went wrong. You can close this and try again by reconnecting." : ""}
+            {error ? t("AccountCreation.errorDescription") : ""}
           </DialogDescription>
         </DialogHeader>
 
@@ -112,7 +118,7 @@ export function AccountCreationModal({
               <div className="text-sm font-medium">{error}</div>
               <div className="mt-3 flex justify-end">
                 <Button variant="outline" onClick={onClose}>
-                  Close
+                  {tCommon("close")}
                 </Button>
               </div>
             </div>

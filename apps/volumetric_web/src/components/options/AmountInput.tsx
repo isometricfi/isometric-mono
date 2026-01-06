@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import type { ChangeEvent } from "react";
 import { usePrices } from "@/hooks";
 import { formatBtcWithSymbol } from "@/lib/utils";
@@ -48,6 +49,7 @@ export function AmountInput({
   minAmountSats: _minAmountSats,
   onMaxClick,
 }: AmountInputProps) {
+  const t = useTranslations("Forms");
   const { data: priceData } = usePrices();
   const btcPrice = priceData?.btc ?? 0;
 
@@ -66,14 +68,14 @@ export function AmountInput({
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between">
-        <p className="text-sm font-medium text-foreground">Amount</p>
+        <p className="text-sm font-medium text-foreground">{t("amount")}</p>
         {showMax && (
           <button
             type="button"
             onClick={onMaxClick}
             className="text-sm text-muted-foreground hover:text-foreground transition-colors"
           >
-            Max: {formatBtcWithSymbol(maxAmountSats, 6)}
+            {t("max")}: {formatBtcWithSymbol(maxAmountSats, 6)}
           </button>
         )}
       </div>

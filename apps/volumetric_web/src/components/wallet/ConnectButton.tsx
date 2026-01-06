@@ -1,6 +1,7 @@
 "use client";
 
 import { useDynamicContext } from "@dynamic-labs/sdk-react-core";
+import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { useMediaQuery } from "react-responsive";
 import { Button } from "@/components/ui/button";
@@ -26,6 +27,7 @@ export function ConnectButton() {
   const ensureAccount = useEnsureAccount();
   const { data: accountData } = useAccount();
   const isMobile = useMediaQuery({ query: "(max-width: 768px)" });
+  const t = useTranslations("ConnectButton");
 
   if (primaryWallet) {
     const address = primaryWallet.address;
@@ -57,5 +59,5 @@ export function ConnectButton() {
     );
   }
 
-  return <Button onClick={() => setShowAuthFlow(true)}>Connect</Button>;
+  return <Button onClick={() => setShowAuthFlow(true)}>{t("connect")}</Button>;
 }

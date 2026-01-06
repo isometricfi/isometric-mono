@@ -65,7 +65,11 @@ function getAvatarGradient(seed: string) {
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
-    const baseUrl = new URL(request.url).origin;
+    const url = new URL(request.url);
+    const referer = request.headers.get("referer") || "";
+    const locale = referer.includes("/zh/") || referer.includes("/zh") ? "zh" : "en";
+    const isZh = locale === "zh";
+    const baseUrl = url.origin;
     const history = await fetchHistoryByHash(id, baseUrl);
 
     const entries = history?.entries ?? [];
@@ -85,7 +89,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
         >
           <div style={{ fontSize: 48, fontWeight: 800 }}>Isometric</div>
           <div style={{ fontSize: 24, fontWeight: 500, marginTop: 20, opacity: 0.7 }}>
-            No trading history found
+            {isZh ? "未找到交易历史" : "No trading history found"}
           </div>
         </div>,
         {
@@ -95,15 +99,17 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       );
     }
 
-    const username = history?.username || `User ${id}`;
+    const username = history?.username || (isZh ? `用户 ${id}` : `User ${id}`);
     const principal = history?.principal || id;
 
     // Sort entries by acceptedAt to find the first trade (oldest)
     const sortedEntries = [...entries].sort((a, b) => Number(a.acceptedAt - b.acceptedAt));
     const firstTrade = sortedEntries[0];
     const joinedText = firstTrade
-      ? `Joined ${new Date(Number(firstTrade.acceptedAt / BigInt(1_000_000))).toLocaleDateString("en-US", { month: "long", year: "numeric" })}`
-      : "New Member";
+      ? `${isZh ? "加入于" : "Joined"} ${new Date(Number(firstTrade.acceptedAt / BigInt(1_000_000))).toLocaleDateString(isZh ? "zh-CN" : "en-US", { month: "long", year: "numeric" })}`
+      : isZh
+        ? "新成员"
+        : "New Member";
 
     const totalPnlSats = entries.reduce((sum, e) => sum + e.pnlSats, BigInt(0));
     const profitableTrades = entries.filter((e) => e.result === "profit").length;
@@ -220,7 +226,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
                   letterSpacing: "0.05em",
                 }}
               >
-                Total P&L
+                {isZh ? "总盈亏" : "Total P&L"}
               </div>
               <div style={{ fontSize: 56, fontWeight: 800, color: pnlColor }}>{pnlText}</div>
             </div>
@@ -235,7 +241,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
                   letterSpacing: "0.05em",
                 }}
               >
-                Success Rate
+                {isZh ? "成功率" : "Success Rate"}
               </div>
               <div style={{ fontSize: 56, fontWeight: 800, color: TEXT_COLOR }}>{winRateText}</div>
             </div>
@@ -263,7 +269,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
                   letterSpacing: "0.05em",
                 }}
               >
-                Total Volume
+                {isZh ? "总交易量" : "Total Volume"}
               </div>
               <div style={{ fontSize: 36, fontWeight: 700, color: TEXT_COLOR }}>{volumeText}</div>
             </div>
@@ -288,7 +294,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
                   letterSpacing: "0.05em",
                 }}
               >
-                Total Trades
+                {isZh ? "总交易数" : "Total Trades"}
               </div>
               <div style={{ fontSize: 36, fontWeight: 700, color: TEXT_COLOR }}>{tradesText}</div>
             </div>
@@ -308,7 +314,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
           }}
         >
           <div>isometric.app</div>
-          <div>Bitcoin Options For Everyone</div>
+          <div>{isZh ? "人人可用的比特币期权" : "Bitcoin Options For Everyone"}</div>
         </div>
       </div>,
       {
@@ -318,6 +324,9 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     );
   } catch (error) {
     console.error("OG Image generation error:", error);
+    const referer = request.headers.get("referer") || "";
+    const isZh = referer.includes("/zh/") || referer.includes("/zh");
+
     return new ImageResponse(
       <div
         style={{
@@ -333,7 +342,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       >
         <div style={{ fontSize: 48, fontWeight: 800 }}>Isometric</div>
         <div style={{ fontSize: 24, fontWeight: 500, marginTop: 20, opacity: 0.7 }}>
-          Error loading stats
+          {isZh ? "加载统计数据出错" : "Error loading stats"}
         </div>
       </div>,
       {

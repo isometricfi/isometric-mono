@@ -1,14 +1,10 @@
 "use client";
 
 import { TrendingDown, TrendingUp } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { AnimatedToggle, type ToggleOption } from "@/components/navigation/AnimatedToggle";
 import { cn } from "@/lib/utils";
 import type { OptionType } from "@/types/ui";
-
-const optionTypeOptions: ToggleOption<OptionType>[] = [
-  { value: "call", label: "Call", icon: TrendingUp },
-  { value: "put", label: "Put", icon: TrendingDown },
-];
 
 interface OptionTypeToggleProps {
   value: OptionType;
@@ -17,6 +13,13 @@ interface OptionTypeToggleProps {
 }
 
 export function OptionTypeToggle({ value, onChange, disabled }: OptionTypeToggleProps) {
+  const t = useTranslations("Forms");
+
+  const optionTypeOptions: ToggleOption<OptionType>[] = [
+    { value: "call", label: t("call"), icon: TrendingUp },
+    { value: "put", label: t("put"), icon: TrendingDown },
+  ];
+
   return (
     <div className={cn(disabled && "opacity-50 pointer-events-none")}>
       <AnimatedToggle

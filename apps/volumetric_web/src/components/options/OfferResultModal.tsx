@@ -3,6 +3,7 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowRight, CheckCircle2, FileSignature, Loader2, Send, XCircle } from "lucide-react";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { useMediaQuery } from "react-responsive";
 import { AlertDialog, AlertDialogContent, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
@@ -23,35 +24,39 @@ interface OfferResultModalProps {
   errorMessage?: string;
 }
 
-const CREATE_STEPS = [
-  {
-    id: "signing",
-    title: "Sign offer",
-    description: "Approve the offer in your wallet to authorize the trade.",
-    icon: FileSignature,
-  },
-  {
-    id: "submitting",
-    title: "Creating offer",
-    description: "Submitting your offer.",
-    icon: Send,
-  },
-] as const;
+function getCreateSteps(t: ReturnType<typeof useTranslations>) {
+  return [
+    {
+      id: "signing",
+      title: t("OfferResult.signOffer"),
+      description: t("OfferResult.approveOffer"),
+      icon: FileSignature,
+    },
+    {
+      id: "submitting",
+      title: t("OfferResult.creatingOffer"),
+      description: t("OfferResult.submittingOffer"),
+      icon: Send,
+    },
+  ] as const;
+}
 
-const BUY_STEPS = [
-  {
-    id: "signing",
-    title: "Sign purchase",
-    description: "Approve the purchase in your wallet.",
-    icon: FileSignature,
-  },
-  {
-    id: "submitting",
-    title: "Processing",
-    description: "Confirming your option purchase.",
-    icon: Send,
-  },
-] as const;
+function getBuySteps(t: ReturnType<typeof useTranslations>) {
+  return [
+    {
+      id: "signing",
+      title: t("OfferResult.signPurchase"),
+      description: t("OfferResult.approvePurchase"),
+      icon: FileSignature,
+    },
+    {
+      id: "submitting",
+      title: t("OfferResult.processing"),
+      description: t("OfferResult.confirmingPurchase"),
+      icon: Send,
+    },
+  ] as const;
+}
 
 function isStepActive(current: OfferStep, stepId: string): boolean {
   return current === stepId;
@@ -72,16 +77,19 @@ export function OfferResultModal({
   errorMessage,
 }: OfferResultModalProps) {
   const isMobile = useMediaQuery({ query: "(max-width: 768px)" });
-  const steps = type === "create" ? CREATE_STEPS : BUY_STEPS;
+  const t = useTranslations();
+  const tCommon = useTranslations("Common");
+  const steps = type === "create" ? getCreateSteps(t) : getBuySteps(t);
 
   const isProcessing = step === "signing" || step === "submitting";
   const isSuccess = step === "success";
   const isError = step === "error";
 
   const getAccessibleTitle = () => {
-    if (isError) return "Something went wrong";
-    if (isSuccess) return type === "create" ? "Offer Created" : "Option Purchased";
-    return type === "create" ? "Creating Offer" : "Buying Option";
+    if (isError) return tCommon("somethingWentWrong");
+    if (isSuccess)
+      return type === "create" ? t("OfferResult.offerCreated") : t("OfferResult.optionPurchased");
+    return type === "create" ? t("OfferResult.creatingOfferTitle") : t("OfferResult.buyingOption");
   };
 
   const handleOpenChange = (nextOpen: boolean) => {
@@ -102,7 +110,9 @@ export function OfferResultModal({
           >
             <div className="text-center pb-2">
               <h3 className="text-lg font-semibold">
-                {type === "create" ? "Creating Offer" : "Buying Option"}
+                {type === "create"
+                  ? t("OfferResult.creatingOfferTitle")
+                  : t("OfferResult.buyingOption")}
               </h3>
             </div>
 
@@ -171,26 +181,24 @@ export function OfferResultModal({
 
             <div className="text-center space-y-2">
               <h3 className="text-xl font-semibold">
-                {type === "create" ? "Offer Created!" : "Option Purchased!"}
+                {type === "create"
+                  ? t("OfferResult.offerCreated")
+                  : t("OfferResult.optionPurchased")}
               </h3>
               <p className="text-sm text-muted-foreground">
-                {type === "create" ? (
-                  <>Your offer is now live. You can manage it in your portfolio.</>
-                ) : (
-                  <>Your option is now active. You can track it in your portfolio.</>
-                )}
+                {type === "create" ? t("OfferResult.offerLive") : t("OfferResult.optionActive")}
               </p>
             </div>
 
             <div className="flex flex-col gap-3 w-full pt-2">
               <Button asChild className="w-full">
                 <Link href="/portfolio">
-                  View Portfolio
+                  {t("OfferResult.viewPortfolio")}
                   <ArrowRight className="size-4" />
                 </Link>
               </Button>
               <Button variant="outline" className="w-full" onClick={() => onOpenChange(false)}>
-                {type === "create" ? "Close" : "Buy Another"}
+                {type === "create" ? tCommon("close") : t("OfferResult.buyAnother")}
               </Button>
             </div>
           </motion.div>
@@ -218,16 +226,18 @@ export function OfferResultModal({
             </motion.div>
 
             <div className="text-center space-y-2">
-              <h3 className="text-xl font-semibold">Something went wrong</h3>
-              <p className="text-sm text-destructive max-w-xs">{errorMessage}</p>
+              <h3 className="text-xl font-semibold">{tCommon("somethingWentWrong")}</h3>
+              <p className="text-sm text-destructive max-w-xs">
+                {errorMessage || tCommon("somethingWentWrong")}
+              </p>
             </div>
 
             <div className="flex gap-3 w-full pt-2">
               <Button variant="outline" className="flex-1" onClick={() => onOpenChange(false)}>
-                Close
+                {tCommon("close")}
               </Button>
               <Button className="flex-1" onClick={() => onOpenChange(false)}>
-                Try Again
+                {tCommon("tryAgain")}
               </Button>
             </div>
           </motion.div>
