@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { ConfigData } from "@/types/config";
+import type { ConfigData, FeeConfig } from "@/types/config";
 
 const RangeU64Schema = z.object({ min: z.bigint(), max: z.bigint() });
 const RangeU16Schema = z.object({ min: z.number().or(z.bigint()), max: z.number().or(z.bigint()) });
@@ -14,12 +14,27 @@ const TradingLimitsSchema = z.object({
   withdraw_amount_sats: z.bigint(),
 });
 
+const FeeConfigSchema = z.object({
+  premium_fee_basis_points: z.bigint(),
+  profit_fee_basis_points: z.bigint(),
+  fee_recipient: z.custom<{ toText: () => string }>(),
+});
+
 const BASIS_POINTS_PER_PERCENT = 100;
 const DEFAULT_TERM_OPTIONS = [1, 7, 14];
 const STRIKE_PERCENT_OPTIONS = [5, 10, 15, 20];
 const PREMIUM_STEP = 0.25;
 
-export function mapConfig(rawLimits: unknown): ConfigData {
+function mapFeeConfig(rawFeeConfig: unknown): FeeConfig {
+  const feeConfig = FeeConfigSchema.parse(rawFeeConfig);
+  return {
+    premiumFeeBasisPoints: feeConfig.premium_fee_basis_points,
+    profitFeeBasisPoints: feeConfig.profit_fee_basis_points,
+    feeRecipient: feeConfig.fee_recipient.toText(),
+  };
+}
+
+export function mapConfig(rawLimits: unknown, rawFeeConfig: unknown): ConfigData {
   const limits = TradingLimitsSchema.parse(rawLimits);
 
   const minTermDays = Number(limits.term_days.min);
@@ -38,6 +53,8 @@ export function mapConfig(rawLimits: unknown): ConfigData {
   }
 
   return {
+    canisterId: process.env.CANISTER_ID,
+    icHost: process.env.IC_HOST || "https://ic0.app",
     termOptions,
     strikePercentOptions: STRIKE_PERCENT_OPTIONS,
     premium: {
@@ -51,5 +68,6 @@ export function mapConfig(rawLimits: unknown): ConfigData {
     minWithdrawAmountSats: Number(limits.withdraw_amount_sats),
     minTermDays,
     maxTermDays,
+    fees: mapFeeConfig(rawFeeConfig),
   };
 }
