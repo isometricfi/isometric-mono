@@ -2,7 +2,7 @@ use std::time::Duration;
 
 use candid::{Nat, Principal};
 use ic_cdk::export_candid;
-use ic_cdk::init;
+use ic_cdk::{init, post_upgrade};
 
 pub mod api;
 pub mod auth;
@@ -66,6 +66,11 @@ fn init(btc_network: Option<BtcNetwork>) {
         });
     });
 
+    timers::setup_timers();
+}
+
+#[post_upgrade]
+fn post_upgrade() {
     timers::setup_timers();
 }
 
