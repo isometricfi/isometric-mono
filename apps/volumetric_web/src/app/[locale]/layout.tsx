@@ -36,6 +36,7 @@ export async function generateMetadata({
   const title = t("title");
   const description = t("description");
   const keywords = t("keywords");
+  const ogImage = locale === "zh" ? "/defaultOGCN.png" : "/defaultOG.png";
 
   return {
     metadataBase: new URL(BASE_URL),
@@ -56,7 +57,7 @@ export async function generateMetadata({
       description,
       images: [
         {
-          url: "/defaultOG.png",
+          url: ogImage,
           width: 1200,
           height: 630,
           alt: t("ogImageAlt"),
@@ -67,7 +68,7 @@ export async function generateMetadata({
       card: "summary_large_image",
       title,
       description,
-      images: ["/defaultOG.png"],
+      images: [ogImage],
     },
     robots: {
       index: true,
