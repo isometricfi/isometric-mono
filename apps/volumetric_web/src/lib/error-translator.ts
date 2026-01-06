@@ -54,31 +54,3 @@ export async function translateCanisterError(err: CanisterError | Error): Promis
     return baseMessage;
   }
 }
-
-export function translateCanisterErrorClient(
-  err: CanisterError | Error,
-  t: (key: string, params?: Record<string, unknown>) => string,
-): string {
-  if (!(err instanceof Error && "code" in err)) {
-    return err.message || t("Errors.internalError");
-  }
-
-  const canisterError = err as CanisterError;
-  const baseMessage = getErrorMessage(canisterError);
-  const errorCode = canisterError.code;
-  const translationKey = errorCodeToTranslationKey[errorCode];
-
-  if (!translationKey) {
-    return baseMessage;
-  }
-
-  try {
-    const translated = t(`Errors.${translationKey}`);
-    if (canisterError.message && canisterError.message !== baseMessage) {
-      return `${translated}: ${canisterError.message}`;
-    }
-    return translated;
-  } catch {
-    return baseMessage;
-  }
-}
