@@ -1,4 +1,12 @@
+export interface FeeConfig {
+  premiumFeeBasisPoints: bigint;
+  profitFeeBasisPoints: bigint;
+  feeRecipient: string;
+}
+
 export interface ConfigData {
+  canisterId: string | undefined;
+  icHost: string;
   termOptions: number[];
   strikePercentOptions: number[];
   premium: {
@@ -12,4 +20,5 @@ export interface ConfigData {
   minWithdrawAmountSats: number;
   minTermDays: number;
   maxTermDays: number;
+  fees: FeeConfig;
 }
