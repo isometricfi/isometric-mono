@@ -20,14 +20,13 @@ pub use accounts::{
     Profile,
 };
 pub use balances::{
-    add_available, add_platform_fee, calculate_platform_fee, get_balance,
-    get_platform_fee_recipient, get_platform_fees_collected, lock_collateral,
-    release_locked_to_recipient, reverse_release_locked_to_recipient, set_balance,
-    subtract_available, unlock_collateral, InsufficientBalance, UserBalance, CKBTC_TRANSFER_FEE,
-    PLATFORM_FEE_BASIS_POINTS,
+    add_available, add_platform_fee, calculate_premium_fee, calculate_profit_fee, get_balance,
+    get_fee_recipient, get_platform_fees_collected, lock_collateral, release_locked_to_recipient,
+    reverse_release_locked_to_recipient, set_balance, subtract_available, unlock_collateral,
+    InsufficientBalance, UserBalance, CKBTC_TRANSFER_FEE,
 };
 pub use cbor::Cbor;
-pub use config::{BtcNetwork, Config, FeatureFlags, Range, TradingLimits};
+pub use config::{BtcNetwork, Config, FeatureFlags, FeeConfig, Range, TradingLimits};
 pub use events::{
     clear_events, delete_events_before, emit_event, get_all_events, get_event_count,
     get_events_by_principal, get_events_since, Event, EventData, EventType, TradeRole,

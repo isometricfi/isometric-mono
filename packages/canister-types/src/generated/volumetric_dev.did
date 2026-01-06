@@ -32,6 +32,7 @@ type ActiveOption = record {
   accepted_at : nat64;
   writer : principal;
   offer_id : nat64;
+  profit_fee_basis_points : nat64;
   quantity : nat64;
   buyer : principal;
   expiry : nat64;
@@ -78,6 +79,7 @@ type Config = record {
   ckbtc_minter : principal;
   trading_limits : TradingLimits;
   btc_network : BtcNetwork;
+  fee_config : FeeConfig;
   ckbtc_ledger : principal;
   feature_flags : FeatureFlags;
 };
@@ -160,6 +162,11 @@ type EventType = variant {
 type FeatureFlags = record {
   is_stitching_enabled : bool;
   is_partial_filling_enabled : bool;
+};
+type FeeConfig = record {
+  premium_fee_basis_points : nat64;
+  fee_recipient : principal;
+  profit_fee_basis_points : nat64;
 };
 type Offer = record {
   id : nat64;
@@ -339,6 +346,7 @@ service : (opt BtcNetwork) -> {
   get_failed_settlements : () -> (Result_10) query;
   get_failed_withdrawals : () -> (Result_11) query;
   get_feature_flags : () -> (FeatureFlags) query;
+  get_fee_config : () -> (FeeConfig) query;
   get_message_to_sign : (text) -> (text) query;
   get_my_events : (opt nat64, opt nat32) -> (vec Event) query;
   get_my_offers : (text) -> (Result_12) query;
@@ -351,7 +359,7 @@ service : (opt BtcNetwork) -> {
   get_pending_settlements : () -> (vec ActiveOption) query;
   get_pending_settlements_journal : () -> (Result_10) query;
   get_pending_withdrawals : () -> (Result_11) query;
-  get_platform_fee_info : () -> (nat64, nat64) query;
+  get_platform_fees_collected_total : () -> (nat64) query;
   get_settlement_by_id : (nat64) -> (Result_14) query;
   get_trading_limits : () -> (TradingLimits) query;
   get_user_balance : (text) -> (Result_15) query;
@@ -364,10 +372,14 @@ service : (opt BtcNetwork) -> {
   remove_whitelisted : (principal) -> (Result_1);
   set_deposit_amount_sats_config : (nat64) -> (Result_1);
   set_feature_flags_config : (FeatureFlags) -> (Result_1);
+  set_fee_config_config : (FeeConfig) -> (Result_1);
+  set_fee_recipient_config : (principal) -> (Result_1);
   set_max_offers_per_term_config : (nat64) -> (Result_1);
   set_option_duration_seconds_range_config : (nat64, nat64) -> (Result_1);
   set_oracle_price_config : (nat64) -> (Result_1);
   set_premium_basis_points_range_config : (nat16, nat16) -> (Result_1);
+  set_premium_fee_basis_points_config : (nat64) -> (Result_1);
+  set_profit_fee_basis_points_config : (nat64) -> (Result_1);
   set_quantity_sats_range_config : (nat64, nat64) -> (Result_1);
   set_strike_basis_points_range_config : (nat16, nat16) -> (Result_1);
   set_term_days_range_config : (nat64, nat64) -> (Result_1);

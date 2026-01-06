@@ -5,11 +5,11 @@ use crate::errors::VolumetricError;
 use crate::locks::SettlementLock;
 use crate::oracle::{calculate_call_option_payout, get_btc_usd_price_cents};
 use crate::storage::{
-    complete_settlement, create_settlement, emit_event, fail_settlement, get_active_option,
-    list_expired_active_options, release_locked_to_recipient, remove_settlement,
-    reverse_release_locked_to_recipient, unlock_collateral, update_active_option,
-    update_settlement_phase, ActiveOption, ActiveOptionStatus, EventData, EventType, OptionType,
-    SettlementPhase, TradeRole,
+    add_platform_fee, calculate_profit_fee, complete_settlement, create_settlement, emit_event,
+    fail_settlement, get_active_option, get_fee_recipient, list_expired_active_options,
+    release_locked_to_recipient, remove_settlement, reverse_release_locked_to_recipient,
+    unlock_collateral, update_active_option, update_settlement_phase, ActiveOption,
+    ActiveOptionStatus, EventData, EventType, OptionType, SettlementPhase, TradeRole,
 };
 
 use crate::usecases::balances::transfer_ckbtc;
@@ -19,6 +19,7 @@ pub struct SettlementResult {
     pub settlement_price_cents: u64,
     pub payout_to_buyer: u64,
     pub payout_to_writer: u64,
+    pub profit_fee: u64,
     pub status: ActiveOptionStatus,
 }
 
@@ -49,7 +50,7 @@ pub async fn settle_single_option(
     option.status = ActiveOptionStatus::Settling;
     update_active_option(option.clone());
 
-    let payout_to_buyer = match option.option_type {
+    let gross_payout_to_buyer = match option.option_type {
         OptionType::Call => calculate_call_option_payout(
             settlement_price_cents,
             option.strike_price_cents,
@@ -57,11 +58,20 @@ pub async fn settle_single_option(
         ),
     };
 
-    let payout_to_writer = option.quantity.saturating_sub(payout_to_buyer);
+    let profit_fee = if gross_payout_to_buyer > 0 {
+        calculate_profit_fee(gross_payout_to_buyer, option.profit_fee_basis_points)
+    } else {
+        0
+    };
+
+    let payout_to_buyer = gross_payout_to_buyer.saturating_sub(profit_fee);
+    let payout_to_writer = option.quantity.saturating_sub(gross_payout_to_buyer);
 
     ic_cdk::println!(
-        "settle_single_option: quantity={}, payout_buyer={}, payout_writer={}",
+        "settle_single_option: quantity={}, gross_payout_buyer={}, profit_fee={}, net_payout_buyer={}, payout_writer={}",
         option.quantity,
+        gross_payout_to_buyer,
+        profit_fee,
         payout_to_buyer,
         payout_to_writer
     );
@@ -75,9 +85,14 @@ pub async fn settle_single_option(
         settlement_price_cents,
     );
 
-    if payout_to_buyer > 0 {
+    if gross_payout_to_buyer > 0 {
         release_locked_to_recipient(option.writer, option.buyer, payout_to_buyer)
             .map_err(|e| VolumetricError::insufficient_balance(e.available, e.required))?;
+
+        if profit_fee > 0 {
+            unlock_collateral(option.writer, profit_fee)
+                .map_err(|e| VolumetricError::insufficient_balance(e.available, e.required))?;
+        }
 
         update_settlement_phase(option.id, SettlementPhase::BalanceReleased);
 
@@ -116,6 +131,29 @@ pub async fn settle_single_option(
             update_active_option(option.clone());
             fail_settlement(option.id, format!("transfer_ckbtc failed: {:?}", e));
             return Err(e);
+        }
+
+        if profit_fee > 0 {
+            ic_cdk::println!("settle: transferring profit fee {} to platform", profit_fee);
+
+            if let Err(e) = transfer_ckbtc(
+                Some(writer_subaccount),
+                Account {
+                    owner: get_fee_recipient(),
+                    subaccount: None,
+                },
+                profit_fee,
+                created_at_time,
+            )
+            .await
+            {
+                ic_cdk::println!(
+                    "settle: profit fee transfer failed: {:?}, continuing anyway",
+                    e
+                );
+            } else {
+                add_platform_fee(profit_fee);
+            }
         }
 
         update_settlement_phase(option.id, SettlementPhase::TransferComplete);
@@ -173,6 +211,7 @@ pub async fn settle_single_option(
         settlement_price_cents,
         payout_to_buyer,
         payout_to_writer,
+        profit_fee,
         status: ActiveOptionStatus::Settled,
     })
 }
