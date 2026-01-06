@@ -106,7 +106,26 @@
     "learn": "Learn",
     "noOffersAvailable": "No offers available for this amount",
     "buyDescription": "Pay ₿{premium} upfront. Strike locks at ~${strike}. Profit auto-exercised if BTC exceeds strike in {term} days. Max loss is the premium.",
-    "writeDescription": "When accepted collateral is locked for {term} days. Strike set to {strikePercent}% above the price when accepted. Premium received instantly. If BTC is higher than strike at expiry, profit paid from collateral."
+    "writeDescription": "When accepted collateral is locked for {term} days. Strike set to {strikePercent}% above the price when accepted. Premium received instantly. If BTC is higher than strike at expiry, profit paid from collateral.",
+    "optionBreakdown": "Breakdown",
+    "buyExplainer": {
+      "intro": "You pay {premium} upfront to lock in the right to profit if BTC rises above {strike} within {term}.",
+      "ifRises": "If BTC rises:",
+      "ifRisesDesc": "You automatically receive your profit in BTC (max {maxProfit})",
+      "ifBelow": "If BTC stays below:",
+      "ifBelowDesc": "Option expires worthless, you lose the premium",
+      "platformFee": "Platform fee:",
+      "platformFeeDesc": "{fee}% of profit"
+    },
+    "writeExplainer": {
+      "intro": "You lock {amount} as collateral and earn {premium} instantly when a buyer accepts. Strike locks at {strike} for {term}.",
+      "ifBelow": "If BTC stays below:",
+      "ifBelowDesc": "You keep your collateral plus the premium",
+      "ifRises": "If BTC rises:",
+      "ifRisesDesc": "Buyer's profit is paid from your collateral, you keep the premium",
+      "platformFee": "Platform fee:",
+      "platformFeeDesc": "{fee}% of premium"
+    }
   },
   "Deposit": {
     "title": "Deposit BTC",
@@ -264,7 +283,7 @@
     "action": "Action",
     "buy": "Buy",
     "scrollForMore": "Scroll for more",
-    "availableOptions": "Available Options",
+    "availableOptions": "Order book",
     "offers": "Offers",
     "loadingOptions": "Loading options...",
     "noOptionsAvailable": "No options available",

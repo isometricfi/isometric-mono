@@ -114,13 +114,11 @@ function StrikeRow({ bucket, btcPrice, isExpanded, onToggle, mode }: StrikeRowPr
               {/* offers header */}
               <div
                 className={cn(
-                  "px-4 py-2 grid text-xs text-muted-foreground border-b border-border/30",
-                  mode === "buyer" ? "grid-cols-3" : "grid-cols-2",
+                  "px-4 py-2 grid text-xs text-muted-foreground border-b border-border/30 grid-cols-2",
                 )}
               >
                 <span className="pl-7">{t("premium")}</span>
                 <span className="text-right">{t("amount")}</span>
-                {mode === "buyer" && <span className="text-right">{t("action")}</span>}
               </div>
 
               {/* scrollable offers container */}
@@ -137,22 +135,11 @@ function StrikeRow({ bucket, btcPrice, isExpanded, onToggle, mode }: StrikeRowPr
                       <div
                         key={offer.id}
                         className={cn(
-                          "px-4 py-2.5 grid items-center text-sm hover:bg-secondary/30 transition-colors",
-                          mode === "buyer" ? "grid-cols-3" : "grid-cols-2",
+                          "px-4 py-2.5 grid items-center text-sm hover:bg-secondary/30 transition-colors grid-cols-2",
                         )}
                       >
                         <span className="pl-7 font-medium">{offer.premium}%</span>
                         <span className="text-right">{formatBtc(offer.amountSats, 4)} BTC</span>
-                        {mode === "buyer" && (
-                          <div className="text-right">
-                            <button
-                              type="button"
-                              className="text-xs bg-primary text-primary-foreground px-3 py-1 rounded-full hover:bg-primary/90 transition-colors"
-                            >
-                              {t("buy")}
-                            </button>
-                          </div>
-                        )}
                       </div>
                     ))}
                 </div>

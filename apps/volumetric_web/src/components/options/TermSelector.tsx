@@ -16,7 +16,6 @@ export function TermSelector({ value, onChange }: TermSelectorProps) {
 
   return (
     <div className="space-y-1">
-      <p className="text-sm font-medium text-foreground">{t("term")}</p>
       <div className="flex rounded-full bg-muted p-1">
         {termOptions.map((term) => {
           const isActive = value === term;
