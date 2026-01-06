@@ -48,6 +48,26 @@ fn default_max_offers_per_term() -> usize {
     5
 }
 
+#[derive(Debug, Deserialize, Serialize, CandidType, Clone, Copy)]
+pub struct FeeConfig {
+    pub premium_fee_basis_points: u64,
+    pub profit_fee_basis_points: u64,
+    pub fee_recipient: Principal,
+}
+
+impl Default for FeeConfig {
+    fn default() -> Self {
+        Self {
+            premium_fee_basis_points: 500,
+            profit_fee_basis_points: 2000,
+            fee_recipient: Principal::from_text(
+                "a6nyt-23cn7-g5zvc-pxir2-dfi7d-z726j-vz4ky-ds6a2-2a4rb-6g7kp-7qe",
+            )
+            .unwrap(),
+        }
+    }
+}
+
 impl Default for TradingLimits {
     fn default() -> Self {
         Self {
@@ -84,6 +104,8 @@ pub struct Config {
     pub feature_flags: FeatureFlags,
     #[serde(default)]
     pub trading_limits: TradingLimits,
+    #[serde(default)]
+    pub fee_config: FeeConfig,
 }
 
 impl Default for Config {
@@ -104,6 +126,7 @@ impl Config {
             ckbtc_ledger: Principal::from_text(ledger).unwrap(),
             feature_flags: FeatureFlags::default(),
             trading_limits: TradingLimits::default(),
+            fee_config: FeeConfig::default(),
         }
     }
 }
@@ -217,6 +240,42 @@ impl Config {
         CONFIG.with_borrow_mut(|c| {
             let mut config = c.get().0.clone();
             config.trading_limits.max_offers_per_term = max;
+            let _ = c.set(Cbor(config));
+        });
+    }
+
+    pub fn fee_config() -> FeeConfig {
+        CONFIG.with_borrow(|c| c.get().0.fee_config)
+    }
+
+    pub fn set_fee_config(fee_config: FeeConfig) {
+        CONFIG.with_borrow_mut(|c| {
+            let mut config = c.get().0.clone();
+            config.fee_config = fee_config;
+            let _ = c.set(Cbor(config));
+        });
+    }
+
+    pub fn set_premium_fee_basis_points(basis_points: u64) {
+        CONFIG.with_borrow_mut(|c| {
+            let mut config = c.get().0.clone();
+            config.fee_config.premium_fee_basis_points = basis_points;
+            let _ = c.set(Cbor(config));
+        });
+    }
+
+    pub fn set_profit_fee_basis_points(basis_points: u64) {
+        CONFIG.with_borrow_mut(|c| {
+            let mut config = c.get().0.clone();
+            config.fee_config.profit_fee_basis_points = basis_points;
+            let _ = c.set(Cbor(config));
+        });
+    }
+
+    pub fn set_fee_recipient(recipient: Principal) {
+        CONFIG.with_borrow_mut(|c| {
+            let mut config = c.get().0.clone();
+            config.fee_config.fee_recipient = recipient;
             let _ = c.set(Cbor(config));
         });
     }

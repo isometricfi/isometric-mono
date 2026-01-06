@@ -132,6 +132,8 @@ pub struct ActiveOption {
     pub expiry: u64,
     pub status: ActiveOptionStatus,
     pub fill_group_id: Option<u64>,
+    #[serde(default)]
+    pub profit_fee_basis_points: u64,
 }
 
 pub fn next_id(key: CounterKey) -> u64 {

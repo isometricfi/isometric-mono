@@ -1,5 +1,7 @@
+use candid::Principal;
+
 use crate::oracle::set_oracle_price_internal;
-use crate::storage::{Config, FeatureFlags, TradingLimits};
+use crate::storage::{Config, FeatureFlags, FeeConfig, TradingLimits};
 
 pub fn set_oracle_price_use_case(price_cents: u64) {
     set_oracle_price_internal(price_cents);
@@ -43,4 +45,20 @@ pub fn set_withdraw_amount_sats_use_case(amount: u64) {
 
 pub fn set_max_offers_per_term_use_case(max: usize) {
     Config::set_max_offers_per_term(max);
+}
+
+pub fn set_fee_config_use_case(fee_config: FeeConfig) {
+    Config::set_fee_config(fee_config);
+}
+
+pub fn set_premium_fee_basis_points_use_case(basis_points: u64) {
+    Config::set_premium_fee_basis_points(basis_points);
+}
+
+pub fn set_profit_fee_basis_points_use_case(basis_points: u64) {
+    Config::set_profit_fee_basis_points(basis_points);
+}
+
+pub fn set_fee_recipient_use_case(recipient: Principal) {
+    Config::set_fee_recipient(recipient);
 }

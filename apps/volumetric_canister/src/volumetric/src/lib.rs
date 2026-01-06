@@ -46,7 +46,7 @@ pub use errors::VolumetricError;
 pub use generated::ckbtc::{Utxo, UtxoOutpoint, UtxoStatus};
 pub use storage::{
     AcceptPhase, ActiveOption, ActiveOptionStatus, Asset, BtcNetwork, Event, EventData, EventType,
-    FeatureFlags, Offer, OfferStatus, OptionType, PendingAccept, PendingSettlement,
+    FeatureFlags, FeeConfig, Offer, OfferStatus, OptionType, PendingAccept, PendingSettlement,
     PendingWithdrawal, SettlementPhase, TradeRole, TradingLimits, UserBalance, WithdrawalPhase,
     MINIMUM_QUANTITY_SATS,
 };

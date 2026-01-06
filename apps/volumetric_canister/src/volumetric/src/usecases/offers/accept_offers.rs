@@ -7,12 +7,12 @@ use crate::guards::{validate_offer_params, OfferParams};
 use crate::locks::AcceptLock;
 use crate::oracle::get_btc_usd_price_cents;
 use crate::storage::{
-    add_available, add_platform_fee, calculate_platform_fee, calculate_premium,
+    add_available, add_platform_fee, calculate_premium, calculate_premium_fee,
     calculate_strike_price, complete_accept, create_accept, emit_event, fail_accept, get_balance,
-    get_offer, get_platform_fee_recipient, insert_active_option, lock_collateral, next_id,
-    remove_accept, subtract_available, unlock_collateral, update_accept_phase, update_offer,
-    AcceptPhase, AcceptedOffer, ActiveOption, ActiveOptionStatus, Asset, Config, CounterKey,
-    EventData, EventType, OfferStatus, OptionType, TradeRole, CKBTC_TRANSFER_FEE,
+    get_fee_recipient, get_offer, insert_active_option, lock_collateral, next_id, remove_accept,
+    subtract_available, unlock_collateral, update_accept_phase, update_offer, AcceptPhase,
+    AcceptedOffer, ActiveOption, ActiveOptionStatus, Asset, Config, CounterKey, EventData,
+    EventType, OfferStatus, OptionType, TradeRole, CKBTC_TRANSFER_FEE,
 };
 use crate::time::calculate_expiry_ns;
 
@@ -37,11 +37,12 @@ struct ValidatedAccept {
     quantity: u64,
     premium: u64,
     premium_to_writer: u64,
-    platform_fee: u64,
+    premium_fee: u64,
     option_id: u64,
     expiry: u64,
     original_remaining_quantity: u64,
     original_status: OfferStatus,
+    profit_fee_basis_points: u64,
 }
 
 struct PendingTransfer {
@@ -136,11 +137,12 @@ pub async fn accept_offers_use_case(
             ));
         }
 
+        let fee_config = Config::fee_config();
         let premium = calculate_premium(item.quantity, offer.premium_basis_points);
-        let platform_fee = calculate_platform_fee(premium);
-        let premium_to_writer = premium.saturating_sub(platform_fee);
+        let premium_fee = calculate_premium_fee(premium);
+        let premium_to_writer = premium.saturating_sub(premium_fee);
 
-        let num_transfers: u64 = if platform_fee > 0 { 2 } else { 1 };
+        let num_transfers: u64 = if premium_fee > 0 { 2 } else { 1 };
         let transfer_fees = num_transfers * CKBTC_TRANSFER_FEE;
         let total_cost = premium.saturating_add(transfer_fees);
         total_premium_required = total_premium_required.saturating_add(total_cost);
@@ -165,14 +167,14 @@ pub async fn accept_offers_use_case(
             amount: premium_to_writer,
         });
 
-        if platform_fee > 0 {
+        if premium_fee > 0 {
             pending_transfers.push(PendingTransfer {
                 from_subaccount: Some(buyer_subaccount),
                 to: Account {
-                    owner: get_platform_fee_recipient(),
+                    owner: get_fee_recipient(),
                     subaccount: None,
                 },
-                amount: platform_fee,
+                amount: premium_fee,
             });
         }
 
@@ -185,11 +187,12 @@ pub async fn accept_offers_use_case(
             quantity: item.quantity,
             premium,
             premium_to_writer,
-            platform_fee,
+            premium_fee,
             option_id,
             expiry,
             original_remaining_quantity: offer.remaining_quantity,
             original_status: offer.status,
+            profit_fee_basis_points: fee_config.profit_fee_basis_points,
         });
     }
 
@@ -209,7 +212,7 @@ pub async fn accept_offers_use_case(
             quantity: v.quantity,
             collateral_locked: v.quantity,
             premium_to_writer: v.premium_to_writer,
-            platform_fee: v.platform_fee,
+            platform_fee: v.premium_fee,
             option_id: v.option_id,
         })
         .collect();
@@ -300,10 +303,11 @@ pub async fn accept_offers_use_case(
             expiry: v.expiry,
             status: ActiveOptionStatus::Active,
             fill_group_id: Some(fill_group_id),
+            profit_fee_basis_points: v.profit_fee_basis_points,
         };
 
         add_available(v.writer, v.premium_to_writer);
-        add_platform_fee(v.platform_fee);
+        add_platform_fee(v.premium_fee);
         insert_active_option(active_option.clone());
 
         let mut offer = get_offer(v.offer_id).unwrap();
