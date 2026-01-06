@@ -4,8 +4,8 @@ import { List } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { SlidingNumber } from "@/components/ui/sliding-number";
-import { useModal, usePrices } from "@/hooks";
-import { roundToN, satsToBtc } from "@/lib/utils";
+import { useConfig, useModal, usePrices } from "@/hooks";
+import { basisPointsToPercent, roundToN, satsToBtc } from "@/lib/utils";
 
 interface CallWriteOptionSummaryProps {
   amountSats: number;
@@ -21,6 +21,7 @@ export function CallWriteOptionSummary({
   strikePercent,
 }: CallWriteOptionSummaryProps) {
   const { data: priceData } = usePrices();
+  const { data: config } = useConfig();
   const btcPrice = priceData?.btc ?? 0;
   const t = useTranslations("Summary");
   const { openModal } = useModal();
@@ -35,7 +36,9 @@ export function CallWriteOptionSummary({
   const amountDisplay = Number(amountBtc.toFixed(6));
   const strikeUsd = Math.round(btcPrice * (1 + strikePercent / 100));
 
-  const platformFeePercent = 20;
+  const platformFeePercent = basisPointsToPercent(
+    Number(config?.fees.profitFeeBasisPoints ?? BigInt(0)),
+  );
 
   const handleOpenBreakdown = () => {
     openModal(

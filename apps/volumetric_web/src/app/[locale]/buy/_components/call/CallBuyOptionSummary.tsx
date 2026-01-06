@@ -4,8 +4,8 @@ import { List } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { SlidingNumber } from "@/components/ui/sliding-number";
-import { useModal, usePrices } from "@/hooks";
-import { satsToBtc } from "@/lib/utils";
+import { useConfig, useModal, usePrices } from "@/hooks";
+import { basisPointsToPercent, satsToBtc } from "@/lib/utils";
 import type { OptionOffer } from "@/types/options";
 
 interface CallBuyOptionSummaryProps {
@@ -22,6 +22,7 @@ export function CallBuyOptionSummary({
   strikePercent,
 }: CallBuyOptionSummaryProps) {
   const { data: priceData } = usePrices();
+  const { data: config } = useConfig();
   const btcPrice = priceData?.btc ?? 0;
   const t = useTranslations("Summary");
   const { openModal } = useModal();
@@ -35,7 +36,9 @@ export function CallBuyOptionSummary({
   const premiumDisplay = Number(premiumBtc.toFixed(6));
   const maxProfitDisplay = Number(maxProfitBtc.toFixed(6));
 
-  const platformFeePercent = 20;
+  const platformFeePercent = basisPointsToPercent(
+    Number(config?.fees.profitFeeBasisPoints ?? BigInt(0)),
+  );
 
   const handleOpenBreakdown = () => {
     openModal(
