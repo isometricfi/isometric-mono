@@ -3,6 +3,10 @@ name: Deploy
 on:
   push:
     branches: [main]
+    paths:
+      - 'apps/volumetric_web/**'
+      - 'packages/**'
+      - 'pnpm-lock.yaml'
   workflow_dispatch:
 
 jobs:
