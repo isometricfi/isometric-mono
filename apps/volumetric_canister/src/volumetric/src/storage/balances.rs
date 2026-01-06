@@ -6,15 +6,13 @@ use ic_stable_structures::StableBTreeMap;
 use serde::{Deserialize, Serialize};
 
 use super::cbor::Cbor;
+use super::config::Config;
 use super::state::{Memory, MemoryIndex, MEMORY_MANAGER};
 
 pub const CKBTC_TRANSFER_FEE: u64 = 10;
-pub const PLATFORM_FEE_BASIS_POINTS: u64 = 1000;
-pub const PLATFORM_FEE_RECIPIENT: &str =
-    "a6nyt-23cn7-g5zvc-pxir2-dfi7d-z726j-vz4ky-ds6a2-2a4rb-6g7kp-7qe";
 
-pub fn get_platform_fee_recipient() -> Principal {
-    Principal::from_text(PLATFORM_FEE_RECIPIENT).expect("Invalid platform fee recipient principal")
+pub fn get_fee_recipient() -> Principal {
+    Config::fee_config().fee_recipient
 }
 
 thread_local! {
@@ -35,8 +33,13 @@ pub fn get_platform_fees_collected() -> u64 {
     PLATFORM_FEES_COLLECTED.with(|f| f.get())
 }
 
-pub fn calculate_platform_fee(premium: u64) -> u64 {
-    (premium * PLATFORM_FEE_BASIS_POINTS) / 10_000
+pub fn calculate_premium_fee(premium: u64) -> u64 {
+    let fee_config = Config::fee_config();
+    (premium * fee_config.premium_fee_basis_points) / 10_000
+}
+
+pub fn calculate_profit_fee(profit: u64, profit_fee_basis_points: u64) -> u64 {
+    (profit * profit_fee_basis_points) / 10_000
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, CandidType, Default)]

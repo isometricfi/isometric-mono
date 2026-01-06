@@ -37,6 +37,7 @@ export interface ActiveOption {
   'accepted_at' : bigint,
   'writer' : Principal,
   'offer_id' : bigint,
+  'profit_fee_basis_points' : bigint,
   'quantity' : bigint,
   'buyer' : Principal,
   'expiry' : bigint,
@@ -87,6 +88,7 @@ export interface Config {
   'ckbtc_minter' : Principal,
   'trading_limits' : TradingLimits,
   'btc_network' : BtcNetwork,
+  'fee_config' : FeeConfig,
   'ckbtc_ledger' : Principal,
   'feature_flags' : FeatureFlags,
 }
@@ -186,6 +188,11 @@ export type EventType = { 'AccountCreated' : null } |
 export interface FeatureFlags {
   'is_stitching_enabled' : boolean,
   'is_partial_filling_enabled' : boolean,
+}
+export interface FeeConfig {
+  'premium_fee_basis_points' : bigint,
+  'fee_recipient' : Principal,
+  'profit_fee_basis_points' : bigint,
 }
 export interface Offer {
   'id' : bigint,
@@ -401,6 +408,7 @@ export interface _SERVICE {
   'get_failed_settlements' : ActorMethod<[], Result_10>,
   'get_failed_withdrawals' : ActorMethod<[], Result_11>,
   'get_feature_flags' : ActorMethod<[], FeatureFlags>,
+  'get_fee_config' : ActorMethod<[], FeeConfig>,
   'get_message_to_sign' : ActorMethod<[string], string>,
   'get_my_events' : ActorMethod<[[] | [bigint], [] | [number]], Array<Event>>,
   'get_my_offers' : ActorMethod<[string], Result_12>,
@@ -416,7 +424,7 @@ export interface _SERVICE {
   'get_pending_settlements' : ActorMethod<[], Array<ActiveOption>>,
   'get_pending_settlements_journal' : ActorMethod<[], Result_10>,
   'get_pending_withdrawals' : ActorMethod<[], Result_11>,
-  'get_platform_fee_info' : ActorMethod<[], [bigint, bigint]>,
+  'get_platform_fees_collected_total' : ActorMethod<[], bigint>,
   'get_settlement_by_id' : ActorMethod<[bigint], Result_14>,
   'get_trading_limits' : ActorMethod<[], TradingLimits>,
   'get_user_balance' : ActorMethod<[string], Result_15>,
@@ -429,6 +437,8 @@ export interface _SERVICE {
   'remove_whitelisted' : ActorMethod<[Principal], Result_1>,
   'set_deposit_amount_sats_config' : ActorMethod<[bigint], Result_1>,
   'set_feature_flags_config' : ActorMethod<[FeatureFlags], Result_1>,
+  'set_fee_config_config' : ActorMethod<[FeeConfig], Result_1>,
+  'set_fee_recipient_config' : ActorMethod<[Principal], Result_1>,
   'set_max_offers_per_term_config' : ActorMethod<[bigint], Result_1>,
   'set_option_duration_seconds_range_config' : ActorMethod<
     [bigint, bigint],
@@ -439,6 +449,8 @@ export interface _SERVICE {
     [number, number],
     Result_1
   >,
+  'set_premium_fee_basis_points_config' : ActorMethod<[bigint], Result_1>,
+  'set_profit_fee_basis_points_config' : ActorMethod<[bigint], Result_1>,
   'set_quantity_sats_range_config' : ActorMethod<[bigint, bigint], Result_1>,
   'set_strike_basis_points_range_config' : ActorMethod<
     [number, number],

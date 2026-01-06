@@ -36,6 +36,7 @@ export const idlFactory = ({ IDL }) => {
     'accepted_at' : IDL.Nat64,
     'writer' : IDL.Principal,
     'offer_id' : IDL.Nat64,
+    'profit_fee_basis_points' : IDL.Nat64,
     'quantity' : IDL.Nat64,
     'buyer' : IDL.Principal,
     'expiry' : IDL.Nat64,
@@ -242,6 +243,11 @@ export const idlFactory = ({ IDL }) => {
     'premium_basis_points' : Range_1,
     'option_duration_seconds' : Range,
   });
+  const FeeConfig = IDL.Record({
+    'premium_fee_basis_points' : IDL.Nat64,
+    'fee_recipient' : IDL.Principal,
+    'profit_fee_basis_points' : IDL.Nat64,
+  });
   const FeatureFlags = IDL.Record({
     'is_stitching_enabled' : IDL.Bool,
     'is_partial_filling_enabled' : IDL.Bool,
@@ -250,6 +256,7 @@ export const idlFactory = ({ IDL }) => {
     'ckbtc_minter' : IDL.Principal,
     'trading_limits' : TradingLimits,
     'btc_network' : BtcNetwork,
+    'fee_config' : FeeConfig,
     'ckbtc_ledger' : IDL.Principal,
     'feature_flags' : FeatureFlags,
   });
@@ -472,6 +479,7 @@ export const idlFactory = ({ IDL }) => {
     'get_failed_settlements' : IDL.Func([], [Result_10], ['query']),
     'get_failed_withdrawals' : IDL.Func([], [Result_11], ['query']),
     'get_feature_flags' : IDL.Func([], [FeatureFlags], ['query']),
+    'get_fee_config' : IDL.Func([], [FeeConfig], ['query']),
     'get_message_to_sign' : IDL.Func([IDL.Text], [IDL.Text], ['query']),
     'get_my_events' : IDL.Func(
         [IDL.Opt(IDL.Nat64), IDL.Opt(IDL.Nat32)],
@@ -496,7 +504,7 @@ export const idlFactory = ({ IDL }) => {
       ),
     'get_pending_settlements_journal' : IDL.Func([], [Result_10], ['query']),
     'get_pending_withdrawals' : IDL.Func([], [Result_11], ['query']),
-    'get_platform_fee_info' : IDL.Func([], [IDL.Nat64, IDL.Nat64], ['query']),
+    'get_platform_fees_collected_total' : IDL.Func([], [IDL.Nat64], ['query']),
     'get_settlement_by_id' : IDL.Func([IDL.Nat64], [Result_14], ['query']),
     'get_trading_limits' : IDL.Func([], [TradingLimits], ['query']),
     'get_user_balance' : IDL.Func([IDL.Text], [Result_15], ['query']),
@@ -517,6 +525,8 @@ export const idlFactory = ({ IDL }) => {
     'remove_whitelisted' : IDL.Func([IDL.Principal], [Result_1], []),
     'set_deposit_amount_sats_config' : IDL.Func([IDL.Nat64], [Result_1], []),
     'set_feature_flags_config' : IDL.Func([FeatureFlags], [Result_1], []),
+    'set_fee_config_config' : IDL.Func([FeeConfig], [Result_1], []),
+    'set_fee_recipient_config' : IDL.Func([IDL.Principal], [Result_1], []),
     'set_max_offers_per_term_config' : IDL.Func([IDL.Nat64], [Result_1], []),
     'set_option_duration_seconds_range_config' : IDL.Func(
         [IDL.Nat64, IDL.Nat64],
@@ -526,6 +536,16 @@ export const idlFactory = ({ IDL }) => {
     'set_oracle_price_config' : IDL.Func([IDL.Nat64], [Result_1], []),
     'set_premium_basis_points_range_config' : IDL.Func(
         [IDL.Nat16, IDL.Nat16],
+        [Result_1],
+        [],
+      ),
+    'set_premium_fee_basis_points_config' : IDL.Func(
+        [IDL.Nat64],
+        [Result_1],
+        [],
+      ),
+    'set_profit_fee_basis_points_config' : IDL.Func(
+        [IDL.Nat64],
         [Result_1],
         [],
       ),
