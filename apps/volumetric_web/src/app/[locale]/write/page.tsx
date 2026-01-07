@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { HydrationBoundary } from "@tanstack/react-query";
 import type { Metadata } from "next";
 import { prefetchOptionsPageData } from "@/lib/prefetch";
