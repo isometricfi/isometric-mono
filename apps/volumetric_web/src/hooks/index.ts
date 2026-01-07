@@ -32,6 +32,7 @@ export { useWithdraw, type WithdrawParams } from "./mutations/use-withdraw";
 // queries
 export { type AccountData, useAccount } from "./queries/use-account";
 export { type BtcAddressType, useBtcAddress, useBtcAddresses } from "./queries/use-btc-address";
+export { type BTCHistoryPoint, useBTCHistory } from "./queries/use-btc-history";
 export { generatePremiumValues, useConfig } from "./queries/use-config";
 export { useDepositAddress } from "./queries/use-deposit-address";
 export {

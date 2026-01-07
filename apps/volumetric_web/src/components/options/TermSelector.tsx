@@ -2,6 +2,7 @@
 
 import { motion } from "framer-motion";
 import { useTranslations } from "next-intl";
+import { useId } from "react";
 import { useConfig } from "@/hooks";
 
 interface TermSelectorProps {
@@ -13,6 +14,7 @@ export function TermSelector({ value, onChange }: TermSelectorProps) {
   const t = useTranslations("Forms");
   const { data: config } = useConfig();
   const termOptions = config?.termOptions ?? [];
+  const layoutId = useId();
 
   return (
     <div className="space-y-1">
@@ -31,7 +33,7 @@ export function TermSelector({ value, onChange }: TermSelectorProps) {
             >
               {isActive && (
                 <motion.div
-                  layoutId="termSelector"
+                  layoutId={`termSelector-${layoutId}`}
                   className="absolute inset-0 bg-background rounded-full shadow-sm"
                   transition={{ type: "spring", duration: 0.5 }}
                 />

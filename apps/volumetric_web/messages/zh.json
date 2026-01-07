@@ -253,7 +253,10 @@
   },
   "Components": {
     "btcUsdPriceChart": "BTC/USD 价格图表",
-    "chartComingSoon": "图表即将推出"
+    "chartComingSoon": "图表即将推出",
+    "btcUsd": "BTC/USD",
+    "strike": "行权价",
+    "days": "{count} 天"
   },
   "OptionsViewer": {
     "premium": "溢价",

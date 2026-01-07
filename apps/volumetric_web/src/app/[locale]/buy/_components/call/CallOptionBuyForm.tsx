@@ -18,6 +18,7 @@ import {
   usePrices,
 } from "@/hooks";
 import { DEFAULT_MIN_OFFER_AMOUNT_SATS, formatBtc, parseBtcToSats } from "@/lib/utils";
+import { useChartOptionsStore } from "@/stores/chart-options-store";
 import { CallBuyOptionSummary } from "./CallBuyOptionSummary";
 
 function computeStrikeUsdValues(strikePercents: number[], btcPrice: number): number[] {
@@ -34,11 +35,19 @@ export function CallOptionBuyForm() {
   const t = useTranslations("Forms");
   const tCommon = useTranslations("Common");
 
+  const setChartStrikePercent = useChartOptionsStore((state) => state.setStrikePercent);
+  const setChartTermDays = useChartOptionsStore((state) => state.setTermDays);
+
   const minOfferAmountSats = config?.minOfferAmountSats ?? DEFAULT_MIN_OFFER_AMOUNT_SATS;
   const defaultTerm = config?.termOptions[0] ?? 7;
 
-  const [term, setTerm] = useState(defaultTerm);
+  const [term, setTermLocal] = useState(defaultTerm);
   const [amountBtc, setAmountBtc] = useState("");
+
+  const setTerm = (value: number) => {
+    setTermLocal(value);
+    setChartTermDays(value);
+  };
 
   const showModal = acceptOffer.step !== "idle";
 
@@ -49,13 +58,12 @@ export function CallOptionBuyForm() {
     [strikePercents, btcPrice],
   );
 
-  const [strikePercent, setStrikePercent] = useState<number>(strikePercents[0] ?? 5);
+  const [strikePercent, setStrikePercentLocal] = useState<number>(strikePercents[0] ?? 5);
 
-  useMemo(() => {
-    if (strikePercents.length > 0 && !strikePercents.includes(strikePercent)) {
-      setStrikePercent(strikePercents[0]);
-    }
-  }, [strikePercents, strikePercent]);
+  const setStrikePercent = (value: number) => {
+    setStrikePercentLocal(value);
+    setChartStrikePercent(value);
+  };
 
   const amountSats = parseBtcToSats(amountBtc);
   const maxLiquiditySats = getMaxLiquiditySats(data, term, strikePercent);

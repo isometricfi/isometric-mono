@@ -3,6 +3,7 @@
 import { HelpCircle } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
+import { BTCPriceChart } from "@/components/options/BTCPriceChart";
 import { OptionsViewer } from "@/components/options/OptionsViewer";
 import { OptionTypeToggle } from "@/components/options/OptionTypeToggle";
 import { Button } from "@/components/ui/button";
@@ -20,14 +21,14 @@ export function WriteOptionsView() {
 
   return (
     <>
-      <div className="text-center space-y-4 mb-8">
-        <div className="flex items-center justify-center gap-2">
-          <h1 className="text-3xl font-bold">{t("writeOptions")}</h1>
+      <div className="text-center  mb-6 md:space-y-0 space-y-3 md:flex justify-between items-center">
+        <div className="flex items-center justify-center gap-1">
+          <h1 className="md:text-3xl text-2xl font-bold">{t("writeOptions")}</h1>
           <Button
             variant="ghost"
             size="icon"
             onClick={() => openModal(<OnboardingContent />, false, "600px")}
-            className="size-8"
+            className="size-8 -mb-1"
           >
             <HelpCircle className="size-4" />
           </Button>
@@ -44,8 +45,11 @@ export function WriteOptionsView() {
       )}
 
       {!isPutDisabled && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <CallWriteOptionForm />
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <CallWriteOptionForm />
+            <BTCPriceChart mode="writer" />
+          </div>
           <OptionsViewer mode="writer" />
         </div>
       )}

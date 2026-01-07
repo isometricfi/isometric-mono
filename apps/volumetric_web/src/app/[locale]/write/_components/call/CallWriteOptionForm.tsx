@@ -16,6 +16,7 @@ import {
   formatBtc,
   parseBtcToSats,
 } from "@/lib/utils";
+import { useChartOptionsStore } from "@/stores/chart-options-store";
 import { CallWriteOptionSummary } from "./CallWriteOptionSummary";
 
 export function CallWriteOptionForm() {
@@ -28,6 +29,9 @@ export function CallWriteOptionForm() {
   const t = useTranslations("Forms");
   const tCommon = useTranslations("Common");
 
+  const setChartStrikePercent = useChartOptionsStore((state) => state.setStrikePercent);
+  const setChartTermDays = useChartOptionsStore((state) => state.setTermDays);
+
   const strikePercentOptions = config?.strikePercentOptions ?? [];
   const premiumValues = useMemo(() => generatePremiumValues(config), [config]);
   const minOfferAmountSats = config?.minOfferAmountSats ?? DEFAULT_MIN_OFFER_AMOUNT_SATS;
@@ -36,10 +40,23 @@ export function CallWriteOptionForm() {
   const maxOfferAmountSats = Math.min(configMaxOfferAmountSats, availableBalanceSats);
   const defaultTerm = config?.termOptions[0] ?? 7;
 
-  const [term, setTerm] = useState(defaultTerm);
-  const [strikePercent, setStrikePercent] = useState(strikePercentOptions[0] ?? 5);
+  const [termLocal, setTermLocal] = useState(defaultTerm);
+  const [strikePercentLocal, setStrikePercentLocal] = useState(strikePercentOptions[0] ?? 5);
   const [premium, setPremium] = useState(premiumValues[3] ?? 1);
   const [amountBtc, setAmountBtc] = useState("");
+
+  const term = termLocal;
+  const strikePercent = strikePercentLocal;
+
+  const setTerm = (value: number) => {
+    setTermLocal(value);
+    setChartTermDays(value);
+  };
+
+  const setStrikePercent = (value: number) => {
+    setStrikePercentLocal(value);
+    setChartStrikePercent(value);
+  };
 
   const showModal = createOffer.step !== "idle";
 
