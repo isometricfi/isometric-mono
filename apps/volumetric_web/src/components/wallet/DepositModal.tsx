@@ -12,7 +12,6 @@ import {
   ScanSearch,
   XCircle,
 } from "lucide-react";
-import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { useMemo, useState } from "react";
 import QRCodeSVG from "react-qr-code";
@@ -23,6 +22,7 @@ import { Button } from "@/components/ui/button";
 import { CopyButton } from "@/components/ui/copy-button";
 import { Drawer, DrawerContent, DrawerTitle } from "@/components/ui/drawer";
 import { useConfig, useDepositAddress, useSyncDeposit, useWalletBalance } from "@/hooks";
+import { Link } from "@/i18n/routing";
 import {
   cn,
   DEFAULT_MIN_DEPOSIT_SATS,

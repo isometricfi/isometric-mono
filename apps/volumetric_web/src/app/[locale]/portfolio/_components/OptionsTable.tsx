@@ -1,10 +1,10 @@
 "use client";
 
 import { PencilLine, ShoppingCart } from "lucide-react";
-import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { Skeleton } from "@/components/ui/skeleton";
 import { type PortfolioOption, usePortfolio, usePrices } from "@/hooks";
+import { Link } from "@/i18n/routing";
 import { OptionCard } from "./OptionCard";
 
 type OptionRole = "buyer" | "writer";

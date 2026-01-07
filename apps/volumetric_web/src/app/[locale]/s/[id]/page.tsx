@@ -1,8 +1,8 @@
 import { Lock, PiggyBank, Zap } from "lucide-react";
 import type { Metadata } from "next";
-import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { ProceduralAvatar } from "@/components/wallet/ProceduralAvatar";
+import { Link } from "@/i18n/routing";
 import { getHistoryByHash } from "@/lib/use-cases/history/get-history-by-hash/usecase";
 import { formatBtcWithSymbolBigint } from "@/lib/utils";
 

@@ -1,7 +1,6 @@
 "use client";
 
 import { PencilLine, Plus } from "lucide-react";
-import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -12,6 +11,7 @@ import {
   usePortfolio,
   usePrices,
 } from "@/hooks";
+import { Link } from "@/i18n/routing";
 import { OfferCard } from "./OfferCard";
 
 export function OffersTable() {
