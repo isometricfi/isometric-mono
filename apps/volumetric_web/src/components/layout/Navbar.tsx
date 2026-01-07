@@ -2,13 +2,12 @@
 
 import { useDynamicContext } from "@dynamic-labs/sdk-react-core";
 import Image from "next/image";
-import Link from "next/link";
-import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useDynamicConfig } from "@/app/providers/dynamic-provider";
 import { SettingsDropdown } from "@/components/layout/SettingsDropdown";
 import { Button } from "@/components/ui/button";
 import { ConnectButton } from "@/components/wallet/ConnectButton";
+import { Link, usePathname } from "@/i18n/routing";
 import { cn } from "@/lib/utils";
 
 export function Navbar() {

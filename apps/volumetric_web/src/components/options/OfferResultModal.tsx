@@ -2,13 +2,13 @@
 
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowRight, CheckCircle2, FileSignature, Loader2, Send, XCircle } from "lucide-react";
-import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { useMediaQuery } from "react-responsive";
 import { AlertDialog, AlertDialogContent, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Drawer, DrawerContent, DrawerTitle } from "@/components/ui/drawer";
 import type { AcceptOfferStep, CreateOfferStep } from "@/hooks";
+import { Link } from "@/i18n/routing";
 import { cn } from "@/lib/utils";
 
 type OfferStep = CreateOfferStep | AcceptOfferStep;

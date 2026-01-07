@@ -2,13 +2,13 @@
 
 import { useDynamicContext } from "@dynamic-labs/sdk-react-core";
 import { History, PencilLine, Zap } from "lucide-react";
-import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { AnimatedToggle } from "@/components/navigation/AnimatedToggle";
 import { Button } from "@/components/ui/button";
 import { ConnectButton } from "@/components/wallet/ConnectButton";
 import { useAccount } from "@/hooks";
+import { Link } from "@/i18n/routing";
 import { OffersTable } from "./OffersTable";
 import { OptionsTable } from "./OptionsTable";
 

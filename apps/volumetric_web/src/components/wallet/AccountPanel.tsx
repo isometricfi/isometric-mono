@@ -11,7 +11,6 @@ import {
   LogOut,
   Settings,
 } from "lucide-react";
-import Link from "next/link";
 import { useLocale, useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
 import { useMediaQuery } from "react-responsive";
@@ -22,7 +21,7 @@ import { DepositModal } from "@/components/wallet/DepositModal";
 import { ProceduralAvatar } from "@/components/wallet/ProceduralAvatar";
 import { WithdrawModal } from "@/components/wallet/WithdrawModal";
 import { useAccount, usePrices, useUpdateUsername } from "@/hooks";
-import { usePathname, useRouter } from "@/i18n/routing";
+import { Link, usePathname, useRouter } from "@/i18n/routing";
 import { cn, formatBtcWithSymbolBigint, roundToN } from "@/lib/utils";
 import { Badge } from "../ui/badge";
 
