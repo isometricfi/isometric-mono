@@ -1,26 +1,23 @@
 import { dehydrate, QueryClient } from "@tanstack/react-query";
-import { trpc } from "@/trpc/server";
+import { createTRPCContext } from "@/trpc/init";
+import { createCaller } from "@/trpc/server";
 
 export async function prefetchOptionsPageData() {
   const queryClient = new QueryClient({
-    defaultOptions: {
-      queries: {
-        staleTime: 10000,
-      },
-    },
+    defaultOptions: { queries: { staleTime: 10_000 } },
   });
 
-  try {
-    const [config, options] = await Promise.all([
-      trpc.config.getConfig(),
-      trpc.options.listOptions(),
-    ]);
+  const caller = createCaller(await createTRPCContext());
 
-    queryClient.setQueryData([["config", "getConfig"]], config);
-    queryClient.setQueryData([["options", "listOptions"]], options);
-  } catch (error) {
-    console.error("[prefetch] error:", error);
-  }
+  const [config, options] = await Promise.all([
+    caller.config.getConfig(),
+    caller.options.listOptions(),
+  ]);
 
-  return dehydrate(queryClient);
+  queryClient.setQueryData([["config", "getConfig"], { type: "query" }], config);
+  queryClient.setQueryData([["options", "listOptions"], { type: "query" }], options);
+
+  const dehydrated = dehydrate(queryClient);
+
+  return dehydrated;
 }

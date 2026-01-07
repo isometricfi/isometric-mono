@@ -258,8 +258,8 @@ export function OptionCard({ option, btcPrice, role }: OptionCardProps) {
   const strikePrice = Number(option.strikePriceCents) / 100;
 
   const cardContent = (
-    <Card className="overflow-hidden transition-all hover:border-primary/50">
-      <CardContent className="p-4  space-y-3">
+    <Card className="py-4 overflow-hidden transition-all hover:border-primary/50 h-fit ">
+      <CardContent className="  space-y-3 w-full px-4">
         <div className="flex justify-between items-start">
           <div className="flex flex-col gap-1">
             <div className="text-lg font-mono font-medium">
