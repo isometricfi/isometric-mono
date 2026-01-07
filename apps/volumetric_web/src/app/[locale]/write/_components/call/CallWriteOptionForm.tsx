@@ -29,8 +29,8 @@ export function CallWriteOptionForm() {
   const t = useTranslations("Forms");
   const tCommon = useTranslations("Common");
 
-  const { setStrikePercent: setChartStrikePercent, setTermDays: setChartTermDays } =
-    useChartOptionsStore();
+  const setChartStrikePercent = useChartOptionsStore((state) => state.setStrikePercent);
+  const setChartTermDays = useChartOptionsStore((state) => state.setTermDays);
 
   const strikePercentOptions = config?.strikePercentOptions ?? [];
   const premiumValues = useMemo(() => generatePremiumValues(config), [config]);

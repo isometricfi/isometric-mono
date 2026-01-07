@@ -35,8 +35,8 @@ export function CallOptionBuyForm() {
   const t = useTranslations("Forms");
   const tCommon = useTranslations("Common");
 
-  const { setStrikePercent: setChartStrikePercent, setTermDays: setChartTermDays } =
-    useChartOptionsStore();
+  const setChartStrikePercent = useChartOptionsStore((state) => state.setStrikePercent);
+  const setChartTermDays = useChartOptionsStore((state) => state.setTermDays);
 
   const minOfferAmountSats = config?.minOfferAmountSats ?? DEFAULT_MIN_OFFER_AMOUNT_SATS;
   const defaultTerm = config?.termOptions[0] ?? 7;
