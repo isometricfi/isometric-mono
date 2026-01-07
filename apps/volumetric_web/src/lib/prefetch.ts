@@ -7,15 +7,19 @@ export async function prefetchOptionsPageData() {
     defaultOptions: { queries: { staleTime: 10_000 } },
   });
 
-  const caller = createCaller(await createTRPCContext());
+  try {
+    const caller = createCaller(await createTRPCContext());
 
-  const [config, options] = await Promise.all([
-    caller.config.getConfig(),
-    caller.options.listOptions(),
-  ]);
+    const [config, options] = await Promise.all([
+      caller.config.getConfig(),
+      caller.options.listOptions(),
+    ]);
 
-  queryClient.setQueryData([["config", "getConfig"], { type: "query" }], config);
-  queryClient.setQueryData([["options", "listOptions"], { type: "query" }], options);
+    queryClient.setQueryData([["config", "getConfig"], { type: "query" }], config);
+    queryClient.setQueryData([["options", "listOptions"], { type: "query" }], options);
+  } catch (error) {
+    console.error("[prefetch] error:", error);
+  }
 
   const dehydrated = dehydrate(queryClient);
 
