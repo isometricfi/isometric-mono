@@ -42,8 +42,8 @@ export function OfferCard({ offer, btcPrice, onCancel, isCancelling, rankInfo }:
   const premiumBtc = (total * offer.premiumBasisPoints) / 10000;
 
   return (
-    <Card className="overflow-hidden transition-all hover:border-primary/50 relative">
-      <CardContent className="p-4 pb-3 space-y-3">
+    <Card className="overflow-hidden transition-all hover:border-primary/50 relative py-4">
+      <CardContent className="px-4 space-y-3">
         {/* Header: Offer Amount & Remaining */}
         <div className="flex justify-between items-start">
           <div>
