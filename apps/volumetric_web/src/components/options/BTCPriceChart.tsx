@@ -35,6 +35,17 @@ export function BTCPriceChart({ mode }: BTCPriceChartProps) {
   useEffect(() => {
     if (!containerRef.current) return;
 
+    const updateDimensions = () => {
+      if (containerRef.current) {
+        setDimensions({
+          width: containerRef.current.clientWidth,
+          height: containerRef.current.clientHeight,
+        });
+      }
+    };
+
+    updateDimensions();
+
     const resizeObserver = new ResizeObserver((entries) => {
       for (const entry of entries) {
         setDimensions({
@@ -188,14 +199,14 @@ export function BTCPriceChart({ mode }: BTCPriceChartProps) {
 
   if (historyLoading) {
     return (
-      <div className="bg-card rounded-3xl border border-border p-6 h-[300px]">
+      <div className="bg-card rounded-3xl border border-border p-6 h-full min-h-64 md:max-h-none max-h-64">
         <Skeleton className="w-full h-full rounded-2xl" />
       </div>
     );
   }
 
   return (
-    <div className="bg-card rounded-3xl border border-border p-4 h-full flex flex-col">
+    <div className="bg-card rounded-3xl border border-border p-4 h-full flex flex-col min-h-64 md:max-h-none max-h-64">
       <div className="flex items-center justify-between mb-2">
         <h2 className="text-lg font-semibold">{t("btcUsd")}</h2>
         {currentPrice > 0 && (

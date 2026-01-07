@@ -21,14 +21,14 @@ export function BuyOptionsView() {
 
   return (
     <>
-      <div className="text-center space-y-4 mb-8">
-        <div className="flex items-center justify-center gap-2">
-          <h1 className="text-3xl font-bold">{t("buyOptions")}</h1>
+      <div className="text-center  mb-6 md:space-y-0 space-y-3 md:flex justify-between items-center">
+        <div className="flex items-center justify-center gap-1">
+          <h1 className="md:text-3xl text-2xl font-bold">{t("buyOptions")}</h1>
           <Button
             variant="ghost"
             size="icon"
             onClick={() => openModal(<OnboardingContent />, false, "600px")}
-            className="size-8"
+            className="size-8 -mb-1"
           >
             <HelpCircle className="size-4" />
           </Button>

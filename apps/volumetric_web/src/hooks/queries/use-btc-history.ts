@@ -34,7 +34,7 @@ export function useBTCHistory(days = 30) {
   return useQuery({
     queryKey: ["btc-history", days],
     queryFn: () => fetchBTCHistory(days),
-    staleTime: 1 * 60 * 1000,
-    refetchInterval: 1 * 60 * 1000,
+    staleTime: 60000,
+    refetchInterval: 60000,
   });
 }

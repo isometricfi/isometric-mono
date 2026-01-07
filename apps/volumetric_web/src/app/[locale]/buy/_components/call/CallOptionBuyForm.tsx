@@ -65,13 +65,6 @@ export function CallOptionBuyForm() {
     setChartStrikePercent(value);
   };
 
-  useEffect(() => {
-    if (strikePercents.length > 0 && !strikePercents.includes(strikePercent)) {
-      setStrikePercentLocal(strikePercents[0]);
-      setChartStrikePercent(strikePercents[0]);
-    }
-  }, [strikePercents, strikePercent, setChartStrikePercent]);
-
   const amountSats = parseBtcToSats(amountBtc);
   const maxLiquiditySats = getMaxLiquiditySats(data, term, strikePercent);
   const displayMaxSats = maxLiquiditySats >= minOfferAmountSats ? maxLiquiditySats : 0;
