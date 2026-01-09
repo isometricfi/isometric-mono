@@ -43,6 +43,12 @@ jobs:
           path: ~/.cargo/bin
           key: cargo-bin-${{ runner.os }}-candid-extractor-ic-wasm
 
+      - name: Cache test WASMs
+        uses: actions/cache@v4
+        with:
+          path: apps/volumetric_canister/test-assets
+          key: test-wasms-${{ hashFiles('apps/volumetric_canister/scripts/download-test-wasms.sh') }}
+
       - name: Setup DFX
         uses: dfinity/setup-dfx@main
 
@@ -61,13 +67,17 @@ jobs:
         working-directory: apps/volumetric_canister
         run: cargo fmt --check
 
-      - name: Test canister
-        working-directory: apps/volumetric_canister
-        run: cargo test
-
       - name: Build canister
         working-directory: apps/volumetric_canister
         run: make build
+
+      - name: Download test WASMs
+        working-directory: apps/volumetric_canister
+        run: ./scripts/download-test-wasms.sh
+
+      - name: Test canister
+        working-directory: apps/volumetric_canister
+        run: cargo test
 
       - name: Build web
         run: pnpm build

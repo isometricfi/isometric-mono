@@ -1,5 +1,4 @@
 /// Time utilities for option expiry calculations.
-
 const NANOS_PER_SECOND: u64 = 1_000_000_000;
 const SECONDS_PER_HOUR: u64 = 3600;
 const NANOS_PER_HOUR: u64 = SECONDS_PER_HOUR * NANOS_PER_SECOND;
@@ -12,8 +11,7 @@ const NANOS_PER_HOUR: u64 = SECONDS_PER_HOUR * NANOS_PER_SECOND;
 pub fn round_up_to_next_hour_ns(timestamp_ns: u64) -> u64 {
     // Integer division rounds down, so we add (NANOS_PER_HOUR - 1) before dividing
     // to effectively round up. Then multiply back to get the hour boundary.
-    let next_hour = ((timestamp_ns / NANOS_PER_HOUR) + 1) * NANOS_PER_HOUR;
-    next_hour
+    ((timestamp_ns / NANOS_PER_HOUR) + 1) * NANOS_PER_HOUR
 }
 
 /// Calculates the option expiry given the current time and duration.

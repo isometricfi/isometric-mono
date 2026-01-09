@@ -24,3 +24,5 @@ getrandom = { version = "0.2", features = ["custom"] }
 
 [dev-dependencies]
 pocket-ic = "11.0"
+hex = "0.4"
+flate2 = "1.0"

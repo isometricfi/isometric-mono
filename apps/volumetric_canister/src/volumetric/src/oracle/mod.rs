@@ -11,7 +11,7 @@ pub struct StubOracle {
 impl Default for StubOracle {
     fn default() -> Self {
         Self {
-            price_cents: 100_000_00,
+            price_cents: 10_000_000,
         }
     }
 }
@@ -69,8 +69,8 @@ mod tests {
     #[test]
     fn test_itm_payout() {
         // given
-        let settlement = 120_000_00;
-        let strike = 100_000_00;
+        let settlement = 12_000_000;
+        let strike = 10_000_000;
         let quantity = 50_000_000;
 
         // when
@@ -85,8 +85,8 @@ mod tests {
     #[test]
     fn test_otm_payout() {
         // given
-        let settlement = 90_000_00;
-        let strike = 100_000_00;
+        let settlement = 9_000_000;
+        let strike = 10_000_000;
         let quantity = 50_000_000;
 
         // when
@@ -99,8 +99,8 @@ mod tests {
     #[test]
     fn test_atm_payout() {
         // given
-        let settlement = 100_000_00;
-        let strike = 100_000_00;
+        let settlement = 10_000_000;
+        let strike = 10_000_000;
         let quantity = 50_000_000;
 
         // when

@@ -9,6 +9,7 @@ pub use config::{
     set_profit_fee_basis_points_use_case, set_quantity_sats_range_use_case,
     set_strike_basis_points_range_use_case, set_term_days_range_use_case,
     set_trading_limits_use_case, set_withdraw_amount_sats_use_case,
+    testing_set_ckbtc_ledger_use_case,
 };
 pub use whitelist::{
     add_whitelisted_use_case, list_whitelisted_use_case, remove_whitelisted_use_case,

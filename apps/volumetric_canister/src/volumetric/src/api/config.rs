@@ -10,7 +10,7 @@ use crate::usecases::{
     set_premium_basis_points_range_use_case, set_premium_fee_basis_points_use_case,
     set_profit_fee_basis_points_use_case, set_quantity_sats_range_use_case,
     set_strike_basis_points_range_use_case, set_term_days_range_use_case,
-    set_withdraw_amount_sats_use_case,
+    set_withdraw_amount_sats_use_case, testing_set_ckbtc_ledger_use_case,
 };
 
 #[query]
@@ -149,5 +149,12 @@ pub async fn set_profit_fee_basis_points_config(basis_points: u64) -> Result<(),
 pub async fn set_fee_recipient_config(recipient: Principal) -> Result<(), VolumetricError> {
     is_whitelisted().await?;
     set_fee_recipient_use_case(recipient);
+    Ok(())
+}
+
+#[update]
+pub async fn testing_set_ckbtc_ledger(ledger: Principal) -> Result<(), VolumetricError> {
+    is_whitelisted().await?;
+    testing_set_ckbtc_ledger_use_case(ledger);
     Ok(())
 }

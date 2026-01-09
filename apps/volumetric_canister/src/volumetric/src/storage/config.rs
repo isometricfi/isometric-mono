@@ -144,12 +144,20 @@ impl Config {
         CONFIG.with_borrow(|c| c.get().0.ckbtc_ledger)
     }
 
+    pub fn set_ckbtc_ledger(ledger: Principal) {
+        CONFIG.with_borrow_mut(|c| {
+            let mut config = c.get().0.clone();
+            config.ckbtc_ledger = ledger;
+            let _ = c.set(Cbor(config));
+        });
+    }
+
     pub fn get() -> Self {
         CONFIG.with_borrow(|c| c.get().0.clone())
     }
 
     pub fn feature_flags() -> FeatureFlags {
-        CONFIG.with_borrow(|c| c.get().0.feature_flags.clone())
+        CONFIG.with_borrow(|c| c.get().0.feature_flags)
     }
 
     pub fn set_feature_flags(flags: FeatureFlags) {

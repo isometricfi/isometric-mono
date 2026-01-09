@@ -18,7 +18,7 @@ pub use config::{
     set_option_duration_seconds_range_config, set_oracle_price_config,
     set_premium_basis_points_range_config, set_quantity_sats_range_config,
     set_strike_basis_points_range_config, set_term_days_range_config, set_trading_limits_config,
-    set_withdraw_amount_sats_config,
+    set_withdraw_amount_sats_config, testing_set_ckbtc_ledger,
 };
 pub use deposits::{
     get_ckbtc_balance, get_deposit_address, get_user_balance, testing_sync_balance_from_ledger,

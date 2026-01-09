@@ -271,7 +271,7 @@ pub fn calculate_strike_price(entry_price_cents: u64, strike_basis_points: u16) 
 /// Clears all offers from storage. Used for testing/migration purposes.
 pub fn clear_offers() -> u64 {
     OFFERS.with_borrow_mut(|o| {
-        let keys: Vec<u64> = o.iter().map(|entry| entry.key().clone()).collect();
+        let keys: Vec<u64> = o.iter().map(|entry| *entry.key()).collect();
         let count = keys.len() as u64;
         for key in keys {
             o.remove(&key);
@@ -283,7 +283,7 @@ pub fn clear_offers() -> u64 {
 /// Clears all active options from storage. Used for testing/migration purposes.
 pub fn clear_active_options() -> u64 {
     ACTIVE_OPTIONS.with_borrow_mut(|a| {
-        let keys: Vec<u64> = a.iter().map(|entry| entry.key().clone()).collect();
+        let keys: Vec<u64> = a.iter().map(|entry| *entry.key()).collect();
         let count = keys.len() as u64;
         for key in keys {
             a.remove(&key);
@@ -299,35 +299,35 @@ mod tests {
     #[test]
     fn test_calculate_strike_price_5_percent() {
         // given
-        let entry_price_cents: u64 = 100_000_00;
+        let entry_price_cents: u64 = 10_000_000;
         let strike_basis_points: u16 = 500;
 
         // when
         let strike = calculate_strike_price(entry_price_cents, strike_basis_points);
 
         // then
-        let expected = 105_000_00;
+        let expected = 10_500_000;
         assert_eq!(strike, expected);
     }
 
     #[test]
     fn test_calculate_strike_price_10_percent() {
         // given
-        let entry_price_cents: u64 = 100_000_00;
+        let entry_price_cents: u64 = 10_000_000;
         let strike_basis_points: u16 = 1000;
 
         // when
         let strike = calculate_strike_price(entry_price_cents, strike_basis_points);
 
         // then
-        let expected = 110_000_00;
+        let expected = 11_000_000;
         assert_eq!(strike, expected);
     }
 
     #[test]
     fn test_calculate_strike_price_zero() {
         // given
-        let entry_price_cents: u64 = 100_000_00;
+        let entry_price_cents: u64 = 10_000_000;
         let strike_basis_points: u16 = 0;
 
         // when

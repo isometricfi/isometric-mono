@@ -37,4 +37,4 @@ pnpm-debug.log*
 coverage/
 
 # Misc
-*.pem
+*.pemapps/test/
