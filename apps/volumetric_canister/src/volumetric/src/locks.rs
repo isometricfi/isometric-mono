@@ -6,9 +6,9 @@ use candid::Principal;
 use crate::errors::VolumetricError;
 
 thread_local! {
-    static PENDING_ACCEPTS: RefCell<BTreeSet<Principal>> = RefCell::new(BTreeSet::new());
-    static PENDING_WITHDRAWALS: RefCell<BTreeSet<Principal>> = RefCell::new(BTreeSet::new());
-    static SETTLING_OPTIONS: RefCell<BTreeSet<u64>> = RefCell::new(BTreeSet::new());
+    static PENDING_ACCEPTS: RefCell<BTreeSet<Principal>> = const { RefCell::new(BTreeSet::new()) };
+    static PENDING_WITHDRAWALS: RefCell<BTreeSet<Principal>> = const { RefCell::new(BTreeSet::new()) };
+    static SETTLING_OPTIONS: RefCell<BTreeSet<u64>> = const { RefCell::new(BTreeSet::new()) };
 }
 
 #[derive(Debug)]

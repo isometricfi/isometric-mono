@@ -62,3 +62,7 @@ pub fn set_profit_fee_basis_points_use_case(basis_points: u64) {
 pub fn set_fee_recipient_use_case(recipient: Principal) {
     Config::set_fee_recipient(recipient);
 }
+
+pub fn testing_set_ckbtc_ledger_use_case(ledger: Principal) {
+    Config::set_ckbtc_ledger(ledger);
+}

@@ -98,7 +98,7 @@ pub fn update_profile(principal: Principal, profile: Profile) {
 pub fn list_all_profiles() -> Vec<(Principal, Profile)> {
     PROFILES.with_borrow(|p| {
         p.iter()
-            .map(|entry| (entry.key().clone(), entry.value().0.clone()))
+            .map(|entry| (*entry.key(), entry.value().0.clone()))
             .collect()
     })
 }

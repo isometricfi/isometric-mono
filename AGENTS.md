@@ -154,6 +154,11 @@ test("example test", () => {
 ## Guidelines
 
 - Use descriptive variable names in tests to make assertions self-documenting
-- Avoid magic numbers in assertions; derive expected values from input variables when possible
-- Use constants for repeated values or domain-specific numbers (e.g., `SATS_PER_BTC`, `CENTS_PER_DOLLAR`)
+- Avoid magic numbers; use named constants for all values (seeds, amounts, expected results)
+- Use constants for domain-specific numbers (e.g., `SATS_PER_BTC`, `CENTS_PER_DOLLAR`)
 - Keep each test focused on a single behavior
+- Code should be self-documenting; prefer clear naming over comments
+- Define test inputs as constants in the `// given` section
+- Define assertion-only values (prefixed with `EXPECTED_`) in the `// then` section
+- Reuse input constants for assertions when verifying the input was stored correctly
+- Use concise doc comments with format: `Given: ... / When: ... / Then: ...`

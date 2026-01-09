@@ -121,7 +121,7 @@ pub async fn get_ledger_balance(principal: Principal) -> Result<Nat, VolumetricE
     let ledger = Config::ckbtc_ledger();
 
     let response = ic_cdk::call::Call::unbounded_wait(ledger, "icrc1_balance_of")
-        .with_arg(&account)
+        .with_arg(account)
         .await
         .map_err(|e| {
             VolumetricError::inter_canister_call_failed(&format!("icrc1_balance_of: {:?}", e))
@@ -139,7 +139,7 @@ pub async fn sync_balance_from_ledger(principal: Principal) -> Result<u64, Volum
     let ledger = Config::ckbtc_ledger();
 
     let response = ic_cdk::call::Call::unbounded_wait(ledger, "icrc1_balance_of")
-        .with_arg(&account)
+        .with_arg(account)
         .await
         .map_err(|e| {
             VolumetricError::inter_canister_call_failed(&format!("icrc1_balance_of: {:?}", e))

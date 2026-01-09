@@ -19,6 +19,7 @@ pub use admin::{
     set_profit_fee_basis_points_use_case, set_quantity_sats_range_use_case,
     set_strike_basis_points_range_use_case, set_term_days_range_use_case,
     set_trading_limits_use_case, set_withdraw_amount_sats_use_case,
+    testing_set_ckbtc_ledger_use_case,
 };
 pub use balances::{
     get_deposit_address, get_ledger_balance, get_user_balance_use_case, mint_ckbtc_from_utxos,

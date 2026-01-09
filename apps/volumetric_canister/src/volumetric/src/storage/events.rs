@@ -207,7 +207,7 @@ pub fn delete_events_before(older_than_ns: u64) -> u64 {
             .iter()
             .filter_map(|entry| {
                 if entry.value().0.timestamp < older_than_ns {
-                    Some(entry.key().clone())
+                    Some(*entry.key())
                 } else {
                     None
                 }
@@ -229,7 +229,7 @@ pub fn get_event_count() -> u64 {
 /// Clears all events from storage. Used for migration purposes.
 pub fn clear_events() -> u64 {
     EVENTS.with_borrow_mut(|e| {
-        let keys: Vec<u64> = e.iter().map(|entry| entry.key().clone()).collect();
+        let keys: Vec<u64> = e.iter().map(|entry| *entry.key()).collect();
         let count = keys.len() as u64;
         for key in keys {
             e.remove(&key);

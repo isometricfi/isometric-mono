@@ -675,7 +675,7 @@ impl Service {
     /// # Preconditions
     ///
     /// * The caller deposited the requested amount in ckBTC to the account
-    /// that the [get_withdrawal_account] endpoint returns.
+    ///   that the [get_withdrawal_account] endpoint returns.
     pub async fn retrieve_btc(
         &self,
         arg0: &RetrieveBtcArgs,
@@ -721,7 +721,7 @@ impl Service {
     /// # Preconditions
     ///
     /// * The caller allowed the minter's principal to spend its funds
-    /// using [icrc2_approve] on the ckBTC ledger.
+    ///   using [icrc2_approve] on the ckBTC ledger.
     pub async fn retrieve_btc_with_approval(
         &self,
         arg0: &RetrieveBtcWithApprovalArgs,
@@ -735,7 +735,7 @@ impl Service {
     /// # Preconditions
     ///
     /// * The owner deposited some BTC to the address that the
-    /// [get_btc_address] endpoint returns.
+    ///   [get_btc_address] endpoint returns.
     pub async fn update_balance(
         &self,
         arg0: &UpdateBalanceArg,
