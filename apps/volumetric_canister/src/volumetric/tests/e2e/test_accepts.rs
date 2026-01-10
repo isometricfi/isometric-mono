@@ -167,3 +167,84 @@ fn test_partial_fill_creates_option_and_leaves_offer_open_for_remainder() {
     assert_eq!(offers[0].remaining_quantity, EXPECTED_REMAINING_SATS);
     assert_eq!(offers[0].status, OfferStatus::PartiallyFilled);
 }
+
+/// Given: Writer creates 10M sats offer, two buyers each have premium + fees for full quantity
+/// When: Both buyers attempt to accept the full offer quantity
+/// Then: First buyer succeeds, second buyer fails with offer not found (already filled)
+#[test]
+fn test_second_buyer_fails_when_offer_already_fully_accepted() {
+    // given
+    let env = create_test_env();
+    whitelist_controller(&env);
+    configure_test_ledger(&env);
+
+    const WRITER_SEED: u64 = 1;
+    const BUYER_1_SEED: u64 = 2;
+    const BUYER_2_SEED: u64 = 3;
+    let writer_wallet = generate_wallet(WRITER_SEED);
+    let buyer_1_wallet = generate_wallet(BUYER_1_SEED);
+    let buyer_2_wallet = generate_wallet(BUYER_2_SEED);
+
+    let writer_profile = create_account(&env, &writer_wallet).expect("Writer account failed");
+    let buyer_1_profile = create_account(&env, &buyer_1_wallet).expect("Buyer 1 account failed");
+    let buyer_2_profile = create_account(&env, &buyer_2_wallet).expect("Buyer 2 account failed");
+
+    const TEN_MILLION_SATS: u64 = 10_000_000;
+    const STRIKE_BPS: u16 = 500;
+    const PREMIUM_BPS: u16 = 100;
+    const ONE_DAY_SECS: u64 = 86_400;
+    const BASIS_POINTS: u64 = 10_000;
+    const CKBTC_TRANSFER_FEE: u64 = 10;
+    const FIRST_OFFER_ID: u64 = 1;
+
+    const QUANTITY_SATS: u64 = TEN_MILLION_SATS;
+    const PREMIUM_SATS: u64 = QUANTITY_SATS * PREMIUM_BPS as u64 / BASIS_POINTS;
+    const ACCEPT_TRANSFER_COUNT: u64 = 2;
+    const ACCEPT_TRANSFER_FEES: u64 = ACCEPT_TRANSFER_COUNT * CKBTC_TRANSFER_FEE;
+
+    mint_and_sync_balance(&env, &writer_profile, QUANTITY_SATS).expect("Writer balance failed");
+    mint_and_sync_balance(&env, &buyer_1_profile, PREMIUM_SATS + ACCEPT_TRANSFER_FEES)
+        .expect("Buyer 1 balance failed");
+    mint_and_sync_balance(&env, &buyer_2_profile, PREMIUM_SATS + ACCEPT_TRANSFER_FEES)
+        .expect("Buyer 2 balance failed");
+
+    create_offer(
+        &env,
+        &writer_wallet,
+        QUANTITY_SATS,
+        STRIKE_BPS,
+        PREMIUM_BPS,
+        ONE_DAY_SECS,
+    )
+    .expect("Create offer failed");
+
+    // when
+    let buyer_1_result = accept_offers(
+        &env,
+        &buyer_1_wallet,
+        vec![AcceptOfferItem {
+            offer_id: FIRST_OFFER_ID,
+            quantity: QUANTITY_SATS,
+        }],
+    );
+
+    let buyer_2_result = accept_offers(
+        &env,
+        &buyer_2_wallet,
+        vec![AcceptOfferItem {
+            offer_id: FIRST_OFFER_ID,
+            quantity: QUANTITY_SATS,
+        }],
+    );
+
+    // then
+    assert!(buyer_1_result.is_ok());
+    assert!(buyer_2_result.is_err());
+
+    let buyer_1_response = buyer_1_result.unwrap();
+    assert_eq!(buyer_1_response.active_options.len(), 1);
+    assert_eq!(buyer_1_response.active_options[0].quantity, QUANTITY_SATS);
+
+    let offers = get_open_offers(&env);
+    assert_eq!(offers.len(), 0);
+}
