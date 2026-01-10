@@ -1,6 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
+import { DEFAULT_MIN_OFFER_AMOUNT_SATS } from "@/lib/utils";
 import { useTRPC } from "@/trpc/react";
 import type { OptionOffer, OptionsData } from "@/types/options";
 import { useConfig } from "./use-config";
@@ -8,7 +9,7 @@ import { useConfig } from "./use-config";
 export function useOptions() {
   const trpc = useTRPC();
   const { data: config } = useConfig();
-  const minOfferAmountSats = config?.minOfferAmountSats ?? 90_000;
+  const minOfferAmountSats = config?.minOfferAmountSats ?? DEFAULT_MIN_OFFER_AMOUNT_SATS;
 
   return useQuery({
     ...trpc.options.listOptions.queryOptions(),

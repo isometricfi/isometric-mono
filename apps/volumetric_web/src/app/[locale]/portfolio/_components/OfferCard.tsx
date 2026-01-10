@@ -22,6 +22,7 @@ import { Progress } from "@/components/ui/progress";
 import { type PortfolioOffer, useConfig } from "@/hooks";
 import {
   cn,
+  DEFAULT_MIN_OFFER_AMOUNT_SATS,
   formatBtcWithSymbol,
   formatBtcWithSymbolBigint,
   roundToN,
@@ -43,7 +44,7 @@ export function OfferCard({ offer, btcPrice, onCancel, isCancelling, rankInfo }:
   const filledAmount = totalSats - remainingSats;
   const filledPercent = totalSats > 0 ? (Number(filledAmount) / Number(totalSats)) * 100 : 0;
   const { data: config } = useConfig();
-  const minOfferAmountSats = config?.minOfferAmountSats ?? 90_000;
+  const minOfferAmountSats = config?.minOfferAmountSats ?? DEFAULT_MIN_OFFER_AMOUNT_SATS;
   const strikePrice = btcPrice > 0 ? btcPrice * (1 + offer.strikeBasisPoints / 10000) : null;
   const premiumSats = (Number(totalSats) * offer.premiumBasisPoints) / 10000;
   const belowMinOfferAmount = remainingSats < minOfferAmountSats;
