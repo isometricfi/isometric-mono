@@ -1,4 +1,5 @@
-import { motion } from "framer-motion";
+"use client";
+
 import { useTranslations } from "next-intl";
 
 export function YieldDisplay() {
@@ -6,13 +7,7 @@ export function YieldDisplay() {
 
   return (
     <div className="relative">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, ease: "easeOut" }}
-        viewport={{ once: true }}
-        className="relative"
-      >
+      <div className="relative">
         <div className="relative ">
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-2">
@@ -29,7 +24,7 @@ export function YieldDisplay() {
           <div className="text-center mb-6">
             <div className="text-xs font-mono text-muted-foreground mb-1">{t("estimatedApy")}</div>
             <div className="text-5xl font-mono font-bold text-primary">
-              24.8<span className="text-2xl text-primary/60">%</span>
+              250<span className="text-2xl text-primary/60">%</span>
             </div>
           </div>
 
@@ -46,7 +41,7 @@ export function YieldDisplay() {
             </div>
           </div>
         </div>
-      </motion.div>
+      </div>
     </div>
   );
 }

@@ -10,13 +10,7 @@ interface ThemeProviderProps {
 
 export function ThemeProvider({ children, nonce }: ThemeProviderProps) {
   return (
-    <NextThemesProvider
-      attribute="class"
-      defaultTheme="dark"
-      enableSystem
-      disableTransitionOnChange
-      nonce={nonce}
-    >
+    <NextThemesProvider attribute="class" enableSystem disableTransitionOnChange nonce={nonce}>
       {children}
     </NextThemesProvider>
   );
