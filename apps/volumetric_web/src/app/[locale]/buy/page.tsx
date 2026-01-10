@@ -2,42 +2,17 @@ export const dynamic = "force-dynamic";
 
 import { HydrationBoundary } from "@tanstack/react-query";
 import type { Metadata } from "next";
+import { generatePageMetadata } from "@/lib/metadata";
 import { prefetchOptionsPageData } from "@/lib/prefetch";
 import { BuyOptionsView } from "./_components/BuyOptionsView";
 
-export const metadata: Metadata = {
-  title: "Buy Bitcoin Options",
-  description:
-    "Get up to 100x leverage on Bitcoin with no liquidation risk. Your max loss is the premium paid. Fully on-chain and trustless.",
-  keywords: [
-    "buy Bitcoin options",
-    "BTC leverage",
-    "no liquidation",
-    "on-chain options",
-    "trustless leverage",
-  ],
-  openGraph: {
-    type: "website",
-    title: "Buy Bitcoin Options | Isometric",
-    description:
-      "Get up to 100x leverage on Bitcoin with no liquidation risk. Your max loss is the premium paid. Fully on-chain and trustless.",
-    images: [
-      {
-        url: "/defaultOG.png",
-        width: 1200,
-        height: 630,
-        alt: "Buy Bitcoin Options on Isometric",
-      },
-    ],
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "Buy Bitcoin Options | Isometric",
-    description:
-      "Get up to 100x leverage on Bitcoin with no liquidation risk. Your max loss is the premium paid. Fully on-chain and trustless.",
-    images: ["/defaultOG.png"],
-  },
-};
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  return generatePageMetadata({ params }, "Metadata.buy");
+}
 
 export default async function BuyPage() {
   const dehydratedState = await prefetchOptionsPageData();

@@ -37,9 +37,14 @@ function getAvatarGradient(seed: string) {
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
+    const { searchParams } = new URL(request.url);
+    const queryLocale = searchParams.get("locale");
+
     const referer = request.headers.get("referer") || "";
-    const locale = referer.includes("/zh/") || referer.includes("/zh") ? "zh" : "en";
+    const locale =
+      queryLocale || (referer.includes("/zh/") || referer.includes("/zh") ? "zh" : "en");
     const isZh = locale === "zh";
+
     const history = await getHistoryByHash(id);
 
     const entries = history?.entries ?? [];

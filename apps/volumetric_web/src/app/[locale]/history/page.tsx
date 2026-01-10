@@ -1,38 +1,14 @@
 import type { Metadata } from "next";
+import { generatePageMetadata } from "@/lib/metadata";
 import { HistoryView } from "./_components/HistoryView";
 
-export const metadata: Metadata = {
-  title: "History",
-  description:
-    "View your complete on-chain Bitcoin options history. All trades and settlements are verifiable on-chain with full transparency.",
-  keywords: [
-    "Bitcoin trading history",
-    "on-chain history",
-    "options settlements",
-    "verifiable trades",
-  ],
-  openGraph: {
-    type: "website",
-    title: "History | Isometric",
-    description:
-      "View your complete on-chain Bitcoin options history. All trades and settlements are verifiable on-chain.",
-    images: [
-      {
-        url: "/defaultOG.png",
-        width: 1200,
-        height: 630,
-        alt: "Isometric Trade History",
-      },
-    ],
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "History | Isometric",
-    description:
-      "View your complete on-chain Bitcoin options history. All trades and settlements are verifiable on-chain.",
-    images: ["/defaultOG.png"],
-  },
-};
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  return generatePageMetadata({ params }, "Metadata.history");
+}
 
 export default function HistoryPage() {
   return (

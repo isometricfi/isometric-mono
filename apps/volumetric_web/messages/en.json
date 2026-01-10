@@ -550,6 +550,34 @@
     "siteName": "Isometric",
     "description": "The simplest way to trade Bitcoin options on-chain. Earn high APY writing calls or get up to 100x leverage as a buyer. Fully trustless, self-custody, no liquidations.",
     "keywords": "Bitcoin options, on-chain options, BTC leverage, BTC yield, decentralized options, trustless trading, self custody",
-    "ogImageAlt": "Isometric - On-Chain Bitcoin Options"
+    "ogImageAlt": "Isometric - On-Chain Bitcoin Options",
+    "buy": {
+      "title": "Buy Bitcoin Options",
+      "description": "Get up to 100x leverage on Bitcoin with no liquidation risk. Your max loss is the premium paid. Fully on-chain and trustless.",
+      "keywords": "buy Bitcoin options, BTC leverage, no liquidation, on-chain options, trustless leverage",
+      "ogTitle": "Buy Bitcoin Options | Isometric",
+      "ogImageAlt": "Buy Bitcoin Options on Isometric"
+    },
+    "write": {
+      "title": "Write Bitcoin Options",
+      "description": "Earn high APY on your Bitcoin by writing call options. Collect premium instantly and let your BTC work for you. Fully on-chain and trustless.",
+      "keywords": "write Bitcoin options, BTC APY, BTC yield, earn on Bitcoin, on-chain yield, trustless yield",
+      "ogTitle": "Write Bitcoin Options | Isometric",
+      "ogImageAlt": "Write Bitcoin Options on Isometric"
+    },
+    "portfolio": {
+      "title": "Portfolio",
+      "description": "Track your on-chain Bitcoin options positions. View active contracts, pending offers, and performance. Auto-settlement at expiry.",
+      "keywords": "Bitcoin portfolio, options positions, on-chain portfolio, BTC options tracking",
+      "ogTitle": "Portfolio | Isometric",
+      "ogImageAlt": "Isometric Portfolio"
+    },
+    "history": {
+      "title": "History",
+      "description": "View your complete on-chain Bitcoin options history. All trades and settlements are verifiable on-chain with full transparency.",
+      "keywords": "Bitcoin trading history, on-chain history, options settlements, verifiable trades",
+      "ogTitle": "History | Isometric",
+      "ogImageAlt": "Isometric Trade History"
+    }
   }
 }
