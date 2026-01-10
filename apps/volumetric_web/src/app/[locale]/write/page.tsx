@@ -2,43 +2,47 @@ export const dynamic = "force-dynamic";
 
 import { HydrationBoundary } from "@tanstack/react-query";
 import type { Metadata } from "next";
+import { getTranslations } from "next-intl/server";
 import { prefetchOptionsPageData } from "@/lib/prefetch";
 import { WriteOptionsView } from "./_components/WriteOptionsView";
 
-export const metadata: Metadata = {
-  title: "Write Bitcoin Options",
-  description:
-    "Earn high APY on your Bitcoin by writing call options. Collect premium instantly and let your BTC work for you. Fully on-chain and trustless.",
-  keywords: [
-    "write Bitcoin options",
-    "BTC APY",
-    "BTC yield",
-    "earn on Bitcoin",
-    "on-chain yield",
-    "trustless yield",
-  ],
-  openGraph: {
-    type: "website",
-    title: "Write Bitcoin Options | Isometric",
-    description:
-      "Earn high APY on your Bitcoin by writing call options. Collect premium instantly. Fully on-chain and trustless.",
-    images: [
-      {
-        url: "/defaultOG.png",
-        width: 1200,
-        height: 630,
-        alt: "Write Bitcoin Options on Isometric",
-      },
-    ],
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "Write Bitcoin Options | Isometric",
-    description:
-      "Earn high APY on your Bitcoin by writing call options. Collect premium instantly. Fully on-chain and trustless.",
-    images: ["/defaultOG.png"],
-  },
-};
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  const t = await getTranslations({ locale, namespace: "Metadata.write" });
+
+  const ogImage = locale === "zh" ? "/defaultOGCN.png" : "/defaultOG.png";
+
+  return {
+    title: t("title"),
+    description: t("description"),
+    keywords: t("keywords")
+      .split(",")
+      .map((k) => k.trim()),
+    openGraph: {
+      type: "website",
+      title: t("ogTitle"),
+      description: t("description"),
+      images: [
+        {
+          url: ogImage,
+          width: 1200,
+          height: 630,
+          alt: t("ogImageAlt"),
+        },
+      ],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: t("ogTitle"),
+      description: t("description"),
+      images: [ogImage],
+    },
+  };
+}
 
 export default async function WritePage() {
   const dehydratedState = await prefetchOptionsPageData();

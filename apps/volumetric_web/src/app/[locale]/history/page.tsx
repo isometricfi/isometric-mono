@@ -1,38 +1,44 @@
 import type { Metadata } from "next";
+import { getTranslations } from "next-intl/server";
 import { HistoryView } from "./_components/HistoryView";
 
-export const metadata: Metadata = {
-  title: "History",
-  description:
-    "View your complete on-chain Bitcoin options history. All trades and settlements are verifiable on-chain with full transparency.",
-  keywords: [
-    "Bitcoin trading history",
-    "on-chain history",
-    "options settlements",
-    "verifiable trades",
-  ],
-  openGraph: {
-    type: "website",
-    title: "History | Isometric",
-    description:
-      "View your complete on-chain Bitcoin options history. All trades and settlements are verifiable on-chain.",
-    images: [
-      {
-        url: "/defaultOG.png",
-        width: 1200,
-        height: 630,
-        alt: "Isometric Trade History",
-      },
-    ],
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "History | Isometric",
-    description:
-      "View your complete on-chain Bitcoin options history. All trades and settlements are verifiable on-chain.",
-    images: ["/defaultOG.png"],
-  },
-};
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  const t = await getTranslations({ locale, namespace: "Metadata.history" });
+
+  const ogImage = locale === "zh" ? "/defaultOGCN.png" : "/defaultOG.png";
+
+  return {
+    title: t("title"),
+    description: t("description"),
+    keywords: t("keywords")
+      .split(",")
+      .map((k) => k.trim()),
+    openGraph: {
+      type: "website",
+      title: t("ogTitle"),
+      description: t("description"),
+      images: [
+        {
+          url: ogImage,
+          width: 1200,
+          height: 630,
+          alt: t("ogImageAlt"),
+        },
+      ],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: t("ogTitle"),
+      description: t("description"),
+      images: [ogImage],
+    },
+  };
+}
 
 export default function HistoryPage() {
   return (

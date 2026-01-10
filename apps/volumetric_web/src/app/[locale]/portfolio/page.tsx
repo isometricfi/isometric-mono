@@ -1,38 +1,44 @@
 import type { Metadata } from "next";
+import { getTranslations } from "next-intl/server";
 import { PortfolioView } from "./_components/PortfolioView";
 
-export const metadata: Metadata = {
-  title: "Portfolio",
-  description:
-    "Track your on-chain Bitcoin options positions. View active contracts, pending offers, and performance. Auto-settlement at expiry.",
-  keywords: [
-    "Bitcoin portfolio",
-    "options positions",
-    "on-chain portfolio",
-    "BTC options tracking",
-  ],
-  openGraph: {
-    type: "website",
-    title: "Portfolio | Isometric",
-    description:
-      "Track your on-chain Bitcoin options positions. View active contracts, pending offers, and performance.",
-    images: [
-      {
-        url: "/defaultOG.png",
-        width: 1200,
-        height: 630,
-        alt: "Isometric Portfolio",
-      },
-    ],
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "Portfolio | Isometric",
-    description:
-      "Track your on-chain Bitcoin options positions. View active contracts, pending offers, and performance.",
-    images: ["/defaultOG.png"],
-  },
-};
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  const t = await getTranslations({ locale, namespace: "Metadata.portfolio" });
+
+  const ogImage = locale === "zh" ? "/defaultOGCN.png" : "/defaultOG.png";
+
+  return {
+    title: t("title"),
+    description: t("description"),
+    keywords: t("keywords")
+      .split(",")
+      .map((k) => k.trim()),
+    openGraph: {
+      type: "website",
+      title: t("ogTitle"),
+      description: t("description"),
+      images: [
+        {
+          url: ogImage,
+          width: 1200,
+          height: 630,
+          alt: t("ogImageAlt"),
+        },
+      ],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: t("ogTitle"),
+      description: t("description"),
+      images: [ogImage],
+    },
+  };
+}
 
 export default function PortfolioPage() {
   return (

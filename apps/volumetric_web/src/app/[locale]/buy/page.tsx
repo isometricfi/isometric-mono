@@ -2,42 +2,47 @@ export const dynamic = "force-dynamic";
 
 import { HydrationBoundary } from "@tanstack/react-query";
 import type { Metadata } from "next";
+import { getTranslations } from "next-intl/server";
 import { prefetchOptionsPageData } from "@/lib/prefetch";
 import { BuyOptionsView } from "./_components/BuyOptionsView";
 
-export const metadata: Metadata = {
-  title: "Buy Bitcoin Options",
-  description:
-    "Get up to 100x leverage on Bitcoin with no liquidation risk. Your max loss is the premium paid. Fully on-chain and trustless.",
-  keywords: [
-    "buy Bitcoin options",
-    "BTC leverage",
-    "no liquidation",
-    "on-chain options",
-    "trustless leverage",
-  ],
-  openGraph: {
-    type: "website",
-    title: "Buy Bitcoin Options | Isometric",
-    description:
-      "Get up to 100x leverage on Bitcoin with no liquidation risk. Your max loss is the premium paid. Fully on-chain and trustless.",
-    images: [
-      {
-        url: "/defaultOG.png",
-        width: 1200,
-        height: 630,
-        alt: "Buy Bitcoin Options on Isometric",
-      },
-    ],
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "Buy Bitcoin Options | Isometric",
-    description:
-      "Get up to 100x leverage on Bitcoin with no liquidation risk. Your max loss is the premium paid. Fully on-chain and trustless.",
-    images: ["/defaultOG.png"],
-  },
-};
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  const t = await getTranslations({ locale, namespace: "Metadata.buy" });
+
+  const ogImage = locale === "zh" ? "/defaultOGCN.png" : "/defaultOG.png";
+
+  return {
+    title: t("title"),
+    description: t("description"),
+    keywords: t("keywords")
+      .split(",")
+      .map((k) => k.trim()),
+    openGraph: {
+      type: "website",
+      title: t("ogTitle"),
+      description: t("description"),
+      images: [
+        {
+          url: ogImage,
+          width: 1200,
+          height: 630,
+          alt: t("ogImageAlt"),
+        },
+      ],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: t("ogTitle"),
+      description: t("description"),
+      images: [ogImage],
+    },
+  };
+}
 
 export default async function BuyPage() {
   const dehydratedState = await prefetchOptionsPageData();
