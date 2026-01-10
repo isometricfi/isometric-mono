@@ -42,28 +42,27 @@ export function PortfolioView() {
 
   return (
     <div className="flex flex-col gap-4 relative">
-      <div className="text-center space-y-2 flex justify-center gap-2">
-        <h1 className="text-3xl font-bold">{t("title")}</h1>
-        <Link href="/history" className="md:absolute right-0">
-          <Button variant="outline" size="sm">
-            <History className="size-4 " /> {t("history")}
-          </Button>
-        </Link>
+      <div className="flex justify-between items-center">
+        <div className="flex justify-center items-center gap-2">
+          <h1 className="text-3xl font-bold">{t("title")}</h1>
+          <Link href="/history" className="">
+            <Button variant="outline" size="sm">
+              <History className="size-4 " /> {t("history")}
+            </Button>
+          </Link>
+        </div>
+        <AnimatedToggle
+          options={[
+            { value: "offers", label: t("offers"), icon: PencilLine },
+            { value: "options", label: t("options"), icon: Zap },
+          ]}
+          value={activeTab}
+          onChange={setActiveTab}
+          layoutId="portfolioTab"
+        />
       </div>
 
       <div className="flex flex-col gap-7">
-        <div className="flex justify-center">
-          <AnimatedToggle
-            options={[
-              { value: "offers", label: t("offers"), icon: PencilLine },
-              { value: "options", label: t("options"), icon: Zap },
-            ]}
-            value={activeTab}
-            onChange={setActiveTab}
-            layoutId="portfolioTab"
-          />
-        </div>
-
         {activeTab === "options" && <OptionsTable />}
         {activeTab === "offers" && <OffersTable />}
       </div>

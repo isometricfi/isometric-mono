@@ -14,7 +14,7 @@ export function ThemeProvider({ children, nonce }: ThemeProviderProps) {
       attribute="class"
       defaultTheme="dark"
       enableSystem
-      disableTransitionOnChange
+      // disableTransitionOnChange
       nonce={nonce}
     >
       {children}
