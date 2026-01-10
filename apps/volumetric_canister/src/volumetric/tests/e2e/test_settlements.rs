@@ -1,10 +1,10 @@
 use crate::common::{create_test_env, generate_wallet};
 use crate::helpers::{
-    accept_offers, configure_test_ledger, create_account, create_offer,
+    accept_offers, configure_test_ledger, create_account, create_offer, get_events_for_principal,
     get_fee_recipient_ledger_balance, get_pending_settlements, get_user_balance,
     mint_and_sync_balance, set_oracle_price, whitelist_controller,
 };
-use volumetric::AcceptOfferItem;
+use volumetric::{AcceptOfferItem, EventData, EventType, TradeRole};
 
 const ONE_BTC_SATS: u64 = 100_000_000;
 const BASIS_POINTS: u64 = 10_000;
@@ -24,7 +24,7 @@ const ACCEPT_TRANSFER_FEES: u64 = ACCEPT_TRANSFER_COUNT * CKBTC_TRANSFER_FEE;
 
 /// Given: 1 BTC call option, entry $100k, strike $105k (+5%), premium 1% (0.01 BTC)
 /// When: Price rises to $210k (2x strike), option expires
-/// Then: Buyer nets 0.4 BTC, writer gets 0.6 BTC, platform collects 0.1 BTC profit fee
+/// Then: Buyer nets 0.4 BTC, writer gets 0.6 BTC, platform collects 0.1 BTC profit fee, events emitted
 #[test]
 fn test_expired_itm_option_auto_settles_with_correct_payouts() {
     // given
@@ -91,6 +91,7 @@ fn test_expired_itm_option_auto_settles_with_correct_payouts() {
     env.advance_time_secs(ONE_DAY_SECS + ONE_HOUR_SECS);
 
     // then
+    const EXPECTED_OPTION_ID: u64 = 1;
     const EXPECTED_GROSS_BUYER_PAYOUT_SATS: u64 = 50_000_000;
 
     const EXPECTED_PROFIT_FEE_SATS: u64 =
@@ -128,6 +129,72 @@ fn test_expired_itm_option_auto_settles_with_correct_payouts() {
 
     let total_platform_fees = fee_recipient_balance_after_settle - fee_recipient_balance_before;
     assert_eq!(total_platform_fees, EXPECTED_TOTAL_PLATFORM_FEES_SATS);
+
+    const EXPECTED_WRITER_PAYOUT_SATS: u64 = QUANTITY_SATS - EXPECTED_GROSS_BUYER_PAYOUT_SATS;
+
+    let buyer_events = get_events_for_principal(&env, buyer_profile.principal);
+    let buyer_settle_events: Vec<_> = buyer_events
+        .iter()
+        .filter(|e| e.event_type == EventType::OptionSettled)
+        .collect();
+    assert_eq!(buyer_settle_events.len(), 1);
+
+    let EventData::OptionSettled {
+        accepted_at_ns: buyer_accepted_at,
+        settled_at_ns: buyer_settled_at,
+        ..
+    } = &buyer_settle_events[0].data
+    else {
+        panic!("Expected OptionSettled event");
+    };
+
+    assert_eq!(
+        buyer_settle_events[0].data,
+        EventData::OptionSettled {
+            option_id: EXPECTED_OPTION_ID,
+            quantity_sats: QUANTITY_SATS,
+            entry_price_cents: ENTRY_PRICE_CENTS,
+            strike_price_cents: STRIKE_PRICE_CENTS,
+            settlement_price_cents: SETTLEMENT_PRICE_CENTS,
+            premium_sats: PREMIUM_SATS,
+            payout_sats: EXPECTED_BUYER_PAYOUT_SATS,
+            accepted_at_ns: *buyer_accepted_at,
+            settled_at_ns: *buyer_settled_at,
+            role: TradeRole::Buyer,
+        }
+    );
+
+    let writer_events = get_events_for_principal(&env, writer_profile.principal);
+    let writer_settle_events: Vec<_> = writer_events
+        .iter()
+        .filter(|e| e.event_type == EventType::OptionSettled)
+        .collect();
+    assert_eq!(writer_settle_events.len(), 1);
+
+    let EventData::OptionSettled {
+        accepted_at_ns: writer_accepted_at,
+        settled_at_ns: writer_settled_at,
+        ..
+    } = &writer_settle_events[0].data
+    else {
+        panic!("Expected OptionSettled event");
+    };
+
+    assert_eq!(
+        writer_settle_events[0].data,
+        EventData::OptionSettled {
+            option_id: EXPECTED_OPTION_ID,
+            quantity_sats: QUANTITY_SATS,
+            entry_price_cents: ENTRY_PRICE_CENTS,
+            strike_price_cents: STRIKE_PRICE_CENTS,
+            settlement_price_cents: SETTLEMENT_PRICE_CENTS,
+            premium_sats: PREMIUM_SATS,
+            payout_sats: EXPECTED_WRITER_PAYOUT_SATS,
+            accepted_at_ns: *writer_accepted_at,
+            settled_at_ns: *writer_settled_at,
+            role: TradeRole::Writer,
+        }
+    );
 }
 
 /// Given: 1 BTC call option, entry $100k, strike $105k (+5%), premium 1% (0.01 BTC)
