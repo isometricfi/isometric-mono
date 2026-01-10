@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { getTranslations } from "next-intl/server";
+import { generatePageMetadata } from "@/lib/metadata";
 import { PortfolioView } from "./_components/PortfolioView";
 
 export async function generateMetadata({
@@ -7,37 +7,7 @@ export async function generateMetadata({
 }: {
   params: Promise<{ locale: string }>;
 }): Promise<Metadata> {
-  const { locale } = await params;
-  const t = await getTranslations({ locale, namespace: "Metadata.portfolio" });
-
-  const ogImage = locale === "zh" ? "/defaultOGCN.png" : "/defaultOG.png";
-
-  return {
-    title: t("title"),
-    description: t("description"),
-    keywords: t("keywords")
-      .split(",")
-      .map((k) => k.trim()),
-    openGraph: {
-      type: "website",
-      title: t("ogTitle"),
-      description: t("description"),
-      images: [
-        {
-          url: ogImage,
-          width: 1200,
-          height: 630,
-          alt: t("ogImageAlt"),
-        },
-      ],
-    },
-    twitter: {
-      card: "summary_large_image",
-      title: t("ogTitle"),
-      description: t("description"),
-      images: [ogImage],
-    },
-  };
+  return generatePageMetadata({ params }, "Metadata.portfolio");
 }
 
 export default function PortfolioPage() {
