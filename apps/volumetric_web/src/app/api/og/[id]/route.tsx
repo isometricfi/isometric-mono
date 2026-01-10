@@ -1,35 +1,7 @@
 import { ImageResponse } from "next/og";
 import type { HistoryEntry } from "@/lib/use-cases/history/get-history/schema";
+import { getHistoryByHash } from "@/lib/use-cases/history/get-history-by-hash/usecase";
 import { formatBtcBigint } from "@/lib/utils";
-
-export const runtime = "edge";
-
-interface HistoryByHashResponse {
-  entries: HistoryEntry[];
-  username: string | null;
-  principal: string;
-}
-
-async function fetchHistoryByHash(
-  principalHash: string,
-  baseUrl: string,
-): Promise<HistoryByHashResponse | null> {
-  try {
-    const url = new URL("/api/trpc/history.getHistoryByHash", baseUrl);
-    url.searchParams.set("input", JSON.stringify({ principalHash }));
-
-    const response = await fetch(url.toString(), {
-      headers: { "Content-Type": "application/json" },
-    });
-
-    if (!response.ok) return null;
-
-    const data = await response.json();
-    return data.result?.data ?? null;
-  } catch {
-    return null;
-  }
-}
 
 function formatBtcForOG(sats: bigint, maxDecimals = 8): string {
   const formatted = formatBtcBigint(sats, maxDecimals);
@@ -65,12 +37,10 @@ function getAvatarGradient(seed: string) {
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
-    const url = new URL(request.url);
     const referer = request.headers.get("referer") || "";
     const locale = referer.includes("/zh/") || referer.includes("/zh") ? "zh" : "en";
     const isZh = locale === "zh";
-    const baseUrl = url.origin;
-    const history = await fetchHistoryByHash(id, baseUrl);
+    const history = await getHistoryByHash(id);
 
     const entries = history?.entries ?? [];
     if (entries.length === 0) {
@@ -111,10 +81,16 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
         ? "新成员"
         : "New Member";
 
-    const totalPnlSats = entries.reduce((sum, e) => sum + e.pnlSats, BigInt(0));
-    const profitableTrades = entries.filter((e) => e.result === "profit").length;
+    const totalPnlSats = entries.reduce(
+      (sum: bigint, e: HistoryEntry) => sum + e.pnlSats,
+      BigInt(0),
+    );
+    const profitableTrades = entries.filter((e: HistoryEntry) => e.result === "profit").length;
     const winRate = (profitableTrades / entries.length) * 100;
-    const totalVolumeSats = entries.reduce((sum, e) => sum + e.quantitySats, BigInt(0));
+    const totalVolumeSats = entries.reduce(
+      (sum: bigint, e: HistoryEntry) => sum + e.quantitySats,
+      BigInt(0),
+    );
 
     const isProfit = totalPnlSats >= BigInt(0);
     const pnlColor = isProfit ? "#22c55e" : "#ef4444";
