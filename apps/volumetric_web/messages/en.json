@@ -86,7 +86,7 @@
     "noOffersAvailable": "No offers available",
     "strike": "Strike",
     "strikePercentAbove": "{percent}% above current",
-    "loadingPrice": "Loading price...",
+    "loadingPrice": "Loading prices...",
     "noStrikesAvailable": "No strikes available",
     "premium": "Premium",
     "lowerIsMoreCompetitive": "Lower is more competitive",
@@ -515,7 +515,8 @@
     "earliestCreatedDesc": "For identical offers, the one created first gets priority (First-In-First-Out).",
     "editOffer": "Edit Offer",
     "cancelling": "Cancelling...",
-    "cancelOffer": "Cancel Offer"
+    "cancelOffer": "Cancel Offer",
+    "remainingBelowMinimum": "Remaining below {amount} minimum"
   },
   "Errors": {
     "unauthorizedController": "You are not authorized to perform this action",

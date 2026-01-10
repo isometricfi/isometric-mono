@@ -33,7 +33,7 @@ export function BTCPriceChart({ mode }: BTCPriceChartProps) {
   const strikePrice = currentPrice * (1 + strikePercent / 100);
 
   useEffect(() => {
-    if (!containerRef.current) return;
+    if (historyLoading || !containerRef.current) return;
 
     const updateDimensions = () => {
       if (containerRef.current) {
@@ -57,7 +57,16 @@ export function BTCPriceChart({ mode }: BTCPriceChartProps) {
 
     resizeObserver.observe(containerRef.current);
     return () => resizeObserver.disconnect();
-  }, []);
+  }, [historyLoading]);
+
+  useEffect(() => {
+    if (containerRef.current && historyData && historyData.length > 0) {
+      setDimensions({
+        width: containerRef.current.clientWidth,
+        height: containerRef.current.clientHeight,
+      });
+    }
+  }, [historyData]);
 
   const { chartData, expiryIndex } = useMemo(() => {
     if (!historyData || historyData.length === 0) {

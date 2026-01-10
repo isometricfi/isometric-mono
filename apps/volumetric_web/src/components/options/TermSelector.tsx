@@ -1,9 +1,10 @@
 "use client";
 
-import { motion } from "framer-motion";
 import { useTranslations } from "next-intl";
 import { useId } from "react";
+import { AnimatedToggle } from "@/components/navigation/AnimatedToggle";
 import { useConfig } from "@/hooks";
+import { Skeleton } from "../ui/skeleton";
 
 interface TermSelectorProps {
   value: number;
@@ -16,35 +17,23 @@ export function TermSelector({ value, onChange }: TermSelectorProps) {
   const termOptions = config?.termOptions ?? [];
   const layoutId = useId();
 
-  return (
-    <div className="space-y-1">
-      <div className="flex rounded-full bg-muted p-1">
-        {termOptions.map((term) => {
-          const isActive = value === term;
+  const options = termOptions.map((term) => ({
+    value: term,
+    label: `${term} ${t("days")}`,
+  }));
 
-          return (
-            <button
-              type="button"
-              key={term}
-              onClick={() => onChange(term)}
-              className={`relative flex-1 px-4 py-2 text-sm font-medium rounded-full transition-colors ${
-                isActive ? "text-foreground" : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              {isActive && (
-                <motion.div
-                  layoutId={`termSelector-${layoutId}`}
-                  className="absolute inset-0 bg-background rounded-full shadow-sm"
-                  transition={{ type: "spring", duration: 0.5 }}
-                />
-              )}
-              <span className="relative z-10">
-                {term} {t("days")}
-              </span>
-            </button>
-          );
-        })}
-      </div>
+  if (termOptions.length === 0) {
+    return <Skeleton className="h-[44px] w-full" />;
+  }
+  return (
+    <div className="space-y-1 ">
+      <AnimatedToggle
+        options={options}
+        value={value}
+        onChange={onChange}
+        layoutId={`termSelector-${layoutId}`}
+        className="w-full min-h-[44px]"
+      />
     </div>
   );
 }

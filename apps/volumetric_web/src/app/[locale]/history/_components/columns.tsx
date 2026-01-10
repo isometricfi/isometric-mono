@@ -6,7 +6,7 @@ import { ArrowDown, ArrowUp, ArrowUpDown, PenLine, ShoppingCart, TrendingUp } fr
 import type { useTranslations } from "next-intl";
 import { Badge } from "@/components/ui/badge";
 import type { HistoryEntry } from "@/hooks";
-import { cn, formatBtcBigint, SATS_PER_BTC } from "@/lib/utils";
+import { cn, formatBtcBigint, formatBtcWithSymbolBigint } from "@/lib/utils";
 
 const NS_PER_MS = BigInt(1_000_000);
 
@@ -162,7 +162,7 @@ export function getColumns(t: ReturnType<typeof useTranslations>): ColumnDef<His
         </button>
       ),
       cell: ({ row }) => (
-        <span className="font-mono">₿{formatBtcBigint(row.getValue("premiumSats"), 5)}</span>
+        <span className="font-mono">₿{formatBtcBigint(row.getValue("premiumSats"), 8)}</span>
       ),
       sortingFn: (rowA, rowB) => {
         const a = rowA.getValue("premiumSats") as bigint;
@@ -196,7 +196,7 @@ export function getColumns(t: ReturnType<typeof useTranslations>): ColumnDef<His
         </button>
       ),
       cell: ({ row }) => (
-        <span className="font-mono">₿{formatBtcBigint(row.getValue("payoutSats"), 5)}</span>
+        <span className="font-mono">₿{formatBtcBigint(row.getValue("payoutSats"), 8)}</span>
       ),
       sortingFn: (rowA, rowB) => {
         const a = rowA.getValue("payoutSats") as bigint;
@@ -228,9 +228,6 @@ export function getColumns(t: ReturnType<typeof useTranslations>): ColumnDef<His
         const isProfit = pnlSats > BigInt(0);
         const isLoss = pnlSats < BigInt(0);
 
-        const pnlBtc = Number(pnlSats) / SATS_PER_BTC;
-        const displayBtc = Math.abs(pnlBtc).toFixed(5);
-
         return (
           <div className="flex flex-col">
             <span
@@ -240,7 +237,7 @@ export function getColumns(t: ReturnType<typeof useTranslations>): ColumnDef<His
                 isLoss && "text-red-500",
               )}
             >
-              {isProfit ? "+" : isLoss ? "-" : ""}₿{displayBtc}
+              {formatBtcWithSymbolBigint(pnlSats, 8)}
             </span>
             <span
               className={cn(

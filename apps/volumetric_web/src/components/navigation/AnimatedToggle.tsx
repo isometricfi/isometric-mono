@@ -4,29 +4,31 @@ import { motion } from "framer-motion";
 import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-export interface ToggleOption<T extends string> {
+export interface ToggleOption<T extends string | number> {
   value: T;
   label: string;
   icon?: LucideIcon;
 }
 
-interface AnimatedToggleProps<T extends string> {
+interface AnimatedToggleProps<T extends string | number> {
   options: ToggleOption<T>[];
   value: T;
   onChange: (value: T) => void;
   layoutId?: string;
   size?: "default" | "sm";
+  className?: string;
 }
 
-export function AnimatedToggle<T extends string>({
+export function AnimatedToggle<T extends string | number>({
   options,
   value,
   onChange,
   layoutId = "activeTab",
   size = "default",
+  className,
 }: AnimatedToggleProps<T>) {
   return (
-    <div className="inline-flex items-center p-1 rounded-full bg-muted">
+    <div className={cn("inline-flex items-center p-1 rounded-full bg-muted", className)}>
       {options.map((option) => {
         const Icon = option.icon;
         const isActive = value === option.value;
@@ -37,7 +39,7 @@ export function AnimatedToggle<T extends string>({
             key={option.value}
             onClick={() => onChange(option.value)}
             className={cn(
-              "relative font-medium rounded-full transition-all",
+              "relative font-medium rounded-full transition-all w-full",
               size === "sm" ? "px-3 py-1 text-xs" : "px-5 py-2 text-sm",
               isActive ? "text-foreground" : "text-muted-foreground hover:text-foreground",
             )}
@@ -49,7 +51,7 @@ export function AnimatedToggle<T extends string>({
                 transition={{ type: "spring", duration: 0.5 }}
               />
             )}
-            <span className="relative z-10 flex items-center gap-2">
+            <span className="relative z-10 flex items-center gap-2 justify-center">
               {Icon && <Icon className={cn(size === "sm" ? "size-3" : "size-3.5")} />}
               {option.label}
             </span>

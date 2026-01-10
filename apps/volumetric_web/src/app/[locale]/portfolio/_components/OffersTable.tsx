@@ -46,7 +46,7 @@ export function OffersTable() {
 
   if (sortedOffers.length === 0) {
     return (
-      <div className="flex justify-center ">
+      <div className="flex justify-center mt-12">
         <div className=" text-center space-y-3 border rounded-xl p-5 max-w-lg w-full">
           <p className="text-lg">{t("noActiveOffers")}</p>
 

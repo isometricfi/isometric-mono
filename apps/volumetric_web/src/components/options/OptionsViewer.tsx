@@ -1,11 +1,11 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
-import { ChevronDown, ChevronRight } from "lucide-react";
+import { ChevronDown, ChevronRight, User } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatedToggle, type ToggleOption } from "@/components/navigation/AnimatedToggle";
-import { useConfig, useOptions, usePrices } from "@/hooks";
+import { useAccount, useConfig, useOptions, usePrices } from "@/hooks";
 import { cn, formatBtc } from "@/lib/utils";
 import type { StrikeBucket } from "@/types/options";
 import type { ViewerMode } from "@/types/ui";
@@ -16,9 +16,17 @@ interface StrikeRowProps {
   isExpanded: boolean;
   onToggle: () => void;
   mode: ViewerMode;
+  currentUserId?: string;
 }
 
-function StrikeRow({ bucket, btcPrice, isExpanded, onToggle, mode }: StrikeRowProps) {
+function StrikeRow({
+  bucket,
+  btcPrice,
+  isExpanded,
+  onToggle,
+  mode,
+  currentUserId,
+}: StrikeRowProps) {
   const t = useTranslations("OptionsViewer");
   const strikeUsd = Math.round(btcPrice * (1 + bucket.strikePercent / 100));
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -138,6 +146,11 @@ function StrikeRow({ bucket, btcPrice, isExpanded, onToggle, mode }: StrikeRowPr
                           "px-4 py-2.5 grid items-center text-sm hover:bg-secondary/30 transition-colors grid-cols-2",
                         )}
                       >
+                        {currentUserId && offer.writerId === currentUserId && (
+                          <div className="absolute left-4 top-1/2 -translate-y-1/2">
+                            <User className="size-4 text-primary fill-primary/20" />
+                          </div>
+                        )}
                         <span className="pl-7 font-medium">{offer.premium}%</span>
                         <span className="text-right">{formatBtc(offer.amountSats, 4)} BTC</span>
                       </div>
@@ -175,7 +188,9 @@ export function OptionsViewer({ mode }: OptionsViewerProps) {
   const { data, isLoading } = useOptions();
   const { data: priceData } = usePrices();
   const { data: config } = useConfig();
+  const { data: account } = useAccount();
   const btcPrice = priceData?.btc ?? 0;
+  const currentUserId = account?.profile?.principal;
 
   const termOptions: ToggleOption<string>[] = useMemo(() => {
     if (!config) return [];
@@ -243,6 +258,7 @@ export function OptionsViewer({ mode }: OptionsViewerProps) {
                   isExpanded={expandedStrikePercent === bucket.strikePercent}
                   onToggle={() => handleToggleStrike(bucket.strikePercent)}
                   mode={mode}
+                  currentUserId={currentUserId}
                 />
               ))}
             </div>
