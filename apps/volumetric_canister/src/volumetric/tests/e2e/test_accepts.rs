@@ -1,13 +1,16 @@
 use crate::common::{create_test_env, generate_wallet};
 use crate::helpers::{
-    accept_offers, configure_test_ledger, create_account, create_offer, get_open_offers,
-    get_user_balance, mint_and_sync_balance, set_feature_flags, whitelist_controller,
+    accept_offers, configure_test_ledger, create_account, create_offer, get_events_for_principal,
+    get_open_offers, get_user_balance, mint_and_sync_balance, set_feature_flags,
+    whitelist_controller,
 };
-use volumetric::{AcceptOfferItem, ActiveOptionStatus, FeatureFlags, OfferStatus};
+use volumetric::{
+    AcceptOfferItem, ActiveOptionStatus, EventData, EventType, FeatureFlags, OfferStatus, TradeRole,
+};
 
 /// Given: Writer creates 10M sats offer, buyer has premium + fees
 /// When: Buyer accepts full offer quantity
-/// Then: Option created, writer collateral locked, offer removed from open offers
+/// Then: Option created, writer collateral locked, offer removed, OfferAccepted events emitted
 #[test]
 fn test_buyer_accepts_offer_creates_option_and_locks_writer_collateral() {
     // given
@@ -64,6 +67,7 @@ fn test_buyer_accepts_offer_creates_option_and_locks_writer_collateral() {
     // then
     const EXPECTED_OPTIONS_COUNT: usize = 1;
     const EXPECTED_OPEN_OFFERS_AFTER: usize = 0;
+    const EXPECTED_OPTION_ID: u64 = 1;
 
     assert_eq!(accept_response.active_options.len(), EXPECTED_OPTIONS_COUNT);
 
@@ -79,6 +83,52 @@ fn test_buyer_accepts_offer_creates_option_and_locks_writer_collateral() {
 
     let offers = get_open_offers(&env);
     assert_eq!(offers.len(), EXPECTED_OPEN_OFFERS_AFTER);
+
+    let active_option = &accept_response.active_options[0];
+
+    let buyer_events = get_events_for_principal(&env, buyer_profile.principal);
+    let buyer_accept_events: Vec<_> = buyer_events
+        .iter()
+        .filter(|e| e.event_type == EventType::OfferAccepted)
+        .collect();
+    assert_eq!(buyer_accept_events.len(), 1);
+    assert_eq!(
+        buyer_accept_events[0].data,
+        EventData::OfferAccepted {
+            offer_id: FIRST_OFFER_ID,
+            option_id: EXPECTED_OPTION_ID,
+            fill_group_id: accept_response.fill_group_id,
+            counterparty: writer_profile.principal,
+            quantity_sats: QUANTITY_SATS,
+            premium_sats: PREMIUM_SATS,
+            entry_price_cents: active_option.entry_price_cents,
+            strike_price_cents: active_option.strike_price_cents,
+            expiry_ns: active_option.expiry,
+            role: TradeRole::Buyer,
+        }
+    );
+
+    let writer_events = get_events_for_principal(&env, writer_profile.principal);
+    let writer_accept_events: Vec<_> = writer_events
+        .iter()
+        .filter(|e| e.event_type == EventType::OfferAccepted)
+        .collect();
+    assert_eq!(writer_accept_events.len(), 1);
+    assert_eq!(
+        writer_accept_events[0].data,
+        EventData::OfferAccepted {
+            offer_id: FIRST_OFFER_ID,
+            option_id: EXPECTED_OPTION_ID,
+            fill_group_id: accept_response.fill_group_id,
+            counterparty: buyer_profile.principal,
+            quantity_sats: QUANTITY_SATS,
+            premium_sats: PREMIUM_SATS,
+            entry_price_cents: active_option.entry_price_cents,
+            strike_price_cents: active_option.strike_price_cents,
+            expiry_ns: active_option.expiry,
+            role: TradeRole::Writer,
+        }
+    );
 }
 
 /// Given: Writer creates 20M sats offer, buyer has premium for 10M sats

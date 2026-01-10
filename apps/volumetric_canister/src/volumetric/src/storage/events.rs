@@ -49,7 +49,7 @@ pub enum TradeRole {
     Writer,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, CandidType)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, CandidType)]
 pub enum EventData {
     AccountCreated {
         wallet_address: String,
