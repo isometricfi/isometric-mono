@@ -41,7 +41,7 @@ export function OptionsTable() {
 
   if (sortedOptions.length === 0) {
     return (
-      <div className="flex justify-center ">
+      <div className="flex justify-center mt-12 ">
         <div className=" text-center space-y-3 border rounded-xl p-5 max-w-lg w-full">
           <p className="text-lg">{t("noActiveOptions")}</p>
           <div className="grid grid-cols-2 gap-4 w-full">
