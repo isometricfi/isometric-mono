@@ -113,9 +113,23 @@ export function OfferCard({ offer, btcPrice, onCancel, isCancelling, rankInfo }:
         {/* Footer: Type & Actions */}
         {belowMinOfferAmount ? (
           <div className="flex items-center justify-between border-t pt-2">
-            <Button className="w-full" size="sm">
-              <Trash className="size-3.5" />
-              Close offer
+            <Button
+              className="w-full"
+              size="sm"
+              disabled={isCancelling}
+              onClick={() => onCancel?.(offer.id.toString())}
+            >
+              {isCancelling ? (
+                <>
+                  <Loader2 className="size-3.5 animate-spin" />
+                  {t("cancelling")}
+                </>
+              ) : (
+                <>
+                  <Trash className="size-3.5" />
+                  {t("cancelOffer")}
+                </>
+              )}
             </Button>
           </div>
         ) : (
