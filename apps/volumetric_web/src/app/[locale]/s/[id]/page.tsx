@@ -9,11 +9,11 @@ import { formatBtcWithSymbolBigint } from "@/lib/utils";
 export async function generateMetadata({
   params,
 }: {
-  params: Promise<{ id: string }>;
+  params: Promise<{ id: string; locale: string }>;
 }): Promise<Metadata> {
-  const { id } = await params;
+  const { id, locale } = await params;
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://isometric.fi";
-  const ogImageUrl = `${baseUrl}/api/og/${id}`;
+  const ogImageUrl = `${baseUrl}/api/og/${id}?locale=${locale}`;
 
   return {
     title: "Trading Stats | Isometric",
