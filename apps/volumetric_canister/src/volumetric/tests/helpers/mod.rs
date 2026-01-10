@@ -12,5 +12,5 @@ pub use config::{
     whitelist_controller,
 };
 pub use events::get_events_for_principal;
-pub use offers::{accept_offers, create_offer, get_open_offers};
+pub use offers::{accept_offers, cancel_offer, create_offer, get_open_offers};
 pub use settlement::get_pending_settlements;
