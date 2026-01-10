@@ -496,7 +496,8 @@
     "earliestCreatedDesc": "对于相同的报价，先创建的获得优先权（先进先出）。",
     "editOffer": "编辑报价",
     "cancelling": "正在取消...",
-    "cancelOffer": "取消报价"
+    "cancelOffer": "取消报价",
+    "remainingBelowMinimum": "剩余低于 {amount} 最小值"
   },
   "Errors": {
     "unauthorizedController": "您无权执行此操作",
