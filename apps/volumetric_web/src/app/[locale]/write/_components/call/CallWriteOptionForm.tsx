@@ -9,6 +9,7 @@ import { OfferResultModal } from "@/components/options/OfferResultModal";
 import { TermSelector } from "@/components/options/TermSelector";
 import { Button } from "@/components/ui/button";
 import { NumberCarousel } from "@/components/ui/number-carousel";
+import { Skeleton } from "@/components/ui/skeleton";
 import { generatePremiumValues, useAccount, useConfig, useCreateOffer, usePrices } from "@/hooks";
 import {
   DEFAULT_MAX_OFFER_AMOUNT_SATS,
@@ -106,7 +107,7 @@ export function CallWriteOptionForm() {
     <div className="bg-card rounded-3xl border border-border p-6 space-y-5 h-fit">
       <TermSelector value={term} onChange={setTerm} />
 
-      {strikePercentOptions.length > 0 && (
+      {strikePercentOptions.length > 0 ? (
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <p className="text-sm font-medium text-foreground">{t("strike")}</p>
@@ -121,9 +122,16 @@ export function CallWriteOptionForm() {
             formatValue={(v) => `+${v}%`}
           />
         </div>
+      ) : (
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <p className="text-sm font-medium text-foreground">{t("strike")}</p>
+          </div>
+          <Skeleton className="h-[40px] w-full" />
+        </div>
       )}
 
-      {premiumValues.length > 0 && (
+      {premiumValues.length > 0 ? (
         <div className="space-y-2">
           <div className="flex items-center justify-between relative">
             <p className="text-sm font-medium text-foreground">{t("premium")}</p>
@@ -138,6 +146,13 @@ export function CallWriteOptionForm() {
             onChange={setPremium}
             formatValue={(v) => `${v}%`}
           />
+        </div>
+      ) : (
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <p className="text-sm font-medium text-foreground">{t("premium")}</p>
+          </div>
+          <Skeleton className="h-[40px] w-full" />
         </div>
       )}
 

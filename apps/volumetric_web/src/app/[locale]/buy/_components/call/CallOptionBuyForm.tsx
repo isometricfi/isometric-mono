@@ -8,11 +8,13 @@ import { OfferResultModal } from "@/components/options/OfferResultModal";
 import { TermSelector } from "@/components/options/TermSelector";
 import { Button } from "@/components/ui/button";
 import { NumberCarousel } from "@/components/ui/number-carousel";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   findBestOffer,
   getMaxLiquiditySats,
   getStrikePercentsForTerm,
   useAcceptOffer,
+  useAccount,
   useConfig,
   useOptions,
   usePrices,
@@ -27,7 +29,8 @@ function computeStrikeUsdValues(strikePercents: number[], btcPrice: number): num
 
 export function CallOptionBuyForm() {
   const { primaryWallet } = useDynamicContext();
-  const { data } = useOptions();
+  const { data, isLoading } = useOptions();
+  const { data: account } = useAccount();
   const { data: priceData } = usePrices();
   const { data: config } = useConfig();
   const acceptOffer = useAcceptOffer();
@@ -51,7 +54,33 @@ export function CallOptionBuyForm() {
 
   const showModal = acceptOffer.step !== "idle";
 
-  const strikePercents = useMemo(() => getStrikePercentsForTerm(data, term), [data, term]);
+  // Filter out options created by the current user
+  const filteredData = useMemo(() => {
+    if (!data) return undefined;
+    if (!account?.profile?.principal) return data;
+
+    const userPrincipal = account.profile.principal;
+
+    return {
+      ...data,
+      termGroups: data.termGroups
+        .map((group) => ({
+          ...group,
+          strikes: group.strikes
+            .map((strike) => ({
+              ...strike,
+              offers: strike.offers.filter((offer) => offer.writerId !== userPrincipal),
+            }))
+            .filter((strike) => strike.offers.length > 0),
+        }))
+        .filter((group) => group.strikes.length > 0),
+    };
+  }, [data, account]);
+
+  const strikePercents = useMemo(
+    () => getStrikePercentsForTerm(filteredData, term),
+    [filteredData, term],
+  );
 
   const strikeUsdValues = useMemo(
     () => computeStrikeUsdValues(strikePercents, btcPrice),
@@ -66,9 +95,9 @@ export function CallOptionBuyForm() {
   };
 
   const amountSats = parseBtcToSats(amountBtc);
-  const maxLiquiditySats = getMaxLiquiditySats(data, term, strikePercent);
+  const maxLiquiditySats = getMaxLiquiditySats(filteredData, term, strikePercent);
   const displayMaxSats = maxLiquiditySats >= minOfferAmountSats ? maxLiquiditySats : 0;
-  const bestOffer = findBestOffer(data, term, strikePercent, amountSats);
+  const bestOffer = findBestOffer(filteredData, term, strikePercent, amountSats);
 
   const selectedStrikeUsd = useMemo(
     () => Math.round(btcPrice * (1 + strikePercent / 100)),
@@ -135,7 +164,12 @@ export function CallOptionBuyForm() {
     <div className="bg-card rounded-3xl border border-border p-6 space-y-5 h-fit">
       <TermSelector value={term} onChange={setTerm} />
 
-      {strikePercents.length > 0 && btcPrice > 0 ? (
+      {isLoading ? (
+        <div className="space-y-2">
+          <p className="text-sm font-medium text-foreground">{t("strike")}</p>
+          <Skeleton className="h-[40px] w-full" />
+        </div>
+      ) : strikePercents.length > 0 && btcPrice > 0 ? (
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <p className="text-sm font-medium text-foreground">{t("strike")}</p>
@@ -154,9 +188,7 @@ export function CallOptionBuyForm() {
         <div className="space-y-2">
           <p className="text-sm font-medium text-foreground">{t("strike")}</p>
           <div className="flex items-center justify-center py-3 px-4 bg-secondary/50 rounded-full h-10">
-            <span className="text-sm text-muted-foreground">
-              {btcPrice === 0 ? t("loadingPrice") : t("noStrikesAvailable")}
-            </span>
+            <span className="text-sm text-muted-foreground">{t("noStrikesAvailable")}</span>
           </div>
         </div>
       )}

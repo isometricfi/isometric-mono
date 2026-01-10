@@ -3,12 +3,38 @@
 import { useQuery } from "@tanstack/react-query";
 import { useTRPC } from "@/trpc/react";
 import type { OptionOffer, OptionsData } from "@/types/options";
+import { useConfig } from "./use-config";
 
 export function useOptions() {
   const trpc = useTRPC();
+  const { data: config } = useConfig();
+  const minOfferAmountSats = config?.minOfferAmountSats ?? 90_000;
+
   return useQuery({
     ...trpc.options.listOptions.queryOptions(),
     staleTime: 30000,
+    select: (data) => {
+      const filteredTermGroups = data.termGroups
+        .map((termGroup) => {
+          const filteredStrikes = termGroup.strikes
+            .map((strike) => ({
+              ...strike,
+              offers: strike.offers.filter((offer) => offer.amountSats >= minOfferAmountSats),
+            }))
+            .filter((strike) => strike.offers.length > 0);
+
+          return {
+            ...termGroup,
+            strikes: filteredStrikes,
+          };
+        })
+        .filter((termGroup) => termGroup.strikes.length > 0);
+
+      return {
+        ...data,
+        termGroups: filteredTermGroups,
+      };
+    },
   });
 }
 
