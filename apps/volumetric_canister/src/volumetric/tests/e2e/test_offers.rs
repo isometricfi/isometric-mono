@@ -374,3 +374,81 @@ fn test_create_offer_exceeds_limit_per_term_fails() {
     let error = result.unwrap_err();
     assert_eq!(error.code, error_codes::OFFER_LIMIT_EXCEEDED.code);
 }
+
+/// Given: Writer has 0.1 BTC, creates 0.05 BTC offer which gets accepted (locked)
+/// When: Writer attempts to create 0.06 BTC offer (more than available 0.05 BTC)
+/// Then: Error INSUFFICIENT_BALANCE returned (available is locked, not total balance)
+#[test]
+fn test_create_offer_with_locked_balance_fails() {
+    // given
+    let env = create_test_env();
+    whitelist_controller(&env);
+    configure_test_ledger(&env);
+
+    const WRITER_SEED: u64 = 1;
+    const BUYER_SEED: u64 = 2;
+    let writer_wallet = generate_wallet(WRITER_SEED);
+    let buyer_wallet = generate_wallet(BUYER_SEED);
+
+    let writer_profile = create_account(&env, &writer_wallet).expect("Writer account failed");
+    let buyer_profile = create_account(&env, &buyer_wallet).expect("Buyer account failed");
+
+    const TEN_MILLION_SATS: u64 = 10_000_000; // 0.1 BTC (writer's total balance)
+    const FIVE_MILLION_SATS: u64 = 5_000_000; // 0.05 BTC (first offer, will be locked)
+    const SIX_MILLION_SATS: u64 = 6_000_000; // 0.06 BTC (second offer, should fail)
+    const STRIKE_BPS: u16 = 500;
+    const PREMIUM_BPS: u16 = 100;
+    const ONE_DAY_SECS: u64 = 86_400;
+    const BASIS_POINTS: u64 = 10_000;
+    const CKBTC_TRANSFER_FEE: u64 = 10;
+    const FIRST_OFFER_ID: u64 = 1;
+
+    const PREMIUM_SATS: u64 = FIVE_MILLION_SATS * PREMIUM_BPS as u64 / BASIS_POINTS;
+    const ACCEPT_TRANSFER_COUNT: u64 = 2;
+    const ACCEPT_TRANSFER_FEES: u64 = ACCEPT_TRANSFER_COUNT * CKBTC_TRANSFER_FEE;
+
+    // Mint balance for writer
+    mint_and_sync_balance(&env, &writer_profile, TEN_MILLION_SATS).expect("Writer balance failed");
+
+    // Mint balance for buyer (premium + fees)
+    mint_and_sync_balance(&env, &buyer_profile, PREMIUM_SATS + ACCEPT_TRANSFER_FEES)
+        .expect("Buyer balance failed");
+
+    // Writer creates first offer for 0.05 BTC
+    create_offer(
+        &env,
+        &writer_wallet,
+        FIVE_MILLION_SATS,
+        STRIKE_BPS,
+        PREMIUM_BPS,
+        ONE_DAY_SECS,
+    )
+    .expect("Create first offer failed");
+
+    // Buyer accepts the offer, locking writer's 0.05 BTC as collateral
+    accept_offers(
+        &env,
+        &buyer_wallet,
+        vec![AcceptOfferItem {
+            offer_id: FIRST_OFFER_ID,
+            quantity: FIVE_MILLION_SATS,
+        }],
+    )
+    .expect("Accept offer failed");
+
+    // when - Writer tries to create another offer for 0.06 BTC
+    // Total balance is still 0.1 BTC, but available is only 0.05 BTC (rest is locked)
+    let result = create_offer(
+        &env,
+        &writer_wallet,
+        SIX_MILLION_SATS,
+        STRIKE_BPS,
+        PREMIUM_BPS,
+        ONE_DAY_SECS,
+    );
+
+    // then
+    assert!(result.is_err());
+    let error = result.unwrap_err();
+    assert_eq!(error.code, error_codes::INSUFFICIENT_BALANCE.code);
+}
