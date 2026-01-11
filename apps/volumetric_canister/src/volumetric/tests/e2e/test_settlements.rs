@@ -6,7 +6,7 @@ use crate::helpers::{
 };
 use volumetric::{AcceptOfferItem, EventData, EventType, TradeRole};
 
-const ONE_BTC_SATS: u64 = 100_000_000;
+const ONE_BTC_SATS: u64 = 100_000_000; // 1 BTC
 const BASIS_POINTS: u64 = 10_000;
 const PREMIUM_BPS: u16 = 100;
 const PREMIUM_FEE_BPS: u64 = 500;
@@ -92,7 +92,7 @@ fn test_expired_itm_option_auto_settles_with_correct_payouts() {
 
     // then
     const EXPECTED_OPTION_ID: u64 = 1;
-    const EXPECTED_GROSS_BUYER_PAYOUT_SATS: u64 = 50_000_000;
+    const EXPECTED_GROSS_BUYER_PAYOUT_SATS: u64 = 50_000_000; // 0.5 BTC
 
     const EXPECTED_PROFIT_FEE_SATS: u64 =
         EXPECTED_GROSS_BUYER_PAYOUT_SATS * PROFIT_FEE_BPS / BASIS_POINTS;
@@ -398,7 +398,7 @@ fn test_multiple_options_settle_in_single_cron_tick() {
     env.advance_time_secs(ONE_DAY_SECS + ONE_HOUR_SECS);
 
     // then
-    const EXPECTED_GROSS_BUYER_1_PAYOUT_SATS: u64 = 943_396;
+    const EXPECTED_GROSS_BUYER_1_PAYOUT_SATS: u64 = 943_396; // 0.00943396 BTC
     const EXPECTED_PROFIT_FEE_SATS: u64 =
         EXPECTED_GROSS_BUYER_1_PAYOUT_SATS * PROFIT_FEE_BPS / BASIS_POINTS;
     const EXPECTED_BUYER_1_PAYOUT_SATS: u64 =

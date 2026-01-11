@@ -9,7 +9,7 @@ use volumetric::{
     AcceptOfferItem, ActiveOptionStatus, EventData, EventType, FeatureFlags, OfferStatus, TradeRole,
 };
 
-/// Given: Writer creates 10M sats offer, buyer has premium + fees
+/// Given: Writer creates 0.1 BTC offer, buyer has premium + fees
 /// When: Buyer accepts full offer quantity
 /// Then: Option created, writer collateral locked, offer removed, OfferAccepted events emitted
 #[test]
@@ -27,7 +27,7 @@ fn test_buyer_accepts_offer_creates_option_and_locks_writer_collateral() {
     let writer_profile = create_account(&env, &writer_wallet).expect("Writer account failed");
     let buyer_profile = create_account(&env, &buyer_wallet).expect("Buyer account failed");
 
-    const TEN_MILLION_SATS: u64 = 10_000_000;
+    const TEN_MILLION_SATS: u64 = 10_000_000; // 0.1 BTC
     const STRIKE_BPS: u16 = 500;
     const PREMIUM_BPS: u16 = 100;
     const ONE_DAY_SECS: u64 = 86_400;
@@ -132,9 +132,9 @@ fn test_buyer_accepts_offer_creates_option_and_locks_writer_collateral() {
     );
 }
 
-/// Given: Writer creates 20M sats offer, buyer has premium for 10M sats
-/// When: Buyer partially fills offer with 10M sats
-/// Then: Option created for filled amount, offer remains open with 10M sats remaining
+/// Given: Writer creates 0.2 BTC offer, buyer has premium for 0.1 BTC
+/// When: Buyer partially fills offer with 0.1 BTC
+/// Then: Option created for filled amount, offer remains open with 0.1 BTC remaining
 #[test]
 fn test_partial_fill_creates_option_and_leaves_offer_open_for_remainder() {
     // given
@@ -157,8 +157,8 @@ fn test_partial_fill_creates_option_and_leaves_offer_open_for_remainder() {
     let writer_profile = create_account(&env, &writer_wallet).expect("Writer account failed");
     let buyer_profile = create_account(&env, &buyer_wallet).expect("Buyer account failed");
 
-    const TEN_MILLION_SATS: u64 = 10_000_000;
-    const TWENTY_MILLION_SATS: u64 = 20_000_000;
+    const TEN_MILLION_SATS: u64 = 10_000_000; // 0.1 BTC
+    const TWENTY_MILLION_SATS: u64 = 20_000_000; // 0.2 BTC
     const STRIKE_BPS: u16 = 500;
     const PREMIUM_BPS: u16 = 100;
     const ONE_DAY_SECS: u64 = 86_400;
@@ -219,7 +219,7 @@ fn test_partial_fill_creates_option_and_leaves_offer_open_for_remainder() {
     assert_eq!(offers[0].status, OfferStatus::PartiallyFilled);
 }
 
-/// Given: Writer creates 10M sats offer, two buyers each have premium + fees for full quantity
+/// Given: Writer creates 0.1 BTC offer, two buyers each have premium + fees for full quantity
 /// When: Both buyers attempt to accept the full offer quantity
 /// Then: First buyer succeeds, second buyer fails with offer not found (already filled)
 #[test]
@@ -240,7 +240,7 @@ fn test_second_buyer_fails_when_offer_already_fully_accepted() {
     let buyer_1_profile = create_account(&env, &buyer_1_wallet).expect("Buyer 1 account failed");
     let buyer_2_profile = create_account(&env, &buyer_2_wallet).expect("Buyer 2 account failed");
 
-    const TEN_MILLION_SATS: u64 = 10_000_000;
+    const TEN_MILLION_SATS: u64 = 10_000_000; // 0.1 BTC
     const STRIKE_BPS: u16 = 500;
     const PREMIUM_BPS: u16 = 100;
     const ONE_DAY_SECS: u64 = 86_400;
@@ -314,7 +314,7 @@ fn test_accept_own_offer_fails() {
     let writer_wallet = generate_wallet(WRITER_SEED);
     let writer_profile = create_account(&env, &writer_wallet).expect("Writer account failed");
 
-    const TEN_MILLION_SATS: u64 = 10_000_000;
+    const TEN_MILLION_SATS: u64 = 10_000_000; // 0.1 BTC
     const STRIKE_BPS: u16 = 500;
     const PREMIUM_BPS: u16 = 100;
     const ONE_DAY_SECS: u64 = 86_400;
@@ -378,7 +378,7 @@ fn test_accept_expired_offer_fails() {
     let writer_profile = create_account(&env, &writer_wallet).expect("Writer account failed");
     let buyer_profile = create_account(&env, &buyer_wallet).expect("Buyer account failed");
 
-    const TEN_MILLION_SATS: u64 = 10_000_000;
+    const TEN_MILLION_SATS: u64 = 10_000_000; // 0.1 BTC
     const STRIKE_BPS: u16 = 500;
     const PREMIUM_BPS: u16 = 100;
     const ONE_DAY_SECS: u64 = 86_400;
@@ -442,7 +442,7 @@ fn test_accept_cancelled_offer_fails() {
     let writer_profile = create_account(&env, &writer_wallet).expect("Writer account failed");
     let buyer_profile = create_account(&env, &buyer_wallet).expect("Buyer account failed");
 
-    const TEN_MILLION_SATS: u64 = 10_000_000;
+    const TEN_MILLION_SATS: u64 = 10_000_000; // 0.1 BTC
     const STRIKE_BPS: u16 = 500;
     const PREMIUM_BPS: u16 = 100;
     const ONE_DAY_SECS: u64 = 86_400;
@@ -505,7 +505,7 @@ fn test_accept_with_insufficient_balance_fails() {
     let writer_profile = create_account(&env, &writer_wallet).expect("Writer account failed");
     let buyer_profile = create_account(&env, &buyer_wallet).expect("Buyer account failed");
 
-    const TEN_MILLION_SATS: u64 = 10_000_000;
+    const TEN_MILLION_SATS: u64 = 10_000_000; // 0.1 BTC
     const STRIKE_BPS: u16 = 500;
     const PREMIUM_BPS: u16 = 100;
     const ONE_DAY_SECS: u64 = 86_400;
@@ -546,8 +546,8 @@ fn test_accept_with_insufficient_balance_fails() {
     assert_eq!(error.code, error_codes::INSUFFICIENT_BALANCE.code);
 }
 
-/// Given: Writer creates 10M sats offer, partial filling disabled
-/// When: Buyer attempts to accept 20M sats
+/// Given: Writer creates 0.1 BTC offer, partial filling disabled
+/// When: Buyer attempts to accept 0.2 BTC
 /// Then: Error QUANTITY_EXCEEDS_AVAILABLE returned
 #[test]
 fn test_accept_quantity_exceeds_remaining_fails() {
@@ -564,8 +564,8 @@ fn test_accept_quantity_exceeds_remaining_fails() {
     let writer_profile = create_account(&env, &writer_wallet).expect("Writer account failed");
     let buyer_profile = create_account(&env, &buyer_wallet).expect("Buyer account failed");
 
-    const TEN_MILLION_SATS: u64 = 10_000_000;
-    const TWENTY_MILLION_SATS: u64 = 20_000_000;
+    const TEN_MILLION_SATS: u64 = 10_000_000; // 0.1 BTC
+    const TWENTY_MILLION_SATS: u64 = 20_000_000; // 0.2 BTC
     const STRIKE_BPS: u16 = 500;
     const PREMIUM_BPS: u16 = 100;
     const ONE_DAY_SECS: u64 = 86_400;
@@ -610,8 +610,8 @@ fn test_accept_quantity_exceeds_remaining_fails() {
     assert_eq!(error.code, error_codes::QUANTITY_EXCEEDS_AVAILABLE.code);
 }
 
-/// Given: Writer creates 20M sats offer, partial filling disabled
-/// When: Buyer attempts to accept 10M sats (partial)
+/// Given: Writer creates 0.2 BTC offer, partial filling disabled
+/// When: Buyer attempts to accept 0.1 BTC (partial)
 /// Then: Error PARTIAL_FILLING_DISABLED returned
 #[test]
 fn test_partial_fill_disabled_rejects_partial_quantity() {
@@ -628,8 +628,8 @@ fn test_partial_fill_disabled_rejects_partial_quantity() {
     let writer_profile = create_account(&env, &writer_wallet).expect("Writer account failed");
     let buyer_profile = create_account(&env, &buyer_wallet).expect("Buyer account failed");
 
-    const TEN_MILLION_SATS: u64 = 10_000_000;
-    const TWENTY_MILLION_SATS: u64 = 20_000_000;
+    const TEN_MILLION_SATS: u64 = 10_000_000; // 0.1 BTC
+    const TWENTY_MILLION_SATS: u64 = 20_000_000; // 0.2 BTC
     const STRIKE_BPS: u16 = 500;
     const PREMIUM_BPS: u16 = 100;
     const ONE_DAY_SECS: u64 = 86_400;
@@ -674,7 +674,7 @@ fn test_partial_fill_disabled_rejects_partial_quantity() {
     assert_eq!(error.code, error_codes::PARTIAL_FILLING_DISABLED.code);
 }
 
-/// Given: Writer creates 30M sats offer, partial filling enabled
+/// Given: Writer creates 0.3 BTC offer, partial filling enabled
 /// When: Buyer 1 accepts 10M, Buyer 2 accepts 10M, Buyer 3 accepts 10M
 /// Then: Three options created, offer status is Filled
 #[test]
@@ -705,8 +705,8 @@ fn test_multiple_partial_fills_exhaust_offer() {
     let buyer_2_profile = create_account(&env, &buyer_2_wallet).expect("Buyer 2 account failed");
     let buyer_3_profile = create_account(&env, &buyer_3_wallet).expect("Buyer 3 account failed");
 
-    const TEN_MILLION_SATS: u64 = 10_000_000;
-    const THIRTY_MILLION_SATS: u64 = 30_000_000;
+    const TEN_MILLION_SATS: u64 = 10_000_000; // 0.1 BTC
+    const THIRTY_MILLION_SATS: u64 = 30_000_000; // 0.3 BTC
     const STRIKE_BPS: u16 = 500;
     const PREMIUM_BPS: u16 = 100;
     const ONE_DAY_SECS: u64 = 86_400;
@@ -805,7 +805,7 @@ fn test_multiple_partial_fills_exhaust_offer() {
     assert_eq!(offers.len(), 0);
 }
 
-/// Given: Writer has 20M sats, creates offer for 10M, buyer accepts it
+/// Given: Writer has 0.2 BTC, creates offer for 10M, buyer accepts it
 /// When: Writer creates second offer for 10M, second buyer accepts it
 /// Then: Writer's collateral is locked cumulatively
 #[test]
@@ -826,8 +826,8 @@ fn test_accepted_offers_lock_cumulative_collateral() {
     let buyer_1_profile = create_account(&env, &buyer_1_wallet).expect("Buyer 1 account failed");
     let buyer_2_profile = create_account(&env, &buyer_2_wallet).expect("Buyer 2 account failed");
 
-    const TEN_MILLION_SATS: u64 = 10_000_000;
-    const TWENTY_MILLION_SATS: u64 = 20_000_000;
+    const TEN_MILLION_SATS: u64 = 10_000_000; // 0.1 BTC
+    const TWENTY_MILLION_SATS: u64 = 20_000_000; // 0.2 BTC
     const STRIKE_BPS: u16 = 500;
     const PREMIUM_BPS: u16 = 100;
     const ONE_DAY_SECS: u64 = 86_400;
