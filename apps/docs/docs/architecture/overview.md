@@ -139,9 +139,9 @@ sequenceDiagram
     
     Timer->>Platform: Trigger settlement (hourly)
     Platform->>Platform: Find expired options
+    Platform->>Oracle: Get BTC/USD price
+    Oracle->>Platform: Return settlement price
     loop For each expired option
-        Platform->>Oracle: Get BTC/USD price at expiry
-        Oracle->>Platform: Return settlement price
         Platform->>Platform: Calculate & distribute payouts
         Platform->>Platform: Mark option as settled
     end
