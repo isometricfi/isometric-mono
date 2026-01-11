@@ -67,20 +67,7 @@ Durations are standardized in seconds.
 - 1,209,600 seconds = 14 days
 
 **Expiry Calculation**:
-Options expire on **hour boundaries** for efficient batch settlement.
-
-```rust
-fn calculate_expiry_ns(now: u64, duration_seconds: u64) -> u64 {
-    let duration_ns = duration_seconds * 1_000_000_000;
-    let expiry_ns = now + duration_ns;
-    
-    // Round up to next hour boundary
-    let hour_ns = 3_600_000_000_000;
-    ((expiry_ns + hour_ns - 1) / hour_ns) * hour_ns
-}
-```
-
-This ensures all options expire at :00 minutes past the hour.
+Options expire on **hour boundaries** for efficient batch settlement. Expiry times are automatically rounded up to the next hour mark to ensure all options expire at :00 minutes past the hour.
 
 ### 5. Quantity (Satoshis)
 
@@ -93,20 +80,28 @@ Quantities can be any value within this range (not standardized to specific incr
 
 ## Trading Limits
 
-The platform enforces trading limits via configuration:
+The platform enforces configurable trading limits:
 
-```rust
-pub struct TradingLimits {
-    pub quantity_sats: Range { min: 90_000, max: 100_000_000 },
-    pub premium_basis_points: Range { min: 50, max: 500 },
-    pub strike_basis_points: Range { min: 500, max: 2_000 },
-    pub option_duration_seconds: Range { min: 86_400, max: 1_209_600 },
-    pub term_days: Range { min: 1, max: 14 },
-    pub deposit_amount_sats: 50_000,
-    pub withdraw_amount_sats: 50_000,
-    pub max_offers_per_term: 3,
-}
-```
+**Quantity limits**:
+- Minimum: 90,000 sats (0.0009 BTC)
+- Maximum: 100,000,000 sats (1.0 BTC)
+
+**Premium limits**:
+- Minimum: 50 basis points (0.5%)
+- Maximum: 500 basis points (5%)
+
+**Strike limits**:
+- Minimum: 500 basis points (+5%)
+- Maximum: 2,000 basis points (+20%)
+
+**Duration limits**:
+- Minimum: 86,400 seconds (1 day)
+- Maximum: 1,209,600 seconds (14 days)
+
+**Other limits**:
+- Minimum deposit: 50,000 sats
+- Minimum withdrawal: 50,000 sats
+- Max offers per term: 3
 
 ### Max Offers Per Term
 
@@ -186,20 +181,7 @@ Buyers can easily see total liquidity per bucket and choose the best option.
 
 ## Configuration Updates
 
-Platform admins can update trading limits via:
-
-```bash
-dfx canister call isometric_dev set_trading_limits_config --network ic '(record {
-  quantity_sats = record { min = 90_000 : nat64; max = 100_000_000 : nat64 };
-  premium_basis_points = record { min = 50 : nat16; max = 500 : nat16 };
-  strike_basis_points = record { min = 500 : nat16; max = 2_000 : nat16 };
-  option_duration_seconds = record { min = 86_400 : nat64; max = 1_209_600 : nat64 };
-  term_days = record { min = 1 : nat64; max = 14 : nat64 };
-  deposit_amount_sats = 50_000 : nat64;
-  withdraw_amount_sats = 50_000 : nat64;
-  max_offers_per_term = 3 : nat64;
-})'
-```
+Platform administrators can update trading limits and parameters to adjust the platform's risk profile and user experience as market conditions evolve.
 
 ## Future Enhancements
 

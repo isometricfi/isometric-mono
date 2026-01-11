@@ -51,23 +51,12 @@ Isometric 收取极低比例的服务费，以维持平台的后续开发和日�
 
 ## 费用配置
 
-平台管理员可以通过以下后台接口更新费用参数：
+平台管理员可以调整费用比例：
 
-```rust
-pub struct FeeConfig {
-    pub premium_fee_basis_points: u64,  // 示例：500 代表 5%
-    pub profit_fee_basis_points: u64,   // 示例：2000 代表 20%
-}
-```
+**权利金手续费**：从买方支付的权利金中收取的百分比（默认：5%）
+**利润分成费**：从买方在实值期权中获得的利润中收取的百分比（默认：20%）
 
-后台更新指令示例：
-
-```bash
-dfx canister call isometric_dev set_fee_config --network ic '(record {
-  premium_fee_basis_points = 500 : nat64;
-  profit_fee_basis_points = 2000 : nat64;
-})'
-```
+费用可配置，以平衡平台的可持续性与竞争力定价。
 
 ## 费用示例汇总
 

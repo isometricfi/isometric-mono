@@ -40,14 +40,7 @@ ckBTC Ledger
 
 ### Subaccount Derivation
 
-```rust
-fn derive_subaccount(principal: Principal) -> [u8; 32] {
-    let mut hasher = Sha256::new();
-    hasher.update(b"isometric-subaccount");
-    hasher.update(principal.as_slice());
-    hasher.finalize().into()
-}
-```
+Each user's subaccount is derived deterministically from their ICP principal using cryptographic hashing.
 
 This ensures:
 - **Deterministic**: Same principal always gets same subaccount
@@ -96,19 +89,12 @@ stateDiagram-v2
 
 ### Step 1: Get Deposit Address
 
-User calls `get_deposit_address()`:
+User requests their unique deposit address from the platform.
 
-```rust
-pub fn get_deposit_address(wallet_address: String) -> String {
-    let principal = get_principal_for_wallet(&wallet_key)?;
-    let subaccount = derive_subaccount(principal);
-    
-    // ckBTC minter canister address + user subaccount
-    encode_btc_address(CKBTC_MINTER, subaccount)
-}
-```
-
-This returns a **unique Bitcoin address** for the user.
+The platform generates a Bitcoin address that:
+- Is unique to the user
+- Routes deposits to the user's ckBTC subaccount
+- Can be used multiple times for deposits
 
 ### Step 2: Send BTC
 
@@ -123,76 +109,30 @@ The ckBTC minter canister:
 
 ### Step 4: Update Balance
 
-User calls `update_ckbtc_balance()`:
+User requests a balance update to sync their internal balance with the ckBTC ledger:
 
-```rust
-pub async fn update_ckbtc_balance(wallet_address: String) -> Result<u64> {
-    let principal = get_principal_for_wallet(&wallet_key)?;
-    let subaccount = derive_subaccount(principal);
-    
-    // Query ckBTC ledger for balance
-    let balance = ckbtc_ledger.balance_of(canister_self(), subaccount).await?;
-    
-    // Update internal balance tracking
-    update_user_balance(principal, balance);
-    
-    Ok(balance)
-}
-```
-
-This syncs the internal balance with the ckBTC ledger.
+1. Platform queries the ckBTC ledger for the user's subaccount balance
+2. Internal balance tracking is updated to match
+3. User can now use the deposited funds for trading
 
 ## Withdrawal Flow
 
 ### Step 1: Request Withdrawal
 
-User calls `withdraw_ckbtc(amount, btc_address)`:
+User requests to withdraw ckBTC to an external Bitcoin address:
 
-```rust
-pub async fn withdraw_ckbtc(
-    req: AuthenticatedPayload<WithdrawCkbtcRequest>
-) -> Result<WithdrawResult> {
-    // Verify signature
-    verify_btc_signature(...)?;
-    
-    // Check available balance
-    let balance = get_balance(&principal);
-    if balance.available < req.data.amount {
-        return Err(InsufficientBalance);
-    }
-    
-    // Create pending withdrawal
-    let withdrawal = create_pending_withdrawal(principal, req.data.amount, req.data.address);
-    
-    // Deduct from available balance
-    subtract_available(principal, req.data.amount)?;
-    
-    Ok(withdrawal)
-}
-```
+1. Platform verifies the user's signature
+2. Checks that sufficient available (non-locked) balance exists
+3. Creates a pending withdrawal record
+4. Deducts the amount from available balance
 
 ### Step 2: Process Withdrawal
 
-A background timer processes pending withdrawals:
+A background process handles pending withdrawals:
 
-```rust
-async fn process_withdrawals() {
-    for withdrawal in get_pending_withdrawals() {
-        // Transfer ckBTC to ckBTC minter for redemption
-        let result = ckbtc_ledger.transfer(
-            from_subaccount: user_subaccount,
-            to: ckbtc_minter_address,
-            amount: withdrawal.amount,
-        ).await;
-        
-        if result.is_ok() {
-            // Request BTC redemption
-            ckbtc_minter.retrieve_btc(withdrawal.btc_address, withdrawal.amount).await;
-            mark_withdrawal_complete(withdrawal.id);
-        }
-    }
-}
-```
+1. Transfers ckBTC from user's subaccount to the ckBTC minter
+2. Requests BTC redemption to the user's specified address
+3. Marks withdrawal as complete
 
 ### Step 3: BTC Redemption
 
@@ -207,23 +147,10 @@ When a buyer accepts an offer, the writer's collateral is locked.
 
 ### Lock Process
 
-```rust
-pub fn lock_collateral(writer: Principal, amount: u64) -> Result<()> {
-    let mut balance = get_balance(&writer);
-    
-    // Check sufficient available balance
-    if balance.available < amount {
-        return Err(InsufficientBalance);
-    }
-    
-    // Move from available to locked
-    balance.available -= amount;
-    balance.locked_as_writer += amount;
-    
-    update_balance(writer, balance);
-    Ok(())
-}
-```
+The platform atomically:
+1. Verifies writer has sufficient available balance
+2. Moves funds from "available" to "locked as writer" state
+3. If insufficient balance, the entire operation fails
 
 **Key Points**:
 - Atomic operation (all-or-nothing)
@@ -232,30 +159,16 @@ pub fn lock_collateral(writer: Principal, amount: u64) -> Result<()> {
 
 ### Unlock Process (Settlement)
 
-```rust
-pub fn settle_option(option: ActiveOption, settlement_price: u64) -> Result<()> {
-    if settlement_price > option.strike_price_cents {
-        // ITM: Calculate payout
-        let payout = calculate_payout(option.quantity, settlement_price, option.strike_price_cents);
-        
-        // Unlock writer collateral
-        unlock_collateral(option.writer, option.quantity)?;
-        
-        // Transfer payout to buyer
-        add_available(option.buyer, payout);
-        
-        // Return remaining to writer
-        let remaining = option.quantity - payout;
-        add_available(option.writer, remaining);
-    } else {
-        // OTM: Return full collateral to writer
-        unlock_collateral(option.writer, option.quantity)?;
-        add_available(option.writer, option.quantity);
-    }
-    
-    Ok(())
-}
-```
+At settlement, the platform:
+
+**If Out-of-the-Money**:
+- Unlocks full collateral
+- Returns all funds to writer's available balance
+
+**If In-the-Money**:
+- Calculates payout to buyer
+- Transfers payout from locked collateral
+- Returns remaining collateral to writer
 
 ## Premium Transfers
 
@@ -263,35 +176,10 @@ When a buyer accepts an offer, the premium is transferred immediately.
 
 ### Transfer Flow
 
-```rust
-pub async fn transfer_premium(
-    buyer: Principal,
-    writer: Principal,
-    premium: u64,
-    platform_fee: u64,
-) -> Result<()> {
-    let buyer_subaccount = derive_subaccount(buyer);
-    let writer_subaccount = derive_subaccount(writer);
-    
-    // Transfer premium to writer (minus fee)
-    ckbtc_ledger.transfer(
-        from_subaccount: Some(buyer_subaccount),
-        to: Account { owner: canister_self(), subaccount: Some(writer_subaccount) },
-        amount: premium - platform_fee,
-    ).await?;
-    
-    // Transfer fee to platform
-    if platform_fee > 0 {
-        ckbtc_ledger.transfer(
-            from_subaccount: Some(buyer_subaccount),
-            to: Account { owner: fee_recipient(), subaccount: None },
-            amount: platform_fee,
-        ).await?;
-    }
-    
-    Ok(())
-}
-```
+The platform executes on-chain ckBTC transfers:
+
+1. **Premium to writer**: Transfers premium (minus platform fee) from buyer's subaccount to writer's subaccount
+2. **Fee to platform**: Transfers platform fee from buyer's subaccount to platform fee recipient
 
 **Key Points**:
 - Premium is paid **upfront** (not at settlement)
@@ -310,59 +198,24 @@ The canister maintains internal balance tracking for efficiency.
 
 ### Reconciliation
 
-Periodically, the canister can reconcile internal balances with the ckBTC ledger:
+The platform can verify internal balances match the ckBTC ledger:
 
-```rust
-pub async fn reconcile_balance(principal: Principal) -> Result<()> {
-    let subaccount = derive_subaccount(principal);
-    let ledger_balance = ckbtc_ledger.balance_of(canister_self(), subaccount).await?;
-    let internal_balance = get_balance(&principal);
-    
-    let expected = internal_balance.available 
-                 + internal_balance.locked_as_writer 
-                 + internal_balance.locked_as_buyer;
-    
-    if ledger_balance != expected {
-        // Log discrepancy for investigation
-        log_balance_mismatch(principal, ledger_balance, expected);
-    }
-    
-    Ok(())
-}
-```
+1. Query actual ckBTC balance from ledger
+2. Calculate expected balance (available + locked_as_writer + locked_as_buyer)
+3. Compare and log any discrepancies for investigation
 
 ## Security Considerations
 
 ### Reentrancy Protection
 
-All balance operations use **locks** to prevent reentrancy:
-
-```rust
-pub struct AcceptLock {
-    principal: Principal,
-}
-
-impl AcceptLock {
-    pub fn new(principal: Principal) -> Result<Self> {
-        if is_locked(principal) {
-            return Err(OperationInProgress);
-        }
-        set_locked(principal, true);
-        Ok(Self { principal })
-    }
-}
-
-impl Drop for AcceptLock {
-    fn drop(&mut self) {
-        set_locked(self.principal, false);
-    }
-}
-```
+All balance operations use locks to prevent concurrent modifications:
+- Operations acquire locks before modifying balances
+- Locks are automatically released when operations complete
+- Prevents race conditions and double-spending
 
 ### Balance Checks
 
 All operations verify balances **before** execution:
-
 - Offers: Check writer has sufficient available balance
 - Accepts: Check buyer has sufficient available balance for premium
 - Withdrawals: Check user has sufficient available balance
@@ -370,23 +223,9 @@ All operations verify balances **before** execution:
 ### Rollback on Failure
 
 If any step fails during accept or settlement, state is rolled back:
-
-```rust
-// Lock collateral
-for offer in offers {
-    lock_collateral(offer.writer, offer.quantity)?;
-    locked_states.push(offer);
-}
-
-// Transfer premium
-if transfer_premium(...).await.is_err() {
-    // Rollback all locks
-    for state in locked_states {
-        unlock_collateral(state.writer, state.quantity);
-    }
-    return Err(TransferFailed);
-}
-```
+- Collateral locks are reversed
+- Balance changes are undone
+- Ensures consistency even if operations fail mid-execution
 
 ## Next Steps
 

@@ -42,16 +42,7 @@ Isometric 的抵押品系统旨在实现最高水平的安全性和透明度。�
 
 ## 开发者视角
 
-容器代码中使用账户抽象来隔离锁定资金：
-
-```rust
-pub struct CollateralPosition {
-    pub owner: Principal,
-    pub amount: u64,           // 以聪为单位
-    pub option_id: OptionId,   // 关联的期权 ID
-    pub expiry: u64,           // 到期时间戳
-}
-```
+容器代码使用账户抽象来隔离锁定资金，确保每个期权的抵押品都被正确追踪和管理。
 
 ---
 

@@ -40,8 +40,6 @@ graph TB
 - Real-time price display
 - Portfolio management UI
 
-**Location**: `apps/isometric_web/`
-
 ### 2. Backend (Isometric Canister)
 
 **Technology**: Rust, IC CDK (Internet Computer Development Kit)
@@ -52,16 +50,6 @@ graph TB
 - Balance management (deposits, withdrawals, transfers)
 - Event logging and state management
 - Automatic settlement via timers
-
-**Location**: `apps/isometric_canister/`
-
-**Key Modules**:
-- `api/`: Public canister endpoints
-- `usecases/`: Core business logic
-- `storage/`: Stable storage for persistent data
-- `auth/`: BTC signature verification
-- `oracle/`: External price feeds
-- `timers/`: Automatic settlement
 
 
 ### 3. ckBTC Ledger

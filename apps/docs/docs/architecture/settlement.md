@@ -21,17 +21,7 @@ When options expire, the platform automatically:
 
 ### Hourly Batch Settlement
 
-A timer runs **every hour** to settle expired options:
-
-```rust
-fn setup_settlement_timer() {
-    ic_cdk_timers::set_timer_interval(Duration::from_secs(3600), || {
-        ic_cdk::spawn(async {
-            let _ = settle_expired_options_use_case().await;
-        });
-    });
-}
-```
+A background timer runs **every hour** to settle expired options automatically.
 
 ### Expiry Alignment
 
@@ -56,228 +46,104 @@ Isometric uses the [ICP Exchange Rate Canister](https://internetcomputer.org/cur
 
 ### Fetching Settlement Price
 
-```rust
-pub async fn get_btc_usd_price_cents() -> Result<u64> {
-    let request = GetExchangeRateRequest {
-        base_asset: Asset::BTC,
-        quote_asset: Asset::USD,
-        timestamp: None, // Use latest
-    };
-    
-    let response = exchange_rate_canister.get_exchange_rate(request).await?;
-    
-    // Convert to cents (e.g., $100,000.00 = 10,000,000 cents)
-    let price_cents = (response.rate * 100.0) as u64;
-    
-    Ok(price_cents)
-}
-```
+The platform queries the ICP Exchange Rate Canister for the current BTC/USD price:
+
+1. Requests latest BTC/USD exchange rate
+2. Receives median price from multiple exchanges
+3. Converts to cents for precise calculations (e.g., $100,000.00 = 10,000,000 cents)
 
 ## Settlement Logic
 
 ### Step 1: Find Expired Options
 
-```rust
-pub fn get_expired_options(now: u64) -> Vec<ActiveOption> {
-    ACTIVE_OPTIONS.with(|options| {
-        options.borrow()
-            .iter()
-            .filter(|(_, opt)| {
-                opt.status == ActiveOptionStatus::Active && opt.expiry <= now
-            })
-            .map(|(_, opt)| opt.clone())
-            .collect()
-    })
-}
-```
+The platform identifies all active options where the expiry time has passed.
 
 ### Step 2: Calculate Payout
 
 For each expired option:
 
-```rust
-pub fn calculate_payout(
-    quantity_sats: u64,
-    settlement_price_cents: u64,
-    strike_price_cents: u64,
-) -> u64 {
-    if settlement_price_cents <= strike_price_cents {
-        // Out-of-the-money: no payout
-        return 0;
-    }
-    
-    // In-the-money: calculate intrinsic value in BTC
-    let intrinsic_usd_cents = settlement_price_cents - strike_price_cents;
-    
-    // Convert to BTC: (intrinsic_usd / settlement_price) * quantity
-    // Using integer math to avoid floating point
-    let payout_sats = (intrinsic_usd_cents as u128 * quantity_sats as u128 
-                      / settlement_price_cents as u128) as u64;
-    
-    payout_sats
-}
-```
+**If Out-of-the-Money** (settlement price ≤ strike price):
+- No payout to buyer
+- Full collateral returned to writer
+
+**If In-the-Money** (settlement price > strike price):
+- Calculate intrinsic value in USD
+- Convert to BTC based on settlement price
+- Deduct profit fee (paid by buyer)
 
 **Example**:
 - Quantity: 0.3 BTC (30,000,000 sats)
-- Strike: $110,000 (11,000,000 cents)
-- Settlement: $132,000 (13,200,000 cents)
-- Intrinsic: $22,000 (2,200,000 cents)
-- Payout: (2,200,000 / 13,200,000) × 30,000,000 = **5,000,000 sats (0.05 BTC)**
+- Strike: $110,000
+- Settlement: $132,000
+- Intrinsic value: $22,000
+- Payout: ~0.05 BTC (5,000,000 sats)
 
 ### Step 3: Transfer Funds
 
 #### If Out-of-the-Money
 
-```rust
-// Unlock writer collateral
-unlock_collateral(option.writer, option.quantity)?;
-
-// Credit full collateral back to writer
-add_available(option.writer, option.quantity);
-
-// Buyer gets nothing (already lost premium)
-```
+1. Unlock writer's collateral
+2. Credit full collateral back to writer's available balance
+3. Buyer receives nothing (already paid premium upfront)
 
 #### If In-the-Money
 
-```rust
-// Calculate payout and profit fee
-let gross_payout = calculate_payout(...);
-let profit_fee = (gross_payout * option.profit_fee_basis_points) / 10_000;
-let net_payout = gross_payout - profit_fee;
-
-// Unlock writer collateral
-unlock_collateral(option.writer, option.quantity)?;
-
-// Transfer net payout to buyer
-add_available(option.buyer, net_payout);
-
-// Transfer profit fee to platform
-add_platform_fee(profit_fee);
-
-// Return remaining collateral to writer
-let remaining = option.quantity - gross_payout;
-add_available(option.writer, remaining);
-```
+1. Calculate gross payout to buyer
+2. Deduct profit fee from payout
+3. Unlock writer's collateral
+4. Transfer net payout to buyer's available balance
+5. Transfer profit fee to platform
+6. Return remaining collateral to writer's available balance
 
 ### Step 4: Update Option Status
 
-```rust
-option.status = ActiveOptionStatus::Settled;
-update_active_option(option);
-```
+The option is marked as settled in the platform's storage.
 
 ### Step 5: Emit Events
 
-```rust
-emit_event(
-    option.buyer,
-    EventType::OptionSettled,
-    EventData::OptionSettled {
-        option_id: option.id,
-        settlement_price_cents,
-        payout_sats: net_payout,
-        role: TradeRole::Buyer,
-    },
-);
-
-emit_event(
-    option.writer,
-    EventType::OptionSettled,
-    EventData::OptionSettled {
-        option_id: option.id,
-        settlement_price_cents,
-        payout_sats: gross_payout,
-        role: TradeRole::Writer,
-    },
-);
-```
+Settlement events are emitted for both buyer and writer, including:
+- Option ID
+- Settlement price
+- Payout amount
+- User's role (buyer or writer)
 
 ## Error Handling
 
 ### Oracle Failures
 
 If the oracle fails to return a price:
-
-```rust
-match get_btc_usd_price_cents().await {
-    Ok(price) => {
-        // Proceed with settlement
-        settle_option(option, price)?;
-    }
-    Err(e) => {
-        // Log error and retry next hour
-        log_settlement_error(option.id, e);
-        // Option remains active, will retry next settlement cycle
-    }
-}
-```
+- Error is logged for investigation
+- Option remains active
+- Settlement will be retried in the next hourly cycle
 
 ### Partial Settlement
 
-If some options settle successfully but others fail:
-
-```rust
-for option in expired_options {
-    match settle_single_option(option).await {
-        Ok(_) => {
-            settled_count += 1;
-        }
-        Err(e) => {
-            failed_count += 1;
-            log_settlement_failure(option.id, e);
-        }
-    }
-}
-```
-
-Each option settles independently - one failure doesn't block others.
+Each option settles independently:
+- One failure doesn't block other settlements
+- Successfully settled options are marked complete
+- Failed settlements are logged and retried
 
 ## Settlement Journal
 
 The platform maintains a **settlement journal** for debugging and auditing:
 
-```rust
-pub struct PendingSettlement {
-    pub option_id: u64,
-    pub buyer: Principal,
-    pub writer: Principal,
-    pub quantity: u64,
-    pub strike_price_cents: u64,
-    pub expiry: u64,
-    pub phase: SettlementPhase,
-    pub created_at: u64,
-    pub error_message: Option<String>,
-}
+**Tracked information**:
+- Option details (ID, parties, quantity, strike, expiry)
+- Settlement phase (created, price fetched, payout calculated, funds transferred, completed, failed)
+- Timestamp
+- Error messages (if failed)
 
-pub enum SettlementPhase {
-    Created,
-    PriceFetched,
-    PayoutCalculated,
-    FundsTransferred,
-    Completed,
-    Failed,
-}
-```
+**Available queries** (for administrators):
+- Pending settlements in progress
+- Failed settlements requiring attention
+- Settlement details for specific options
 
-Admins can query:
-- `get_pending_settlements()` - Settlements in progress
-- `get_failed_settlements()` - Settlements that failed
-- `get_settlement_by_id(option_id)` - Specific settlement details
+## Administrative Tools
 
-## Manual Settlement
-
-Admins can manually trigger settlement for a specific option:
-
-```bash
-dfx canister call isometric_dev settle_option_by_id --network ic '(123 : nat64)'
-```
-
-**Use cases**:
+Administrators can manually trigger settlement for specific options if needed:
 - Retry failed settlements
 - Emergency settlement
-- Testing
+- Testing purposes
 
 ## Settlement Guarantees
 

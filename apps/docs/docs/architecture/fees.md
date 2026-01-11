@@ -51,73 +51,12 @@ Charged by the ckBTC ledger for on-chain transfers.
 
 ## Fee Configuration
 
-Platform admins can update fees via:
+Platform administrators can adjust fee rates:
 
-```rust
-pub struct FeeConfig {
-    pub premium_fee_basis_points: u64,  // e.g., 500 = 5%
-    pub profit_fee_basis_points: u64,   // e.g., 2000 = 20%
-}
-```
+**Premium fee**: Percentage of premium charged to buyers (default: 5%)
+**Profit fee**: Percentage of profits charged to buyers on ITM options (default: 20%)
 
-Update command:
-
-```bash
-dfx canister call isometric_dev set_fee_config --network ic '(record {
-  premium_fee_basis_points = 500 : nat64;
-  profit_fee_basis_points = 2000 : nat64;
-})'
-```
-
-## Fee Calculations
-
-### Premium Fee
-
-```rust
-pub fn calculate_premium_fee(premium: u64) -> u64 {
-    let fee_config = Config::fee_config();
-    (premium * fee_config.premium_fee_basis_points) / 10_000
-}
-```
-
-### Profit Fee
-
-```rust
-pub fn calculate_profit_fee(gross_payout: u64, profit_fee_bps: u64) -> u64 {
-    (gross_payout * profit_fee_bps) / 10_000
-}
-```
-
-## Fee Distribution
-
-### Platform Fee Recipient
-
-Fees are sent to a designated principal:
-
-```rust
-pub fn get_fee_recipient() -> Principal {
-    Config::fee_recipient()
-}
-```
-
-Admins can update the recipient:
-
-```bash
-dfx canister call isometric_dev set_fee_recipient --network ic '(principal "xxxxx-xxxxx-xxxxx-xxxxx-cai")'
-```
-
-### Fee Accumulation
-
-Fees accumulate in the platform's balance:
-
-```rust
-pub fn add_platform_fee(amount: u64) {
-    PLATFORM_FEES.with(|fees| {
-        let current = fees.borrow().get();
-        fees.borrow_mut().set(current + amount);
-    });
-}
-```
+Fees are configurable to balance platform sustainability with competitive pricing.
 
 ## Total Cost Examples
 
