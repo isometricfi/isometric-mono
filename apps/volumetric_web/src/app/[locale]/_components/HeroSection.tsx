@@ -1,6 +1,3 @@
-"use client";
-
-import { motion } from "framer-motion";
 import { Sparkles, TrendingUp, Zap } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { PayoffVisualization } from "./PayoffVisualization";
@@ -12,17 +9,12 @@ export function HeroSection() {
   return (
     <div className="relative z-10 flex flex-col items-center pt-20 pb-16">
       <div className="max-w-5xl w-full">
-        <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.6, delay: 0.1 }}
-          className="flex justify-center mb-6"
-        >
+        <div className="flex justify-center mb-6">
           <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/10 text-primary text-sm font-medium tracking-wide">
             <Sparkles className="size-4" />
             {t("publicBeta")}
           </span>
-        </motion.div>
+        </div>
 
         <h1 className="text-center text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight leading-[1.1] mb-6">
           {t("headline")}{" "}
@@ -57,12 +49,7 @@ export function HeroSection() {
           </div>
 
           {/* writers / yield side */}
-          <motion.div
-            initial={{ opacity: 0, x: 0 }}
-            whileInView={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.7, ease: "easeOut", delay: 0.2 }}
-            viewport={{ once: true }}
-          >
+          <div>
             <div className="mb-8">
               {/* mobile horizontal divider */}
               <div className="md:hidden relative w-full h-px mb-6">
@@ -97,15 +84,10 @@ export function HeroSection() {
             </div>
 
             <YieldDisplay />
-          </motion.div>
+          </div>
 
           {/* buyers / leverage side */}
-          <motion.div
-            initial={{ opacity: 0, x: 0 }}
-            whileInView={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.7, ease: "easeOut", delay: 0.3 }}
-            viewport={{ once: true }}
-          >
+          <div>
             <div className="mb-8">
               {/* mobile horizontal divider */}
               <div className="md:hidden relative w-full h-px mb-6">
@@ -138,17 +120,11 @@ export function HeroSection() {
             </div>
 
             <PayoffVisualization />
-          </motion.div>
+          </div>
         </div>
 
         {/* trust badges */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          whileInView={{ opacity: 1 }}
-          transition={{ duration: 0.6, delay: 0.2 }}
-          viewport={{ once: true }}
-          className="flex flex-wrap items-center justify-center gap-6 md:gap-10 mt-12 text-sm text-muted-foreground"
-        >
+        <div className="flex flex-wrap items-center justify-center gap-6 md:gap-10 mt-12 text-sm text-muted-foreground">
           <div className="flex items-center gap-2">
             <span className="text-xl">₿</span>
             <span>{t("btcNative")}</span>
@@ -157,7 +133,7 @@ export function HeroSection() {
             <Zap className="size-5 text-primary" />
             <span>{t("instantSettlement")}</span>
           </div>
-        </motion.div>
+        </div>
       </div>
     </div>
   );

@@ -1,40 +1,35 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { animate, motion } from "framer-motion";
 import { useTranslations } from "next-intl";
-import { useTheme } from "next-themes";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 
 export function PayoffVisualization() {
   const t = useTranslations("Landing");
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const { resolvedTheme } = useTheme();
 
+  // Configuration
   const strikePrice = 100000;
   const sizeBTC = 0.3;
   const premiumBTC = 0.003;
-
   const primaryColor = "#e86c3a";
-
-  const isDark = resolvedTheme === "dark";
-  const gridColor = isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.08)";
-  const zeroLineColor = isDark ? "rgba(255,255,255,0.2)" : "rgba(0,0,0,0.2)";
-
   const priceMin = 80000;
   const priceMax = 140000;
 
+  // Animation State
   const [progress, setProgress] = useState(0);
-  const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
-  const [animationKey, setAnimationKey] = useState(0);
-  const padding = { top: 20, right: 20, bottom: 20, left: 20 };
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
 
+  // Derived Values
   const pnlMin = -premiumBTC;
   const pnlMax = ((priceMax - strikePrice) / priceMax) * sizeBTC - premiumBTC;
 
+  // Current "Spot" logic
   const spotPrice = priceMin + progress * (priceMax - priceMin);
 
+  // PnL Calculation (Visual vs Math)
+  // Math: Used for displaying the text values
   const calculatePnL = (S: number): number => {
     if (S <= strikePrice) {
       return -premiumBTC;
@@ -47,133 +42,73 @@ export function PayoffVisualization() {
   const roi = (currentPnLBTC / premiumBTC) * 100;
   const inTheMoney = spotPrice > strikePrice;
 
-  const strikeProgress = (strikePrice - priceMin) / (priceMax - priceMin);
+  // Scales (0 to 100 percentage)
+  const xScale = (price: number) => ((price - priceMin) / (priceMax - priceMin)) * 100;
+  const yScale = (pnl: number) => (1 - (pnl - pnlMin) / (pnlMax - pnlMin)) * 100;
 
-  const totalDuration = 6;
+  // Static Coordinates
+  const xStart = xScale(priceMin);
+  const xStrike = xScale(strikePrice);
+  const xEnd = xScale(priceMax);
+  const yLoss = yScale(-premiumBTC);
+  const yWin = yScale(pnlMax);
+  const yZero = yScale(0);
+  const breakevenPrice = strikePrice + (premiumBTC / sizeBTC) * strikePrice;
+  const xBreakeven = xScale(breakevenPrice);
 
-  const animationKeyframes = useMemo(() => {
-    if (dimensions.width === 0 || dimensions.height === 0) {
-      return { x1: 0, x2: 0, x3: 0, y1: 0, y3: 0 };
-    }
-
-    const xScale = (price: number) => {
-      return (
-        padding.left +
-        ((price - priceMin) / (priceMax - priceMin)) *
-          (dimensions.width - padding.left - padding.right)
-      );
-    };
-
-    const yScale = (pnl: number) => {
-      return (
-        dimensions.height -
-        padding.bottom -
-        ((pnl - pnlMin) / (pnlMax - pnlMin)) * (dimensions.height - padding.top - padding.bottom)
-      );
-    };
-
-    return {
-      x1: xScale(priceMin),
-      x2: xScale(strikePrice),
-      x3: xScale(priceMax),
-      y1: yScale(-premiumBTC),
-      y3: yScale(pnlMax),
-    };
-  }, [dimensions.width, dimensions.height, pnlMax, pnlMin]);
-
-  const { x1, x2, x3, y1, y3 } = animationKeyframes;
-
+  // Measure container size
   useEffect(() => {
-    const container = containerRef.current;
-    if (!container) return;
-    const updateDimensions = () => {
-      const rect = container.getBoundingClientRect();
-      setDimensions({ width: rect.width, height: rect.height });
-      setAnimationKey((prev) => prev + 1);
+    const updateSize = () => {
+      if (containerRef.current) {
+        const rect = containerRef.current.getBoundingClientRect();
+        setContainerSize({ width: rect.width, height: rect.height });
+      }
     };
-    updateDimensions();
-    window.addEventListener("resize", updateDimensions);
-    return () => window.removeEventListener("resize", updateDimensions);
+    updateSize();
+
+    let timeoutId: ReturnType<typeof setTimeout>;
+    const handleResize = () => {
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(updateSize, 150);
+    };
+
+    window.addEventListener("resize", handleResize);
+    return () => {
+      clearTimeout(timeoutId);
+      window.removeEventListener("resize", handleResize);
+    };
   }, []);
 
+  // Animation Loop
   useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas || dimensions.width === 0) return;
+    const controls = animate(0, 1, {
+      duration: 6,
+      repeat: Infinity,
+      ease: "linear",
+      onUpdate: (value) => setProgress(value),
+    });
+    return () => controls.stop();
+  }, []);
 
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
+  // Determine Dot Position
+  const currentX = xScale(spotPrice);
 
-    const dpr = window.devicePixelRatio || 1;
-    canvas.width = dimensions.width * dpr;
-    canvas.height = dimensions.height * dpr;
-    ctx.scale(dpr, dpr);
-
-    const { width, height } = dimensions;
-    ctx.clearRect(0, 0, width, height);
-
-    const xLocal = (price: number) =>
-      padding.left +
-      ((price - priceMin) / (priceMax - priceMin)) * (width - padding.left - padding.right);
-
-    const yLocal = (pnl: number) =>
-      height -
-      padding.bottom -
-      ((pnl - pnlMin) / (pnlMax - pnlMin)) * (height - padding.top - padding.bottom);
-
-    ctx.strokeStyle = gridColor;
-    ctx.lineWidth = 1;
-    for (let price = 100000; price <= priceMax; price += 20000) {
-      ctx.beginPath();
-      ctx.moveTo(xLocal(price), padding.top);
-      ctx.lineTo(xLocal(price), height - padding.bottom);
-      ctx.stroke();
-    }
-
-    ctx.strokeStyle = zeroLineColor;
-    ctx.setLineDash([4, 4]);
-    ctx.beginPath();
-    ctx.moveTo(padding.left, yLocal(0));
-    ctx.lineTo(width - padding.right, yLocal(0));
-    ctx.stroke();
-    ctx.setLineDash([]);
-
-    ctx.beginPath();
-    ctx.strokeStyle = "rgba(239, 68, 68, 0.7)";
-    ctx.lineWidth = 2.5;
-    ctx.moveTo(xLocal(priceMin), yLocal(-premiumBTC));
-    ctx.lineTo(xLocal(strikePrice), yLocal(-premiumBTC));
-    ctx.stroke();
-
-    ctx.beginPath();
-    ctx.strokeStyle = primaryColor;
-    ctx.lineWidth = 3;
-    ctx.moveTo(xLocal(strikePrice), yLocal(-premiumBTC));
-    ctx.lineTo(xLocal(priceMax), yLocal(pnlMax));
-    ctx.stroke();
-
-    const breakevenPrice = strikePrice + (premiumBTC / sizeBTC) * strikePrice;
-    ctx.beginPath();
-    ctx.moveTo(xLocal(breakevenPrice), yLocal(0));
-    ctx.lineTo(xLocal(priceMax), yLocal(pnlMax));
-    ctx.lineTo(xLocal(priceMax), yLocal(0));
-    ctx.closePath();
-    const gradient = ctx.createLinearGradient(0, padding.top, 0, yLocal(0));
-    gradient.addColorStop(0, `${primaryColor}30`);
-    gradient.addColorStop(1, `${primaryColor}00`);
-    ctx.fillStyle = gradient;
-    ctx.fill();
-  }, [dimensions, pnlMin, pnlMax, gridColor, zeroLineColor]);
+  // Visual Y Position: strictly follow the SVG lines
+  // If price <= strike, follow the flat loss line
+  // If price > strike, interpolate linearly between (xStrike, yLoss) and (xEnd, yWin)
+  let currentYVisual: number;
+  if (spotPrice <= strikePrice) {
+    currentYVisual = yLoss;
+  } else {
+    // Linear interpolation based on X progress between strike and max
+    const slope = (yWin - yLoss) / (xEnd - xStrike);
+    currentYVisual = yLoss + (currentX - xStrike) * slope;
+  }
 
   return (
     <div className="relative">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, ease: "easeOut" }}
-        viewport={{ once: true }}
-        className="relative"
-      >
-        <div className="relative  ">
+      <div className="relative">
+        <div className="relative">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
               <motion.div
@@ -190,51 +125,107 @@ export function PayoffVisualization() {
             </span>
           </div>
 
-          <div ref={containerRef} className="h-[140px] relative mb-4">
-            <canvas ref={canvasRef} className="absolute inset-0 w-full h-full" />
+          <div ref={containerRef} className="h-[140px] relative mb-4 w-full">
+            <svg
+              className="w-full h-full overflow-visible"
+              preserveAspectRatio="none"
+              viewBox="0 0 100 100"
+            >
+              <title>Payoff Visualization Chart</title>
+              <defs>
+                <linearGradient id="profitGradient" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor={primaryColor} stopOpacity="0.2" />
+                  <stop offset="100%" stopColor={primaryColor} stopOpacity="0" />
+                </linearGradient>
+              </defs>
 
-            {dimensions.width > 0 && (
-              <>
-                <motion.div
-                  key={`glow-${animationKey}`}
-                  className="absolute w-8 h-8 rounded-full pointer-events-none"
-                  style={{
-                    background:
-                      "radial-gradient(circle, rgba(212,165,116,0.5) 0%, rgba(212,165,116,0) 70%)",
-                  }}
-                  animate={{
-                    left: [x1 - 16, x2 - 16, x3 - 16],
-                    top: [y1 - 16, y1 - 16, y3 - 16],
-                  }}
-                  transition={{
-                    duration: totalDuration,
-                    ease: "linear",
-                    repeat: Infinity,
-                    times: [0, strikeProgress, 1],
-                  }}
-                  onUpdate={(latest) => {
-                    if (typeof latest.left === "number") {
-                      const currentX = latest.left + 16;
-                      const prog = (currentX - x1) / (x3 - x1);
-                      setProgress(Math.max(0, Math.min(1, prog)));
-                    }
-                  }}
+              {/* Grid Lines */}
+              {[100000, 120000, 140000].map((price) => (
+                <line
+                  key={price}
+                  x1={xScale(price)}
+                  y1={0}
+                  x2={xScale(price)}
+                  y2={100}
+                  className="stroke-foreground/5"
+                  strokeWidth="0.5"
+                  vectorEffect="non-scaling-stroke"
                 />
-                <motion.div
-                  key={`dot-${animationKey}`}
-                  className="absolute w-2.5 h-2.5 rounded-full bg-[#d4a574] pointer-events-none"
-                  animate={{
-                    left: [x1 - 5, x2 - 5, x3 - 5],
-                    top: [y1 - 5, y1 - 5, y3 - 5],
-                  }}
-                  transition={{
-                    duration: totalDuration,
-                    ease: "linear",
-                    repeat: Infinity,
-                    times: [0, strikeProgress, 1],
-                  }}
+              ))}
+
+              {/* Zero Line */}
+              <line
+                x1={0}
+                y1={yZero}
+                x2={100}
+                y2={yZero}
+                className="stroke-foreground/20"
+                strokeWidth="1"
+                strokeDasharray="4 4"
+                vectorEffect="non-scaling-stroke"
+              />
+
+              {/* Profit Area */}
+              <path
+                d={`M ${xBreakeven} ${yZero} L ${xEnd} ${yWin} L ${xEnd} ${yZero} Z`}
+                fill="url(#profitGradient)"
+              />
+
+              {/* Loss Line (Red) */}
+              <line
+                x1={xStart}
+                y1={yLoss}
+                x2={xStrike}
+                y2={yLoss}
+                stroke="rgba(239, 68, 68, 0.7)"
+                strokeWidth="2.5"
+                vectorEffect="non-scaling-stroke"
+              />
+
+              {/* Profit Line (Orange) */}
+              <line
+                x1={xStrike}
+                y1={yLoss}
+                x2={xEnd}
+                y2={yWin}
+                stroke={primaryColor}
+                strokeWidth="3"
+                vectorEffect="non-scaling-stroke"
+              />
+            </svg>
+
+            {/* Overlay SVG for Dot (Preserves Aspect Ratio) */}
+            {containerSize.width > 0 && (
+              <svg
+                className="absolute inset-0 w-full h-full pointer-events-none overflow-visible"
+                width={containerSize.width}
+                height={containerSize.height}
+                viewBox={`0 0 ${containerSize.width} ${containerSize.height}`}
+              >
+                <title>Payoff Visualization Animated Indicator</title>
+                <defs>
+                  <radialGradient id="glowGradientOverlay">
+                    <stop offset="0%" stopColor="#d4a574" stopOpacity="0.3" />
+                    <stop offset="100%" stopColor="#d4a574" stopOpacity="0" />
+                  </radialGradient>
+                </defs>
+
+                {/* Glowing Dot */}
+                <circle
+                  cx={(currentX / 100) * containerSize.width}
+                  cy={(currentYVisual / 100) * containerSize.height}
+                  r="20"
+                  fill="url(#glowGradientOverlay)"
                 />
-              </>
+
+                {/* Solid Dot */}
+                <circle
+                  cx={(currentX / 100) * containerSize.width}
+                  cy={(currentYVisual / 100) * containerSize.height}
+                  r="6"
+                  fill="#d4a574"
+                />
+              </svg>
             )}
           </div>
 
@@ -247,22 +238,23 @@ export function PayoffVisualization() {
             </div>
             <div className="text-center">
               <div className="text-[9px] font-mono text-muted-foreground">{t("pnl")}</div>
-              <motion.div
-                className={`text-sm font-mono font-semibold tabular-nums ${
-                  currentPnLBTC >= 0 ? "text-green-500" : "text-red-400"
-                }`}
-                key={currentPnLBTC.toFixed(4)}
+              <div
+                className={cn(
+                  "text-sm font-mono font-semibold tabular-nums",
+                  currentPnLBTC >= 0 ? "text-green-500" : "text-red-400",
+                )}
               >
                 {currentPnLBTC >= 0 ? "+" : ""}
                 {currentPnLBTC.toFixed(4)} BTC
-              </motion.div>
+              </div>
             </div>
             <div className="text-center">
               <div className="text-[9px] font-mono text-muted-foreground">{t("roi")}</div>
               <div
-                className={`text-sm font-mono font-semibold tabular-nums ${
-                  roi >= 0 ? "text-green-500" : "text-red-400"
-                }`}
+                className={cn(
+                  "text-sm font-mono font-semibold tabular-nums",
+                  roi >= 0 ? "text-green-500" : "text-red-400",
+                )}
               >
                 {roi >= 0 ? "+" : ""}
                 {Math.min(roi, 9900).toFixed(0)}%
@@ -270,7 +262,7 @@ export function PayoffVisualization() {
             </div>
           </div>
         </div>
-      </motion.div>
+      </div>
     </div>
   );
 }

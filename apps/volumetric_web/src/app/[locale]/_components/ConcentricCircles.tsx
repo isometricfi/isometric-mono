@@ -1,5 +1,3 @@
-"use client";
-
 export function ConcentricCircles() {
   const circles = [80, 140, 210, 290, 380, 480, 600];
 
