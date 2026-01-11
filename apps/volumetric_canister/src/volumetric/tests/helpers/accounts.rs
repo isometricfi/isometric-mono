@@ -21,12 +21,19 @@ pub fn get_signing_message(env: &TestEnv, address: &str) -> String {
 pub fn create_account(env: &TestEnv, wallet: &TestWallet) -> Result<ProfileInfo, VolumetricError> {
     let message = get_signing_message(env, &wallet.address);
     let signature = wallets::sign_message(wallet, &message);
+    create_account_with_signature(env, &wallet.address, &signature)
+}
 
+pub fn create_account_with_signature(
+    env: &TestEnv,
+    address: &str,
+    signature: &str,
+) -> Result<ProfileInfo, VolumetricError> {
     let payload = AuthenticatedPayload {
         data: CreateProfileRequest {},
         wallet_proof: WalletProof {
-            address: wallet.address.clone(),
-            signature,
+            address: address.to_string(),
+            signature: signature.to_string(),
         },
     };
 
