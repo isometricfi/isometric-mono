@@ -6,7 +6,7 @@ use crate::helpers::{
 use volumetric::errors::error_codes;
 use volumetric::{AcceptOfferItem, EventData, EventType, OfferStatus};
 
-/// Given: Writer with 10M sats balance
+/// Given: Writer with 0.1 BTC balance
 /// When: Writer creates offer with strike +5%, premium 1%, 1 day expiry
 /// Then: Offer appears in open offers with correct parameters, OfferCreated event emitted
 #[test]
@@ -20,7 +20,7 @@ fn test_writer_creates_offer_and_it_appears_in_open_offers() {
     let writer_wallet = generate_wallet(WRITER_SEED);
     let writer_profile = create_account(&env, &writer_wallet).expect("Account creation failed");
 
-    const TEN_MILLION_SATS: u64 = 10_000_000;
+    const TEN_MILLION_SATS: u64 = 10_000_000; // 0.1 BTC
     const STRIKE_BPS: u16 = 500;
     const PREMIUM_BPS: u16 = 100;
     const ONE_DAY_SECS: u64 = 86_400;
@@ -87,7 +87,7 @@ fn test_writer_cancels_open_offer_successfully() {
     let writer_wallet = generate_wallet(WRITER_SEED);
     let writer_profile = create_account(&env, &writer_wallet).expect("Account creation failed");
 
-    const TEN_MILLION_SATS: u64 = 10_000_000;
+    const TEN_MILLION_SATS: u64 = 10_000_000; // 0.1 BTC
     const STRIKE_BPS: u16 = 500;
     const PREMIUM_BPS: u16 = 100;
     const ONE_DAY_SECS: u64 = 86_400;
@@ -150,7 +150,7 @@ fn test_cancel_offer_fails_for_non_owner() {
     let writer_a_profile = create_account(&env, &writer_a_wallet).expect("Writer A account failed");
     create_account(&env, &writer_b_wallet).expect("Writer B account failed");
 
-    const TEN_MILLION_SATS: u64 = 10_000_000;
+    const TEN_MILLION_SATS: u64 = 10_000_000; // 0.1 BTC
     const STRIKE_BPS: u16 = 500;
     const PREMIUM_BPS: u16 = 100;
     const ONE_DAY_SECS: u64 = 86_400;
@@ -192,7 +192,7 @@ fn test_cancel_already_cancelled_offer_fails() {
     let writer_wallet = generate_wallet(WRITER_SEED);
     let writer_profile = create_account(&env, &writer_wallet).expect("Account creation failed");
 
-    const TEN_MILLION_SATS: u64 = 10_000_000;
+    const TEN_MILLION_SATS: u64 = 10_000_000; // 0.1 BTC
     const STRIKE_BPS: u16 = 500;
     const PREMIUM_BPS: u16 = 100;
     const ONE_DAY_SECS: u64 = 86_400;
@@ -240,7 +240,7 @@ fn test_cancel_filled_offer_fails() {
     let writer_profile = create_account(&env, &writer_wallet).expect("Writer account failed");
     let buyer_profile = create_account(&env, &buyer_wallet).expect("Buyer account failed");
 
-    const TEN_MILLION_SATS: u64 = 10_000_000;
+    const TEN_MILLION_SATS: u64 = 10_000_000; // 0.1 BTC
     const STRIKE_BPS: u16 = 500;
     const PREMIUM_BPS: u16 = 100;
     const ONE_DAY_SECS: u64 = 86_400;
@@ -286,8 +286,8 @@ fn test_cancel_filled_offer_fails() {
     assert_eq!(error.code, error_codes::OFFER_FILLED.code);
 }
 
-/// Given: Writer has 5M sats balance
-/// When: Writer attempts to create 10M sats offer
+/// Given: Writer has 0.05 BTC balance
+/// When: Writer attempts to create 0.1 BTC offer
 /// Then: Error INSUFFICIENT_BALANCE returned
 #[test]
 fn test_create_offer_with_insufficient_balance_fails() {
@@ -300,8 +300,8 @@ fn test_create_offer_with_insufficient_balance_fails() {
     let writer_wallet = generate_wallet(WRITER_SEED);
     let writer_profile = create_account(&env, &writer_wallet).expect("Account creation failed");
 
-    const FIVE_MILLION_SATS: u64 = 5_000_000;
-    const TEN_MILLION_SATS: u64 = 10_000_000;
+    const FIVE_MILLION_SATS: u64 = 5_000_000; // 0.05 BTC
+    const TEN_MILLION_SATS: u64 = 10_000_000; // 0.1 BTC
     const STRIKE_BPS: u16 = 500;
     const PREMIUM_BPS: u16 = 100;
     const ONE_DAY_SECS: u64 = 86_400;
@@ -338,7 +338,7 @@ fn test_create_offer_exceeds_limit_per_term_fails() {
     let writer_wallet = generate_wallet(WRITER_SEED);
     let writer_profile = create_account(&env, &writer_wallet).expect("Account creation failed");
 
-    const ONE_MILLION_SATS: u64 = 1_000_000;
+    const ONE_MILLION_SATS: u64 = 1_000_000; // 0.01 BTC
     const STRIKE_BPS: u16 = 500;
     const PREMIUM_BPS: u16 = 100;
     const ONE_DAY_SECS: u64 = 86_400;
