@@ -1,47 +1,74 @@
 ---
 sidebar_position: 1
+slug: /
 ---
 
-# Tutorial Intro
+# Welcome to Isometric
 
-Let's discover **Docusaurus in less than 5 minutes**.
+**Isometric** is a decentralized options trading platform built on the [Internet Computer Protocol (ICP)](https://internetcomputer.org/). Trade Bitcoin options with transparent pricing, automatic settlement, and full on-chain execution.
+
+## What is Isometric?
+
+Isometric enables you to trade **options** on Bitcoin in a fully decentralized environment. Unlike traditional options platforms:
+
+- **Decentralized**: All trades execute on-chain via ICP smart contracts
+- **Transparent**: Verifiable settlement, and real-time oracle pricing
+- **BTC-Native**: Collateral and payouts in Bitcoin
+- **Automatic Settlement**: Options settle automatically at expiry
+- **No Counterparty Risk**: Smart contracts hold collateral and enforce settlement
+
+## Who is Isometric For?
+
+### Option Writers (Sellers)
+
+Earn premium income by writing covered calls on your Bitcoin holdings. Lock your BTC as collateral and collect premiums from buyers.
+
+[Learn how to write options →](/quick-start/write)
+
+### Option Buyers
+
+Gain leveraged exposure to Bitcoin price movements by purchasing call options. Pay a premium upfront for the right to profit if BTC rises above the strike price.
+
+[Learn how to buy options →](/quick-start/buy)
+
+## Key Features
+
+### Standardized Contracts
+
+Options are standardized with fixed strike increments, premium levels, and expiry times. This creates deep liquidity and makes it easy to find counterparties.
+
+### Covered Calls
+
+The current version supports **covered call options** only. Writers must fully collateralize their positions with BTC. This eliminates liquidation risk and keeps the system simple.
+
+### Automatic Settlement
+
+When options expire, the platform automatically:
+1. Fetches the BTC/USD price from the ICP oracle
+2. Calculates payouts for in-the-money options
+3. Transfers profits to buyers and returns collateral to writers
+
+No manual exercise required.
 
 ## Getting Started
 
-Get started by **creating a new site**.
+Ready to start trading? Follow these steps:
 
-Or **try Docusaurus immediately** with **[docusaurus.new](https://docusaurus.new)**.
+1. **[Set up your account](/quick-start/account-setup)** - Connect your wallet and deposit funds
+2. **Choose your path**:
+   - **Writers**: [Create your first offer](/quick-start/write)
+   - **Buyers**: [Buy your first option](/quick-start/buy)
+3. **[Manage your portfolio](/quick-start/portfolio)** - Track positions and withdraw funds
 
-### What you'll need
+## New to Options?
 
-- [Node.js](https://nodejs.org/en/download/) version 20.0 or above:
-  - When installing Node.js, you are recommended to check all checkboxes related to dependencies.
+If you're unfamiliar with options trading, start here:
 
-## Generate a new site
+[Options Basics](/concepts/options-basics) - Learn about calls, strikes, premiums, and payoffs
 
-Generate a new Docusaurus site using the **classic template**.
+## Technical Documentation
 
-The classic template will automatically be added to your project after you run the command:
+Developers and advanced users can explore:
 
-```bash
-npm init docusaurus@latest my-website classic
-```
-
-You can type this command into Command Prompt, Powershell, Terminal, or any other integrated terminal of your code editor.
-
-The command also installs all necessary dependencies you need to run Docusaurus.
-
-## Start your site
-
-Run the development server:
-
-```bash
-cd my-website
-npm run start
-```
-
-The `cd` command changes the directory you're working with. In order to work with your newly created Docusaurus site, you'll need to navigate the terminal there.
-
-The `npm run start` command builds your website locally and serves it through a development server, ready for you to view at http://localhost:3000/.
-
-Open `docs/intro.md` (this page) and edit some lines: the site **reloads automatically** and displays your changes.
+- **[System Architecture](/architecture/overview)** - How Isometric works under the hood
+- **[Options Basics](/concepts/options-basics)** - Learn about calls, strikes, and payoffs

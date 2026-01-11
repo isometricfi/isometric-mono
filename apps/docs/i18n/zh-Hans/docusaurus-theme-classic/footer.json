@@ -1,0 +1,46 @@
+{
+  "link.title.App": {
+    "message": "应用",
+    "description": "The title of the footer links column with title=App in the footer"
+  },
+  "link.title.Learn": {
+    "message": "学习",
+    "description": "The title of the footer links column with title=Learn in the footer"
+  },
+  "link.title.More": {
+    "message": "更多",
+    "description": "The title of the footer links column with title=More in the footer"
+  },
+  "link.item.label.Write": {
+    "message": "卖出",
+    "description": "The label of footer link with label=Write linking to /quick-start/write"
+  },
+  "link.item.label.Buy": {
+    "message": "买入",
+    "description": "The label of footer link with label=Buy linking to /quick-start/buy"
+  },
+  "link.item.label.Portfolio": {
+    "message": "投资组合",
+    "description": "The label of footer link with label=Portfolio linking to /quick-start/portfolio"
+  },
+  "link.item.label.History": {
+    "message": "历史记录",
+    "description": "The label of footer link with label=History linking to /quick-start/history"
+  },
+  "link.item.label.Options Basics": {
+    "message": "期权基础",
+    "description": "The label of footer link with label=Options Basics linking to /concepts/options-basics"
+  },
+  "link.item.label.Architecture": {
+    "message": "系统架构",
+    "description": "The label of footer link with label=Architecture linking to /architecture/overview"
+  },
+  "link.item.label.GitHub": {
+    "message": "GitHub",
+    "description": "The label of footer link with label=GitHub linking to https://github.com/volumetrichq/volumetric-mono"
+  },
+  "copyright": {
+    "message": "Copyright © 2026 Isometric.",
+    "description": "The footer copyright"
+  }
+}
