@@ -5,7 +5,7 @@ pub mod events;
 pub mod offers;
 pub mod settlement;
 
-pub use accounts::create_account;
+pub use accounts::{create_account, create_account_with_signature};
 pub use balances::{get_user_balance, mint_and_sync_balance};
 pub use config::{
     configure_test_ledger, get_fee_recipient_ledger_balance, set_feature_flags, set_oracle_price,
