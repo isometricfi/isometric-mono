@@ -29,11 +29,12 @@ pub struct SettleExpiredOptionsResult {
 }
 
 pub async fn settle_single_option(
-    option: &mut ActiveOption,
+    option_id: u64,
     settlement_price_cents: u64,
 ) -> Result<SettlementResult, VolumetricError> {
-    // bind to _lock, not `let _ =` which drops immediately
-    let _lock = SettlementLock::new(option.id)?;
+    let _lock = SettlementLock::new(option_id)?;
+    let mut option =
+        get_active_option(option_id).ok_or_else(|| VolumetricError::option_not_found(option_id))?;
     let created_at_time = ic_cdk::api::time();
 
     ic_cdk::println!(
@@ -231,8 +232,8 @@ pub async fn settle_expired_options_use_case() -> SettleExpiredOptionsResult {
         }
     };
 
-    for mut option in expired_options {
-        match settle_single_option(&mut option, settlement_price_cents).await {
+    for option in expired_options {
+        match settle_single_option(option.id, settlement_price_cents).await {
             Ok(result) => settled.push(result),
             Err(e) => errors.push(format!("Option {}: {}", option.id, e)),
         }
@@ -245,33 +246,23 @@ pub async fn settle_option_by_id_use_case(
     option_id: u64,
 ) -> Result<SettlementResult, VolumetricError> {
     let now = ic_cdk::api::time();
-    let mut option =
+
+    let option =
         get_active_option(option_id).ok_or_else(|| VolumetricError::option_not_found(option_id))?;
 
     if option.expiry > now {
         return Err(VolumetricError::option_not_expired());
     }
 
-    if option.status != ActiveOptionStatus::Active {
-        return Err(VolumetricError::option_already_settled());
-    }
-
     let settlement_price_cents = get_btc_usd_price_cents()?;
-    settle_single_option(&mut option, settlement_price_cents).await
+    settle_single_option(option_id, settlement_price_cents).await
 }
 
 pub async fn testing_force_settle_option_use_case(
     option_id: u64,
 ) -> Result<SettlementResult, VolumetricError> {
-    let mut option =
-        get_active_option(option_id).ok_or_else(|| VolumetricError::option_not_found(option_id))?;
-
-    if option.status != ActiveOptionStatus::Active {
-        return Err(VolumetricError::option_already_settled());
-    }
-
     let settlement_price_cents = get_btc_usd_price_cents()?;
-    settle_single_option(&mut option, settlement_price_cents).await
+    settle_single_option(option_id, settlement_price_cents).await
 }
 
 pub fn testing_expire_option_use_case(option_id: u64) -> Result<ActiveOption, VolumetricError> {

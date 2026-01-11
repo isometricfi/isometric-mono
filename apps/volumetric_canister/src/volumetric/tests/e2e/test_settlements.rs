@@ -2,9 +2,10 @@ use crate::common::{create_test_env, generate_wallet};
 use crate::helpers::{
     accept_offers, configure_test_ledger, create_account, create_offer, get_events_for_principal,
     get_fee_recipient_ledger_balance, get_pending_settlements, get_user_balance,
-    mint_and_sync_balance, set_oracle_price, whitelist_controller,
+    mint_and_sync_balance, set_oracle_price, settle_option_by_id, testing_set_option_expiry,
+    whitelist_controller,
 };
-use volumetric::{AcceptOfferItem, EventData, EventType, TradeRole};
+use volumetric::{errors::error_codes, AcceptOfferItem, EventData, EventType, TradeRole};
 
 const ONE_BTC_SATS: u64 = 100_000_000; // 1 BTC
 const BASIS_POINTS: u64 = 10_000;
@@ -728,4 +729,69 @@ fn test_writer_collateral_unlocked_after_option_expires_otm() {
         ONE_DAY_SECS,
     );
     assert!(new_offer_result.is_ok());
+}
+
+/// Given: An option that has already been settled
+/// When: Settlement is attempted again on the same option
+/// Then: OPTION_ALREADY_SETTLED error is returned
+#[test]
+fn test_settling_already_settled_option_returns_error() {
+    // given
+    let env = create_test_env();
+    whitelist_controller(&env);
+    configure_test_ledger(&env);
+
+    const WRITER_SEED: u64 = 1;
+    const BUYER_SEED: u64 = 2;
+    let writer_wallet = generate_wallet(WRITER_SEED);
+    let buyer_wallet = generate_wallet(BUYER_SEED);
+
+    let writer_profile = create_account(&env, &writer_wallet).expect("Writer account failed");
+    let buyer_profile = create_account(&env, &buyer_wallet).expect("Buyer account failed");
+
+    const STRIKE_BPS: u16 = 500;
+    const SETTLEMENT_PRICE_CENTS: u64 = 10_200_000;
+
+    mint_and_sync_balance(&env, &writer_profile, QUANTITY_SATS).expect("Writer balance failed");
+    mint_and_sync_balance(&env, &buyer_profile, PREMIUM_SATS + ACCEPT_TRANSFER_FEES)
+        .expect("Buyer balance failed");
+
+    set_oracle_price(&env, ENTRY_PRICE_CENTS);
+
+    create_offer(
+        &env,
+        &writer_wallet,
+        QUANTITY_SATS,
+        STRIKE_BPS,
+        PREMIUM_BPS,
+        ONE_DAY_SECS,
+    )
+    .expect("Create offer failed");
+
+    accept_offers(
+        &env,
+        &buyer_wallet,
+        vec![AcceptOfferItem {
+            offer_id: FIRST_OFFER_ID,
+            quantity: QUANTITY_SATS,
+        }],
+    )
+    .expect("Accept offer failed");
+
+    set_oracle_price(&env, SETTLEMENT_PRICE_CENTS);
+
+    const OPTION_ID: u64 = 1;
+    let past_expiry = 0;
+    testing_set_option_expiry(&env, OPTION_ID, past_expiry).expect("Set expiry failed");
+
+    let first_settle = settle_option_by_id(&env, OPTION_ID);
+    assert!(first_settle.is_ok());
+
+    // when
+    let second_settle = settle_option_by_id(&env, OPTION_ID);
+
+    // then
+    assert!(second_settle.is_err());
+    let error = second_settle.unwrap_err();
+    assert_eq!(error.code, error_codes::OPTION_ALREADY_SETTLED.code);
 }
