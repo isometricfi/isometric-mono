@@ -2,7 +2,7 @@
 sidebar_position: 1
 ---
 
-# Quick Start Overview
+# Overview
 
 Welcome! This guide will help you get started with Isometric, whether you want to **write options** (earn premiums) or **buy options** (gain leveraged exposure).
 

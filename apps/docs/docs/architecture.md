@@ -6,10 +6,10 @@ sidebar_position: 5
 
 ## Tech Stack
 
-- **Frontend**: Next.js, Shadcn
-- **Backend**: ICP Rust
-- **Oracle**: ICP exchange rate canister
-- **Wallet**: Dynamic.xyz (for hot wallet integration)
+- **Frontend**: Modern web framework with responsive UI
+- **Backend**: Secure smart contracts on Internet Computer Protocol
+- **Oracle**: Decentralized price feed aggregating multiple data sources
+- **Wallet**: Bitcoin wallet integration for authentication
 
 ## MVP Scope
 

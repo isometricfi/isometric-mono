@@ -179,9 +179,15 @@ BTC/USD Calls
 
 Buyers can easily see total liquidity per bucket and choose the best option.
 
-## Configuration Updates
+## Platform Parameters
 
-Platform administrators can update trading limits and parameters to adjust the platform's risk profile and user experience as market conditions evolve.
+The platform uses carefully designed parameters to balance accessibility and risk management:
+
+- Trading limits ensure manageable position sizes
+- Strike and premium grids provide clear options for different risk appetites
+- Expiry windows give flexibility for different trading strategies
+
+These parameters are optimized based on market conditions and user feedback.
 
 ## Future Enhancements
 

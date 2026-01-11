@@ -13,7 +13,7 @@ Before you can trade options on Isometric, you'll need to create an account and 
 
 ## Step 1: Connect Your Wallet
 
-1. Visit the [Isometric web app](https://www.dynamic.xyz/)
+1. Visit the Isometric web app
 2. Click **"Connect Wallet"** in the top right
 3. Select your wallet provider from the list
 4. Approve the connection request in your wallet

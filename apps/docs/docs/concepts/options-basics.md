@@ -146,22 +146,6 @@ An option is **at-the-money** when BTC price equals the strike price.
 
 Now that you understand the basics:
 
-- **[Write Options →](/quick-start/write)** - Start earning premiums
-- **[Buy Options →](/quick-start/buy)** - Gain leveraged exposure
-- **[System Architecture →](/architecture/overview)** - Learn how Isometric works
-
----
-
-## Further Reading
-
-- [Investopedia: Call Options](https://www.investopedia.com/terms/c/calloption.asp)
-- [Covered Call Strategy](https://www.investopedia.com/terms/c/coveredcall.asp)
-- [Options Greeks](https://www.investopedia.com/trading/getting-to-know-the-greeks/) (advanced)
-
-## Next Steps
-
-Now that you understand the basics:
-
 - **[Options Strategies →](/concepts/strategies)** - Learn when and how to use options
 - **[Write Options →](/quick-start/write)** - Start earning premiums
 - **[Buy Options →](/quick-start/buy)** - Gain leveraged exposure
@@ -172,4 +156,5 @@ Now that you understand the basics:
 ## Further Reading
 
 - [Investopedia: Call Options](https://www.investopedia.com/terms/c/calloption.asp)
+- [Covered Call Strategy](https://www.investopedia.com/terms/c/coveredcall.asp)
 - [Options Greeks](https://www.investopedia.com/trading/getting-to-know-the-greeks/) (advanced)

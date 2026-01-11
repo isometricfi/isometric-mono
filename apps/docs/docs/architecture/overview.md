@@ -11,17 +11,17 @@ Isometric is built on the **Internet Computer Protocol (ICP)**, leveraging its u
 ```mermaid
 graph TB
     User[User / Wallet] -->|Signs Messages| WebApp[Next.js Web App]
-    WebApp -->|Agent-js Calls| Canister[Isometric Canister<br/>Rust Smart Contract]
+    WebApp -->|Secure API| Backend[Isometric Platform<br/>Smart Contract]
     
-    Canister -->|Deposit/Withdraw| ckBTC[ckBTC Ledger]
-    Canister -->|Price Feed| Oracle[ICP Exchange Rate<br/>Canister]
+    Backend -->|Manages| ckBTC[ckBTC Ledger]
+    Backend -->|Price Feed| Oracle[Price Oracle]
     
-    Canister -->|Stores| Storage[(Stable Storage<br/>Offers, Options,<br/>Balances, Events)]
+    Backend -->|Stores| Storage[(Secure Storage<br/>Offers, Options,<br/>Balances, History)]
     
     ckBTC -->|Bitcoin Network| BTC[Bitcoin Blockchain]
-    Oracle -->|Aggregates| Exchanges[Exchange APIs<br/>Coinbase, Binance, etc.]
+    Oracle -->|Aggregates| Exchanges[Exchange Data<br/>Multiple Sources]
     
-    style Canister fill:#f9f,stroke:#333,stroke-width:4px
+    style Backend fill:#f9f,stroke:#333,stroke-width:4px
     style Storage fill:#bbf,stroke:#333,stroke-width:2px
     style ckBTC fill:#ff9,stroke:#333,stroke-width:2px
     style Oracle fill:#9f9,stroke:#333,stroke-width:2px
@@ -40,16 +40,16 @@ graph TB
 - Real-time price display
 - Portfolio management UI
 
-### 2. Backend (Isometric Canister)
+### 2. Backend (Smart Contract)
 
-**Technology**: Rust, IC CDK (Internet Computer Development Kit)
+**Technology**: Secure smart contract on Internet Computer Protocol
 
 **Responsibilities**:
 - Core business logic (offers, options, settlement)
-- Authentication via BTC signature verification
+- User authentication and authorization
 - Balance management (deposits, withdrawals, transfers)
-- Event logging and state management
-- Automatic settlement via timers
+- Transaction history and state management
+- Automatic settlement
 
 
 ### 3. ckBTC Ledger
@@ -81,9 +81,9 @@ ckBTC (chain-key Bitcoin) is a **1:1 backed** Bitcoin token on ICP. It's created
 - Accessible to all ICP canisters
 
 **Isometric Integration**:
-- Fetches BTC/USD price at option acceptance (for strike locking)
-- Fetches BTC/USD price at expiry (for settlement)
-- Used to calculate intrinsic value and payouts
+- Fetches BTC/USD price when buyer accepts an offer (for strike locking)
+- Fetches BTC/USD price at option expiry (for settlement)
+- Used to calculate option values and payouts
 
 **Learn more**: [ICP Exchange Rate Canister Docs](https://internetcomputer.org/current/developer-docs/integrations/exchange-rate-canister/)
 
@@ -95,18 +95,14 @@ ckBTC (chain-key Bitcoin) is a **1:1 backed** Bitcoin token on ICP. It's created
 sequenceDiagram
     participant Writer
     participant WebApp
-    participant Canister
-    participant Storage
+    participant Platform
     
     Writer->>WebApp: Create offer (strike, premium, quantity)
-    WebApp->>Writer: Generate signing message
+    WebApp->>Writer: Request signature
     Writer->>WebApp: Sign message
-    WebApp->>Canister: create_offer(signed payload)
-    Canister->>Canister: Verify signature
-    Canister->>Canister: Validate params & balance
-    Canister->>Storage: Insert offer
-    Canister->>Storage: Emit OfferCreated event
-    Canister->>WebApp: Return offer details
+    WebApp->>Platform: Submit offer
+    Platform->>Platform: Verify & validate
+    Platform->>WebApp: Offer created
     WebApp->>Writer: Show success
 ```
 
@@ -116,26 +112,19 @@ sequenceDiagram
 sequenceDiagram
     participant Buyer
     participant WebApp
-    participant Canister
+    participant Platform
     participant Oracle
-    participant ckBTC
     participant Writer
     
     Buyer->>WebApp: Accept offer
-    WebApp->>Buyer: Generate signing message
+    WebApp->>Buyer: Request signature
     Buyer->>WebApp: Sign message
-    WebApp->>Canister: accept_offers(signed payload)
-    Canister->>Canister: Verify signature
-    Canister->>Canister: Validate balance & params
-    Canister->>Oracle: Get current BTC/USD price
-    Oracle->>Canister: Return price (e.g., $100k)
-    Canister->>Canister: Lock writer collateral
-    Canister->>Canister: Debit buyer premium
-    Canister->>ckBTC: Transfer premium to writer
-    Canister->>ckBTC: Transfer fee to platform
-    Canister->>Canister: Create active option
-    Canister->>Canister: Emit OfferAccepted events
-    Canister->>WebApp: Return active option
+    WebApp->>Platform: Submit acceptance
+    Platform->>Platform: Verify & validate
+    Platform->>Oracle: Get current BTC/USD price
+    Oracle->>Platform: Return price
+    Platform->>Platform: Lock collateral & transfer premium
+    Platform->>WebApp: Option activated
     WebApp->>Buyer: Show success
     WebApp->>Writer: Notify offer accepted
 ```
@@ -145,28 +134,16 @@ sequenceDiagram
 ```mermaid
 sequenceDiagram
     participant Timer
-    participant Canister
+    participant Platform
     participant Oracle
-    participant Storage
-    participant ckBTC
     
-    Timer->>Canister: Trigger settlement (hourly)
-    Canister->>Storage: Get expired options
+    Timer->>Platform: Trigger settlement (hourly)
+    Platform->>Platform: Find expired options
     loop For each expired option
-        Canister->>Oracle: Get BTC/USD price at expiry
-        Oracle->>Canister: Return settlement price
-        Canister->>Canister: Calculate payout (if ITM)
-        alt Option is ITM
-            Canister->>Canister: Unlock writer collateral
-            Canister->>ckBTC: Transfer payout to buyer
-            Canister->>ckBTC: Transfer profit fee to platform
-            Canister->>Canister: Credit remaining to writer
-        else Option is OTM
-            Canister->>Canister: Unlock writer collateral
-            Canister->>Canister: Credit full collateral to writer
-        end
-        Canister->>Storage: Mark option as settled
-        Canister->>Storage: Emit OptionSettled events
+        Platform->>Oracle: Get BTC/USD price at expiry
+        Oracle->>Platform: Return settlement price
+        Platform->>Platform: Calculate & distribute payouts
+        Platform->>Platform: Mark option as settled
     end
 ```
 
@@ -202,15 +179,15 @@ sequenceDiagram
 
 **How**: Hourly timer checks for expired options and settles them
 
-### 4. BTC Signature Authentication
+### 4. Signature-Based Authentication
 
 **Why?**
-- No need for ICP identity management
-- Users can use existing Bitcoin wallets
-- Familiar UX for Bitcoin users
-- Replay protection via nonces
+- Simple user experience with Bitcoin wallets
+- No additional identity management needed
+- Familiar to Bitcoin users
+- Secure signature verification
 
-**How**: Users sign messages with their Bitcoin private key, canister verifies signature
+**How**: Users sign messages with their Bitcoin private key to prove ownership
 
 ### 5. Subaccount-Based Balances
 
@@ -224,29 +201,28 @@ sequenceDiagram
 
 ## Security Model
 
-### Authentication
+### User Authentication
 
-- **BTC signatures**: Users prove ownership of Bitcoin address
-- **Nonce-based replay protection**: Each signature includes a nonce that increments
-- **Challenge-response**: Canister generates challenge context (canister ID, network, nonce)
+- **Bitcoin signatures**: Users prove ownership of their Bitcoin address
+- **Replay protection**: Built-in protection against signature reuse
+- **Message integrity**: Each signature is tied to specific actions
 
 ### Authorization
 
-- **Whitelisting**: Optional whitelist for beta/controlled access
-- **Controller-only endpoints**: Admin functions restricted to canister controllers
-- **Balance checks**: All operations verify sufficient balance before execution
+- **Access control**: Secure access management during beta phase
+- **Balance verification**: All operations check sufficient funds before execution
 
 ### Collateral Safety
 
-- **Locked balances**: Collateral cannot be withdrawn while options are active
-- **Atomic operations**: Accept and settlement are atomic (all-or-nothing)
-- **Rollback on failure**: If any step fails, state is rolled back
+- **Protected balances**: Collateral cannot be withdrawn while options are active
+- **Atomic operations**: Transactions are all-or-nothing (no partial failures)
+- **Automatic rollback**: Failed operations don't leave accounts in inconsistent states
 
-### Oracle Trust
+### Oracle Integrity
 
-- **Decentralized oracle**: ICP exchange rate canister aggregates multiple sources
-- **Median pricing**: Reduces manipulation risk
-- **Transparent**: Oracle code is open-source and auditable
+- **Decentralized pricing**: Oracle aggregates data from multiple sources
+- **Manipulation resistance**: Median pricing reduces risk of price manipulation
+- **Transparent**: Pricing methodology is clear and verifiable
 
 ## Scalability
 

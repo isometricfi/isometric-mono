@@ -38,14 +38,14 @@ ckBTC Ledger
 - The canister can transfer between subaccounts **instantly** (no blockchain transaction)
 - External transfers (deposits/withdrawals) require blockchain transactions
 
-### Subaccount Derivation
+### Subaccount Security
 
-Each user's subaccount is derived deterministically from their ICP principal using cryptographic hashing.
+Each user's subaccount is created using secure cryptographic methods.
 
 This ensures:
-- **Deterministic**: Same principal always gets same subaccount
-- **Unique**: Different principals get different subaccounts
-- **Secure**: Cannot be guessed or collided
+- **Isolation**: Your funds are separate from other users
+- **Consistency**: Your subaccount remains the same across sessions
+- **Security**: Strong cryptographic protection
 
 ## Balance States
 
@@ -186,46 +186,31 @@ The platform executes on-chain ckBTC transfers:
 - Writer receives premium immediately (minus platform fee)
 - Transfers are **on-chain** (ckBTC ledger transactions)
 
-## Internal Accounting
+## Balance Tracking
 
-The canister maintains internal balance tracking for efficiency.
+The platform maintains accurate balance tracking for all users.
 
-### Why Internal Accounting?
+### Key Features
 
-- **Fast queries**: No need to query ckBTC ledger for every balance check
-- **Atomic operations**: Lock/unlock without blockchain transactions
-- **Event logging**: Track all balance changes for auditing
-
-### Reconciliation
-
-The platform can verify internal balances match the ckBTC ledger:
-
-1. Query actual ckBTC balance from ledger
-2. Calculate expected balance (available + locked_as_writer + locked_as_buyer)
-3. Compare and log any discrepancies for investigation
+- **Real-time updates**: Your balance is always up to date
+- **Atomic operations**: Balance changes happen all-at-once (no partial updates)
+- **Audit trail**: All balance changes are recorded for transparency
 
 ## Security Considerations
 
-### Reentrancy Protection
+### Balance Protection
 
-All balance operations use locks to prevent concurrent modifications:
-- Operations acquire locks before modifying balances
-- Locks are automatically released when operations complete
-- Prevents race conditions and double-spending
+The platform ensures your funds are always protected:
 
-### Balance Checks
+- **Pre-flight checks**: All operations verify you have sufficient balance before executing
+- **Atomic operations**: Operations either complete fully or not at all (no partial failures)
+- **Automatic rollback**: If any step fails, all changes are reversed to maintain consistency
 
-All operations verify balances **before** execution:
-- Offers: Check writer has sufficient available balance
-- Accepts: Check buyer has sufficient available balance for premium
-- Withdrawals: Check user has sufficient available balance
+### What This Means for You
 
-### Rollback on Failure
-
-If any step fails during accept or settlement, state is rolled back:
-- Collateral locks are reversed
-- Balance changes are undone
-- Ensures consistency even if operations fail mid-execution
+- **No double-spending**: You cannot accidentally use the same funds twice
+- **Guaranteed integrity**: Your balance is always accurate
+- **Fail-safe protection**: Failed operations don't leave your account in an inconsistent state
 
 ## Next Steps
 

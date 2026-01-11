@@ -49,14 +49,15 @@ Charged by the ckBTC ledger for on-chain transfers.
 
 **Who pays**: User initiating the transfer
 
-## Fee Configuration
+## Fee Transparency
 
-Platform administrators can adjust fee rates:
+Isometric maintains transparent and competitive fees:
 
-**Premium fee**: Percentage of premium charged to buyers (default: 5%)
-**Profit fee**: Percentage of profits charged to buyers on ITM options (default: 20%)
+- **Premium fee**: Small percentage of premium (currently 5%)
+- **Profit fee**: Percentage of profits on successful trades (currently 20%)
+- **ckBTC transfer fees**: Network fees charged by the ckBTC ledger (~0.0000001 BTC)
 
-Fees are configurable to balance platform sustainability with competitive pricing.
+These fees support platform development, security audits, and ongoing operations.
 
 ## Total Cost Examples
 

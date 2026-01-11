@@ -107,43 +107,15 @@ Settlement events are emitted for both buyer and writer, including:
 - Payout amount
 - User's role (buyer or writer)
 
-## Error Handling
+## Reliability
 
-### Oracle Failures
+### Automatic Retry
 
-If the oracle fails to return a price:
-- Error is logged for investigation
-- Option remains active
-- Settlement will be retried in the next hourly cycle
+The platform automatically handles settlement reliably:
 
-### Partial Settlement
-
-Each option settles independently:
-- One failure doesn't block other settlements
-- Successfully settled options are marked complete
-- Failed settlements are logged and retried
-
-## Settlement Journal
-
-The platform maintains a **settlement journal** for debugging and auditing:
-
-**Tracked information**:
-- Option details (ID, parties, quantity, strike, expiry)
-- Settlement phase (created, price fetched, payout calculated, funds transferred, completed, failed)
-- Timestamp
-- Error messages (if failed)
-
-**Available queries** (for administrators):
-- Pending settlements in progress
-- Failed settlements requiring attention
-- Settlement details for specific options
-
-## Administrative Tools
-
-Administrators can manually trigger settlement for specific options if needed:
-- Retry failed settlements
-- Emergency settlement
-- Testing purposes
+- If settlement is temporarily delayed, the system will retry automatically
+- Options remain protected until successfully settled
+- You don't need to take any manual action
 
 ## Settlement Guarantees
 
