@@ -126,12 +126,12 @@ pub fn unlock_collateral(principal: Principal, amount: u64) -> Result<(), Insuff
     })
 }
 
-// Releases locked collateral from writer directly to recipient's available balance.
+// Releases locked collateral from writer directly to buyer's available balance.
 // Both operations happen atomically (single-threaded canister).
 // Returns error if writer has insufficient locked funds.
-pub fn release_locked_to_recipient(
+pub fn release_locked_to_buyer(
     writer: Principal,
-    recipient: Principal,
+    buyer: Principal,
     amount: u64,
 ) -> Result<(), InsufficientBalance> {
     BALANCES.with_borrow_mut(|b| {
@@ -145,30 +145,30 @@ pub fn release_locked_to_recipient(
         writer_balance.locked_as_writer = writer_balance.locked_as_writer.saturating_sub(amount);
         b.insert(writer, Cbor(writer_balance));
 
-        let mut recipient_balance = b.get(&recipient).map(|c| c.0).unwrap_or_default();
-        recipient_balance.available = recipient_balance.available.saturating_add(amount);
-        b.insert(recipient, Cbor(recipient_balance));
+        let mut buyer_balance = b.get(&buyer).map(|c| c.0).unwrap_or_default();
+        buyer_balance.available = buyer_balance.available.saturating_add(amount);
+        b.insert(buyer, Cbor(buyer_balance));
         Ok(())
     })
 }
 
-// Reverses release_locked_to_recipient: moves funds from recipient's available back to writer's locked.
+// Reverses release_locked_to_buyer: moves funds from buyer's available back to writer's locked.
 // Used when a ledger transfer fails after the internal balance update succeeded.
-pub fn reverse_release_locked_to_recipient(
+pub fn reverse_release_locked_to_buyer(
     writer: Principal,
-    recipient: Principal,
+    buyer: Principal,
     amount: u64,
 ) -> Result<(), InsufficientBalance> {
     BALANCES.with_borrow_mut(|b| {
-        let mut recipient_balance = b.get(&recipient).map(|c| c.0).unwrap_or_default();
-        if recipient_balance.available < amount {
+        let mut buyer_balance = b.get(&buyer).map(|c| c.0).unwrap_or_default();
+        if buyer_balance.available < amount {
             return Err(InsufficientBalance {
-                available: recipient_balance.available,
+                available: buyer_balance.available,
                 required: amount,
             });
         }
-        recipient_balance.available = recipient_balance.available.saturating_sub(amount);
-        b.insert(recipient, Cbor(recipient_balance));
+        buyer_balance.available = buyer_balance.available.saturating_sub(amount);
+        b.insert(buyer, Cbor(buyer_balance));
 
         let mut writer_balance = b.get(&writer).map(|c| c.0).unwrap_or_default();
         writer_balance.locked_as_writer = writer_balance.locked_as_writer.saturating_add(amount);

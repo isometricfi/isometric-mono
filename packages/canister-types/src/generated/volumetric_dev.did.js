@@ -571,6 +571,7 @@ export const idlFactory = ({ IDL }) => {
     'testing_clear_offers_and_options' : IDL.Func([], [Result_19], []),
     'testing_expire_option' : IDL.Func([IDL.Nat64], [Result_20], []),
     'testing_force_settle' : IDL.Func([IDL.Nat64], [Result_18], []),
+    'testing_set_ckbtc_ledger' : IDL.Func([IDL.Principal], [Result_1], []),
     'testing_set_option_expiry' : IDL.Func(
         [IDL.Nat64, IDL.Nat64],
         [Result_20],

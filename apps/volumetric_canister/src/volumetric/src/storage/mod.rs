@@ -21,8 +21,8 @@ pub use accounts::{
 };
 pub use balances::{
     add_available, add_platform_fee, calculate_premium_fee, calculate_profit_fee, get_balance,
-    get_fee_recipient, get_platform_fees_collected, lock_collateral, release_locked_to_recipient,
-    reverse_release_locked_to_recipient, set_balance, subtract_available, unlock_collateral,
+    get_fee_recipient, get_platform_fees_collected, lock_collateral, release_locked_to_buyer,
+    reverse_release_locked_to_buyer, set_balance, subtract_available, unlock_collateral,
     InsufficientBalance, UserBalance, CKBTC_TRANSFER_FEE,
 };
 pub use cbor::Cbor;

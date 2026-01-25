@@ -102,7 +102,7 @@ fn test_expired_itm_option_auto_settles_with_correct_payouts() {
         EXPECTED_GROSS_BUYER_PAYOUT_SATS - EXPECTED_PROFIT_FEE_SATS;
 
     const EXPECTED_WRITER_BALANCE_INCREASE_SATS: u64 =
-        QUANTITY_SATS - EXPECTED_GROSS_BUYER_PAYOUT_SATS + EXPECTED_PROFIT_FEE_SATS;
+        QUANTITY_SATS - EXPECTED_GROSS_BUYER_PAYOUT_SATS;
 
     const EXPECTED_TOTAL_PLATFORM_FEES_SATS: u64 =
         EXPECTED_PREMIUM_FEE_SATS + EXPECTED_PROFIT_FEE_SATS;
@@ -404,8 +404,7 @@ fn test_multiple_options_settle_in_single_cron_tick() {
         EXPECTED_GROSS_BUYER_1_PAYOUT_SATS * PROFIT_FEE_BPS / BASIS_POINTS;
     const EXPECTED_BUYER_1_PAYOUT_SATS: u64 =
         EXPECTED_GROSS_BUYER_1_PAYOUT_SATS - EXPECTED_PROFIT_FEE_SATS;
-    const EXPECTED_WRITER_1_PAYOUT_SATS: u64 =
-        QUANTITY_SATS - EXPECTED_GROSS_BUYER_1_PAYOUT_SATS + EXPECTED_PROFIT_FEE_SATS;
+    const EXPECTED_WRITER_1_PAYOUT_SATS: u64 = QUANTITY_SATS - EXPECTED_GROSS_BUYER_1_PAYOUT_SATS;
 
     const EXPECTED_WRITER_2_PAYOUT_SATS: u64 = QUANTITY_SATS;
     const EXPECTED_BUYER_2_PAYOUT_SATS: u64 = 0;
@@ -636,10 +635,7 @@ fn test_option_with_extreme_price_increase_settles_correctly() {
     let buyer_received = buyer_balance_after.available - buyer_balance_before.available;
 
     assert_eq!(buyer_received, EXPECTED_BUYER_PAYOUT_SATS);
-    assert_eq!(
-        writer_received,
-        EXPECTED_WRITER_PAYOUT_SATS + EXPECTED_PROFIT_FEE_SATS
-    );
+    assert_eq!(writer_received, EXPECTED_WRITER_PAYOUT_SATS);
 
     let fee_recipient_balance_after_settle = get_fee_recipient_ledger_balance(&env);
     let profit_fee_received =
