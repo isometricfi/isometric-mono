@@ -468,6 +468,7 @@ export interface _SERVICE {
   'testing_clear_offers_and_options' : ActorMethod<[], Result_19>,
   'testing_expire_option' : ActorMethod<[bigint], Result_20>,
   'testing_force_settle' : ActorMethod<[bigint], Result_18>,
+  'testing_set_ckbtc_ledger' : ActorMethod<[Principal], Result_1>,
   'testing_set_option_expiry' : ActorMethod<[bigint, bigint], Result_20>,
   'testing_sync_balance_from_ledger' : ActorMethod<[string], Result_3>,
   'update_ckbtc_balance' : ActorMethod<[string], Result_21>,

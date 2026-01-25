@@ -7,9 +7,9 @@ use crate::oracle::{calculate_call_option_payout, get_btc_usd_price_cents};
 use crate::storage::{
     add_platform_fee, calculate_profit_fee, complete_settlement, create_settlement, emit_event,
     fail_settlement, get_active_option, get_fee_recipient, list_expired_active_options,
-    release_locked_to_recipient, remove_settlement, reverse_release_locked_to_recipient,
-    unlock_collateral, update_active_option, update_settlement_phase, ActiveOption,
-    ActiveOptionStatus, EventData, EventType, OptionType, SettlementPhase, TradeRole,
+    release_locked_to_buyer, remove_settlement, reverse_release_locked_to_buyer,
+    subtract_available, unlock_collateral, update_active_option, update_settlement_phase,
+    ActiveOption, ActiveOptionStatus, EventData, EventType, OptionType, SettlementPhase, TradeRole,
 };
 
 use crate::usecases::balances::transfer_ckbtc;
@@ -87,7 +87,7 @@ pub async fn settle_single_option(
     );
 
     if gross_payout_to_buyer > 0 {
-        release_locked_to_recipient(option.writer, option.buyer, payout_to_buyer)
+        release_locked_to_buyer(option.writer, option.buyer, payout_to_buyer)
             .map_err(|e| VolumetricError::insufficient_balance(e.available, e.required))?;
 
         if profit_fee > 0 {
@@ -121,7 +121,7 @@ pub async fn settle_single_option(
                 e
             );
             if let Err(reverse_err) =
-                reverse_release_locked_to_recipient(option.writer, option.buyer, payout_to_buyer)
+                reverse_release_locked_to_buyer(option.writer, option.buyer, payout_to_buyer)
             {
                 ic_cdk::println!(
                     "settle: CRITICAL - failed to reverse balance changes: {:?}",
@@ -154,6 +154,13 @@ pub async fn settle_single_option(
                 );
             } else {
                 add_platform_fee(profit_fee);
+                // Deduct profit fee from writer's available balance since it was transferred to platform
+                if let Err(e) = subtract_available(option.writer, profit_fee) {
+                    ic_cdk::println!(
+                        "settle: CRITICAL - failed to subtract profit fee from writer balance: {:?}",
+                        e
+                    );
+                }
             }
         }
 
