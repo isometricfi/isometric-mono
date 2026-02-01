@@ -100,6 +100,9 @@ importers:
       date-fns:
         specifier: ^4.1.0
         version: 4.1.0
+      facehash:
+        specifier: ^0.0.5
+        version: 0.0.5(@types/react@19.2.7)(next@16.0.10(@opentelemetry/api@1.9.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
       firebase-rest-firestore:
         specifier: ^1.5.0
         version: 1.5.0
@@ -3125,6 +3128,19 @@ packages:
   express@5.2.1:
     resolution: {integrity: sha512-hIS4idWWai69NezIdRt2xFVofaF4j+6INOpJlVOLDO8zXGpUVEVzIYk12UUi2JzjEzWL3IOAxcTubgz9Po0yXw==}
     engines: {node: '>= 18'}
+
+  facehash@0.0.5:
+    resolution: {integrity: sha512-txM9veJ9IPNWsimpHD+Qqr5aFcSdgJPBY2oTRzRgIfSPcLxwZQY4++7vv9fHjco25ErUxC9pdq9tPB9NK1UhTQ==}
+    peerDependencies:
+      '@types/react': ''
+      next: '>=15'
+      react: '>=18 <20'
+      react-dom: '>=18 <20'
+    peerDependenciesMeta:
+      '@types/react':
+        optional: true
+      next:
+        optional: true
 
   fast-xml-parser@4.2.5:
     resolution: {integrity: sha512-B9/wizE4WngqQftFPmdaMYlXoJlJOYxGQOanC77fq9k8+Z0v5dDSVh+3glErdIROP//s/jgb7ZuxKfB8nVyo0g==}
@@ -8234,6 +8250,14 @@ snapshots:
       vary: 1.1.2
     transitivePeerDependencies:
       - supports-color
+
+  facehash@0.0.5(@types/react@19.2.7)(next@16.0.10(@opentelemetry/api@1.9.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0):
+    dependencies:
+      react: 19.2.0
+      react-dom: 19.2.0(react@19.2.0)
+    optionalDependencies:
+      '@types/react': 19.2.7
+      next: 16.0.10(@opentelemetry/api@1.9.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
 
   fast-xml-parser@4.2.5:
     dependencies:

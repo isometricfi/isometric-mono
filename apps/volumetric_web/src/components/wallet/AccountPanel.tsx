@@ -11,6 +11,7 @@ import {
   LogOut,
   Settings,
 } from "lucide-react";
+import Image from "next/image";
 import { useLocale, useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
 import { useMediaQuery } from "react-responsive";
@@ -18,7 +19,6 @@ import { ThemeToggle } from "@/components/layout/ThemeToggle";
 import { Button } from "@/components/ui/button";
 import { Drawer, DrawerContent, DrawerTitle } from "@/components/ui/drawer";
 import { DepositModal } from "@/components/wallet/DepositModal";
-import { ProceduralAvatar } from "@/components/wallet/ProceduralAvatar";
 import { WithdrawModal } from "@/components/wallet/WithdrawModal";
 import { useAccount, usePrices, useUpdateUsername } from "@/hooks";
 import { Link, usePathname, useRouter } from "@/i18n/routing";
@@ -103,7 +103,13 @@ function AccountPanelContent({ onDisconnect }: { onDisconnect: () => void }) {
     <div className="flex flex-col gap-6 flex-1  ">
       <div className="flex justify-between gap-3 pt-2">
         <div className="flex items-center gap-3 min-w-0">
-          <ProceduralAvatar seed={avatarSeed} className="size-10 rounded-full" />
+          <Image
+            src={`/api/avatar?name=${avatarSeed}`}
+            alt="Avatar"
+            width={50}
+            height={50}
+            className="size-10 rounded-full"
+          />
           <div className="min-w-0">
             <div className="font-semibold leading-none truncate">{displayName}</div>
             <div className="text-xs text-muted-foreground truncate">{addressLabel ?? "—"}</div>
