@@ -19,7 +19,7 @@ export function ChainAbstractionSection() {
             viewport={{ once: true }}
             className=""
           >
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-medium mb-6">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-md bg-primary/10 text-primary text-xs font-medium mb-6">
               <Layers className="size-3" />
               {t("chainAbstraction")}
             </div>

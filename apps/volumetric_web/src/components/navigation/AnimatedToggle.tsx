@@ -28,7 +28,7 @@ export function AnimatedToggle<T extends string | number>({
   className,
 }: AnimatedToggleProps<T>) {
   return (
-    <div className={cn("inline-flex items-center p-1 rounded-full bg-muted", className)}>
+    <div className={cn("inline-flex items-center p-1 rounded-xl bg-muted", className)}>
       {options.map((option) => {
         const Icon = option.icon;
         const isActive = value === option.value;
@@ -39,15 +39,15 @@ export function AnimatedToggle<T extends string | number>({
             key={option.value}
             onClick={() => onChange(option.value)}
             className={cn(
-              "relative font-medium rounded-full transition-all w-full",
-              size === "sm" ? "px-3 py-1 text-xs" : "px-5 py-2 text-sm",
+              "relative font-medium rounded-lg transition-all w-full",
+              size === "sm" ? "px-3 py-1 text-xs" : "md:px-5 md:py-2 px-3 py-2 md:text-sm text-xs ",
               isActive ? "text-foreground" : "text-muted-foreground hover:text-foreground",
             )}
           >
             {isActive && (
               <motion.div
                 layoutId={layoutId}
-                className="absolute inset-0 bg-background rounded-full shadow-sm"
+                className="absolute inset-0 bg-background shadow-sm rounded-lg"
                 transition={{ type: "spring", duration: 0.5 }}
               />
             )}

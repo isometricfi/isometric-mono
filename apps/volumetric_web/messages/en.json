@@ -440,20 +440,6 @@
       "paidToBuyer": "Paid to buyer",
       "returned": "Returned"
     },
-    "roles": {
-      "title": "Choose your side",
-      "subtitle": "Strategies for different market views",
-      "writer": "Writer",
-      "writerTagline": "\"I own Bitcoin\"",
-      "writerDesc": "Generate",
-      "writerDescHighlight": "high yield",
-      "writerDescEnd": "on your BTC holdings by selling upside you don't think will hit.",
-      "buyer": "Buyer",
-      "buyerTagline": "\"I want upside\"",
-      "buyerDesc": "Get",
-      "buyerDescHighlight": "up to 100x leverage",
-      "buyerDescEnd": "on price movements without risking liquidation. Capped downside."
-    },
     "vault": {
       "title": "Fund your account",
       "description": "Deposit BTC to make offers and buy options. Withdraw anytime",

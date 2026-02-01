@@ -18,8 +18,8 @@ export function Navbar() {
   const t = useTranslations("Navbar");
 
   return (
-    <nav className="fixed top-4 left-1/2  -translate-x-1/2 z-50 w-full max-w-5xl xl:px-0 px-4 ">
-      <div className="border rounded-full bg-background/80 backdrop-blur-sm overflow-visible">
+    <nav className="mx-auto mt-4 w-full max-w-5xl px-0">
+      <div className="border rounded-xl bg-background/80 backdrop-blur-sm overflow-visible">
         <div className="mx-auto flex md:h-14 h-12 max-w-7xl items-center justify-between  px-2 md:px-3 md:grid md:grid-cols-3">
           <Link href="/" className="flex items-center gap-2 text-xl font-semibold tracking-tight">
             <Image

@@ -42,7 +42,7 @@
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
   --font-serif: Merriweather, serif;
-  --radius: 1.4rem;
+  --radius: 0.5rem;
   --tracking-tighter: calc(var(--tracking-normal) - 0.05em);
   --tracking-tight: calc(var(--tracking-normal) - 0.025em);
   --tracking-wide: calc(var(--tracking-normal) + 0.025em);
@@ -69,7 +69,7 @@
 }
 
 :root {
-  --radius: 1.4rem;
+  --radius: 0.5rem;
   --background: oklch(0.9856 0.0084 56.3169);
   --foreground: oklch(0.3353 0.0132 2.7676);
   --card: oklch(1 0 0);
@@ -162,7 +162,7 @@
   --sidebar-border: oklch(0.3637 0.0203 342.2664);
   --sidebar-ring: oklch(0.7357 0.1641 34.7091);
   --destructive-foreground: oklch(1 0 0);
-  --radius: 1.4rem;
+  --radius: 0.5rem;
   --font-sans: Montserrat, sans-serif;
   --font-serif: Merriweather, serif;
   --font-mono: Ubuntu Mono, monospace;

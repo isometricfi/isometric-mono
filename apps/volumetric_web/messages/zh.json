@@ -421,20 +421,6 @@
       "paidToBuyer": "支付给买方",
       "returned": "返还"
     },
-    "roles": {
-      "title": "选择您的一方",
-      "subtitle": "不同市场观点的策略",
-      "writer": "卖方",
-      "writerTagline": "\"我拥有比特币\"",
-      "writerDesc": "通过卖出您认为不会达到的上行空间，在您的 BTC 持仓上产生",
-      "writerDescHighlight": "高收益",
-      "writerDescEnd": "。",
-      "buyer": "买方",
-      "buyerTagline": "\"我想要上行空间\"",
-      "buyerDesc": "在价格变动上获得",
-      "buyerDescHighlight": "高达 100 倍杠杆",
-      "buyerDescEnd": "，而无需承担清算风险。下行风险有限。"
-    },
     "vault": {
       "title": "为您的账户充值",
       "description": "存入 BTC 以创建报价和购买期权。随时可以提取",

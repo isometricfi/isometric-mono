@@ -1,7 +1,7 @@
 import { Lock, PiggyBank, Zap } from "lucide-react";
 import type { Metadata } from "next";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
-import { ProceduralAvatar } from "@/components/wallet/ProceduralAvatar";
 import { Link } from "@/i18n/routing";
 import { getHistoryByHash } from "@/lib/use-cases/history/get-history-by-hash/usecase";
 import { formatBtcWithSymbolBigint } from "@/lib/utils";
@@ -73,10 +73,10 @@ export default async function SharePage({ params }: { params: Promise<{ id: stri
     : "New Member";
 
   return (
-    <div className="container mx-auto py-16 max-w-2xl pt-26">
+    <div className="container mx-auto py-4 max-w-2xl">
       <div className=" space-y-3 mb-8 border-b pb-3">
         <div className="flex items-center gap-4 justify-center pb-6 border-b">
-          <ProceduralAvatar seed={principal} className="size-12 rounded-full" />
+          <Image src={`/api/avatar?name=${principal}`} alt="Avatar" width={48} height={48} />
           <div>
             <p className="text-xl font-semibold">{username}</p>
             <p className="text-sm text-muted-foreground">Joined {joinedDate}</p>

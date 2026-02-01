@@ -187,7 +187,7 @@ export function CallOptionBuyForm() {
       ) : (
         <div className="space-y-2">
           <p className="text-sm font-medium text-foreground">{t("strike")}</p>
-          <div className="flex items-center justify-center py-3 px-4 bg-secondary/50 rounded-full h-10">
+          <div className="flex items-center justify-center py-3 px-4 bg-secondary/50 rounded-md h-10">
             <span className="text-sm text-muted-foreground">{t("noStrikesAvailable")}</span>
           </div>
         </div>
@@ -203,7 +203,7 @@ export function CallOptionBuyForm() {
 
       <Button
         onClick={handleSubmit}
-        className="w-full rounded-full py-6 text-base font-semibold"
+        className="w-full py-6 text-base font-semibold"
         size="lg"
         disabled={!isWalletConnected || !isValidAmount || !bestOffer || acceptOffer.isPending}
       >

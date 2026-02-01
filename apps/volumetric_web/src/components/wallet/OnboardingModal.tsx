@@ -42,8 +42,8 @@ function WelcomeSlide({
     <SlideWrapper>
       <div className="flex flex-col items-center text-center h-full justify-center">
         <div className="relative mb-8">
-          <div className="absolute inset-0 bg-primary/20 rounded-full blur-3xl" />
-          <div className="relative size-24 rounded-3xl bg-card border shadow-xl flex items-center justify-center">
+          <div className="absolute inset-0 bg-primary/20 rounded-xl blur-3xl" />
+          <div className="relative size-24 rounded-xl bg-card border shadow-xl flex items-center justify-center">
             <Image src="/logo.svg" alt="Isometric" width={64} height={64} className="w-16 h-16" />
           </div>
         </div>
@@ -87,16 +87,12 @@ function WelcomeSlide({
         <div className="w-full  space-y-3 flex-1 flex flex-col justify-end">
           <Button
             onClick={onStartTutorial}
-            className="w-full rounded-full h-12 text-base font-semibold shadow-lg shadow-primary/20"
+            className="w-full h-12 text-base font-semibold shadow-lg shadow-primary/20"
           >
             {t("startTutorial")}
             <ArrowRight className="size-4" />
           </Button>
-          <Button
-            onClick={onSkip}
-            variant="ghost"
-            className="w-full rounded-full h-12 text-base font-medium"
-          >
+          <Button onClick={onSkip} variant="ghost" className="w-full h-12 text-base font-medium">
             {t("skipToApp")}
           </Button>
         </div>
@@ -114,7 +110,7 @@ function ConceptSlide() {
       <div className="flex flex-col items-center text-center h-full justify-center">
         <div className="relative mb-10">
           <div className="absolute inset-0 bg-primary/20 rounded-full blur-3xl" />
-          <div className="relative size-32 rounded-3xl bg-card border shadow-xl flex items-center justify-center">
+          <div className="relative size-32 rounded-xl bg-card border shadow-xl flex items-center justify-center">
             <Handshake className="w-16 h-16 text-primary" />
           </div>
         </div>
@@ -143,7 +139,7 @@ function TermStrikeSlide() {
     <SlideWrapper>
       <div className="flex flex-col items-center text-center h-full ">
         <div className="relative mb-8">
-          <div className="size-20 rounded-2xl bg-muted border flex items-center justify-center shadow-sm">
+          <div className="size-20 rounded-xl bg-muted border flex items-center justify-center shadow-sm">
             <Target className="size-10 text-foreground" />
           </div>
           <div className="absolute -bottom-3 -right-3 bg-background border px-2 py-1 rounded-md text-xs font-mono font-bold shadow-sm">
@@ -183,7 +179,7 @@ function TermAmountSlide() {
     <SlideWrapper>
       <div className="flex flex-col items-center text-center h-full">
         <div className="relative mb-8">
-          <div className="size-20 rounded-2xl bg-muted border flex items-center justify-center shadow-sm">
+          <div className="size-20 rounded-xl bg-muted border flex items-center justify-center shadow-sm">
             <Hash className="size-10" />
           </div>
           <div className="absolute -bottom-3 -right-3 bg-background border px-2 py-1 rounded-md text-xs font-mono font-bold shadow-sm">
@@ -218,7 +214,7 @@ function TermPremiumSlide() {
     <SlideWrapper>
       <div className="flex flex-col items-center text-center h-full">
         <div className="relative mb-8">
-          <div className="size-20 rounded-2xl bg-muted border flex items-center justify-center shadow-sm">
+          <div className="size-20 rounded-xl bg-muted border flex items-center justify-center shadow-sm">
             <Coins className="size-10" />
           </div>
           <div className="absolute -bottom-3 -right-5 bg-background border px-2 py-1 rounded-md text-xs font-mono font-bold shadow-sm">
@@ -253,7 +249,7 @@ function TermExpirySlide() {
     <SlideWrapper>
       <div className="flex flex-col items-center text-center h-full">
         <div className="relative mb-8">
-          <div className="size-20 rounded-2xl bg-muted border flex items-center justify-center shadow-sm">
+          <div className="size-20 rounded-xl bg-muted border flex items-center justify-center shadow-sm">
             <Calendar className="size-10" />
           </div>
           <div className="absolute -bottom-3 -right-3 bg-background border px-2 py-1 rounded-md text-xs font-mono font-bold shadow-sm">
@@ -347,7 +343,7 @@ function ScenarioITMSlide() {
     <SlideWrapper>
       <div className="flex flex-col h-full">
         <div className="text-center mb-3">
-          <div className="inline-flex items-center gap-2 px-3 py-1 bg-green-500/10 text-green-600 dark:text-green-400 rounded-full text-xs font-bold uppercase tracking-wider mb-1">
+          <div className="inline-flex items-center gap-2 px-3 py-1 bg-green-500/10 text-green-600 dark:text-green-400 rounded-md text-xs font-bold uppercase tracking-wider mb-1">
             {t("scenario")}
           </div>
           <h2 className="text-2xl font-bold mb-2">{t("title")}</h2>
@@ -421,7 +417,7 @@ function ScenarioITMPayoutSlide() {
     <SlideWrapper>
       <div className="flex flex-col h-full">
         <div className="text-center mb-2">
-          <div className="inline-flex items-center gap-2 px-3 py-1 bg-green-500/10 text-green-600 dark:text-green-400 rounded-full text-xs font-bold uppercase tracking-wider mb-1">
+          <div className="inline-flex items-center gap-2 px-3 py-1 bg-green-500/10 text-green-600 dark:text-green-400 rounded-md text-xs font-bold uppercase tracking-wider mb-1">
             {t("scenario")}
           </div>
           <h2 className="text-2xl font-bold mb-1">{t("title")}</h2>
@@ -493,7 +489,7 @@ function ScenarioOTMSlide() {
     <SlideWrapper>
       <div className="flex flex-col h-full">
         <div className="text-center mb-3">
-          <div className="inline-flex items-center gap-2 px-3 py-1 bg-muted text-muted-foreground rounded-full text-xs font-bold uppercase tracking-wider mb-1">
+          <div className="inline-flex items-center gap-2 px-3 py-1 bg-muted text-muted-foreground rounded-md text-xs font-bold uppercase tracking-wider mb-1">
             {t("scenario")}
           </div>
           <h2 className="text-2xl font-bold mb-2">{t("title")}</h2>
@@ -572,7 +568,7 @@ function ScenarioOTMPayoutSlide() {
     <SlideWrapper>
       <div className="flex flex-col h-full">
         <div className="text-center mb-2">
-          <div className="inline-flex items-center gap-2 px-3 py-1 bg-muted text-muted-foreground rounded-full text-xs font-bold uppercase tracking-wider  mb-1">
+          <div className="inline-flex items-center gap-2 px-3 py-1 bg-muted text-muted-foreground rounded-md text-xs font-bold uppercase tracking-wider  mb-1">
             {t("scenario")}
           </div>
           <h2 className="text-2xl font-bold mb-1">{t("title")}</h2>
@@ -638,58 +634,6 @@ function ScenarioOTMPayoutSlide() {
   );
 }
 
-// 6. Roles: Writer vs Buyer
-function RolesSlide() {
-  const t = useTranslations("Onboarding.roles");
-
-  return (
-    <SlideWrapper>
-      <div className="flex flex-col h-full">
-        <div className="text-center mb-6">
-          <h2 className="text-2xl font-bold mb-2">{t("title")}</h2>
-          <p className="text-muted-foreground">{t("subtitle")}</p>
-        </div>
-
-        <div className=" grid gap-4">
-          <div className="bg-card border rounded-xl p-5  transition-colors group cursor-default">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="size-10 rounded-xl bg-green-500/10 flex items-center justify-center  transition-colors">
-                <PencilLine className="size-5 text-green-500" />
-              </div>
-              <div className="text-left">
-                <h3 className="font-bold">{t("writer")}</h3>
-                <p className="text-xs text-muted-foreground">{t("writerTagline")}</p>
-              </div>
-            </div>
-            <p className="text-sm text-muted-foreground leading-relaxed">
-              {t("writerDesc")}{" "}
-              <span className="text-foreground font-medium">{t("writerDescHighlight")}</span>{" "}
-              {t("writerDescEnd")}
-            </p>
-          </div>
-
-          <div className="bg-card border rounded-xl p-5  transition-colors group cursor-default">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="size-10 rounded-xl bg-primary/10 flex items-center justify-center primary/20 transition-colors">
-                <Zap className="size-5 text-primary" />
-              </div>
-              <div className="text-left">
-                <h3 className="font-bold">{t("buyer")}</h3>
-                <p className="text-xs text-muted-foreground">{t("buyerTagline")}</p>
-              </div>
-            </div>
-            <p className="text-sm text-muted-foreground leading-relaxed">
-              {t("buyerDesc")}{" "}
-              <span className="text-foreground font-medium">{t("buyerDescHighlight")}</span>{" "}
-              {t("buyerDescEnd")}
-            </p>
-          </div>
-        </div>
-      </div>
-    </SlideWrapper>
-  );
-}
-
 // 7. Vault: Deposit
 function VaultSlide() {
   const t = useTranslations("Onboarding.vault");
@@ -703,7 +647,7 @@ function VaultSlide() {
             <div className="size-2 rounded-full bg-green-500 animate-pulse" />
             <span className="text-xs font-mono font-medium">{t("selfCustody")}</span>
           </div>
-          <div className="size-24 rounded-3xl bg-muted flex items-center justify-center relative z-0 border shadow-lg">
+          <div className="size-24 rounded-xl bg-muted flex items-center justify-center relative z-0 border shadow-lg">
             <Lock className="size-10 text-foreground" />
           </div>
         </div>
@@ -770,7 +714,6 @@ const SLIDES = [
   ScenarioITMPayoutSlide,
   ScenarioOTMSlide,
   ScenarioOTMPayoutSlide,
-  RolesSlide,
   VaultSlide,
   ReadySlide,
 ] as const;
@@ -787,7 +730,6 @@ const SLIDE_KEYS = [
   "itm-payout",
   "otm",
   "otm-payout",
-  "roles",
   "vault",
   "ready",
 ] as const;
@@ -807,7 +749,7 @@ function ProgressDots({
           type="button"
           onClick={() => onDotClick(i)}
           className={cn(
-            "transition-all duration-500 rounded-full h-1.5",
+            "transition-all duration-500 rounded-sm h-1.5",
             i === current
               ? "w-8 bg-foreground"
               : "w-1.5 bg-muted-foreground/30 hover:bg-muted-foreground/50",
@@ -853,7 +795,7 @@ export function OnboardingContent() {
           <button
             type="button"
             onClick={closeModal}
-            className="text-xs font-medium text-muted-foreground hover:text-foreground transition-colors px-3 py-1.5 rounded-full hover:bg-muted/50"
+            className="text-xs font-medium text-muted-foreground hover:text-foreground transition-colors px-3 py-1.5 rounded-md hover:bg-muted/50"
           >
             {t("skip")}
           </button>
@@ -877,17 +819,12 @@ export function OnboardingContent() {
           <ProgressDots current={currentSlide} onDotClick={goToSlide} />
 
           <div className="flex gap-3">
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={prevSlide}
-              className="shrink-0 rounded-full size-12"
-            >
+            <Button variant="outline" size="icon" onClick={prevSlide} className="shrink-0 size-12">
               <ArrowLeft className="size-5" />
             </Button>
             <Button
               onClick={nextSlide}
-              className="flex-1 rounded-full h-12 text-base font-semibold shadow-lg shadow-primary/20"
+              className="flex-1 h-12 text-base font-semibold shadow-lg shadow-primary/20"
             >
               {isLastSlide ? (
                 <>

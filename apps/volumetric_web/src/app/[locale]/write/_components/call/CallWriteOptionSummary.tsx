@@ -94,7 +94,7 @@ export function CallWriteOptionSummary({
           <div className="font-semibold flex items-center">
             <span>₿&nbsp;</span>
             <SlidingNumber value={premiumDisplay} />
-            <div className="text-muted-foreground text-sm bg-muted px-1 rounded-full flex items-center font-medium ml-1">
+            <div className="text-muted-foreground text-sm bg-muted px-1 rounded-sm flex items-center font-medium ml-1">
               $<SlidingNumber value={premiumUsd} />
             </div>
           </div>

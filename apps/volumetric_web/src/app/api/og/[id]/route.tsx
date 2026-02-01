@@ -5,8 +5,7 @@ import { formatBtcBigint } from "@/lib/utils";
 
 function formatBtcForOG(sats: bigint, maxDecimals = 8): string {
   const formatted = formatBtcBigint(sats, maxDecimals);
-  const isNegative = sats < BigInt(0);
-  return `${isNegative ? "-" : ""}${formatted} BTC`;
+  return `${formatted} BTC`;
 }
 
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
