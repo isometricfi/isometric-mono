@@ -578,6 +578,50 @@
       "keywords": "Bitcoin trading history, on-chain history, options settlements, verifiable trades",
       "ogTitle": "History | Isometric",
       "ogImageAlt": "Isometric Trade History"
+    },
+    "support": {
+      "title": "Support",
+      "description": "Get help with your Isometric account. Submit a support ticket and we'll get back to you.",
+      "keywords": "Isometric support, help, contact, customer service",
+      "ogTitle": "Support | Isometric",
+      "ogImageAlt": "Isometric Support"
+    }
+  },
+  "Support": {
+    "title": "Support",
+    "description": "Need help? Submit a support ticket and we'll get back to you as soon as possible.",
+    "connectToSubmit": "Connect your wallet to submit a support ticket.",
+    "connectWallet": "Connect Wallet",
+    "subject": "Subject",
+    "selectSubject": "Select a subject",
+    "customSubject": "Custom Subject",
+    "enterSubject": "Enter your subject",
+    "email": "Email",
+    "enterEmail": "your.email@example.com",
+    "message": "Message",
+    "enterMessage": "Describe your issue or question in detail...",
+    "minCharacters": "Minimum {count} characters",
+    "attachments": "Attachments",
+    "addAttachment": "Add Attachment",
+    "maxFileSize": "Max 5MB total. Images and PDFs only.",
+    "invalidFileType": "Invalid file type. Please upload images or PDFs only.",
+    "fileTooLarge": "File size exceeds 5MB limit.",
+    "submit": "Submit Ticket",
+    "submitting": "Submitting...",
+    "ticketSubmitted": "Ticket submitted successfully!",
+    "ticketId": "Your ticket ID is {id}",
+    "subjects": {
+      "generalInquiry": "General Inquiry",
+      "technicalIssue": "Technical Issue",
+      "accountProblem": "Account Problem",
+      "featureRequest": "Feature Request",
+      "depositWithdrawal": "Deposit/Withdrawal Issue",
+      "other": "Other"
+    },
+    "errors": {
+      "subjectRequired": "Please select a subject",
+      "invalidEmail": "Invalid email address",
+      "messageMinLength": "Message must be at least 10 characters"
     }
   }
 }

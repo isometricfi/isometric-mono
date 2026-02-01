@@ -9,6 +9,11 @@ import { useChartOptionsStore } from "@/stores/chart-options-store";
 
 const EXTRA_DAYS_AFTER_EXPIRY = 3;
 const CHART_PADDING = { top: 10, right: 10, bottom: 25, left: 45 };
+const PRICE_LINE_WIDTH = 2;
+const PRICE_LINE_OPACITY = 0.3;
+const AREA_GRADIENT_OPACITY_TOP = 0.16;
+const AREA_GRADIENT_OPACITY_BOTTOM = 0.02;
+const SMOOTHING_FACTOR = 6;
 
 interface BTCPriceChartProps {
   mode: "buyer" | "writer";
@@ -18,6 +23,34 @@ interface DataPoint {
   date: string;
   price: number | null;
   timestamp: number;
+}
+
+interface Point {
+  x: number;
+  y: number;
+}
+
+function buildSmoothPath(points: Point[]) {
+  if (points.length === 0) return "";
+  if (points.length === 1) return `M ${points[0].x} ${points[0].y}`;
+
+  const pathParts = [`M ${points[0].x} ${points[0].y}`];
+
+  for (let i = 0; i < points.length - 1; i++) {
+    const p0 = points[i - 1] ?? points[i];
+    const p1 = points[i];
+    const p2 = points[i + 1];
+    const p3 = points[i + 2] ?? p2;
+
+    const cp1x = p1.x + (p2.x - p0.x) / SMOOTHING_FACTOR;
+    const cp1y = p1.y + (p2.y - p0.y) / SMOOTHING_FACTOR;
+    const cp2x = p2.x - (p3.x - p1.x) / SMOOTHING_FACTOR;
+    const cp2y = p2.y - (p3.y - p1.y) / SMOOTHING_FACTOR;
+
+    pathParts.push(`C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${p2.x} ${p2.y}`);
+  }
+
+  return pathParts.join(" ");
 }
 
 export function BTCPriceChart({ mode }: BTCPriceChartProps) {
@@ -147,13 +180,12 @@ export function BTCPriceChart({ mode }: BTCPriceChartProps) {
 
     if (validPoints.length === 0) return "";
 
-    const pathParts = validPoints.map((point, i) => {
-      const x = scaleX(point.index);
-      const y = scaleY(point.price as number);
-      return i === 0 ? `M ${x} ${y}` : `L ${x} ${y}`;
-    });
+    const points = validPoints.map((point) => ({
+      x: scaleX(point.index),
+      y: scaleY(point.price as number),
+    }));
 
-    return pathParts.join(" ");
+    return buildSmoothPath(points);
   }, [chartData, scaleX, scaleY]);
 
   const areaPath = useMemo(() => {
@@ -163,17 +195,17 @@ export function BTCPriceChart({ mode }: BTCPriceChartProps) {
 
     if (validPoints.length === 0) return "";
 
-    const lineParts = validPoints.map((point, i) => {
-      const x = scaleX(point.index);
-      const y = scaleY(point.price as number);
-      return i === 0 ? `M ${x} ${y}` : `L ${x} ${y}`;
-    });
+    const points = validPoints.map((point) => ({
+      x: scaleX(point.index),
+      y: scaleY(point.price as number),
+    }));
 
-    const lastValidPoint = validPoints[validPoints.length - 1];
-    const firstValidPoint = validPoints[0];
+    const linePath = buildSmoothPath(points);
+    const lastPoint = points[points.length - 1];
+    const firstPoint = points[0];
     const bottomY = CHART_PADDING.top + chartHeight;
 
-    return `${lineParts.join(" ")} L ${scaleX(lastValidPoint.index)} ${bottomY} L ${scaleX(firstValidPoint.index)} ${bottomY} Z`;
+    return `${linePath} L ${lastPoint.x} ${bottomY} L ${firstPoint.x} ${bottomY} Z`;
   }, [chartData, scaleX, scaleY, chartHeight]);
 
   const lastPriceIndex = chartData.findIndex((d) => d.price === null) - 1;
@@ -237,8 +269,16 @@ export function BTCPriceChart({ mode }: BTCPriceChartProps) {
             <title id="btc-chart-title">BTC/USD price chart with strike price projection</title>
             <defs>
               <linearGradient id="areaGradient" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="hsl(var(--chart-1))" stopOpacity={0.3} />
-                <stop offset="100%" stopColor="hsl(var(--chart-1))" stopOpacity={0.02} />
+                <stop
+                  offset="0%"
+                  stopColor="var(--foreground)"
+                  stopOpacity={AREA_GRADIENT_OPACITY_TOP}
+                />
+                <stop
+                  offset="100%"
+                  stopColor="var(--foreground)"
+                  stopOpacity={AREA_GRADIENT_OPACITY_BOTTOM}
+                />
               </linearGradient>
               <linearGradient id="strikeLineGradient" x1="0" y1="0" x2="1" y2="0">
                 <stop offset="0%" stopColor="#71717a" stopOpacity={0.8} />
@@ -364,8 +404,9 @@ export function BTCPriceChart({ mode }: BTCPriceChartProps) {
             <path
               d={pricePath}
               fill="none"
-              stroke="hsl(var(--chart-1))"
-              strokeWidth={2}
+              stroke="var(--foreground)"
+              strokeWidth={PRICE_LINE_WIDTH}
+              strokeOpacity={PRICE_LINE_OPACITY}
               strokeLinecap="round"
               strokeLinejoin="round"
             />

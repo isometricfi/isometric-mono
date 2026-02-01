@@ -559,6 +559,50 @@
       "keywords": "比特币交易历史, 链上历史, 期权结算, 可验证交易",
       "ogTitle": "历史记录 | Isometric",
       "ogImageAlt": "Isometric 交易历史"
+    },
+    "support": {
+      "title": "支持",
+      "description": "获取 Isometric 账户帮助。提交支持工单，我们会尽快回复您。",
+      "keywords": "Isometric 支持, 帮助, 联系, 客服",
+      "ogTitle": "支持 | Isometric",
+      "ogImageAlt": "Isometric 支持"
+    }
+  },
+  "Support": {
+    "title": "支持",
+    "description": "需要帮助？提交支持工单，我们会尽快回复您。",
+    "connectToSubmit": "连接您的钱包以提交支持工单。",
+    "connectWallet": "连接钱包",
+    "subject": "主题",
+    "selectSubject": "选择主题",
+    "customSubject": "自定义主题",
+    "enterSubject": "输入您的主题",
+    "email": "电子邮件",
+    "enterEmail": "your.email@example.com",
+    "message": "消息",
+    "enterMessage": "详细描述您的问题或疑问...",
+    "minCharacters": "至少 {count} 个字符",
+    "attachments": "附件",
+    "addAttachment": "添加附件",
+    "maxFileSize": "最大 5MB。仅支持图片和 PDF。",
+    "invalidFileType": "文件类型无效。请仅上传图片或 PDF。",
+    "fileTooLarge": "文件大小超过 5MB 限制。",
+    "submit": "提交工单",
+    "submitting": "提交中...",
+    "ticketSubmitted": "工单提交成功！",
+    "ticketId": "您的工单编号是 {id}",
+    "subjects": {
+      "generalInquiry": "一般咨询",
+      "technicalIssue": "技术问题",
+      "accountProblem": "账户问题",
+      "featureRequest": "功能请求",
+      "depositWithdrawal": "充值/提现问题",
+      "other": "其他"
+    },
+    "errors": {
+      "subjectRequired": "请选择主题",
+      "invalidEmail": "无效的电子邮件地址",
+      "messageMinLength": "消息至少需要 10 个字符"
     }
   }
 }

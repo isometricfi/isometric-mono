@@ -5,6 +5,7 @@ import { eventsRouter } from "./routers/events";
 import { historyRouter } from "./routers/history";
 import { optionsRouter } from "./routers/options";
 import { portfolioRouter } from "./routers/portfolio";
+import { supportRouter } from "./routers/support";
 import { testingRouter } from "./routers/testing";
 
 export const appRouter = router({
@@ -14,6 +15,7 @@ export const appRouter = router({
   history: historyRouter,
   options: optionsRouter,
   portfolio: portfolioRouter,
+  support: supportRouter,
   testing: testingRouter,
 });
 
