@@ -26,14 +26,12 @@ export function TermSelector({ value, onChange }: TermSelectorProps) {
     return <Skeleton className="h-[44px] w-full" />;
   }
   return (
-    <div className="space-y-1 ">
-      <AnimatedToggle
-        options={options}
-        value={value}
-        onChange={onChange}
-        layoutId={`termSelector-${layoutId}`}
-        className="w-full min-h-[44px]"
-      />
-    </div>
+    <AnimatedToggle
+      options={options}
+      value={value}
+      onChange={onChange}
+      layoutId={`termSelector-${layoutId}`}
+      className="w-full "
+    />
   );
 }

@@ -40,7 +40,9 @@ export function AnimatedToggle<T extends string | number>({
             onClick={() => onChange(option.value)}
             className={cn(
               "relative font-medium rounded-lg transition-all w-full",
-              size === "sm" ? "px-3 py-1 text-xs" : "md:px-5 md:py-2 px-3 py-2 md:text-sm text-xs ",
+              size === "sm"
+                ? "px-3 py-1 text-xs"
+                : "md:px-5 h-full md:py-1 px-3 py-2 md:text-sm text-xs ",
               isActive ? "text-foreground" : "text-muted-foreground hover:text-foreground",
             )}
           >

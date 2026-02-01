@@ -43,7 +43,7 @@ export function ConnectButton() {
             alt="Avatar"
             width={24}
             height={24}
-            className="size-6 rounded-xl"
+            className="size-6 rounded-sm"
           />
           <span className="max-w-[10rem] truncate">{displayName}</span>
         </Button>

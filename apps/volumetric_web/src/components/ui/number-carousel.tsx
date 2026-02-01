@@ -118,7 +118,7 @@ export function NumberCarousel({
         <ArrowLeft className="size-4" />
       </Button>
 
-      <div className="flex-1 relative h-10 overflow-hidden bg-secondary/30 rounded-md">
+      <div className="flex-1 relative h-9 overflow-hidden bg-secondary/30 rounded-md">
         <div className="absolute inset-0 flex items-center justify-center">
           <AnimatePresence initial={false} mode="popLayout">
             {visibleValues.map(({ val, position }) => {
@@ -153,7 +153,7 @@ export function NumberCarousel({
                   }}
                   className={`absolute font-semibold whitespace-nowrap ${
                     isCenter
-                      ? "text-xl text-foreground"
+                      ? "text-lg text-foreground"
                       : "text-base text-muted-foreground cursor-pointer"
                   } ${!isClickable && !isCenter ? "pointer-events-none" : ""}`}
                 >

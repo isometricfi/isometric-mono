@@ -7,6 +7,7 @@ import { AmountInput } from "@/components/options/AmountInput";
 import { OfferResultModal } from "@/components/options/OfferResultModal";
 import { TermSelector } from "@/components/options/TermSelector";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import { NumberCarousel } from "@/components/ui/number-carousel";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -161,70 +162,72 @@ export function CallOptionBuyForm() {
   };
 
   return (
-    <div className="bg-card rounded-3xl border border-border p-6 space-y-5 h-fit">
-      <TermSelector value={term} onChange={setTerm} />
+    <Card>
+      <CardContent className="h-fit space-y-5">
+        <TermSelector value={term} onChange={setTerm} />
 
-      {isLoading ? (
-        <div className="space-y-2">
-          <p className="text-sm font-medium text-foreground">{t("strike")}</p>
-          <Skeleton className="h-[40px] w-full" />
-        </div>
-      ) : strikePercents.length > 0 && btcPrice > 0 ? (
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
+        {isLoading ? (
+          <div className="space-y-2">
             <p className="text-sm font-medium text-foreground">{t("strike")}</p>
-            <span className="text-sm text-muted-foreground">
-              {t("strikePercentAbove", { percent: strikePercent })}
-            </span>
+            <Skeleton className="h-[40px] w-full" />
           </div>
-          <NumberCarousel
-            values={strikeUsdValues}
-            value={selectedStrikeUsd}
-            onChange={handleStrikeUsdChange}
-            formatValue={(v) => `$${v.toLocaleString()}`}
-          />
-        </div>
-      ) : (
-        <div className="space-y-2">
-          <p className="text-sm font-medium text-foreground">{t("strike")}</p>
-          <div className="flex items-center justify-center py-3 px-4 bg-secondary/50 rounded-md h-10">
-            <span className="text-sm text-muted-foreground">{t("noStrikesAvailable")}</span>
+        ) : strikePercents.length > 0 && btcPrice > 0 ? (
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <p className="text-sm font-medium text-foreground">{t("strike")}</p>
+              <span className="text-sm text-muted-foreground">
+                {t("strikePercentAbove", { percent: strikePercent })}
+              </span>
+            </div>
+            <NumberCarousel
+              values={strikeUsdValues}
+              value={selectedStrikeUsd}
+              onChange={handleStrikeUsdChange}
+              formatValue={(v) => `$${v.toLocaleString()}`}
+            />
           </div>
-        </div>
-      )}
+        ) : (
+          <div className="space-y-2">
+            <p className="text-sm font-medium text-foreground">{t("strike")}</p>
+            <div className="flex items-center justify-center py-3 px-4 bg-secondary/50 rounded-md h-10">
+              <span className="text-sm text-muted-foreground">{t("noStrikesAvailable")}</span>
+            </div>
+          </div>
+        )}
 
-      <AmountInput
-        value={amountBtc}
-        onChange={setAmountBtc}
-        maxAmountSats={displayMaxSats}
-        minAmountSats={minOfferAmountSats}
-        onMaxClick={handleMaxClick}
-      />
+        <AmountInput
+          value={amountBtc}
+          onChange={setAmountBtc}
+          maxAmountSats={displayMaxSats}
+          minAmountSats={minOfferAmountSats}
+          onMaxClick={handleMaxClick}
+        />
 
-      <Button
-        onClick={handleSubmit}
-        className="w-full py-6 text-base font-semibold"
-        size="lg"
-        disabled={!isWalletConnected || !isValidAmount || !bestOffer || acceptOffer.isPending}
-      >
-        {getButtonText()}
-      </Button>
+        <Button
+          onClick={handleSubmit}
+          className="w-full py-6 text-base font-semibold"
+          size="lg"
+          disabled={!isWalletConnected || !isValidAmount || !bestOffer || acceptOffer.isPending}
+        >
+          {getButtonText()}
+        </Button>
 
-      <OfferResultModal
-        open={showModal}
-        onOpenChange={handleModalClose}
-        type="buy"
-        step={acceptOffer.step}
-        fillGroupId={acceptOffer.data?.fillGroupId}
-        errorMessage={acceptOffer.error?.message}
-      />
+        <OfferResultModal
+          open={showModal}
+          onOpenChange={handleModalClose}
+          type="buy"
+          step={acceptOffer.step}
+          fillGroupId={acceptOffer.data?.fillGroupId}
+          errorMessage={acceptOffer.error?.message}
+        />
 
-      <CallBuyOptionSummary
-        amountSats={amountSats}
-        bestOffer={bestOffer}
-        term={term}
-        strikePercent={strikePercent}
-      />
-    </div>
+        <CallBuyOptionSummary
+          amountSats={amountSats}
+          bestOffer={bestOffer}
+          term={term}
+          strikePercent={strikePercent}
+        />
+      </CardContent>
+    </Card>
   );
 }

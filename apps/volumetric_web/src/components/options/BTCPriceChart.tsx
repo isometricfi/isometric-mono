@@ -26,7 +26,7 @@ export function BTCPriceChart({ mode }: BTCPriceChartProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
 
-  const { data: historyData, isLoading: historyLoading } = useBTCHistory(30);
+  const { data: historyData, isLoading: historyLoading } = useBTCHistory(14);
   const { data: priceData } = usePrices();
   const { strikePercent, termDays } = useChartOptionsStore();
 

@@ -19,7 +19,7 @@ export default async function WritePage() {
 
   return (
     <HydrationBoundary state={dehydratedState}>
-      <div className="container mx-auto py-4 max-w-5xl ">
+      <div className="container mx-auto md:py-5 py-4 max-w-5xl ">
         <WriteOptionsView />
       </div>
     </HydrationBoundary>
