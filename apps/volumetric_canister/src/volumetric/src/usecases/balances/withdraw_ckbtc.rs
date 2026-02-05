@@ -23,10 +23,7 @@ pub struct WithdrawResult {
     pub block_index: u64,
 }
 
-fn should_refund_after_retrieve_failure(
-    is_unknown_outcome: bool,
-    approval_revoked: bool,
-) -> bool {
+fn should_refund_after_retrieve_failure(is_unknown_outcome: bool, approval_revoked: bool) -> bool {
     !is_unknown_outcome && approval_revoked
 }
 
