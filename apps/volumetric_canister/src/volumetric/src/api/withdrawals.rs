@@ -1,7 +1,9 @@
 use candid::CandidType;
 use serde::{Deserialize, Serialize};
 
-use crate::auth::types::{AuthenticatedPayload, SignableAction, WalletKey, WithdrawCkbtcRequest};
+use crate::auth::types::{
+    AuthenticatedPayload, ChallengeContext, SignableAction, WalletKey, WithdrawCkbtcRequest,
+};
 use crate::auth::{build_challenge_context, verify_btc_signature};
 use crate::errors::VolumetricError;
 use crate::guards::{is_controller, is_whitelisted};
@@ -24,6 +26,18 @@ impl From<usecases::WithdrawResult> for WithdrawResult {
     }
 }
 
+#[derive(CandidType, Serialize, Deserialize, Clone, Debug, Default)]
+pub struct PendingWithdrawalsRequest {}
+
+impl SignableAction for PendingWithdrawalsRequest {
+    fn signing_message(&self, address: &str, context: &ChallengeContext) -> String {
+        format!(
+            "Get my pending withdrawals\nAddress: {}\nCanister: {}\nNetwork: {}\nNonce: {}",
+            address, context.canister_id, context.network, context.nonce
+        )
+    }
+}
+
 #[ic_cdk::query]
 pub fn get_withdraw_message(address: String, btc_address: String, amount: u64) -> String {
     let wallet_key = WalletKey::from_address(&address);
@@ -33,6 +47,13 @@ pub fn get_withdraw_message(address: String, btc_address: String, amount: u64) -
         amount,
     };
     req.signing_message(&address, &context)
+}
+
+#[ic_cdk::query]
+pub fn get_my_pending_withdrawals_message(address: String) -> String {
+    let wallet_key = WalletKey::from_address(&address);
+    let context = build_challenge_context(&wallet_key);
+    PendingWithdrawalsRequest::default().signing_message(&address, &context)
 }
 
 #[ic_cdk::update]
@@ -81,14 +102,18 @@ pub async fn get_withdrawal_by_id(id: u64) -> Result<Option<PendingWithdrawal>, 
     Ok(get_withdrawal(id))
 }
 
-#[ic_cdk::query]
+#[ic_cdk::update]
 pub async fn get_my_pending_withdrawals(
-    req: AuthenticatedPayload<()>,
+    req: AuthenticatedPayload<PendingWithdrawalsRequest>,
 ) -> Result<Vec<PendingWithdrawal>, VolumetricError> {
     is_whitelisted().await?;
 
     let address = &req.wallet_proof.address;
     let wallet_key = WalletKey::from_address(address);
+    let context = build_challenge_context(&wallet_key);
+    let reconstructed_message = req.data.signing_message(address, &context);
+    verify_btc_signature(address, &reconstructed_message, &req.wallet_proof.signature)?;
+    increment_nonce(&wallet_key);
 
     let principal =
         get_principal_for_wallet(&wallet_key).ok_or_else(VolumetricError::profile_not_found)?;

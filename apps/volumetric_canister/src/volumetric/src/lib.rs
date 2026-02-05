@@ -19,6 +19,7 @@ pub mod usecases;
 pub use api::accounts::{ProfileInfo, UserInfo};
 pub use api::deposits::DepositInfo;
 pub use api::withdrawals::WithdrawResult;
+pub use api::PendingWithdrawalsRequest;
 pub use api::{
     accept_offers, cancel_offer, create_offer, get_accept_by_id, get_accept_offers_message,
     get_active_option_by_id, get_cancel_offer_message, get_create_offer_message,
@@ -33,12 +34,12 @@ pub use api::{
 pub use api::{
     add_whitelisted, create_account, get_account_info, get_account_nonce, get_ckbtc_balance,
     get_config, get_deposit_address, get_failed_withdrawals, get_feature_flags,
-    get_message_to_sign, get_my_pending_withdrawals, get_pending_withdrawals, get_trading_limits,
-    get_user_balance, get_username_update_message, get_withdraw_message, get_withdrawal_by_id,
-    list_users, list_whitelisted, remove_whitelisted, set_feature_flags_config,
-    set_oracle_price_config, set_trading_limits_config, testing_set_ckbtc_ledger,
-    testing_sync_balance_from_ledger, update_ckbtc_balance, update_username, withdraw_ckbtc,
-    UserBalanceInfo,
+    get_message_to_sign, get_my_pending_withdrawals, get_my_pending_withdrawals_message,
+    get_pending_withdrawals, get_trading_limits, get_user_balance, get_username_update_message,
+    get_withdraw_message, get_withdrawal_by_id, list_users, list_whitelisted, remove_whitelisted,
+    set_feature_flags_config, set_oracle_price_config, set_trading_limits_config,
+    testing_set_ckbtc_ledger, testing_sync_balance_from_ledger, update_ckbtc_balance,
+    update_username, withdraw_ckbtc, UserBalanceInfo,
 };
 pub use auth::types::{
     AuthenticatedPayload, CreateProfileRequest, UpdateUsernameRequest, WithdrawCkbtcRequest,

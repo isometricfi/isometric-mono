@@ -18,3 +18,6 @@ mod test_settlements;
 
 #[path = "e2e/test_admin.rs"]
 mod test_admin;
+
+#[path = "e2e/test_withdrawals_auth.rs"]
+mod test_withdrawals_auth;

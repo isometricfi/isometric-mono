@@ -45,6 +45,7 @@ pub use settlement::{
 };
 pub use whitelist::{add_whitelisted, list_whitelisted, remove_whitelisted};
 pub use withdrawals::{
-    get_failed_withdrawals, get_my_pending_withdrawals, get_pending_withdrawals,
-    get_withdraw_message, get_withdrawal_by_id, withdraw_ckbtc,
+    get_failed_withdrawals, get_my_pending_withdrawals, get_my_pending_withdrawals_message,
+    get_pending_withdrawals, get_withdraw_message, get_withdrawal_by_id, withdraw_ckbtc,
+    PendingWithdrawalsRequest,
 };
