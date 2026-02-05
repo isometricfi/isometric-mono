@@ -25,8 +25,14 @@ pub struct CreateOfferRequest {
 impl SignableAction for CreateOfferRequest {
     fn signing_message(&self, address: &str, context: &ChallengeContext) -> String {
         format!(
-            "Create option offer\nQuantity: {} sats\nStrike: {} bps\nPremium: {} bps\nAddress: {}\nCanister: {}\nNetwork: {}\nNonce: {}",
-            self.quantity, self.strike_basis_points, self.premium_basis_points,
+            "Create option offer\nAsset: {:?}\nType: {:?}\nQuantity: {} sats\nStrike: {} bps\nPremium: {} bps\nOffer valid until ns: {}\nOption duration seconds: {}\nAddress: {}\nCanister: {}\nNetwork: {}\nNonce: {}",
+            self.asset,
+            self.option_type,
+            self.quantity,
+            self.strike_basis_points,
+            self.premium_basis_points,
+            self.offer_valid_until,
+            self.option_duration_seconds,
             address, context.canister_id, context.network, context.nonce
         )
     }
@@ -40,20 +46,24 @@ pub struct CreateOfferResponse {
 #[ic_cdk::query]
 pub fn get_create_offer_message(
     wallet_address: String,
+    asset: Asset,
+    option_type: OptionType,
     quantity: u64,
     strike_basis_points: u16,
     premium_basis_points: u16,
+    offer_valid_until: u64,
+    option_duration_seconds: u64,
 ) -> String {
     let wallet_key = WalletKey::from_address(&wallet_address);
     let context = build_challenge_context(&wallet_key);
     let req = CreateOfferRequest {
-        asset: Asset::CkBtc,
-        option_type: OptionType::Call,
+        asset,
+        option_type,
         strike_basis_points,
         premium_basis_points,
         quantity,
-        offer_valid_until: 0,
-        option_duration_seconds: 0,
+        offer_valid_until,
+        option_duration_seconds,
     };
     req.signing_message(&wallet_address, &context)
 }

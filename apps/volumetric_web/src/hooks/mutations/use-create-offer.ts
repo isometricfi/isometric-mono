@@ -50,12 +50,18 @@ export function useCreateOffer() {
       const strikeBasisPoints = Math.round(strikePercent * PERCENT_TO_BASIS_POINTS);
       const premiumBasisPoints = Math.round(premiumPercent * PERCENT_TO_BASIS_POINTS);
       const optionDurationSeconds = BigInt(termDays * SECONDS_PER_DAY);
+      const now = BigInt(Date.now()) * BigInt(1_000_000);
+      const offerValidUntil = now + TEN_YEARS_NS;
 
       const message = await canister.get_create_offer_message(
         address,
+        { CkBtc: null },
+        { Call: null },
         quantity,
         strikeBasisPoints,
         premiumBasisPoints,
+        offerValidUntil,
+        optionDurationSeconds,
       );
       const signature = await primaryWallet.signMessage(message, { addressType: "payment" });
 
@@ -64,9 +70,6 @@ export function useCreateOffer() {
       }
 
       setStep("submitting");
-
-      const now = BigInt(Date.now()) * BigInt(1_000_000);
-      const offerValidUntil = now + TEN_YEARS_NS;
 
       return trpcClient.options.createOffer.mutate({
         address,

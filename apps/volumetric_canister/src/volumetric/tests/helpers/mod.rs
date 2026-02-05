@@ -9,8 +9,10 @@ pub use accounts::{create_account, create_account_with_signature};
 pub use balances::{get_user_balance, mint_and_sync_balance};
 pub use config::{
     configure_test_ledger, get_fee_recipient_ledger_balance, set_feature_flags, set_oracle_price,
-    whitelist_controller,
+    whitelist_controller, whitelist_principal,
 };
 pub use events::get_events_for_principal;
-pub use offers::{accept_offers, cancel_offer, create_offer, get_open_offers};
+pub use offers::{
+    accept_offers, cancel_offer, create_offer, get_create_offer_message, get_open_offers,
+};
 pub use settlement::{get_pending_settlements, settle_option_by_id, testing_set_option_expiry};

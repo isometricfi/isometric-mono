@@ -14,9 +14,13 @@ const ONE_HOUR_NS: u64 = 3_600_000_000_000;
 pub fn get_create_offer_message(
     env: &TestEnv,
     address: &str,
+    asset: Asset,
+    option_type: OptionType,
     quantity: u64,
     strike_bps: u16,
     premium_bps: u16,
+    offer_valid_until: u64,
+    option_duration_seconds: u64,
 ) -> String {
     let response = env
         .pic
@@ -24,7 +28,17 @@ pub fn get_create_offer_message(
             env.volumetric_canister,
             candid::Principal::anonymous(),
             "get_create_offer_message",
-            candid::encode_args((address.to_string(), quantity, strike_bps, premium_bps)).unwrap(),
+            candid::encode_args((
+                address.to_string(),
+                asset,
+                option_type,
+                quantity,
+                strike_bps,
+                premium_bps,
+                offer_valid_until,
+                option_duration_seconds,
+            ))
+            .unwrap(),
         )
         .expect("Query failed");
     Decode!(&response, String).unwrap()
@@ -55,16 +69,27 @@ pub fn create_offer(
     premium_bps: u16,
     duration_secs: u64,
 ) -> Result<CreateOfferResponse, VolumetricError> {
-    let message = get_create_offer_message(env, &wallet.address, quantity, strike_bps, premium_bps);
-    let signature = wallets::sign_message(wallet, &message);
-
     let now = env.pic.get_time().as_nanos_since_unix_epoch();
     let valid_until = now + ONE_HOUR_NS;
+    let asset = Asset::CkBtc;
+    let option_type = OptionType::Call;
+    let message = get_create_offer_message(
+        env,
+        &wallet.address,
+        asset,
+        option_type,
+        quantity,
+        strike_bps,
+        premium_bps,
+        valid_until,
+        duration_secs,
+    );
+    let signature = wallets::sign_message(wallet, &message);
 
     let payload = AuthenticatedPayload {
         data: CreateOfferRequest {
-            asset: Asset::CkBtc,
-            option_type: OptionType::Call,
+            asset,
+            option_type,
             strike_basis_points: strike_bps,
             premium_basis_points: premium_bps,
             quantity,

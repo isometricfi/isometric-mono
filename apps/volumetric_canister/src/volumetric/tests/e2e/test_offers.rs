@@ -1,10 +1,86 @@
-use crate::common::{create_test_env, generate_wallet};
+use candid::Decode;
+
+use crate::common::{create_test_env, generate_wallet, wallets};
 use crate::helpers::{
     accept_offers, cancel_offer, configure_test_ledger, create_account, create_offer,
-    get_events_for_principal, get_open_offers, mint_and_sync_balance, whitelist_controller,
+    get_create_offer_message, get_events_for_principal, get_open_offers, mint_and_sync_balance,
+    whitelist_controller,
 };
+use volumetric::auth::types::WalletProof;
 use volumetric::errors::error_codes;
-use volumetric::{AcceptOfferItem, EventData, EventType, OfferStatus};
+use volumetric::{
+    AcceptOfferItem, Asset, AuthenticatedPayload, CreateOfferRequest, EventData, EventType,
+    OfferStatus, OptionType, VolumetricError,
+};
+
+/// Given: User signs offer payload with specific validity/duration
+/// When: Relayer mutates unsigned offer fields before submit
+/// Then: Signature check fails with INVALID_SIGNATURE
+#[test]
+fn test_create_offer_rejects_tampered_validity_or_duration() {
+    // given
+    let env = create_test_env();
+    whitelist_controller(&env);
+    configure_test_ledger(&env);
+
+    const WRITER_SEED: u64 = 41;
+    const QUANTITY_SATS: u64 = 1_000_000;
+    const STRIKE_BPS: u16 = 500;
+    const PREMIUM_BPS: u16 = 100;
+    const SIGNED_DURATION_SECS: u64 = 86_400;
+
+    let wallet = generate_wallet(WRITER_SEED);
+    let profile = create_account(&env, &wallet).expect("Account creation failed");
+    mint_and_sync_balance(&env, &profile, QUANTITY_SATS).expect("Mint balance failed");
+
+    let signed_valid_until = env.pic.get_time().as_nanos_since_unix_epoch() + 3_600_000_000_000;
+    let message = get_create_offer_message(
+        &env,
+        &wallet.address,
+        Asset::CkBtc,
+        OptionType::Call,
+        QUANTITY_SATS,
+        STRIKE_BPS,
+        PREMIUM_BPS,
+        signed_valid_until,
+        SIGNED_DURATION_SECS,
+    );
+    let signature = wallets::sign_message(&wallet, &message);
+
+    // when
+    const TAMPERED_DURATION_SECS: u64 = SIGNED_DURATION_SECS + 60;
+    let payload = AuthenticatedPayload {
+        data: CreateOfferRequest {
+            asset: Asset::CkBtc,
+            option_type: OptionType::Call,
+            strike_basis_points: STRIKE_BPS,
+            premium_basis_points: PREMIUM_BPS,
+            quantity: QUANTITY_SATS,
+            offer_valid_until: signed_valid_until,
+            option_duration_seconds: TAMPERED_DURATION_SECS,
+        },
+        wallet_proof: WalletProof {
+            address: wallet.address.clone(),
+            signature,
+        },
+    };
+
+    let response = env
+        .pic
+        .update_call(
+            env.volumetric_canister,
+            env.controller,
+            "create_offer",
+            candid::encode_one(payload).unwrap(),
+        )
+        .expect("Create offer call should return candid payload");
+    let result: Result<volumetric::CreateOfferResponse, VolumetricError> =
+        Decode!(&response, Result<volumetric::CreateOfferResponse, VolumetricError>).unwrap();
+
+    // then
+    let error = result.expect_err("Expected INVALID_SIGNATURE for tampered request");
+    assert_eq!(error.code, error_codes::INVALID_SIGNATURE.code);
+}
 
 /// Given: Writer with 0.1 BTC balance
 /// When: Writer creates offer with strike +5%, premium 1%, 1 day expiry
