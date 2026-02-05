@@ -127,7 +127,7 @@ pub struct ClearStorageResponse {
 /// Use this for storage migration when schema changes break deserialization.
 #[ic_cdk::update]
 pub async fn testing_clear_offers_and_options() -> Result<ClearStorageResponse, VolumetricError> {
-    is_whitelisted().await?;
+    is_controller().await?;
 
     let offers_cleared = crate::storage::clear_offers();
     let options_cleared = crate::storage::clear_active_options();

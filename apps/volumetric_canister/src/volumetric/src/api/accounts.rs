@@ -5,7 +5,7 @@ use crate::auth::types::{
 };
 use crate::auth::{build_challenge_context, verify_btc_signature};
 use crate::errors::VolumetricError;
-use crate::guards::is_whitelisted;
+use crate::guards::{is_controller, is_whitelisted};
 use crate::storage::{get_nonce, get_principal_for_wallet, increment_nonce, is_wallet_registered};
 use crate::usecases;
 
@@ -121,13 +121,15 @@ pub async fn update_username(
 }
 
 #[ic_cdk::query]
-pub fn list_users() -> Vec<UserInfo> {
-    usecases::list_users_use_case()
+pub async fn list_users() -> Result<Vec<UserInfo>, VolumetricError> {
+    is_controller().await?;
+    let users = usecases::list_users_use_case()
         .into_iter()
         .map(|u| UserInfo {
             principal: u.principal,
             address: u.address,
             username: u.username,
         })
-        .collect()
+        .collect();
+    Ok(users)
 }

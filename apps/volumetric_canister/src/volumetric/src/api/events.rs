@@ -19,25 +19,34 @@ pub fn get_my_events(after_id: Option<u64>, limit: Option<u32>) -> Vec<Event> {
 }
 
 #[ic_cdk::query]
-pub fn get_events_for_principal(
+pub async fn get_events_for_principal(
     principal: Principal,
     after_id: Option<u64>,
     limit: Option<u32>,
-) -> Vec<Event> {
+) -> Result<Vec<Event>, VolumetricError> {
+    is_controller().await?;
     let limit = limit.unwrap_or(100).min(MAX_EVENTS_LIMIT);
-    get_events_by_principal(principal, after_id, limit)
+    Ok(get_events_by_principal(principal, after_id, limit))
 }
 
 #[ic_cdk::query]
-pub fn get_events_since(timestamp_ns: u64, limit: Option<u32>) -> Vec<Event> {
+pub async fn get_events_since(
+    timestamp_ns: u64,
+    limit: Option<u32>,
+) -> Result<Vec<Event>, VolumetricError> {
+    is_controller().await?;
     let limit = limit.unwrap_or(100).min(MAX_EVENTS_LIMIT);
-    storage_get_events_since(timestamp_ns, limit)
+    Ok(storage_get_events_since(timestamp_ns, limit))
 }
 
 #[ic_cdk::query]
-pub fn get_all_events(after_id: Option<u64>, limit: Option<u32>) -> Vec<Event> {
+pub async fn get_all_events(
+    after_id: Option<u64>,
+    limit: Option<u32>,
+) -> Result<Vec<Event>, VolumetricError> {
+    is_controller().await?;
     let limit = limit.unwrap_or(100).min(MAX_EVENTS_LIMIT);
-    storage_get_all_events(after_id, limit)
+    Ok(storage_get_all_events(after_id, limit))
 }
 
 #[ic_cdk::update]

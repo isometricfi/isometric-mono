@@ -5,6 +5,22 @@ use volumetric::{FeatureFlags, FeeConfig, VolumetricError};
 
 use crate::common::TestEnv;
 
+pub fn whitelist_principal(env: &TestEnv, principal: Principal) {
+    let response = env
+        .pic
+        .update_call(
+            env.volumetric_canister,
+            env.controller,
+            "add_whitelisted",
+            candid::encode_one(principal).unwrap(),
+        )
+        .expect("Whitelist call failed");
+
+    let result: Result<(), VolumetricError> =
+        Decode!(&response, Result<(), VolumetricError>).unwrap();
+    result.expect("Failed to whitelist principal");
+}
+
 pub fn set_feature_flags(env: &TestEnv, flags: FeatureFlags) {
     let response = env
         .pic
@@ -22,19 +38,7 @@ pub fn set_feature_flags(env: &TestEnv, flags: FeatureFlags) {
 }
 
 pub fn whitelist_controller(env: &TestEnv) {
-    let response = env
-        .pic
-        .update_call(
-            env.volumetric_canister,
-            env.controller,
-            "add_whitelisted",
-            candid::encode_one(env.controller).unwrap(),
-        )
-        .expect("Whitelist call failed");
-
-    let result: Result<(), VolumetricError> =
-        Decode!(&response, Result<(), VolumetricError>).unwrap();
-    result.expect("Failed to whitelist controller");
+    whitelist_principal(env, env.controller);
 }
 
 pub fn configure_test_ledger(env: &TestEnv) {

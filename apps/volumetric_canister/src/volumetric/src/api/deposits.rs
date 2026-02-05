@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 use crate::auth::types::WalletKey;
 use crate::errors::VolumetricError;
 use crate::generated::ckbtc::UtxoStatus;
-use crate::guards::is_whitelisted;
+use crate::guards::{is_controller, is_whitelisted};
 use crate::storage::get_principal_for_wallet;
 use crate::usecases;
 
@@ -60,7 +60,7 @@ pub async fn get_ckbtc_balance(address: String) -> Result<Nat, VolumetricError> 
 
 #[ic_cdk::update]
 pub async fn testing_sync_balance_from_ledger(address: String) -> Result<u64, VolumetricError> {
-    is_whitelisted().await?;
+    is_controller().await?;
 
     let wallet_key = WalletKey::from_address(&address);
     let principal =
