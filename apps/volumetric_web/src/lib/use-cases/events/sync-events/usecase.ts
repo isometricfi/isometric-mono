@@ -14,8 +14,12 @@ export async function syncEventsFromCanister(): Promise<SyncEventsResult> {
   const latestEventId = await repository.getLatestEventId();
   const afterId: [] | [bigint] = latestEventId ? [BigInt(latestEventId)] : [];
 
-  const canisterEvents = await actor.get_all_events(afterId, [1000]);
-  const events = mapEvents(canisterEvents);
+  const canisterEventsResult = await actor.get_all_events(afterId, [1000]);
+  if ("Err" in canisterEventsResult) {
+    throw new Error(canisterEventsResult.Err.message);
+  }
+
+  const events = mapEvents(canisterEventsResult.Ok);
 
   if (events.length > 0) {
     await repository.saveEvents(events);
