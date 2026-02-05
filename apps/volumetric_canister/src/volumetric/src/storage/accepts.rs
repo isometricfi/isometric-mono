@@ -68,8 +68,13 @@ thread_local! {
             MEMORY_MANAGER.with_borrow(|m| m.get(MemoryId::new(MemoryIndex::AcceptJournalMemory as u8))),
         )
     );
+}
 
-    static ACCEPT_ID_COUNTER: RefCell<u64> = const { RefCell::new(0) };
+fn next_accept_id(journal: &StableBTreeMap<u64, PendingAccept, Memory>) -> u64 {
+    journal
+        .iter()
+        .fold(0u64, |max_id, entry| max_id.max(*entry.key()))
+        .saturating_add(1)
 }
 
 pub fn create_accept(
@@ -79,28 +84,23 @@ pub fn create_accept(
     fill_group_id: u64,
 ) -> PendingAccept {
     let now = ic_cdk::api::time();
-    let id = ACCEPT_ID_COUNTER.with(|c| {
-        let mut counter = c.borrow_mut();
-        *counter += 1;
-        *counter
-    });
-
-    let accept = PendingAccept {
-        id,
-        buyer,
-        total_premium,
-        offers,
-        phase: AcceptPhase::Started,
-        created_at: now,
-        updated_at: now,
-        fill_group_id,
-    };
-
     ACCEPT_JOURNAL.with(|journal| {
-        journal.borrow_mut().insert(id, accept.clone());
-    });
+        let mut journal = journal.borrow_mut();
+        let id = next_accept_id(&journal);
+        let accept = PendingAccept {
+            id,
+            buyer,
+            total_premium,
+            offers,
+            phase: AcceptPhase::Started,
+            created_at: now,
+            updated_at: now,
+            fill_group_id,
+        };
 
-    accept
+        journal.insert(id, accept.clone());
+        accept
+    })
 }
 
 pub fn update_accept_phase(id: u64, phase: AcceptPhase) {
@@ -164,4 +164,50 @@ pub fn list_failed_accepts() -> Vec<PendingAccept> {
             })
             .collect()
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn test_principal(seed: u8) -> Principal {
+        let mut bytes = [0u8; 29];
+        bytes[0] = seed;
+        Principal::from_slice(&bytes)
+    }
+
+    fn test_pending_accept(id: u64) -> PendingAccept {
+        PendingAccept {
+            id,
+            buyer: test_principal(9),
+            total_premium: 1_000,
+            offers: vec![],
+            phase: AcceptPhase::Started,
+            created_at: 1,
+            updated_at: 1,
+            fill_group_id: 1,
+        }
+    }
+
+    #[test]
+    fn test_next_accept_id_uses_existing_max_id() {
+        // given
+        const EXISTING_ID: u64 = 99;
+        ACCEPT_JOURNAL.with(|journal| {
+            journal
+                .borrow_mut()
+                .insert(EXISTING_ID, test_pending_accept(EXISTING_ID));
+        });
+
+        // when
+        let next_id = ACCEPT_JOURNAL.with(|journal| next_accept_id(&journal.borrow()));
+
+        // then
+        const EXPECTED_NEW_ID: u64 = EXISTING_ID + 1;
+        assert_eq!(next_id, EXPECTED_NEW_ID);
+
+        ACCEPT_JOURNAL.with(|journal| {
+            journal.borrow_mut().remove(&EXISTING_ID);
+        });
+    }
 }

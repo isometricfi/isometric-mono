@@ -1,8 +1,8 @@
-use std::cell::{Cell, RefCell};
+use std::cell::RefCell;
 
 use candid::{CandidType, Principal};
 use ic_stable_structures::memory_manager::MemoryId;
-use ic_stable_structures::StableBTreeMap;
+use ic_stable_structures::{StableBTreeMap, StableCell};
 use serde::{Deserialize, Serialize};
 
 use super::cbor::Cbor;
@@ -22,15 +22,23 @@ thread_local! {
         )
     );
 
-    static PLATFORM_FEES_COLLECTED: Cell<u64> = const { Cell::new(0) };
+    static PLATFORM_FEES_COLLECTED: RefCell<StableCell<Cbor<u64>, Memory>> = RefCell::new(
+        StableCell::init(
+            MEMORY_MANAGER.with_borrow(|m| m.get(MemoryId::new(MemoryIndex::PlatformFeesMemory as u8))),
+            Cbor(0)
+        )
+    );
 }
 
 pub fn add_platform_fee(amount: u64) {
-    PLATFORM_FEES_COLLECTED.with(|f| f.set(f.get().saturating_add(amount)));
+    PLATFORM_FEES_COLLECTED.with_borrow_mut(|f| {
+        let updated = f.get().0.saturating_add(amount);
+        let _ = f.set(Cbor(updated));
+    });
 }
 
 pub fn get_platform_fees_collected() -> u64 {
-    PLATFORM_FEES_COLLECTED.with(|f| f.get())
+    PLATFORM_FEES_COLLECTED.with_borrow(|f| f.get().0)
 }
 
 pub fn calculate_premium_fee(premium: u64) -> u64 {
@@ -181,4 +189,27 @@ pub fn reverse_release_locked_to_buyer(
 pub struct InsufficientBalance {
     pub available: u64,
     pub required: u64,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_add_platform_fee_uses_stable_counter() {
+        // given
+        const FEE_INCREMENT: u64 = 1234;
+        let initial = get_platform_fees_collected();
+
+        // when
+        add_platform_fee(FEE_INCREMENT);
+
+        // then
+        let updated = get_platform_fees_collected();
+        assert_eq!(updated, initial.saturating_add(FEE_INCREMENT));
+
+        PLATFORM_FEES_COLLECTED.with_borrow_mut(|f| {
+            let _ = f.set(Cbor(initial));
+        });
+    }
 }

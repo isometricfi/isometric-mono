@@ -5,7 +5,7 @@ use crate::auth::derive_subaccount;
 use crate::errors::VolumetricError;
 use crate::generated::ckbtc::{GetBtcAddressArg, UpdateBalanceArg, UpdateBalanceError, UtxoStatus};
 use crate::storage::{
-    add_available, emit_event, set_balance, Config, EventData, EventType, UserBalance,
+    add_available, emit_event, get_balance, set_balance, Config, EventData, EventType, UserBalance,
 };
 
 pub struct DepositAddressResult {
@@ -154,13 +154,66 @@ pub async fn sync_balance_from_ledger(principal: Principal) -> Result<u64, Volum
         .try_into()
         .map_err(|_| VolumetricError::internal("Balance too large to fit in u64"))?;
 
-    set_balance(
-        principal,
-        UserBalance {
-            available: balance_u64,
-            locked_as_writer: 0,
-        },
-    );
+    let existing_balance = get_balance(&principal);
+    let reconciled_balance = reconcile_user_balance(balance_u64, existing_balance)?;
+    set_balance(principal, reconciled_balance);
 
     Ok(balance_u64)
+}
+
+fn reconcile_user_balance(
+    ledger_balance: u64,
+    existing_balance: UserBalance,
+) -> Result<UserBalance, VolumetricError> {
+    if ledger_balance < existing_balance.locked_as_writer {
+        return Err(VolumetricError::config_error(
+            "Ledger balance below locked collateral",
+        ));
+    }
+
+    Ok(UserBalance {
+        available: ledger_balance.saturating_sub(existing_balance.locked_as_writer),
+        locked_as_writer: existing_balance.locked_as_writer,
+    })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_reconcile_user_balance_preserves_locked_collateral() {
+        // given
+        const LEDGER_BALANCE: u64 = 10_000;
+        const LOCKED_BALANCE: u64 = 4_000;
+        let existing = UserBalance {
+            available: 6_000,
+            locked_as_writer: LOCKED_BALANCE,
+        };
+
+        // when
+        let result = reconcile_user_balance(LEDGER_BALANCE, existing).expect("Reconcile failed");
+
+        // then
+        const EXPECTED_AVAILABLE: u64 = 6_000;
+        assert_eq!(result.available, EXPECTED_AVAILABLE);
+        assert_eq!(result.locked_as_writer, LOCKED_BALANCE);
+    }
+
+    #[test]
+    fn test_reconcile_user_balance_rejects_ledger_under_locked() {
+        // given
+        const LEDGER_BALANCE: u64 = 3_000;
+        const LOCKED_BALANCE: u64 = 4_000;
+        let existing = UserBalance {
+            available: 1_000,
+            locked_as_writer: LOCKED_BALANCE,
+        };
+
+        // when
+        let result = reconcile_user_balance(LEDGER_BALANCE, existing);
+
+        // then
+        assert!(result.is_err());
+    }
 }

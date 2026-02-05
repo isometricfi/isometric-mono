@@ -56,7 +56,13 @@ thread_local! {
         )
     );
 
-    static WITHDRAWAL_ID_COUNTER: RefCell<u64> = const { RefCell::new(0) };
+}
+
+fn next_withdrawal_id(journal: &StableBTreeMap<u64, PendingWithdrawal, Memory>) -> u64 {
+    journal
+        .iter()
+        .fold(0u64, |max_id, entry| max_id.max(*entry.key()))
+        .saturating_add(1)
 }
 
 pub fn create_withdrawal(
@@ -66,28 +72,23 @@ pub fn create_withdrawal(
     created_at_time: u64,
 ) -> PendingWithdrawal {
     let now = ic_cdk::api::time();
-    let id = WITHDRAWAL_ID_COUNTER.with(|c| {
-        let mut counter = c.borrow_mut();
-        *counter += 1;
-        *counter
-    });
-
-    let withdrawal = PendingWithdrawal {
-        id,
-        principal,
-        amount,
-        btc_address,
-        phase: WithdrawalPhase::Started,
-        created_at: now,
-        updated_at: now,
-        created_at_time,
-    };
-
     WITHDRAWAL_JOURNAL.with(|journal| {
-        journal.borrow_mut().insert(id, withdrawal.clone());
-    });
+        let mut journal = journal.borrow_mut();
+        let id = next_withdrawal_id(&journal);
+        let withdrawal = PendingWithdrawal {
+            id,
+            principal,
+            amount,
+            btc_address,
+            phase: WithdrawalPhase::Started,
+            created_at: now,
+            updated_at: now,
+            created_at_time,
+        };
 
-    withdrawal
+        journal.insert(id, withdrawal.clone());
+        withdrawal
+    })
 }
 
 pub fn update_withdrawal_phase(id: u64, phase: WithdrawalPhase) {
@@ -176,4 +177,50 @@ pub fn list_failed_withdrawals() -> Vec<PendingWithdrawal> {
             })
             .collect()
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn test_principal(seed: u8) -> Principal {
+        let mut bytes = [0u8; 29];
+        bytes[0] = seed;
+        Principal::from_slice(&bytes)
+    }
+
+    fn test_pending_withdrawal(id: u64) -> PendingWithdrawal {
+        PendingWithdrawal {
+            id,
+            principal: test_principal(8),
+            amount: 1_000,
+            btc_address: "tb1qtest".to_string(),
+            phase: WithdrawalPhase::Started,
+            created_at: 1,
+            updated_at: 1,
+            created_at_time: 1,
+        }
+    }
+
+    #[test]
+    fn test_next_withdrawal_id_uses_existing_max_id() {
+        // given
+        const EXISTING_ID: u64 = 77;
+        WITHDRAWAL_JOURNAL.with(|journal| {
+            journal
+                .borrow_mut()
+                .insert(EXISTING_ID, test_pending_withdrawal(EXISTING_ID));
+        });
+
+        // when
+        let next_id = WITHDRAWAL_JOURNAL.with(|journal| next_withdrawal_id(&journal.borrow()));
+
+        // then
+        const EXPECTED_NEW_ID: u64 = EXISTING_ID + 1;
+        assert_eq!(next_id, EXPECTED_NEW_ID);
+
+        WITHDRAWAL_JOURNAL.with(|journal| {
+            journal.borrow_mut().remove(&EXISTING_ID);
+        });
+    }
 }

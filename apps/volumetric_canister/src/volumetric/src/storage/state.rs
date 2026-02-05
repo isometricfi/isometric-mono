@@ -34,6 +34,8 @@ pub enum MemoryIndex {
     SettlementJournalMemory = 11,
     /// User activity events for history tracking
     EventsMemory = 12,
+    /// Platform fee totals persisted across upgrades
+    PlatformFeesMemory = 13,
 }
 
 pub type Memory = VirtualMemory<DefaultMemoryImpl>;

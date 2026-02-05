@@ -4,6 +4,7 @@ use candid::CandidType;
 use ic_stable_structures::storable::Bound;
 use ic_stable_structures::Storable;
 use serde::{Deserialize, Serialize};
+use sha2::{Digest, Sha256};
 
 const WALLET_KEY_SIZE: usize = 64;
 
@@ -15,8 +16,20 @@ impl WalletKey {
         let zero_padding: u8 = 0;
         let mut bytes = [zero_padding; WALLET_KEY_SIZE];
         let address_bytes = address.as_bytes();
-        let len = address_bytes.len().min(WALLET_KEY_SIZE);
-        bytes[..len].copy_from_slice(&address_bytes[..len]);
+        if address_bytes.len() <= WALLET_KEY_SIZE {
+            let len = address_bytes.len();
+            bytes[..len].copy_from_slice(address_bytes);
+            return Self(bytes);
+        }
+
+        let primary_hash = Sha256::digest(address_bytes);
+        let mut secondary_hasher = Sha256::new();
+        secondary_hasher.update(b"wallet-key-v2");
+        secondary_hasher.update(address_bytes);
+        let secondary_hash = secondary_hasher.finalize();
+
+        bytes[..32].copy_from_slice(&primary_hash);
+        bytes[32..].copy_from_slice(&secondary_hash);
         Self(bytes)
     }
 
@@ -24,6 +37,46 @@ impl WalletKey {
         let first_null = self.0.iter().position(|&b| b == 0);
         let end = first_null.unwrap_or(WALLET_KEY_SIZE);
         String::from_utf8_lossy(&self.0[..end]).to_string()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn legacy_wallet_key_bytes(address: &str) -> [u8; WALLET_KEY_SIZE] {
+        let mut bytes = [0u8; WALLET_KEY_SIZE];
+        let address_bytes = address.as_bytes();
+        let len = address_bytes.len().min(WALLET_KEY_SIZE);
+        bytes[..len].copy_from_slice(&address_bytes[..len]);
+        bytes
+    }
+
+    #[test]
+    fn test_wallet_key_short_addresses_keep_legacy_encoding() {
+        // given
+        let address = "tb1qexamplelegacykey";
+
+        // when
+        let key = WalletKey::from_address(address);
+
+        // then
+        assert_eq!(key.0, legacy_wallet_key_bytes(address));
+    }
+
+    #[test]
+    fn test_wallet_key_long_addresses_with_same_prefix_do_not_collide() {
+        // given
+        let prefix = "a".repeat(WALLET_KEY_SIZE);
+        let address_one = format!("{}1111", prefix);
+        let address_two = format!("{}2222", prefix);
+
+        // when
+        let key_one = WalletKey::from_address(&address_one);
+        let key_two = WalletKey::from_address(&address_two);
+
+        // then
+        assert_ne!(key_one, key_two);
     }
 }
 
