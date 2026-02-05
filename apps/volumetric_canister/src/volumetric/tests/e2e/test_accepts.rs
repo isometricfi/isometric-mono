@@ -546,6 +546,97 @@ fn test_accept_with_insufficient_balance_fails() {
     assert_eq!(error.code, error_codes::INSUFFICIENT_BALANCE.code);
 }
 
+/// Given: Writer has an open offer but collateral becomes temporarily unavailable
+/// When: Buyer attempts to accept that offer
+/// Then: Accept fails with INSUFFICIENT_BALANCE and offer remains open
+#[test]
+fn test_accept_with_insufficient_writer_balance_does_not_cancel_offer() {
+    // given
+    let env = create_test_env();
+    whitelist_controller(&env);
+    configure_test_ledger(&env);
+
+    const WRITER_SEED: u64 = 11;
+    const BUYER_ONE_SEED: u64 = 12;
+    const BUYER_TWO_SEED: u64 = 13;
+    let writer_wallet = generate_wallet(WRITER_SEED);
+    let buyer_one_wallet = generate_wallet(BUYER_ONE_SEED);
+    let buyer_two_wallet = generate_wallet(BUYER_TWO_SEED);
+
+    let writer_profile = create_account(&env, &writer_wallet).expect("Writer account failed");
+    let buyer_one_profile =
+        create_account(&env, &buyer_one_wallet).expect("Buyer one account failed");
+    let buyer_two_profile =
+        create_account(&env, &buyer_two_wallet).expect("Buyer two account failed");
+
+    const QUANTITY_SATS: u64 = 1_000_000;
+    const STRIKE_BPS: u16 = 500;
+    const PREMIUM_BPS: u16 = 100;
+    const ONE_DAY_SECS: u64 = 86_400;
+    const BASIS_POINTS: u64 = 10_000;
+    const CKBTC_TRANSFER_FEE: u64 = 10;
+    const OFFER_ONE_ID: u64 = 1;
+    const OFFER_TWO_ID: u64 = 2;
+    const TRANSFER_COUNT: u64 = 2;
+
+    const PREMIUM_SATS: u64 = QUANTITY_SATS * PREMIUM_BPS as u64 / BASIS_POINTS;
+    const ACCEPT_COST_SATS: u64 = PREMIUM_SATS + (TRANSFER_COUNT * CKBTC_TRANSFER_FEE);
+
+    mint_and_sync_balance(&env, &writer_profile, QUANTITY_SATS).expect("Writer balance failed");
+    mint_and_sync_balance(&env, &buyer_one_profile, ACCEPT_COST_SATS)
+        .expect("Buyer one balance failed");
+    mint_and_sync_balance(&env, &buyer_two_profile, ACCEPT_COST_SATS)
+        .expect("Buyer two balance failed");
+
+    create_offer(
+        &env,
+        &writer_wallet,
+        QUANTITY_SATS,
+        STRIKE_BPS,
+        PREMIUM_BPS,
+        ONE_DAY_SECS,
+    )
+    .expect("Create offer one failed");
+    create_offer(
+        &env,
+        &writer_wallet,
+        QUANTITY_SATS,
+        STRIKE_BPS,
+        PREMIUM_BPS,
+        ONE_DAY_SECS,
+    )
+    .expect("Create offer two failed");
+
+    accept_offers(
+        &env,
+        &buyer_one_wallet,
+        vec![AcceptOfferItem {
+            offer_id: OFFER_ONE_ID,
+            quantity: QUANTITY_SATS,
+        }],
+    )
+    .expect("First accept should succeed");
+
+    // when
+    let second_accept = accept_offers(
+        &env,
+        &buyer_two_wallet,
+        vec![AcceptOfferItem {
+            offer_id: OFFER_TWO_ID,
+            quantity: QUANTITY_SATS,
+        }],
+    );
+
+    // then
+    let error = second_accept.expect_err("Second accept should fail");
+    assert_eq!(error.code, error_codes::INSUFFICIENT_BALANCE.code);
+
+    let open_offers = get_open_offers(&env);
+    assert_eq!(open_offers.len(), 1);
+    assert_eq!(open_offers[0].id, OFFER_TWO_ID);
+    assert_eq!(open_offers[0].status, OfferStatus::Open);
+}
+
 /// Given: Writer creates 0.1 BTC offer, partial filling disabled
 /// When: Buyer attempts to accept 0.2 BTC
 /// Then: Error QUANTITY_EXCEEDS_AVAILABLE returned

@@ -12,7 +12,7 @@ use crate::storage::{
     ActiveOption, ActiveOptionStatus, EventData, EventType, OptionType, SettlementPhase, TradeRole,
 };
 
-use crate::usecases::balances::transfer_ckbtc;
+use crate::usecases::balances::{get_ckbtc_transfer_fee, transfer_ckbtc};
 
 pub struct SettlementResult {
     pub option_id: u64,
@@ -26,6 +26,17 @@ pub struct SettlementResult {
 pub struct SettleExpiredOptionsResult {
     pub settled: Vec<SettlementResult>,
     pub errors: Vec<String>,
+}
+
+fn settlement_transfer_count(gross_payout_to_buyer: u64, profit_fee: u64) -> u64 {
+    if gross_payout_to_buyer == 0 {
+        return 0;
+    }
+    if profit_fee > 0 {
+        2
+    } else {
+        1
+    }
 }
 
 pub async fn settle_single_option(
@@ -64,6 +75,9 @@ pub async fn settle_single_option(
     } else {
         0
     };
+    let transfer_fee = get_ckbtc_transfer_fee().await?;
+    let settlement_transfer_count = settlement_transfer_count(gross_payout_to_buyer, profit_fee);
+    let total_settlement_transfer_fees = settlement_transfer_count * transfer_fee;
 
     let payout_to_buyer = gross_payout_to_buyer.saturating_sub(profit_fee);
     let payout_to_writer = option.quantity.saturating_sub(gross_payout_to_buyer);
@@ -169,6 +183,11 @@ pub async fn settle_single_option(
 
     if payout_to_writer > 0 {
         unlock_collateral(option.writer, payout_to_writer)
+            .map_err(|e| VolumetricError::insufficient_balance(e.available, e.required))?;
+    }
+
+    if total_settlement_transfer_fees > 0 {
+        subtract_available(option.writer, total_settlement_transfer_fees)
             .map_err(|e| VolumetricError::insufficient_balance(e.available, e.required))?;
     }
 
@@ -301,4 +320,37 @@ pub fn testing_set_option_expiry_use_case(
     update_active_option(option.clone());
 
     Ok(option)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_settlement_transfer_count_without_payout() {
+        // given
+        const GROSS_PAYOUT: u64 = 0;
+        const PROFIT_FEE: u64 = 0;
+
+        // when
+        let count = settlement_transfer_count(GROSS_PAYOUT, PROFIT_FEE);
+
+        // then
+        const EXPECTED_COUNT: u64 = 0;
+        assert_eq!(count, EXPECTED_COUNT);
+    }
+
+    #[test]
+    fn test_settlement_transfer_count_with_profit_fee() {
+        // given
+        const GROSS_PAYOUT: u64 = 1_000;
+        const PROFIT_FEE: u64 = 200;
+
+        // when
+        let count = settlement_transfer_count(GROSS_PAYOUT, PROFIT_FEE);
+
+        // then
+        const EXPECTED_COUNT: u64 = 2;
+        assert_eq!(count, EXPECTED_COUNT);
+    }
 }

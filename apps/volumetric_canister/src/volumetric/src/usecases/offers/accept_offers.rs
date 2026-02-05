@@ -12,11 +12,11 @@ use crate::storage::{
     get_fee_recipient, get_offer, insert_active_option, lock_collateral, next_id, remove_accept,
     subtract_available, unlock_collateral, update_accept_phase, update_offer, AcceptPhase,
     AcceptedOffer, ActiveOption, ActiveOptionStatus, Asset, Config, CounterKey, EventData,
-    EventType, OfferStatus, OptionType, TradeRole, CKBTC_TRANSFER_FEE,
+    EventType, OfferStatus, OptionType, TradeRole,
 };
 use crate::time::calculate_expiry_ns;
 
-use crate::usecases::balances::transfer_ckbtc;
+use crate::usecases::balances::{get_ckbtc_transfer_fee, transfer_ckbtc};
 
 pub struct AcceptOfferItem {
     pub offer_id: u64,
@@ -78,6 +78,7 @@ pub async fn accept_offers_use_case(
     let now = ic_cdk::api::time();
     let fill_group_id = next_id(CounterKey::FillGroupId);
     let entry_price_cents = get_btc_usd_price_cents()?;
+    let transfer_fee = get_ckbtc_transfer_fee().await?;
 
     let mut validated: Vec<ValidatedAccept> = Vec::with_capacity(items.len());
     let mut total_premium_required: u64 = 0;
@@ -128,9 +129,6 @@ pub async fn accept_offers_use_case(
 
         let writer_balance = get_balance(&offer.writer);
         if writer_balance.available < item.quantity {
-            let mut updated_offer = offer.clone();
-            updated_offer.status = OfferStatus::Cancelled;
-            update_offer(updated_offer);
             return Err(VolumetricError::insufficient_balance(
                 writer_balance.available,
                 item.quantity,
@@ -143,7 +141,7 @@ pub async fn accept_offers_use_case(
         let premium_to_writer = premium.saturating_sub(premium_fee);
 
         let num_transfers: u64 = if premium_fee > 0 { 2 } else { 1 };
-        let transfer_fees = num_transfers * CKBTC_TRANSFER_FEE;
+        let transfer_fees = num_transfers * transfer_fee;
         let total_cost = premium.saturating_add(transfer_fees);
         total_premium_required = total_premium_required.saturating_add(total_cost);
 

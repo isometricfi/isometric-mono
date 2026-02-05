@@ -8,5 +8,5 @@ pub use deposit_ckbtc::{
     DepositAddressResult,
 };
 pub use get_user_balance::{get_user_balance_use_case, UserBalanceResult};
-pub use transfer_ckbtc::transfer_ckbtc;
+pub use transfer_ckbtc::{get_ckbtc_transfer_fee, transfer_ckbtc};
 pub use withdraw_ckbtc::{withdraw_ckbtc_use_case, WithdrawParams, WithdrawResult};

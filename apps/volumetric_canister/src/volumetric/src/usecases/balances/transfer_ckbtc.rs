@@ -44,3 +44,18 @@ pub async fn transfer_ckbtc(
         ))),
     }
 }
+
+pub async fn get_ckbtc_transfer_fee() -> Result<u64, VolumetricError> {
+    let ledger = Config::ckbtc_ledger();
+    let response = ic_cdk::call::Call::unbounded_wait(ledger, "icrc1_fee")
+        .with_arg(())
+        .await
+        .map_err(|e| VolumetricError::inter_canister_call_failed(&format!("icrc1_fee: {:?}", e)))?;
+
+    let fee: Nat = response.candid().map_err(|e| {
+        VolumetricError::inter_canister_call_failed(&format!("icrc1_fee decode: {:?}", e))
+    })?;
+    fee.0
+        .try_into()
+        .map_err(|_| VolumetricError::internal("Transfer fee too large to fit in u64"))
+}

@@ -23,6 +23,52 @@ pub struct WithdrawResult {
     pub block_index: u64,
 }
 
+fn should_refund_after_retrieve_failure(
+    is_unknown_outcome: bool,
+    approval_revoked: bool,
+) -> bool {
+    !is_unknown_outcome && approval_revoked
+}
+
+async fn revoke_withdraw_approval(
+    ledger: Principal,
+    minter: Principal,
+    subaccount: [u8; 32],
+) -> Result<(), VolumetricError> {
+    let revoke_args = icrc_ledger_types::icrc2::approve::ApproveArgs {
+        from_subaccount: Some(subaccount),
+        spender: Account {
+            owner: minter,
+            subaccount: None,
+        },
+        amount: Nat::from(0u64),
+        expected_allowance: None,
+        expires_at: None,
+        fee: None,
+        memo: None,
+        created_at_time: None,
+    };
+
+    let response = ic_cdk::call::Call::unbounded_wait(ledger, "icrc2_approve")
+        .with_arg(&revoke_args)
+        .await
+        .map_err(|e| {
+            VolumetricError::inter_canister_call_failed(&format!("revoke icrc2_approve: {:?}", e))
+        })?;
+
+    let result: Result<Nat, ApproveError> = response.candid().map_err(|e| {
+        VolumetricError::inter_canister_call_failed(&format!("revoke decode: {:?}", e))
+    })?;
+
+    match result {
+        Ok(_) | Err(ApproveError::Duplicate { .. }) => Ok(()),
+        Err(e) => Err(VolumetricError::inter_canister_call_failed(&format!(
+            "revoke rejected: {:?}",
+            e
+        ))),
+    }
+}
+
 pub async fn withdraw_ckbtc_use_case(
     principal: Principal,
     params: WithdrawParams,
@@ -111,10 +157,25 @@ pub async fn withdraw_ckbtc_use_case(
             .await;
 
     if let Err(e) = retrieve_response {
-        add_available(principal, params.amount);
-        fail_withdrawal(
-            withdrawal_id,
-            format!("retrieve_btc_with_approval call failed: {:?}", e),
+        let revoke_result = revoke_withdraw_approval(ledger, minter, subaccount).await;
+        let reason = match revoke_result {
+            Ok(()) => format!(
+                "retrieve_btc_with_approval call failed with unknown outcome: {:?}",
+                e
+            ),
+            Err(revoke_error) => format!(
+                "retrieve call failed and approval revoke failed: {:?} / {:?}",
+                e, revoke_error
+            ),
+        };
+        fail_withdrawal(withdrawal_id, reason.clone());
+        emit_event(
+            principal,
+            EventType::WithdrawalFailed,
+            EventData::WithdrawalFailed {
+                amount_sats: params.amount,
+                reason,
+            },
         );
         return Err(VolumetricError::inter_canister_call_failed(&format!(
             "retrieve_btc_with_approval: {:?}",
@@ -123,17 +184,35 @@ pub async fn withdraw_ckbtc_use_case(
     }
 
     let retrieve_result: Result<RetrieveBtcOk, RetrieveBtcWithApprovalError> =
-        retrieve_response.unwrap().candid().map_err(|e| {
-            add_available(principal, params.amount);
-            fail_withdrawal(
-                withdrawal_id,
-                format!("retrieve_btc_with_approval decode failed: {:?}", e),
-            );
-            VolumetricError::inter_canister_call_failed(&format!(
-                "retrieve_btc_with_approval decode: {:?}",
-                e
-            ))
-        })?;
+        match retrieve_response.unwrap().candid() {
+            Ok(result) => result,
+            Err(e) => {
+                let revoke_result = revoke_withdraw_approval(ledger, minter, subaccount).await;
+                let reason = match revoke_result {
+                    Ok(()) => format!(
+                        "retrieve_btc_with_approval decode failed with unknown outcome: {:?}",
+                        e
+                    ),
+                    Err(revoke_error) => format!(
+                        "retrieve decode failed and approval revoke failed: {:?} / {:?}",
+                        e, revoke_error
+                    ),
+                };
+                fail_withdrawal(withdrawal_id, reason.clone());
+                emit_event(
+                    principal,
+                    EventType::WithdrawalFailed,
+                    EventData::WithdrawalFailed {
+                        amount_sats: params.amount,
+                        reason,
+                    },
+                );
+                return Err(VolumetricError::inter_canister_call_failed(&format!(
+                    "retrieve_btc_with_approval decode: {:?}",
+                    e
+                )));
+            }
+        };
 
     match retrieve_result {
         Ok(ok) => {
@@ -160,8 +239,17 @@ pub async fn withdraw_ckbtc_use_case(
             })
         }
         Err(_) => {
-            add_available(principal, params.amount);
-            let reason = "retrieve_btc_with_approval rejected".to_string();
+            let approval_revoked = revoke_withdraw_approval(ledger, minter, subaccount)
+                .await
+                .is_ok();
+            if should_refund_after_retrieve_failure(false, approval_revoked) {
+                add_available(principal, params.amount);
+            }
+            let reason = if approval_revoked {
+                "retrieve_btc_with_approval rejected".to_string()
+            } else {
+                "retrieve_btc_with_approval rejected and approval revoke failed".to_string()
+            };
             fail_withdrawal(withdrawal_id, reason.clone());
 
             emit_event(
@@ -177,5 +265,38 @@ pub async fn withdraw_ckbtc_use_case(
                 "retrieve_btc_with_approval rejected",
             ))
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_rejected_retrieve_refunds_only_after_revoke() {
+        // given
+        let is_unknown_outcome = false;
+        let approval_revoked = true;
+
+        // when
+        let should_refund =
+            should_refund_after_retrieve_failure(is_unknown_outcome, approval_revoked);
+
+        // then
+        assert!(should_refund);
+    }
+
+    #[test]
+    fn test_unknown_retrieve_outcome_never_refunds_immediately() {
+        // given
+        let is_unknown_outcome = true;
+        let approval_revoked = true;
+
+        // when
+        let should_refund =
+            should_refund_after_retrieve_failure(is_unknown_outcome, approval_revoked);
+
+        // then
+        assert!(!should_refund);
     }
 }
