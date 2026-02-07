@@ -1,3 +1,12 @@
+/// Wraps ckBTC ledger inter-canister calls behind a swappable implementation.
+///
+/// - Production: calls go through [`IcLedger`] → `ic_cdk` inter-canister calls.
+/// - Tests: call [`set_ledger`] to swap in a mock. `set_ledger` is
+///   `#[cfg(test)]` so it doesn't exist in the production binary.
+use std::cell::RefCell;
+use std::rc::Rc;
+
+use async_trait::async_trait;
 use candid::Nat;
 use icrc_ledger_types::icrc1::account::Account;
 use icrc_ledger_types::icrc1::transfer::TransferError;
@@ -6,7 +15,7 @@ use icrc_ledger_types::icrc2::approve::{ApproveArgs, ApproveError};
 use crate::errors::VolumetricError;
 use crate::storage::Config;
 
-#[allow(async_fn_in_trait)]
+#[async_trait(?Send)]
 pub trait LedgerClient {
     async fn icrc1_transfer(
         &self,
@@ -21,8 +30,10 @@ pub trait LedgerClient {
     async fn icrc2_approve(&self, args: ApproveArgs) -> Result<Nat, VolumetricError>;
 }
 
+/// Production implementation — delegates to ckBTC ledger via `ic_cdk`.
 struct IcLedger;
 
+#[async_trait(?Send)]
 impl LedgerClient for IcLedger {
     async fn icrc1_transfer(
         &self,
@@ -110,21 +121,34 @@ impl LedgerClient for IcLedger {
     }
 }
 
+thread_local! {
+    static LEDGER: RefCell<Rc<dyn LedgerClient>> = RefCell::new(Rc::new(IcLedger));
+}
+
 pub async fn icrc1_transfer(
     from_subaccount: Option<[u8; 32]>,
     to: Account,
     amount: u64,
     created_at_time: u64,
 ) -> Result<u64, VolumetricError> {
-    IcLedger
+    let ledger = LEDGER.with(|l| Rc::clone(&l.borrow()));
+    ledger
         .icrc1_transfer(from_subaccount, to, amount, created_at_time)
         .await
 }
 
 pub async fn icrc1_balance_of(account: Account) -> Result<Nat, VolumetricError> {
-    IcLedger.icrc1_balance_of(account).await
+    let ledger = LEDGER.with(|l| Rc::clone(&l.borrow()));
+    ledger.icrc1_balance_of(account).await
 }
 
 pub async fn icrc2_approve(args: ApproveArgs) -> Result<Nat, VolumetricError> {
-    IcLedger.icrc2_approve(args).await
+    let ledger = LEDGER.with(|l| Rc::clone(&l.borrow()));
+    ledger.icrc2_approve(args).await
+}
+
+/// Swap the ledger implementation (test-only, compiled out in production).
+#[cfg(test)]
+pub fn set_ledger(client: Rc<dyn LedgerClient>) {
+    LEDGER.with(|l| *l.borrow_mut() = client);
 }
