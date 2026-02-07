@@ -1,5 +1,4 @@
-use ic_cdk::api;
-
+use crate::ic;
 use crate::storage::{get_nonce, BtcNetwork, Config};
 
 use super::types::{ChallengeContext, WalletKey};
@@ -12,7 +11,7 @@ pub fn build_challenge_context(wallet_key: &WalletKey) -> ChallengeContext {
     };
 
     ChallengeContext {
-        canister_id: api::canister_self().to_text(),
+        canister_id: ic::canister_self().to_text(),
         network,
         nonce,
     }

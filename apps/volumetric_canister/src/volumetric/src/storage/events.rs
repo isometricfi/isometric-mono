@@ -3,6 +3,8 @@ use std::cell::RefCell;
 use candid::{CandidType, Principal};
 use ic_stable_structures::memory_manager::MemoryId;
 use ic_stable_structures::StableBTreeMap;
+
+use crate::ic;
 use serde::{Deserialize, Serialize};
 
 use super::cbor::Cbor;
@@ -134,7 +136,7 @@ pub fn emit_event(principal: Principal, event_type: EventType, data: EventData) 
             id,
             event_type,
             principal,
-            timestamp: ic_cdk::api::time(),
+            timestamp: ic::time(),
             data,
         };
 
@@ -148,7 +150,7 @@ pub fn emit_event(principal: Principal, event_type: EventType, data: EventData) 
     match result {
         Ok(id) => Some(id),
         Err(_) => {
-            ic_cdk::println!("Failed to emit event - continuing without event");
+            ic::log("Failed to emit event - continuing without event");
             None
         }
     }

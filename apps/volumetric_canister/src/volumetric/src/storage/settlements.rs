@@ -6,6 +6,8 @@ use ic_stable_structures::storable::Bound;
 use ic_stable_structures::{StableBTreeMap, Storable};
 use serde::{Deserialize, Serialize};
 
+use crate::ic;
+
 use super::state::{Memory, MemoryIndex, MEMORY_MANAGER};
 
 const MAX_SETTLEMENT_SIZE: u32 = 512;
@@ -67,7 +69,7 @@ pub fn create_settlement(
     payout_to_writer: u64,
     settlement_price_cents: u64,
 ) -> PendingSettlement {
-    let now = ic_cdk::api::time();
+    let now = ic::time();
 
     let settlement = PendingSettlement {
         option_id,
@@ -93,7 +95,7 @@ pub fn update_settlement_phase(option_id: u64, phase: SettlementPhase) {
         let mut journal = journal.borrow_mut();
         if let Some(mut settlement) = journal.get(&option_id) {
             settlement.phase = phase;
-            settlement.updated_at = ic_cdk::api::time();
+            settlement.updated_at = ic::time();
             journal.insert(option_id, settlement);
         }
     });
