@@ -65,10 +65,14 @@ impl LedgerClient for IcLedger {
         })?;
 
         match result {
-            Ok(block_index) => Ok(block_index.0.try_into().unwrap_or(0)),
-            Err(TransferError::Duplicate { duplicate_of }) => {
-                Ok(duplicate_of.0.try_into().unwrap_or(0))
-            }
+            Ok(block_index) => Ok(block_index
+                .0
+                .try_into()
+                .expect("block index should fit into u64")),
+            Err(TransferError::Duplicate { duplicate_of }) => Ok(duplicate_of
+                .0
+                .try_into()
+                .expect("block index should fit into u64")),
             Err(e) => Err(VolumetricError::inter_canister_call_failed(&format!(
                 "icrc1_transfer rejected: {:?}",
                 e
