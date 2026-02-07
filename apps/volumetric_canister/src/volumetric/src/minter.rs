@@ -30,6 +30,31 @@ pub trait MinterClient {
     ) -> Result<RetrieveBtcOk, VolumetricError>;
 }
 
+fn format_retrieve_error(e: RetrieveBtcWithApprovalError) -> String {
+    match e {
+        RetrieveBtcWithApprovalError::MalformedAddress(addr) => {
+            format!("malformed address: {}", addr)
+        }
+        RetrieveBtcWithApprovalError::GenericError {
+            error_message,
+            error_code,
+        } => format!("generic error {}: {}", error_code, error_message),
+        RetrieveBtcWithApprovalError::TemporarilyUnavailable(msg) => {
+            format!("temporarily unavailable: {}", msg)
+        }
+        RetrieveBtcWithApprovalError::InsufficientAllowance { allowance } => {
+            format!("insufficient allowance: {}", allowance)
+        }
+        RetrieveBtcWithApprovalError::AlreadyProcessing => "already processing".to_string(),
+        RetrieveBtcWithApprovalError::AmountTooLow(min) => {
+            format!("amount too low, minimum: {}", min)
+        }
+        RetrieveBtcWithApprovalError::InsufficientFunds { balance } => {
+            format!("insufficient funds, balance: {}", balance)
+        }
+    }
+}
+
 /// Production implementation — delegates to ckBTC minter via `ic_cdk`.
 struct IcMinter;
 
@@ -115,8 +140,11 @@ impl MinterClient for IcMinter {
                 ))
             })?;
 
-        result.map_err(|_| {
-            VolumetricError::inter_canister_call_failed("retrieve_btc_with_approval rejected")
+        result.map_err(|e| {
+            VolumetricError::inter_canister_call_failed(&format!(
+                "retrieve_btc_with_approval rejected: {}",
+                format_retrieve_error(e)
+            ))
         })
     }
 }
