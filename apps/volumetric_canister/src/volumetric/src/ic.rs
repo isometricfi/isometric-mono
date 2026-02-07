@@ -1,6 +1,6 @@
 /// Wraps ICP runtime calls behind a swappable implementation.
 ///
-/// - Production: calls go throug [`IcProd`] → `ic_cdk`.
+/// - Production: calls go through [`IcProd`] → `ic_cdk`.
 /// - Tests: call [`set_runtime`] to swap in a mock. `set_runtime` is
 ///   `#[cfg(test)]` so it doesn't exist in the production binary.
 use std::cell::RefCell;
