@@ -7,6 +7,8 @@ import { Toaster } from "@/components/ui/sonner";
 import { TRPCProvider, trpcClient } from "@/trpc/react";
 import { DynamicProvider } from "./providers/dynamic-provider";
 
+const AGENTATION_ENDPOINT = "http://localhost:4747";
+
 function makeQueryClient() {
   return new QueryClient({
     defaultOptions: {
@@ -38,9 +40,7 @@ export default function Providers({ children }: { children: React.ReactNode }) {
         <DynamicProvider>
           {children}
           <ModalProvider />
-          {process.env.NODE_ENV === "development" && (
-            <Agentation endpoint="http://localhost:4747" />
-          )}
+          {process.env.NODE_ENV === "development" && <Agentation endpoint={AGENTATION_ENDPOINT} />}
         </DynamicProvider>
       </TRPCProvider>
     </QueryClientProvider>
