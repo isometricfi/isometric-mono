@@ -5,6 +5,8 @@ use ic_stable_structures::storable::Bound;
 use ic_stable_structures::{StableBTreeMap, Storable};
 use serde::{Deserialize, Serialize};
 
+use crate::ic;
+
 use super::state::{Memory, MemoryIndex, MEMORY_MANAGER};
 
 const MAX_WITHDRAWAL_SIZE: u32 = 512;
@@ -65,7 +67,7 @@ pub fn create_withdrawal(
     btc_address: String,
     created_at_time: u64,
 ) -> PendingWithdrawal {
-    let now = ic_cdk::api::time();
+    let now = ic::time();
     let id = WITHDRAWAL_ID_COUNTER.with(|c| {
         let mut counter = c.borrow_mut();
         *counter += 1;
@@ -95,7 +97,7 @@ pub fn update_withdrawal_phase(id: u64, phase: WithdrawalPhase) {
         let mut journal = journal.borrow_mut();
         if let Some(mut withdrawal) = journal.get(&id) {
             withdrawal.phase = phase;
-            withdrawal.updated_at = ic_cdk::api::time();
+            withdrawal.updated_at = ic::time();
             journal.insert(id, withdrawal);
         }
     });

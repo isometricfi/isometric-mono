@@ -4,6 +4,7 @@ use icrc_ledger_types::icrc1::account::Account;
 use crate::auth::derive_subaccount;
 use crate::errors::VolumetricError;
 use crate::guards::{validate_offer_params, OfferParams};
+use crate::ic;
 use crate::locks::AcceptLock;
 use crate::oracle::get_btc_usd_price_cents;
 use crate::storage::{
@@ -65,7 +66,7 @@ pub async fn accept_offers_use_case(
 ) -> Result<AcceptOffersResult, VolumetricError> {
     // bind to _lock, not `let _ =` which drops immediately
     let _lock = AcceptLock::new(buyer_principal)?;
-    let created_at_time = ic_cdk::api::time();
+    let created_at_time = ic::time();
 
     if items.is_empty() {
         return Err(VolumetricError::internal("No items to accept"));
@@ -75,7 +76,7 @@ pub async fn accept_offers_use_case(
         return Err(VolumetricError::stitching_disabled());
     }
 
-    let now = ic_cdk::api::time();
+    let now = ic::time();
     let fill_group_id = next_id(CounterKey::FillGroupId);
     let entry_price_cents = get_btc_usd_price_cents()?;
 
@@ -161,7 +162,7 @@ pub async fn accept_offers_use_case(
         pending_transfers.push(PendingTransfer {
             from_subaccount: Some(buyer_subaccount),
             to: Account {
-                owner: ic_cdk::api::canister_self(),
+                owner: ic::canister_self(),
                 subaccount: Some(writer_subaccount),
             },
             amount: premium_to_writer,
