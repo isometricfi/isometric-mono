@@ -21,8 +21,10 @@ bip322 = "0.0.10"
 bitcoin = "0.32"
 base64 = "0.22"
 getrandom = { version = "0.2", features = ["custom"] }
+async-trait = "0.1.89"
 
 [dev-dependencies]
 pocket-ic = "11.0"
 hex = "0.4"
 flate2 = "1.0"
+tokio = { version = "1.49.0", features = ["macros", "rt"] }

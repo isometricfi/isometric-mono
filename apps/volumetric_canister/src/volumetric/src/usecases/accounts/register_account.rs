@@ -2,6 +2,7 @@ use candid::Principal;
 
 use crate::auth::types::WalletKey;
 use crate::auth::{derive_principal, derive_subaccount};
+use crate::ic;
 use crate::storage::{create_profile, emit_event, register_wallet, EventData, EventType, Profile};
 
 pub struct RegisterAccountParams {
@@ -21,7 +22,7 @@ pub fn register_account_use_case(params: RegisterAccountParams) -> RegisterAccou
     let profile = Profile {
         wallet_address: params.wallet_address.clone(),
         username: None,
-        created_at: ic_cdk::api::time(),
+        created_at: ic::time(),
     };
 
     create_profile(principal, profile);

@@ -1,24 +1,23 @@
 use candid::{Nat, Principal};
 use icrc_ledger_types::icrc1::account::Account;
-use icrc_ledger_types::icrc2::approve::ApproveError;
 
 use crate::auth::derive_subaccount;
 use crate::errors::VolumetricError;
-use crate::generated::ckbtc::{
-    RetrieveBtcOk, RetrieveBtcWithApprovalArgs, RetrieveBtcWithApprovalError,
-};
+use crate::generated::ckbtc::RetrieveBtcWithApprovalArgs;
 use crate::locks::WithdrawalLock;
 use crate::storage::{
     add_available, complete_withdrawal, create_withdrawal, emit_event, fail_withdrawal,
     remove_withdrawal, subtract_available, update_withdrawal_phase, Config, EventData, EventType,
     WithdrawalPhase,
 };
+use crate::{ic, ledger, minter};
 
 pub struct WithdrawParams {
     pub btc_address: String,
     pub amount: u64,
 }
 
+#[derive(Debug)]
 pub struct WithdrawResult {
     pub block_index: u64,
 }
@@ -35,8 +34,7 @@ pub async fn withdraw_ckbtc_use_case(
 
     let subaccount = derive_subaccount(principal);
     let minter = Config::ckbtc_minter();
-    let ledger = Config::ckbtc_ledger();
-    let created_at_time = ic_cdk::api::time();
+    let created_at_time = ic::time();
 
     let withdrawal = create_withdrawal(
         principal,
@@ -60,40 +58,10 @@ pub async fn withdraw_ckbtc_use_case(
         created_at_time: Some(created_at_time),
     };
 
-    let approve_response = ic_cdk::call::Call::unbounded_wait(ledger, "icrc2_approve")
-        .with_arg(&approve_args)
-        .await;
-
-    if let Err(e) = approve_response {
+    if let Err(e) = ledger::icrc2_approve(approve_args).await {
         add_available(principal, params.amount);
-        fail_withdrawal(withdrawal_id, format!("icrc2_approve call failed: {:?}", e));
-        return Err(VolumetricError::inter_canister_call_failed(&format!(
-            "icrc2_approve: {:?}",
-            e
-        )));
-    }
-
-    let approve_result: Result<Nat, ApproveError> =
-        approve_response.unwrap().candid().map_err(|e| {
-            add_available(principal, params.amount);
-            fail_withdrawal(
-                withdrawal_id,
-                format!("icrc2_approve decode failed: {:?}", e),
-            );
-            VolumetricError::inter_canister_call_failed(&format!("icrc2_approve decode: {:?}", e))
-        })?;
-
-    match approve_result {
-        Ok(_) => {}
-        Err(ApproveError::Duplicate { duplicate_of: _ }) => {}
-        Err(e) => {
-            add_available(principal, params.amount);
-            fail_withdrawal(withdrawal_id, format!("icrc2_approve rejected: {:?}", e));
-            return Err(VolumetricError::inter_canister_call_failed(&format!(
-                "icrc2_approve rejected: {:?}",
-                e
-            )));
-        }
+        fail_withdrawal(withdrawal_id, format!("icrc2_approve failed: {:?}", e));
+        return Err(e);
     }
 
     update_withdrawal_phase(withdrawal_id, WithdrawalPhase::Approved);
@@ -105,37 +73,7 @@ pub async fn withdraw_ckbtc_use_case(
         from_subaccount: Some(serde_bytes::ByteBuf::from(subaccount.to_vec())),
     };
 
-    let retrieve_response =
-        ic_cdk::call::Call::unbounded_wait(minter, "retrieve_btc_with_approval")
-            .with_arg(&retrieve_args)
-            .await;
-
-    if let Err(e) = retrieve_response {
-        add_available(principal, params.amount);
-        fail_withdrawal(
-            withdrawal_id,
-            format!("retrieve_btc_with_approval call failed: {:?}", e),
-        );
-        return Err(VolumetricError::inter_canister_call_failed(&format!(
-            "retrieve_btc_with_approval: {:?}",
-            e
-        )));
-    }
-
-    let retrieve_result: Result<RetrieveBtcOk, RetrieveBtcWithApprovalError> =
-        retrieve_response.unwrap().candid().map_err(|e| {
-            add_available(principal, params.amount);
-            fail_withdrawal(
-                withdrawal_id,
-                format!("retrieve_btc_with_approval decode failed: {:?}", e),
-            );
-            VolumetricError::inter_canister_call_failed(&format!(
-                "retrieve_btc_with_approval decode: {:?}",
-                e
-            ))
-        })?;
-
-    match retrieve_result {
+    match minter::retrieve_btc_with_approval(retrieve_args).await {
         Ok(ok) => {
             update_withdrawal_phase(
                 withdrawal_id,
@@ -159,9 +97,9 @@ pub async fn withdraw_ckbtc_use_case(
                 block_index: ok.block_index,
             })
         }
-        Err(_) => {
+        Err(e) => {
             add_available(principal, params.amount);
-            let reason = "retrieve_btc_with_approval rejected".to_string();
+            let reason = format!("retrieve_btc_with_approval failed: {:?}", e);
             fail_withdrawal(withdrawal_id, reason.clone());
 
             emit_event(
@@ -173,9 +111,228 @@ pub async fn withdraw_ckbtc_use_case(
                 },
             );
 
-            Err(VolumetricError::inter_canister_call_failed(
-                "retrieve_btc_with_approval rejected",
-            ))
+            Err(e)
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::rc::Rc;
+
+    use async_trait::async_trait;
+    use icrc_ledger_types::icrc2::approve::ApproveArgs;
+
+    use crate::errors::error_codes;
+    use crate::generated::ckbtc::{GetBtcAddressArg, RetrieveBtcOk, UpdateBalanceArg, UtxoStatus};
+    use crate::ic::IcRuntime;
+    use crate::ledger::LedgerClient;
+    use crate::minter::MinterClient;
+    use crate::storage::{get_balance, set_balance, UserBalance};
+
+    const TEST_NOW_NS: u64 = 1_000_000_000_000;
+    const WITHDRAW_AMOUNT_SATS: u64 = 100_000;
+    const INITIAL_BALANCE_SATS: u64 = 500_000;
+    const EXPECTED_BLOCK_INDEX: u64 = 42;
+    const TEST_BTC_ADDRESS: &str = "tb1qwithdraw";
+
+    fn test_principal() -> Principal {
+        Principal::from_slice(&[2; 29])
+    }
+
+    struct MockRuntime;
+
+    impl IcRuntime for MockRuntime {
+        fn time(&self) -> u64 {
+            TEST_NOW_NS
+        }
+        fn canister_self(&self) -> Principal {
+            Principal::anonymous()
+        }
+        fn log(&self, _msg: &str) {}
+    }
+
+    struct MockLedger {
+        approve_result: Result<Nat, VolumetricError>,
+    }
+
+    #[async_trait(?Send)]
+    impl LedgerClient for MockLedger {
+        async fn icrc1_transfer(
+            &self,
+            _from_subaccount: Option<[u8; 32]>,
+            _to: Account,
+            _amount: u64,
+            _created_at_time: u64,
+        ) -> Result<u64, VolumetricError> {
+            Ok(1)
+        }
+        async fn icrc1_balance_of(&self, _account: Account) -> Result<Nat, VolumetricError> {
+            Ok(Nat::from(0u64))
+        }
+        async fn icrc2_approve(&self, _args: ApproveArgs) -> Result<Nat, VolumetricError> {
+            self.approve_result.clone()
+        }
+    }
+
+    struct MockMinter {
+        retrieve_block_index: Option<u64>,
+        retrieve_error: Option<VolumetricError>,
+    }
+
+    #[async_trait(?Send)]
+    impl MinterClient for MockMinter {
+        async fn get_btc_address(
+            &self,
+            _args: GetBtcAddressArg,
+        ) -> Result<String, VolumetricError> {
+            Ok(String::new())
+        }
+        async fn update_balance(
+            &self,
+            _args: UpdateBalanceArg,
+        ) -> Result<Vec<UtxoStatus>, VolumetricError> {
+            Ok(vec![])
+        }
+        async fn retrieve_btc_with_approval(
+            &self,
+            _args: RetrieveBtcWithApprovalArgs,
+        ) -> Result<RetrieveBtcOk, VolumetricError> {
+            match &self.retrieve_error {
+                Some(e) => Err(e.clone()),
+                None => Ok(RetrieveBtcOk {
+                    block_index: self.retrieve_block_index.unwrap_or(0),
+                }),
+            }
+        }
+    }
+
+    fn setup_success() {
+        ic::set_runtime(Box::new(MockRuntime));
+        ledger::set_ledger(Rc::new(MockLedger {
+            approve_result: Ok(Nat::from(0u64)),
+        }));
+        minter::set_minter(Rc::new(MockMinter {
+            retrieve_block_index: Some(EXPECTED_BLOCK_INDEX),
+            retrieve_error: None,
+        }));
+    }
+
+    fn fund_principal(principal: Principal, amount: u64) {
+        set_balance(
+            principal,
+            UserBalance {
+                available: amount,
+                locked_as_writer: 0,
+            },
+        );
+    }
+
+    fn withdraw_params() -> WithdrawParams {
+        WithdrawParams {
+            btc_address: TEST_BTC_ADDRESS.to_string(),
+            amount: WITHDRAW_AMOUNT_SATS,
+        }
+    }
+
+    /// Given: funded account with successful mocks
+    /// When: withdraw_ckbtc_use_case is called
+    /// Then: returns the block index and deducts balance
+    #[tokio::test]
+    async fn test_withdraw_succeeds_and_deducts_balance() {
+        // given
+        setup_success();
+        let principal = test_principal();
+        fund_principal(principal, INITIAL_BALANCE_SATS);
+
+        // when
+        let result = withdraw_ckbtc_use_case(principal, withdraw_params()).await;
+
+        // then
+        let withdraw_result = result.unwrap();
+        assert_eq!(withdraw_result.block_index, EXPECTED_BLOCK_INDEX);
+
+        let balance = get_balance(&principal);
+        let expected_remaining = INITIAL_BALANCE_SATS - WITHDRAW_AMOUNT_SATS;
+        assert_eq!(balance.available, expected_remaining);
+    }
+
+    /// Given: account with insufficient balance
+    /// When: withdraw_ckbtc_use_case is called
+    /// Then: returns insufficient balance error, balance unchanged
+    #[tokio::test]
+    async fn test_withdraw_insufficient_balance_fails() {
+        // given
+        setup_success();
+        let principal = test_principal();
+        let insufficient_amount: u64 = 50_000;
+        fund_principal(principal, insufficient_amount);
+
+        // when
+        let result = withdraw_ckbtc_use_case(principal, withdraw_params()).await;
+
+        // then
+        let err = result.unwrap_err();
+        assert_eq!(err.code, error_codes::INSUFFICIENT_BALANCE.code);
+
+        let balance = get_balance(&principal);
+        assert_eq!(balance.available, insufficient_amount);
+    }
+
+    /// Given: ledger approve fails
+    /// When: withdraw_ckbtc_use_case is called
+    /// Then: returns error and restores balance
+    #[tokio::test]
+    async fn test_withdraw_approve_failure_restores_balance() {
+        // given
+        ic::set_runtime(Box::new(MockRuntime));
+        ledger::set_ledger(Rc::new(MockLedger {
+            approve_result: Err(VolumetricError::inter_canister_call_failed(
+                "approve denied",
+            )),
+        }));
+        minter::set_minter(Rc::new(MockMinter {
+            retrieve_block_index: Some(EXPECTED_BLOCK_INDEX),
+            retrieve_error: None,
+        }));
+        let principal = test_principal();
+        fund_principal(principal, INITIAL_BALANCE_SATS);
+
+        // when
+        let result = withdraw_ckbtc_use_case(principal, withdraw_params()).await;
+
+        // then
+        assert!(result.is_err());
+        let balance = get_balance(&principal);
+        assert_eq!(balance.available, INITIAL_BALANCE_SATS);
+    }
+
+    /// Given: minter retrieve_btc_with_approval fails
+    /// When: withdraw_ckbtc_use_case is called
+    /// Then: returns error and restores balance
+    #[tokio::test]
+    async fn test_withdraw_retrieve_failure_restores_balance() {
+        // given
+        ic::set_runtime(Box::new(MockRuntime));
+        ledger::set_ledger(Rc::new(MockLedger {
+            approve_result: Ok(Nat::from(0u64)),
+        }));
+        minter::set_minter(Rc::new(MockMinter {
+            retrieve_block_index: None,
+            retrieve_error: Some(VolumetricError::inter_canister_call_failed(
+                "retrieve failed",
+            )),
+        }));
+        let principal = test_principal();
+        fund_principal(principal, INITIAL_BALANCE_SATS);
+
+        // when
+        let result = withdraw_ckbtc_use_case(principal, withdraw_params()).await;
+
+        // then
+        assert!(result.is_err());
+        let balance = get_balance(&principal);
+        assert_eq!(balance.available, INITIAL_BALANCE_SATS);
     }
 }

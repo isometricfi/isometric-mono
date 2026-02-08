@@ -6,6 +6,8 @@ use ic_stable_structures::storable::Bound;
 use ic_stable_structures::{StableBTreeMap, Storable};
 use serde::{Deserialize, Serialize};
 
+use crate::ic;
+
 use super::state::{Memory, MemoryIndex, MEMORY_MANAGER};
 
 const MAX_ACCEPT_SIZE: u32 = 1024;
@@ -78,7 +80,7 @@ pub fn create_accept(
     offers: Vec<AcceptedOffer>,
     fill_group_id: u64,
 ) -> PendingAccept {
-    let now = ic_cdk::api::time();
+    let now = ic::time();
     let id = ACCEPT_ID_COUNTER.with(|c| {
         let mut counter = c.borrow_mut();
         *counter += 1;
@@ -108,7 +110,7 @@ pub fn update_accept_phase(id: u64, phase: AcceptPhase) {
         let mut journal = journal.borrow_mut();
         if let Some(mut accept) = journal.get(&id) {
             accept.phase = phase;
-            accept.updated_at = ic_cdk::api::time();
+            accept.updated_at = ic::time();
             journal.insert(id, accept);
         }
     });
