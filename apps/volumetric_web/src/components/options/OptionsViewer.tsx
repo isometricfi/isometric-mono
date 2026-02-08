@@ -9,6 +9,7 @@ import { useAccount, useConfig, useOptions, usePrices } from "@/hooks";
 import { cn, formatBtc } from "@/lib/utils";
 import type { StrikeBucket } from "@/types/options";
 import type { ViewerMode } from "@/types/ui";
+import { Card, CardContent } from "../ui/card";
 
 interface StrikeRowProps {
   bucket: StrikeBucket;
@@ -47,7 +48,7 @@ function StrikeRow({
   };
 
   return (
-    <div className=" rounded-2xl overflow-hidden">
+    <div className=" rounded-lg overflow-hidden">
       <button
         type="button"
         onClick={onToggle}
@@ -103,7 +104,7 @@ function StrikeRow({
 
         {/* offer count - hidden on small screens */}
         <div className="hidden md:block w-16 text-right">
-          <span className="text-xs bg-secondary px-2 py-0.5 rounded-full">
+          <span className="text-xs bg-secondary px-2 py-0.5 rounded-sm">
             {bucket.offers.length}{" "}
           </span>
         </div>
@@ -163,7 +164,7 @@ function StrikeRow({
                       initial={{ opacity: 0, y: -4 }}
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: 4 }}
-                      className="absolute bottom-2 left-1/2 -translate-x-1/2 flex items-center gap-1 px-2 py-1 bg-secondary/80 backdrop-blur-sm rounded-full text-xs text-muted-foreground"
+                      className="absolute bottom-2 left-1/2 -translate-x-1/2 flex items-center gap-1 px-2 py-1 bg-secondary/80 backdrop-blur-sm rounded-md text-xs text-muted-foreground"
                     >
                       <ChevronDown className="size-3" />
                       <span>{t("scrollForMore")}</span>
@@ -219,65 +220,67 @@ export function OptionsViewer({ mode }: OptionsViewerProps) {
   };
 
   return (
-    <div className="bg-card rounded-3xl border border-border p-6 space-y-4">
-      <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold">{t("availableOptions")}</h2>
-        <AnimatedToggle
-          options={termOptions}
-          value={selectedTerm}
-          onChange={setSelectedTerm}
-          layoutId="optionsViewerTerm"
-          size="sm"
-        />
-      </div>
+    <Card>
+      <CardContent className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-semibold">{t("availableOptions")}</h2>
+          <AnimatedToggle
+            options={termOptions}
+            value={selectedTerm}
+            onChange={setSelectedTerm}
+            layoutId="optionsViewerTerm"
+            size="sm"
+          />
+        </div>
 
-      {currentTermGroup && (
-        <>
-          <div className="flex items-center justify-between text-sm text-muted-foreground">
-            <span>
-              {t("expires")} {formatExpiryDate(currentTermGroup.expiryDate)}
-            </span>
-            {btcPrice > 0 && <span>BTC: ${btcPrice.toLocaleString()}</span>}
-          </div>
-
-          <div className=" overflow-hidden space-y-2">
-            <div className="pl-0 pr-2 md:px-4 rounded-2xl py-2 grid grid-cols-[1fr_auto_auto] md:grid-cols-[1fr_auto_auto_auto] gap-2 md:gap-3 text-xs text-muted-foreground bg-secondary/30">
-              <span className="pl-6 md:pl-7">{t("strike")}</span>
-              <span className="w-16 md:w-24 text-right">{t("premium")}</span>
-              <span className="w-20 md:w-28 text-right">{t("liquidity")}</span>
-              <span className="hidden md:block w-16 text-right">{t("offers")}</span>
+        {currentTermGroup && (
+          <>
+            <div className="flex items-center justify-between text-sm text-muted-foreground">
+              <span>
+                {t("expires")} {formatExpiryDate(currentTermGroup.expiryDate)}
+              </span>
+              {btcPrice > 0 && <span>BTC: ${btcPrice.toLocaleString()}</span>}
             </div>
 
-            {/* strike rows */}
-            <div className=" overflow-y-auto">
-              {currentTermGroup.strikes.map((bucket) => (
-                <StrikeRow
-                  key={bucket.strikePercent}
-                  bucket={bucket}
-                  btcPrice={btcPrice}
-                  isExpanded={expandedStrikePercent === bucket.strikePercent}
-                  onToggle={() => handleToggleStrike(bucket.strikePercent)}
-                  mode={mode}
-                  currentUserId={currentUserId}
-                />
-              ))}
+            <div className=" overflow-hidden space-y-2">
+              <div className="pl-0 pr-2 md:px-4 rounded-lg py-2 grid grid-cols-[1fr_auto_auto] md:grid-cols-[1fr_auto_auto_auto] gap-2 md:gap-3 text-xs text-muted-foreground bg-secondary/30">
+                <span className="pl-6 md:pl-7">{t("strike")}</span>
+                <span className="w-16 md:w-24 text-right">{t("premium")}</span>
+                <span className="w-20 md:w-28 text-right">{t("liquidity")}</span>
+                <span className="hidden md:block w-16 text-right">{t("offers")}</span>
+              </div>
+
+              {/* strike rows */}
+              <div className=" overflow-y-auto">
+                {currentTermGroup.strikes.map((bucket) => (
+                  <StrikeRow
+                    key={bucket.strikePercent}
+                    bucket={bucket}
+                    btcPrice={btcPrice}
+                    isExpanded={expandedStrikePercent === bucket.strikePercent}
+                    onToggle={() => handleToggleStrike(bucket.strikePercent)}
+                    mode={mode}
+                    currentUserId={currentUserId}
+                  />
+                ))}
+              </div>
             </div>
+          </>
+        )}
+
+        {isLoading && (
+          <div className="text-center py-12">
+            <p className="text-muted-foreground">{t("loadingOptions")}</p>
           </div>
-        </>
-      )}
+        )}
 
-      {isLoading && (
-        <div className="text-center py-12">
-          <p className="text-muted-foreground">{t("loadingOptions")}</p>
-        </div>
-      )}
-
-      {!isLoading && (!currentTermGroup || currentTermGroup.strikes.length === 0) && (
-        <div className="text-center py-12">
-          <p className="text-muted-foreground">{t("noOptionsAvailable")}</p>
-          <p className="text-sm text-muted-foreground mt-1">{t("beFirstToWrite")}</p>
-        </div>
-      )}
-    </div>
+        {!isLoading && (!currentTermGroup || currentTermGroup.strikes.length === 0) && (
+          <div className="text-center py-12">
+            <p className="text-muted-foreground">{t("noOptionsAvailable")}</p>
+            <p className="text-sm text-muted-foreground mt-1">{t("beFirstToWrite")}</p>
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 }

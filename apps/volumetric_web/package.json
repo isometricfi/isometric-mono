@@ -42,6 +42,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
+    "facehash": "^0.0.5",
     "firebase-rest-firestore": "^1.5.0",
     "framer-motion": "^12.23.25",
     "lucide-react": "^0.556.0",

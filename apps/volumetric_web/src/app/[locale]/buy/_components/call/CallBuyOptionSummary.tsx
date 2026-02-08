@@ -86,17 +86,17 @@ export function CallBuyOptionSummary({
   };
 
   return (
-    <div className="space-y-3 pt-4 border-t border-border">
+    <div className="space-y-3 border-border">
       <div className="flex items-center justify-between text-sm">
-        <div className="flex items-center gap-2">
+        <div className="md:flex items-center gap-2">
           <p className="text-muted-foreground">{t("premium")}</p>
           <div className="font-semibold flex items-center">
             <span>₿&nbsp;</span>
             <SlidingNumber value={premiumDisplay} />
+            <div className="text-sm text-primary font-medium ml-1">({premium}%)</div>
           </div>
-          <div className="text-sm text-primary font-medium">({premium}%)</div>
         </div>
-        <div className="flex items-end gap-2">
+        <div className="md:flex items-end gap-2">
           <p className="text-muted-foreground">{t("maxProfit")}</p>
           <div className="font-semibold text-green-500 flex items-center">
             <span>₿&nbsp;</span>

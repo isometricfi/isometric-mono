@@ -89,10 +89,10 @@ export function AmountInput({
           value={value}
           onChange={handleChange}
           placeholder={"0"}
-          className="w-full py-3 pl-10 pr-4 bg-secondary/50 rounded-full text-sm font-medium placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+          className="w-full py-3 pl-10 pr-4 bg-secondary/50 rounded-md text-sm font-medium placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
         />
 
-        <div className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground text-sm bg-muted px-2 py-1 rounded-full flex items-center">
+        <div className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground text-sm bg-muted px-2 py-1 rounded-sm flex items-center">
           $
           <SlidingNumber value={amountUsd} />
         </div>

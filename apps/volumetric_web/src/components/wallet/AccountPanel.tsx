@@ -11,6 +11,7 @@ import {
   LogOut,
   Settings,
 } from "lucide-react";
+import Image from "next/image";
 import { useLocale, useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
 import { useMediaQuery } from "react-responsive";
@@ -18,7 +19,6 @@ import { ThemeToggle } from "@/components/layout/ThemeToggle";
 import { Button } from "@/components/ui/button";
 import { Drawer, DrawerContent, DrawerTitle } from "@/components/ui/drawer";
 import { DepositModal } from "@/components/wallet/DepositModal";
-import { ProceduralAvatar } from "@/components/wallet/ProceduralAvatar";
 import { WithdrawModal } from "@/components/wallet/WithdrawModal";
 import { useAccount, usePrices, useUpdateUsername } from "@/hooks";
 import { Link, usePathname, useRouter } from "@/i18n/routing";
@@ -51,7 +51,7 @@ export function AccountPanel({
       <DrawerContent
         className={cn(
           "flex flex-col",
-          isMobile ? "px-4 pb-4 min-h-[75vh]" : "px-5 py-4 mt-4 mb-4 mr-0  rounded-l-3xl",
+          isMobile ? "px-4 pb-4 min-h-[75vh]" : "px-5 py-4 mt-4 mb-4 mr-0  rounded-l-xl ",
         )}
       >
         <DrawerTitle className="sr-only">Account</DrawerTitle>
@@ -103,7 +103,13 @@ function AccountPanelContent({ onDisconnect }: { onDisconnect: () => void }) {
     <div className="flex flex-col gap-6 flex-1  ">
       <div className="flex justify-between gap-3 pt-2">
         <div className="flex items-center gap-3 min-w-0">
-          <ProceduralAvatar seed={avatarSeed} className="size-10 rounded-full" />
+          <Image
+            src={`/api/avatar?name=${avatarSeed}`}
+            alt="Avatar"
+            width={50}
+            height={50}
+            className="size-10 rounded-md"
+          />
           <div className="min-w-0">
             <div className="font-semibold leading-none truncate">{displayName}</div>
             <div className="text-xs text-muted-foreground truncate">{addressLabel ?? "—"}</div>
@@ -175,7 +181,7 @@ function AccountPanelContent({ onDisconnect }: { onDisconnect: () => void }) {
                     {isLoadingBalance ? "—" : formatBtcWithSymbolBigint(deposited, 8)}
                   </p>
                   {!isLoadingBalance && depositedUsd > 0 && (
-                    <div className="text-muted-foreground text-sm bg-muted px-2 py-1 rounded-full">
+                    <div className="text-muted-foreground text-sm bg-muted px-2 py-1 rounded-sm">
                       ${depositedUsd.toLocaleString()}
                     </div>
                   )}
@@ -227,7 +233,7 @@ function AccountPanelContent({ onDisconnect }: { onDisconnect: () => void }) {
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <div className="text-sm text-muted-foreground">{t("username")}</div>
-                  <div className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded-full">
+                  <div className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded-sm">
                     {t("charactersRemaining", { count: 20 - usernameDraft.length })}
                   </div>
                 </div>
@@ -242,7 +248,7 @@ function AccountPanelContent({ onDisconnect }: { onDisconnect: () => void }) {
                   }}
                   placeholder={t("enterUsername")}
                   maxLength={25}
-                  className="w-full py-3 px-4 bg-secondary/50 rounded-full text-sm font-medium placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                  className="w-full py-3 px-4 bg-secondary/50 rounded-md text-sm font-medium placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                 />
               </div>
 
@@ -275,11 +281,11 @@ function AccountPanelContent({ onDisconnect }: { onDisconnect: () => void }) {
 
               <div className="space-y-2 pt-2">
                 <div className="text-sm text-muted-foreground">{t("system")}</div>
-                <div className="flex items-center justify-between bg-secondary/50 rounded-full px-4 py-3">
+                <div className="flex items-center justify-between bg-secondary/50 rounded-lg px-4 py-3">
                   <span className="text-sm font-medium">{tSettings("appearance")}</span>
                   <ThemeToggle />
                 </div>
-                <div className="flex items-center justify-between bg-secondary/50 rounded-full px-4 py-3">
+                <div className="flex items-center justify-between bg-secondary/50 rounded-lg px-4 py-3">
                   <span className="text-sm font-medium">{tSettings("language")}</span>
                   <div className="flex gap-2">
                     <Button

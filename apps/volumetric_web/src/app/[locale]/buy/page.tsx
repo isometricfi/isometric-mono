@@ -19,7 +19,7 @@ export default async function BuyPage() {
 
   return (
     <HydrationBoundary state={dehydratedState}>
-      <div className="container mx-auto py-8 max-w-5xl md:mt-16 mt-14">
+      <div className="container mx-auto md:py-5 py-4 max-w-5xl ">
         <BuyOptionsView />
       </div>
     </HydrationBoundary>

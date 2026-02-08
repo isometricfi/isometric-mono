@@ -15,7 +15,7 @@ export async function generateMetadata({
 
 export default function Home() {
   return (
-    <div className="relative mt-16 min-h-screen overflow-hidden">
+    <div className="relative min-h-screen overflow-hidden">
       <ConcentricCircles />
       <HeroSection />
       <ChainAbstractionSection />

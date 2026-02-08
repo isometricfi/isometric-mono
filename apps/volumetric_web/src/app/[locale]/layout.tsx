@@ -4,6 +4,7 @@ import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 import { NextIntlClientProvider } from "next-intl";
 import { getMessages, getTranslations, setRequestLocale } from "next-intl/server";
+import { Footer } from "@/components/layout/Footer";
 import { Navbar } from "@/components/layout/Navbar";
 import { ThemeProvider } from "@/components/layout/ThemeProvider";
 import { routing } from "@/i18n/routing";
@@ -109,9 +110,10 @@ export default async function LocaleLayout({
         <NextIntlClientProvider messages={messages}>
           <ThemeProvider nonce={nonce}>
             <Providers>
-              <div className="px-4">
+              <div className="flex min-h-screen flex-col px-4">
                 <Navbar />
-                {children}
+                <main className="flex-1">{children}</main>
+                <Footer />
               </div>
             </Providers>
           </ThemeProvider>

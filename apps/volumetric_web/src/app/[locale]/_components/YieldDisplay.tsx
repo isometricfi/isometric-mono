@@ -16,7 +16,7 @@ export function YieldDisplay() {
                 {t("activePosition")}
               </span>
             </div>
-            <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-primary/10 text-primary">
+            <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-primary/10 text-primary">
               {t("call")}
             </span>
           </div>

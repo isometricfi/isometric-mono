@@ -172,7 +172,7 @@ export function DepositModal({
               </div>
             </div>
 
-            <div className="flex gap-2 p-1 rounded-xl bg-muted/50">
+            <div className="flex gap-2 p-1 rounded-md bg-muted/50">
               <button
                 type="button"
                 onClick={() => setTab("wallet")}
@@ -278,7 +278,7 @@ export function DepositModal({
                         </div>
                       </div>
 
-                      <div className="w-full rounded-2xl border p-4 bg-card/50">
+                      <div className="w-full rounded-lg border p-4 bg-card/50">
                         <div className="flex items-start justify-between gap-3">
                           <div className="min-w-0">
                             <div className="text-xs text-muted-foreground mb-1">
@@ -351,7 +351,7 @@ export function DepositModal({
             </div>
 
             {txid && (
-              <div className="w-full rounded-2xl border p-4 bg-card/50">
+              <div className="w-full rounded-lg border p-4 bg-card/50">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <div className="text-xs text-muted-foreground mb-1">{t("transactionId")}</div>

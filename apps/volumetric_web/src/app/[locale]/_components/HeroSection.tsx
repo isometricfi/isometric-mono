@@ -10,7 +10,7 @@ export function HeroSection() {
     <div className="relative z-10 flex flex-col items-center pt-20 pb-16">
       <div className="max-w-5xl w-full">
         <div className="flex justify-center mb-6">
-          <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/10 text-primary text-sm font-medium tracking-wide">
+          <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-md bg-primary/10 text-primary text-sm font-medium tracking-wide">
             <Sparkles className="size-4" />
             {t("publicBeta")}
           </span>
