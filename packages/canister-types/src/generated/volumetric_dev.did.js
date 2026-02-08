@@ -523,6 +523,7 @@ export const idlFactory = ({ IDL }) => {
     'list_users' : IDL.Func([], [IDL.Vec(UserInfo)], ['query']),
     'list_whitelisted' : IDL.Func([], [IDL.Vec(IDL.Principal)], ['query']),
     'remove_whitelisted' : IDL.Func([IDL.Principal], [Result_1], []),
+    'reset_oracle_config' : IDL.Func([], [Result_1], []),
     'set_deposit_amount_sats_config' : IDL.Func([IDL.Nat64], [Result_1], []),
     'set_feature_flags_config' : IDL.Func([FeatureFlags], [Result_1], []),
     'set_fee_config_config' : IDL.Func([FeeConfig], [Result_1], []),
