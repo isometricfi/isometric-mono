@@ -435,6 +435,7 @@ export interface _SERVICE {
   'list_users' : ActorMethod<[], Array<UserInfo>>,
   'list_whitelisted' : ActorMethod<[], Array<Principal>>,
   'remove_whitelisted' : ActorMethod<[Principal], Result_1>,
+  'reset_oracle_config' : ActorMethod<[], Result_1>,
   'set_deposit_amount_sats_config' : ActorMethod<[bigint], Result_1>,
   'set_feature_flags_config' : ActorMethod<[FeatureFlags], Result_1>,
   'set_fee_config_config' : ActorMethod<[FeeConfig], Result_1>,

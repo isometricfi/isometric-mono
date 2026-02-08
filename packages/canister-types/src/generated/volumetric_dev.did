@@ -370,6 +370,7 @@ service : (opt BtcNetwork) -> {
   list_users : () -> (vec UserInfo) query;
   list_whitelisted : () -> (vec principal) query;
   remove_whitelisted : (principal) -> (Result_1);
+  reset_oracle_config : () -> (Result_1);
   set_deposit_amount_sats_config : (nat64) -> (Result_1);
   set_feature_flags_config : (FeatureFlags) -> (Result_1);
   set_fee_config_config : (FeeConfig) -> (Result_1);

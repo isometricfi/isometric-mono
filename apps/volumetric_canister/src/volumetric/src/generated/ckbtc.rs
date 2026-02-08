@@ -26,6 +26,9 @@ pub struct UpgradeArgs {
     pub mode: Option<Mode>,
     /// The minimal amount of ckBTC that the minter converts to BTC.
     pub retrieve_btc_min_amount: Option<u64>,
+    /// The minimal amount of BTC that can be converted to ckBTC.
+    /// UTXOs with lower values will be ignored.
+    pub deposit_btc_min_amount: Option<u64>,
     /// / Maximum time in nanoseconds that a transaction should spend in the queue
     /// / before being sent.
     pub max_time_in_queue_nanos: Option<u64>,
@@ -66,6 +69,9 @@ pub struct InitArgs {
     pub mode: Mode,
     /// The minimal amount of ckBTC that can be converted to BTC.
     pub retrieve_btc_min_amount: u64,
+    /// The minimal amount of BTC that can be converted to ckBTC.
+    /// UTXOs with lower values will be ignored.
+    pub deposit_btc_min_amount: Option<u64>,
     /// The principal of the ledger that handles ckBTC transfers.
     /// The default account of the ckBTC minter must be configured as
     /// the minting account of the ledger.
@@ -94,6 +100,87 @@ pub enum MinterArg {
     Upgrade(Option<UpgradeArgs>),
     Init(InitArgs),
 }
+#[derive(CandidType, Deserialize)]
+pub enum MemoType {
+    Burn,
+    Mint,
+}
+#[derive(CandidType, Deserialize)]
+pub struct DecodeLedgerMemoArgs {
+    /// The encoded memo type
+    pub memo_type: MemoType,
+    /// The encoded memo from a minter transaction on the ledger
+    pub encoded_memo: serde_bytes::ByteBuf,
+}
+#[derive(CandidType, Deserialize)]
+pub enum Status {
+    CallFailed,
+    /// The minter rejected a retrieve_btc due to a failed Bitcoin check.
+    Rejected,
+    /// The minter accepted a retrieve_btc request.
+    Accepted,
+}
+#[derive(CandidType, Deserialize)]
+pub enum BurnMemo {
+    /// The minter consolidated UTXOs.
+    Consolidate {
+        /// The total value of the consolidated UTXOs.
+        value: u64,
+        /// The number of input UTXOs that were consolidated.
+        inputs: u64,
+    },
+    /// The minter processed a retrieve_btc request.
+    Convert {
+        /// The status of the Bitcoin check.
+        status: Option<Status>,
+        /// The destination of the retrieve BTC request.
+        address: Option<String>,
+        /// The check fee for the burn.
+        kyt_fee: Option<u64>,
+    },
+}
+#[derive(CandidType, Deserialize)]
+pub enum MintMemo {
+    /// [deprecated] The minter minted accumulated check fees to the KYT provider.
+    Kyt,
+    ReimburseWithdrawal {
+        /// The id corresponding to the withdrawal request,
+        /// which corresponds to the ledger burn index.
+        withdrawal_id: u64,
+    },
+    /// [deprecated] The minter failed to check retrieve btc destination address
+    /// or the destination address is tainted.
+    KytFail {
+        /// The status of the Bitcoin check.
+        status: Option<Status>,
+        associated_burn_index: Option<u64>,
+        /// The Bitcoin check fee.
+        kyt_fee: Option<u64>,
+    },
+    /// The minter converted a single UTXO to ckBTC.
+    Convert {
+        /// The transaction ID of the accepted UTXO.
+        txid: Option<serde_bytes::ByteBuf>,
+        /// UTXO's output index within the BTC transaction.
+        vout: Option<u32>,
+        /// The Bitcoin check fee.
+        kyt_fee: Option<u64>,
+    },
+}
+#[derive(CandidType, Deserialize)]
+pub enum DecodedMemo {
+    /// The decoded BurnMemo - `opt` since other variants of `BurnMemo` could be added in the future.
+    Burn(Option<BurnMemo>),
+    /// The decoded MintMemo - `opt` since other variants of `MintMemo` could be added in the future.
+    Mint(Option<MintMemo>),
+}
+#[derive(CandidType, Deserialize)]
+pub enum DecodeLedgerMemoError {
+    /// The provided memo could not be decoded.
+    InvalidMemo(String),
+}
+pub type DecodeLedgerMemoResult =
+    std::result::Result<Option<DecodedMemo>, Option<DecodeLedgerMemoError>>;
 #[derive(CandidType, Deserialize)]
 pub struct EstimateWithdrawalFeeArg {
     pub amount: Option<u64>,
@@ -393,6 +480,9 @@ pub struct MinterInfo {
     /// This amount is based on the `retrieve_btc_min_amount` setting during canister
     /// initialization or upgrades, but may vary according to current network fees.
     pub retrieve_btc_min_amount: u64,
+    /// Minimal amount of BTC that can be deposited to be converted into ckBTC.
+    /// UTXOs with lower values will be ignored.
+    pub deposit_btc_min_amount: Option<u64>,
     pub min_confirmations: u32,
     /// The same as `check_fee`, but the old name is kept here to be backward compatible.
     pub kyt_fee: u64,
@@ -610,6 +700,14 @@ pub enum UpdateBalanceError {
 
 pub struct Service(pub Principal);
 impl Service {
+    /// Section "Transaction Information" {{{
+    /// Returns information related to minter transactions.
+    pub async fn decode_ledger_memo(
+        &self,
+        arg0: &DecodeLedgerMemoArgs,
+    ) -> Result<(DecodeLedgerMemoResult,)> {
+        ic_cdk::call(self.0, "decode_ledger_memo", (arg0,)).await
+    }
     /// / Returns an estimate of the user's fee (in Satoshi) for a
     /// / retrieve_btc request based on the current status of the Bitcoin network.
     pub async fn estimate_withdrawal_fee(
@@ -675,7 +773,7 @@ impl Service {
     /// # Preconditions
     ///
     /// * The caller deposited the requested amount in ckBTC to the account
-    ///   that the [get_withdrawal_account] endpoint returns.
+    /// that the [get_withdrawal_account] endpoint returns.
     pub async fn retrieve_btc(
         &self,
         arg0: &RetrieveBtcArgs,
@@ -721,7 +819,7 @@ impl Service {
     /// # Preconditions
     ///
     /// * The caller allowed the minter's principal to spend its funds
-    ///   using [icrc2_approve] on the ckBTC ledger.
+    /// using [icrc2_approve] on the ckBTC ledger.
     pub async fn retrieve_btc_with_approval(
         &self,
         arg0: &RetrieveBtcWithApprovalArgs,
@@ -735,7 +833,7 @@ impl Service {
     /// # Preconditions
     ///
     /// * The owner deposited some BTC to the address that the
-    ///   [get_btc_address] endpoint returns.
+    /// [get_btc_address] endpoint returns.
     pub async fn update_balance(
         &self,
         arg0: &UpdateBalanceArg,
