@@ -153,8 +153,8 @@ export function NumberCarousel({
                   }}
                   className={`absolute font-semibold whitespace-nowrap ${
                     isCenter
-                      ? "text-lg text-foreground"
-                      : "text-base text-muted-foreground cursor-pointer"
+                      ? "md:text-lg text-base  text-foreground"
+                      : "md:text-base text-sm text-muted-foreground cursor-pointer"
                   } ${!isClickable && !isCenter ? "pointer-events-none" : ""}`}
                 >
                   {formatValue(val)}

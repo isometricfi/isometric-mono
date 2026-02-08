@@ -512,12 +512,41 @@
     "offerLimitExceeded": "每个期限的最大报价数已超过",
     "internalError": "发生意外错误"
   },
+  "Footer": {
+    "tagline": "链上比特币期权。无中介，无交易对手风险。",
+    "resources": "资源",
+    "documentation": "文档",
+    "support": "支持",
+    "github": "GitHub",
+    "legal": "法律",
+    "privacyPolicy": "隐私政策",
+    "termsOfService": "服务条款",
+    "connect": "联系",
+    "email": "电子邮件",
+    "telegram": "Telegram",
+    "x": "X (Twitter)",
+    "copyright": "© {year} Isometric。保留所有权利。"
+  },
   "Metadata": {
     "title": "Isometric | 链上比特币期权",
     "siteName": "Isometric",
     "description": "最简单的链上比特币期权交易方式。卖出看涨期权赚取高年化收益，或作为买家获得高达100倍杠杆。完全去信任化、自托管、无清算风险。",
     "keywords": "比特币期权, 链上期权, BTC杠杆, BTC收益, 去中心化期权, 去信任化交易, 自托管",
     "ogImageAlt": "Isometric - 链上比特币期权",
+    "privacy": {
+      "title": "隐私政策",
+      "description": "Isometric 比特币期权交易平台的隐私政策。了解我们如何收集、使用和保护您的信息。",
+      "keywords": "隐私政策, 数据保护, 比特币隐私, 链上隐私, 用户数据",
+      "ogTitle": "隐私政策 | Isometric",
+      "ogImageAlt": "Isometric 隐私政策"
+    },
+    "terms": {
+      "title": "服务条款",
+      "description": "Isometric 比特币期权交易平台的服务条款。了解您在使用我们平台时的权利和责任。",
+      "keywords": "服务条款, 用户协议, 交易条款, 比特币期权条款, 平台规则",
+      "ogTitle": "服务条款 | Isometric",
+      "ogImageAlt": "Isometric 服务条款"
+    },
     "buy": {
       "title": "购买比特币期权",
       "description": "在比特币上获得高达100倍杠杆，无清算风险。您的最大损失是已付溢价。完全链上且去信任化。",

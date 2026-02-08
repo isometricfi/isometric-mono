@@ -50,8 +50,8 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
 
     const username = history?.username || (isZh ? `用户 ${id}` : `User ${id}`);
     const principal = history?.principal || id;
-    const origin = new URL(request.url).origin;
-    const avatarUrl = `${origin}/api/avatar?name=${encodeURIComponent(principal)}`;
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://isometric.fi";
+    const avatarUrl = `${baseUrl}/api/avatar?name=${encodeURIComponent(principal)}`;
 
     // Sort entries by acceptedAt to find the first trade (oldest)
     const sortedEntries = [...entries].sort((a, b) => Number(a.acceptedAt - b.acceptedAt));

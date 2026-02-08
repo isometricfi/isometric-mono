@@ -87,7 +87,7 @@ export function CallWriteOptionSummary({
   };
 
   return (
-    <div className="space-y-3 pt-4 border-t border-border">
+    <div className="space-y-3">
       <div className="flex items-center justify-between text-sm">
         <div className="flex items-end gap-1">
           <p className=" text-muted-foreground">{t("premium")}</p>
