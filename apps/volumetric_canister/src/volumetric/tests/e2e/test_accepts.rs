@@ -2,12 +2,14 @@ use crate::common::{create_test_env, generate_wallet};
 use crate::helpers::{
     accept_offers, cancel_offer, configure_test_ledger, create_account, create_offer,
     get_events_for_principal, get_open_offers, get_user_balance, mint_and_sync_balance,
-    set_feature_flags, whitelist_controller,
+    set_feature_flags, set_oracle_price, whitelist_controller,
 };
 use volumetric::errors::error_codes;
 use volumetric::{
     AcceptOfferItem, ActiveOptionStatus, EventData, EventType, FeatureFlags, OfferStatus, TradeRole,
 };
+
+const ORACLE_PRICE_CENTS: u64 = 10_000_000;
 
 /// Given: Writer creates 0.1 BTC offer, buyer has premium + fees
 /// When: Buyer accepts full offer quantity
@@ -18,6 +20,7 @@ fn test_buyer_accepts_offer_creates_option_and_locks_writer_collateral() {
     let env = create_test_env();
     whitelist_controller(&env);
     configure_test_ledger(&env);
+    set_oracle_price(&env, ORACLE_PRICE_CENTS);
 
     const WRITER_SEED: u64 = 1;
     const BUYER_SEED: u64 = 2;
@@ -141,6 +144,7 @@ fn test_partial_fill_creates_option_and_leaves_offer_open_for_remainder() {
     let env = create_test_env();
     whitelist_controller(&env);
     configure_test_ledger(&env);
+    set_oracle_price(&env, ORACLE_PRICE_CENTS);
     set_feature_flags(
         &env,
         FeatureFlags {
@@ -228,6 +232,7 @@ fn test_second_buyer_fails_when_offer_already_fully_accepted() {
     let env = create_test_env();
     whitelist_controller(&env);
     configure_test_ledger(&env);
+    set_oracle_price(&env, ORACLE_PRICE_CENTS);
 
     const WRITER_SEED: u64 = 1;
     const BUYER_1_SEED: u64 = 2;
@@ -309,6 +314,7 @@ fn test_accept_own_offer_fails() {
     let env = create_test_env();
     whitelist_controller(&env);
     configure_test_ledger(&env);
+    set_oracle_price(&env, ORACLE_PRICE_CENTS);
 
     const WRITER_SEED: u64 = 1;
     let writer_wallet = generate_wallet(WRITER_SEED);
@@ -369,6 +375,7 @@ fn test_accept_expired_offer_fails() {
     let env = create_test_env();
     whitelist_controller(&env);
     configure_test_ledger(&env);
+    set_oracle_price(&env, ORACLE_PRICE_CENTS);
 
     const WRITER_SEED: u64 = 1;
     const BUYER_SEED: u64 = 2;
@@ -433,6 +440,7 @@ fn test_accept_cancelled_offer_fails() {
     let env = create_test_env();
     whitelist_controller(&env);
     configure_test_ledger(&env);
+    set_oracle_price(&env, ORACLE_PRICE_CENTS);
 
     const WRITER_SEED: u64 = 1;
     const BUYER_SEED: u64 = 2;
@@ -496,6 +504,7 @@ fn test_accept_with_insufficient_balance_fails() {
     let env = create_test_env();
     whitelist_controller(&env);
     configure_test_ledger(&env);
+    set_oracle_price(&env, ORACLE_PRICE_CENTS);
 
     const WRITER_SEED: u64 = 1;
     const BUYER_SEED: u64 = 2;
@@ -555,6 +564,7 @@ fn test_accept_quantity_exceeds_remaining_fails() {
     let env = create_test_env();
     whitelist_controller(&env);
     configure_test_ledger(&env);
+    set_oracle_price(&env, ORACLE_PRICE_CENTS);
 
     const WRITER_SEED: u64 = 1;
     const BUYER_SEED: u64 = 2;
@@ -619,6 +629,7 @@ fn test_partial_fill_disabled_rejects_partial_quantity() {
     let env = create_test_env();
     whitelist_controller(&env);
     configure_test_ledger(&env);
+    set_oracle_price(&env, ORACLE_PRICE_CENTS);
 
     const WRITER_SEED: u64 = 1;
     const BUYER_SEED: u64 = 2;
@@ -683,6 +694,7 @@ fn test_multiple_partial_fills_exhaust_offer() {
     let env = create_test_env();
     whitelist_controller(&env);
     configure_test_ledger(&env);
+    set_oracle_price(&env, ORACLE_PRICE_CENTS);
     set_feature_flags(
         &env,
         FeatureFlags {
@@ -814,6 +826,7 @@ fn test_accepted_offers_lock_cumulative_collateral() {
     let env = create_test_env();
     whitelist_controller(&env);
     configure_test_ledger(&env);
+    set_oracle_price(&env, ORACLE_PRICE_CENTS);
 
     const WRITER_SEED: u64 = 1;
     const BUYER_1_SEED: u64 = 2;

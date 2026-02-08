@@ -1,10 +1,13 @@
 use crate::common::{create_test_env, generate_wallet};
 use crate::helpers::{
     accept_offers, cancel_offer, configure_test_ledger, create_account, create_offer,
-    get_events_for_principal, get_open_offers, mint_and_sync_balance, whitelist_controller,
+    get_events_for_principal, get_open_offers, mint_and_sync_balance, set_oracle_price,
+    whitelist_controller,
 };
 use volumetric::errors::error_codes;
 use volumetric::{AcceptOfferItem, EventData, EventType, OfferStatus};
+
+const ORACLE_PRICE_CENTS: u64 = 10_000_000;
 
 /// Given: Writer with 0.1 BTC balance
 /// When: Writer creates offer with strike +5%, premium 1%, 1 day expiry
@@ -231,6 +234,7 @@ fn test_cancel_filled_offer_fails() {
     let env = create_test_env();
     whitelist_controller(&env);
     configure_test_ledger(&env);
+    set_oracle_price(&env, ORACLE_PRICE_CENTS);
 
     const WRITER_SEED: u64 = 1;
     const BUYER_SEED: u64 = 2;
@@ -384,6 +388,7 @@ fn test_create_offer_with_locked_balance_fails() {
     let env = create_test_env();
     whitelist_controller(&env);
     configure_test_ledger(&env);
+    set_oracle_price(&env, ORACLE_PRICE_CENTS);
 
     const WRITER_SEED: u64 = 1;
     const BUYER_SEED: u64 = 2;

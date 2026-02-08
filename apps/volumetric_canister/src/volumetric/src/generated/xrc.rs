@@ -1,0 +1,93 @@
+// This is an experimental feature to generate Rust binding from Candid.
+// You may want to manually adjust some of the types.
+#![allow(dead_code, unused_imports)]
+use candid::{self, CandidType, Deserialize, Principal};
+use ic_cdk::api::call::CallResult as Result;
+
+#[derive(CandidType, Deserialize)]
+pub enum AssetClass {
+    Cryptocurrency,
+    FiatCurrency,
+}
+#[derive(CandidType, Deserialize)]
+pub struct Asset {
+    pub class: AssetClass,
+    pub symbol: String,
+}
+/// The parameters for the `get_exchange_rate` API call.
+#[derive(CandidType, Deserialize)]
+pub struct GetExchangeRateRequest {
+    /// An optional UNIX timestamp in seconds to get the rate for a specific time period.
+    pub timestamp: Option<u64>,
+    pub quote_asset: Asset,
+    pub base_asset: Asset,
+}
+#[derive(CandidType, Deserialize)]
+pub struct ExchangeRateMetadata {
+    pub decimals: u32,
+    pub forex_timestamp: Option<u64>,
+    pub quote_asset_num_received_rates: u64,
+    pub base_asset_num_received_rates: u64,
+    pub base_asset_num_queried_sources: u64,
+    pub standard_deviation: u64,
+    pub quote_asset_num_queried_sources: u64,
+}
+#[derive(CandidType, Deserialize)]
+pub struct ExchangeRate {
+    pub metadata: ExchangeRateMetadata,
+    pub rate: u64,
+    pub timestamp: u64,
+    pub quote_asset: Asset,
+    pub base_asset: Asset,
+}
+#[derive(CandidType, Deserialize)]
+pub enum ExchangeRateError {
+    /// Returned when the canister receives a call from the anonymous principal.
+    AnonymousPrincipalNotAllowed,
+    /// Returned when the quote asset rates are not found from the exchanges HTTP outcalls.
+    CryptoQuoteAssetNotFound,
+    /// Returned when the canister fails to accept enough cycles.
+    FailedToAcceptCycles,
+    /// Returned when the forex base asset is found.
+    ForexBaseAssetNotFound,
+    /// Returned when the base asset rates are not found from the exchanges HTTP outcalls.
+    CryptoBaseAssetNotFound,
+    /// Returned when there are not enough stablecoin rates to determine the forex/USDT rate.
+    StablecoinRateTooFewRates,
+    /// Returned when neither forex asset is found.
+    ForexAssetsNotFound,
+    /// / Returned if too many collected rates deviate substantially.
+    InconsistentRatesReceived,
+    /// Returned when the caller is not the CMC and there are too many active requests.
+    RateLimited,
+    /// Returned when the stablecoin rate is zero.
+    StablecoinRateZeroRate,
+    /// Until candid bug is fixed, new errors after launch will be placed here.
+    Other {
+        /// The identifier for the error that occurred.
+        code: u32,
+        /// A description of the error that occurred.
+        description: String,
+    },
+    /// Returned when a rate for the provided forex asset could not be found at the provided timestamp.
+    ForexInvalidTimestamp,
+    /// Returned when the caller does not send enough cycles to make a request.
+    NotEnoughCycles,
+    /// Returned when the forex quote asset is found.
+    ForexQuoteAssetNotFound,
+    /// Returned when the stablecoin rates are not found from the exchanges HTTP outcalls needed for computing a crypto/fiat pair.
+    StablecoinRateNotFound,
+    /// / Returned when the canister is in process of retrieving a rate from an exchange.
+    Pending,
+}
+pub type GetExchangeRateResult = std::result::Result<ExchangeRate, ExchangeRateError>;
+
+pub struct Service(pub Principal);
+impl Service {
+    pub async fn get_exchange_rate(
+        &self,
+        arg0: &GetExchangeRateRequest,
+    ) -> Result<(GetExchangeRateResult,)> {
+        ic_cdk::call(self.0, "get_exchange_rate", (arg0,)).await
+    }
+}

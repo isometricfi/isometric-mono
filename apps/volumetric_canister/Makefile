@@ -26,8 +26,8 @@ DID_DIR := did
 DID_FILE := $(DID_DIR)/volumetric.did
 
 build:
-	@echo "Building locally..."
-	cargo build --locked --target wasm32-unknown-unknown --release
+	@echo "Building locally (with testing features)..."
+	cargo build --locked --target wasm32-unknown-unknown --release --features testing
 	mkdir -p $(DID_DIR)
 	candid-extractor target/wasm32-unknown-unknown/release/volumetric.wasm > $(DID_FILE)
 	ic-wasm target/wasm32-unknown-unknown/release/volumetric.wasm -o $(WASM_FILE) shrink
@@ -57,8 +57,10 @@ generate: build
 generate-external-types:
 	@echo "Updating external Candid interfaces..."
 	curl -sL "https://raw.githubusercontent.com/dfinity/ic/master/rs/bitcoin/ckbtc/minter/ckbtc_minter.did" -o did/ckbtc_minter.did
+	curl -sL "https://raw.githubusercontent.com/dfinity/exchange-rate-canister/main/src/xrc/xrc.did" -o did/xrc.did
 	@echo "Generating Rust types..."
 	didc bind did/ckbtc_minter.did --target rs > src/volumetric/src/generated/ckbtc.rs
+	didc bind did/xrc.did --target rs > src/volumetric/src/generated/xrc.rs
 	@echo "Generated types updated in src/volumetric/src/generated/"
 
 deploy:
