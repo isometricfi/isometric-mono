@@ -7,3 +7,6 @@
 
 #[allow(deprecated)]
 pub mod ckbtc;
+
+#[allow(dead_code)]
+pub mod xrc;

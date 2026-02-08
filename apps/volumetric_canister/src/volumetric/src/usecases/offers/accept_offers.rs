@@ -77,8 +77,8 @@ pub async fn accept_offers_use_case(
     }
 
     let now = ic::time();
+    let entry_price_cents = get_btc_usd_price_cents().await?;
     let fill_group_id = next_id(CounterKey::FillGroupId);
-    let entry_price_cents = get_btc_usd_price_cents()?;
 
     let mut validated: Vec<ValidatedAccept> = Vec::with_capacity(items.len());
     let mut total_premium_required: u64 = 0;

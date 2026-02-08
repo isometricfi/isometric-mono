@@ -4,13 +4,14 @@ use crate::auth::derive_subaccount;
 use crate::errors::VolumetricError;
 use crate::ic;
 use crate::locks::SettlementLock;
-use crate::oracle::{calculate_call_option_payout, get_btc_usd_price_cents};
+use crate::oracle::get_btc_usd_price_cents;
 use crate::storage::{
-    add_platform_fee, calculate_profit_fee, complete_settlement, create_settlement, emit_event,
-    fail_settlement, get_active_option, get_fee_recipient, list_expired_active_options,
-    release_locked_to_buyer, remove_settlement, reverse_release_locked_to_buyer,
-    subtract_available, unlock_collateral, update_active_option, update_settlement_phase,
-    ActiveOption, ActiveOptionStatus, EventData, EventType, OptionType, SettlementPhase, TradeRole,
+    add_platform_fee, calculate_call_option_payout, calculate_profit_fee, complete_settlement,
+    create_settlement, emit_event, fail_settlement, get_active_option, get_fee_recipient,
+    list_expired_active_options, release_locked_to_buyer, remove_settlement,
+    reverse_release_locked_to_buyer, subtract_available, unlock_collateral, update_active_option,
+    update_settlement_phase, ActiveOption, ActiveOptionStatus, EventData, EventType, OptionType,
+    SettlementPhase, TradeRole,
 };
 
 use crate::usecases::balances::transfer_ckbtc;
@@ -229,7 +230,7 @@ pub async fn settle_expired_options_use_case() -> SettleExpiredOptionsResult {
     let mut settled: Vec<SettlementResult> = Vec::new();
     let mut errors: Vec<String> = Vec::new();
 
-    let settlement_price_cents = match get_btc_usd_price_cents() {
+    let settlement_price_cents = match get_btc_usd_price_cents().await {
         Ok(price) => price,
         Err(e) => {
             errors.push(format!("Failed to get oracle price: {}", e));
@@ -259,14 +260,14 @@ pub async fn settle_option_by_id_use_case(
         return Err(VolumetricError::option_not_expired());
     }
 
-    let settlement_price_cents = get_btc_usd_price_cents()?;
+    let settlement_price_cents = get_btc_usd_price_cents().await?;
     settle_single_option(option_id, settlement_price_cents).await
 }
 
 pub async fn testing_force_settle_option_use_case(
     option_id: u64,
 ) -> Result<SettlementResult, VolumetricError> {
-    let settlement_price_cents = get_btc_usd_price_cents()?;
+    let settlement_price_cents = get_btc_usd_price_cents().await?;
     settle_single_option(option_id, settlement_price_cents).await
 }
 

@@ -38,10 +38,19 @@ pub fn get_platform_fees_collected_total() -> u64 {
     get_platform_fees_collected()
 }
 
+#[cfg(feature = "testing")]
 #[update]
 pub async fn set_oracle_price_config(price_cents: u64) -> Result<(), VolumetricError> {
     is_whitelisted().await?;
     usecases::set_oracle_price_use_case(price_cents);
+    Ok(())
+}
+
+#[cfg(feature = "testing")]
+#[update]
+pub async fn reset_oracle_config() -> Result<(), VolumetricError> {
+    is_whitelisted().await?;
+    usecases::reset_oracle_use_case();
     Ok(())
 }
 
