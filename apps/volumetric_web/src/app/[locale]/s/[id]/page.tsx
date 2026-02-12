@@ -76,7 +76,13 @@ export default async function SharePage({ params }: { params: Promise<{ id: stri
     <div className="container mx-auto md:py-5 py-4 max-w-2xl">
       <div className=" space-y-3 mb-8 border-b pb-3">
         <div className="flex items-center gap-4 justify-center pb-6 border-b">
-          <Image src={`/api/avatar?name=${principal}`} alt="Avatar" width={48} height={48} />
+          <Image
+            src={`/api/avatar?name=${encodeURIComponent(principal)}`}
+            alt="Avatar"
+            width={48}
+            height={48}
+            unoptimized
+          />
           <div>
             <p className="text-xl font-semibold">{username}</p>
             <p className="text-sm text-muted-foreground">Joined {joinedDate}</p>

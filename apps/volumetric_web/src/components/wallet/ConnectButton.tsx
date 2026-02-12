@@ -39,11 +39,12 @@ export function ConnectButton() {
       <>
         <Button variant="outline" onClick={() => setOpen(true)} className={cn("gap-2 pl-1.5 pr-3")}>
           <Image
-            src={`/api/avatar?name=${seed}`}
+            src={`/api/avatar?name=${encodeURIComponent(seed)}`}
             alt="Avatar"
             width={24}
             height={24}
             className="size-6 rounded-sm"
+            unoptimized
           />
           <span className="max-w-[10rem] truncate">{displayName}</span>
         </Button>

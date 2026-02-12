@@ -104,11 +104,12 @@ function AccountPanelContent({ onDisconnect }: { onDisconnect: () => void }) {
       <div className="flex justify-between gap-3 pt-2">
         <div className="flex items-center gap-3 min-w-0">
           <Image
-            src={`/api/avatar?name=${avatarSeed}`}
+            src={`/api/avatar?name=${encodeURIComponent(avatarSeed)}`}
             alt="Avatar"
             width={50}
             height={50}
             className="size-10 rounded-md"
+            unoptimized
           />
           <div className="min-w-0">
             <div className="font-semibold leading-none truncate">{displayName}</div>

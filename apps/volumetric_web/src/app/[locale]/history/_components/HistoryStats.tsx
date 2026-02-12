@@ -80,11 +80,12 @@ export function HistoryStats() {
       <div className="flex items-center gap-5 justify-between w-full">
         <div className="flex gap-2 items-center font-medium">
           <Image
-            src={`/api/avatar?name=${account?.profile?.address ?? ""}`}
+            src={`/api/avatar?name=${encodeURIComponent(account?.profile?.address ?? "")}`}
             alt="Avatar"
             width={32}
             height={32}
             className=" rounded-md"
+            unoptimized
           />
           {account?.profile?.username ?? `${t("user")} ${account?.profile?.principal.slice(0, 6)}`}
         </div>
