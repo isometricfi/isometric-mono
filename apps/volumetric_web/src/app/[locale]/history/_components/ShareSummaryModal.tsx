@@ -1,16 +1,17 @@
 "use client";
 
 import { Check, Download, X as XIcon } from "lucide-react";
-import Image from "next/image";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { CopyButton } from "@/components/ui/copy-button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useAccount, useHistory, useModal } from "@/hooks";
 export function ShareSummaryModal() {
   const t = useTranslations("ShareSummary");
   const { closeModal } = useModal();
   const [copiedImage, setCopiedImage] = useState(false);
+  const [imageLoaded, setImageLoaded] = useState(false);
 
   const { data: history } = useHistory();
   const { data: account } = useAccount();
@@ -67,8 +68,15 @@ export function ShareSummaryModal() {
         </Button>
       </div>
 
-      <div className="rounded-xl overflow-hidden border bg-card relative aspect-[1200/630]">
-        <Image src={ogImageUrl} alt={t("tradingStats")} fill className="object-contain" />
+      <div className="rounded-md overflow-hidden bg-card relative aspect-1200/630">
+        {!imageLoaded && <Skeleton className="absolute inset-0 w-full h-full" />}
+        {/* biome-ignore lint: using native img for dynamically generated OG image */}
+        <img
+          src={ogImageUrl}
+          alt={t("tradingStats")}
+          className="w-full h-full object-contain"
+          onLoad={() => setImageLoaded(true)}
+        />
       </div>
 
       <div className="space-y-3">

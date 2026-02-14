@@ -9,7 +9,7 @@ use crate::guards::is_whitelisted;
 use crate::storage::{get_nonce, get_principal_for_wallet, increment_nonce, is_wallet_registered};
 use crate::usecases;
 
-#[derive(candid::CandidType, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, candid::CandidType, serde::Serialize, serde::Deserialize)]
 pub struct ProfileInfo {
     pub principal: Principal,
     pub subaccount: Vec<u8>,

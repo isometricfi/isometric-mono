@@ -11,5 +11,5 @@ pub fn remove_whitelisted_use_case(principal: Principal) {
 }
 
 pub fn list_whitelisted_use_case() -> Vec<Principal> {
-    WHITELIST.with_borrow(|whitelist| whitelist.iter().map(|entry| entry.key().clone()).collect())
+    WHITELIST.with_borrow(|whitelist| whitelist.iter().map(|entry| *entry.key()).collect())
 }

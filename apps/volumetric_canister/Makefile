@@ -1,4 +1,4 @@
-.PHONY: build release deploy generate generate-external-types reinstall-local verify info clean start stop help
+.PHONY: build release deploy generate generate-external-types reinstall-local verify info clean start stop test test-integration test-integration-fast help
 
 # Use Homebrew LLVM on macOS if available, otherwise use system clang
 ifneq ($(wildcard /opt/homebrew/opt/llvm/bin/clang),)
@@ -26,8 +26,8 @@ DID_DIR := did
 DID_FILE := $(DID_DIR)/volumetric.did
 
 build:
-	@echo "Building locally..."
-	cargo build --locked --target wasm32-unknown-unknown --release
+	@echo "Building locally (with testing features)..."
+	cargo build --locked --target wasm32-unknown-unknown --release --features testing
 	mkdir -p $(DID_DIR)
 	candid-extractor target/wasm32-unknown-unknown/release/volumetric.wasm > $(DID_FILE)
 	ic-wasm target/wasm32-unknown-unknown/release/volumetric.wasm -o $(WASM_FILE) shrink
@@ -57,8 +57,10 @@ generate: build
 generate-external-types:
 	@echo "Updating external Candid interfaces..."
 	curl -sL "https://raw.githubusercontent.com/dfinity/ic/master/rs/bitcoin/ckbtc/minter/ckbtc_minter.did" -o did/ckbtc_minter.did
+	curl -sL "https://raw.githubusercontent.com/dfinity/exchange-rate-canister/main/src/xrc/xrc.did" -o did/xrc.did
 	@echo "Generating Rust types..."
 	didc bind did/ckbtc_minter.did --target rs > src/volumetric/src/generated/ckbtc.rs
+	didc bind did/xrc.did --target rs > src/volumetric/src/generated/xrc.rs
 	@echo "Generated types updated in src/volumetric/src/generated/"
 
 deploy:
@@ -98,6 +100,18 @@ stop:
 clean:
 	rm -rf .dfx target $(WASM_FILE)
 
+test: build
+	@echo "Running tests..."
+	cd src/volumetric && cargo test --test integration_smoke -- --test-threads=1
+
+test-integration: build
+	@echo "Running all integration tests..."
+	cd src/volumetric && cargo test --test '*' -- --test-threads=1
+
+test-integration-fast: build
+	@echo "Running fast integration tests (excluding real ledger tests)..."
+	cd src/volumetric && cargo test --test 'integration_*' -- --test-threads=1
+
 help:
 	@echo "Usage: make <target> [TARGET=dev|prod|local]"
 	@echo ""
@@ -114,9 +128,13 @@ help:
 	@echo "  start           - Start local replica"
 	@echo "  stop            - Stop local replica"
 	@echo "  clean           - Remove build artifacts"
+	@echo "  test            - Run smoke tests"
+	@echo "  test-integration - Run all integration tests"
+	@echo "  test-integration-fast - Run fast integration tests"
 	@echo ""
 	@echo "Examples:"
 	@echo "  make build                # Build locally"
 	@echo "  make release              # Build reproducible wasm"
 	@echo "  make deploy TARGET=dev    # Deploy to dev"
 	@echo "  make deploy TARGET=local  # Deploy to local replica"
+	@echo "  make test                 # Run smoke tests"

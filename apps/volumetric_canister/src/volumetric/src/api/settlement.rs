@@ -3,6 +3,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::errors::VolumetricError;
 use crate::guards::is_whitelisted;
+use crate::ic;
 use crate::storage::{list_expired_active_options, ActiveOption, ActiveOptionStatus};
 use crate::usecases;
 
@@ -58,7 +59,7 @@ pub async fn settle_option_by_id(option_id: u64) -> Result<SettlementResult, Vol
 
 #[ic_cdk::query]
 pub fn get_pending_settlements() -> Vec<ActiveOption> {
-    let now = ic_cdk::api::time();
+    let now = ic::time();
     list_expired_active_options(now)
 }
 

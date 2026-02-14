@@ -1,7 +1,7 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
-import { Check, Monitor, Moon, Settings, Sun } from "lucide-react";
+import { Monitor, Moon, Settings, Sun } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import { useTheme } from "next-themes";
 import { useEffect, useState, useTransition } from "react";
@@ -83,13 +83,9 @@ export function SettingsDropdown() {
         <DropdownMenuLabel>{t("language")}</DropdownMenuLabel>
         <DropdownMenuRadioGroup value={locale} onValueChange={handleLocaleChange}>
           <DropdownMenuRadioItem value="en" disabled={isPending}>
-            {locale === "en" && <Check className="size-4 mr-2" />}
-            {locale !== "en" && <span className="size-4 mr-2" />}
             {t("english")}
           </DropdownMenuRadioItem>
           <DropdownMenuRadioItem value="zh" disabled={isPending}>
-            {locale === "zh" && <Check className="size-4 mr-2" />}
-            {locale !== "zh" && <span className="size-4 mr-2" />}
             {t("chinese")}
           </DropdownMenuRadioItem>
         </DropdownMenuRadioGroup>

@@ -24,7 +24,7 @@ export function PortfolioView() {
     return (
       <div className="flex flex-col items-center justify-center gap-4">
         <div className="text-center space-y-2">
-          <h1 className="text-3xl font-bold">{t("title")}</h1>
+          <h1 className="md:text-3xl text-xl font-bold">{t("title")}</h1>
         </div>
         <p className="text-muted-foreground">{t("connectToView")}</p>
         <ConnectButton />
@@ -44,10 +44,11 @@ export function PortfolioView() {
     <div className="flex flex-col gap-4 relative">
       <div className="flex justify-between items-center">
         <div className="flex justify-center items-center gap-2">
-          <h1 className="text-3xl font-bold">{t("title")}</h1>
+          <h1 className="md:text-3xl text-xl font-bold">{t("title")}</h1>
           <Link href="/history" className="">
             <Button variant="outline" size="sm">
-              <History className="size-4 " /> {t("history")}
+              <History className="size-4 " />{" "}
+              <span className="md:block hidden">{t("history")}</span>
             </Button>
           </Link>
         </div>

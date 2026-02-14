@@ -440,20 +440,6 @@
       "paidToBuyer": "Paid to buyer",
       "returned": "Returned"
     },
-    "roles": {
-      "title": "Choose your side",
-      "subtitle": "Strategies for different market views",
-      "writer": "Writer",
-      "writerTagline": "\"I own Bitcoin\"",
-      "writerDesc": "Generate",
-      "writerDescHighlight": "high yield",
-      "writerDescEnd": "on your BTC holdings by selling upside you don't think will hit.",
-      "buyer": "Buyer",
-      "buyerTagline": "\"I want upside\"",
-      "buyerDesc": "Get",
-      "buyerDescHighlight": "up to 100x leverage",
-      "buyerDescEnd": "on price movements without risking liquidation. Capped downside."
-    },
     "vault": {
       "title": "Fund your account",
       "description": "Deposit BTC to make offers and buy options. Withdraw anytime",
@@ -545,12 +531,41 @@
     "offerLimitExceeded": "Maximum offers per term exceeded",
     "internalError": "An unexpected error occurred"
   },
+  "Footer": {
+    "tagline": "On-chain Bitcoin options.",
+    "resources": "Resources",
+    "documentation": "Documentation",
+    "support": "Support",
+    "github": "GitHub",
+    "legal": "Legal",
+    "privacyPolicy": "Privacy Policy",
+    "termsOfService": "Terms of Service",
+    "connect": "Connect",
+    "email": "Email",
+    "telegram": "Telegram",
+    "x": "X (Twitter)",
+    "copyright": "© {year} Isometric. All rights reserved."
+  },
   "Metadata": {
     "title": "Isometric | On-Chain Bitcoin Options",
     "siteName": "Isometric",
     "description": "The simplest way to trade Bitcoin options on-chain. Earn high APY writing calls or get up to 100x leverage as a buyer. Fully trustless, self-custody, no liquidations.",
     "keywords": "Bitcoin options, on-chain options, BTC leverage, BTC yield, decentralized options, trustless trading, self custody",
     "ogImageAlt": "Isometric - On-Chain Bitcoin Options",
+    "privacy": {
+      "title": "Privacy Policy",
+      "description": "Privacy policy for Isometric Bitcoin options trading platform. Learn how we collect, use, and protect your information.",
+      "keywords": "privacy policy, data protection, Bitcoin privacy, on-chain privacy, user data",
+      "ogTitle": "Privacy Policy | Isometric",
+      "ogImageAlt": "Isometric Privacy Policy"
+    },
+    "terms": {
+      "title": "Terms of Service",
+      "description": "Terms of service for Isometric Bitcoin options trading platform. Understand your rights and responsibilities when using our platform.",
+      "keywords": "terms of service, user agreement, trading terms, Bitcoin options terms, platform rules",
+      "ogTitle": "Terms of Service | Isometric",
+      "ogImageAlt": "Isometric Terms of Service"
+    },
     "buy": {
       "title": "Buy Bitcoin Options",
       "description": "Get up to 100x leverage on Bitcoin with no liquidation risk. Your max loss is the premium paid. Fully on-chain and trustless.",

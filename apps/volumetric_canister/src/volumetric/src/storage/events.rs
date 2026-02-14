@@ -3,6 +3,8 @@ use std::cell::RefCell;
 use candid::{CandidType, Principal};
 use ic_stable_structures::memory_manager::MemoryId;
 use ic_stable_structures::StableBTreeMap;
+
+use crate::ic;
 use serde::{Deserialize, Serialize};
 
 use super::cbor::Cbor;
@@ -49,7 +51,7 @@ pub enum TradeRole {
     Writer,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, CandidType)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, CandidType)]
 pub enum EventData {
     AccountCreated {
         wallet_address: String,
@@ -134,7 +136,7 @@ pub fn emit_event(principal: Principal, event_type: EventType, data: EventData) 
             id,
             event_type,
             principal,
-            timestamp: ic_cdk::api::time(),
+            timestamp: ic::time(),
             data,
         };
 
@@ -148,7 +150,7 @@ pub fn emit_event(principal: Principal, event_type: EventType, data: EventData) 
     match result {
         Ok(id) => Some(id),
         Err(_) => {
-            ic_cdk::println!("Failed to emit event - continuing without event");
+            ic::log("Failed to emit event - continuing without event");
             None
         }
     }
@@ -207,7 +209,7 @@ pub fn delete_events_before(older_than_ns: u64) -> u64 {
             .iter()
             .filter_map(|entry| {
                 if entry.value().0.timestamp < older_than_ns {
-                    Some(entry.key().clone())
+                    Some(*entry.key())
                 } else {
                     None
                 }
@@ -229,7 +231,7 @@ pub fn get_event_count() -> u64 {
 /// Clears all events from storage. Used for migration purposes.
 pub fn clear_events() -> u64 {
     EVENTS.with_borrow_mut(|e| {
-        let keys: Vec<u64> = e.iter().map(|entry| entry.key().clone()).collect();
+        let keys: Vec<u64> = e.iter().map(|entry| *entry.key()).collect();
         let count = keys.len() as u64;
         for key in keys {
             e.remove(&key);

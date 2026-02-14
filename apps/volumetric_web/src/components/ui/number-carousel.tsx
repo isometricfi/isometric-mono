@@ -98,7 +98,7 @@ export function NumberCarousel({
 
   if (values.length === 0) {
     return (
-      <div className="flex items-center justify-center py-3 px-4 bg-secondary/50 rounded-full">
+      <div className="flex items-center justify-center py-3 px-4 bg-secondary/50 rounded-md">
         <span className="text-sm text-muted-foreground">No values available</span>
       </div>
     );
@@ -113,12 +113,12 @@ export function NumberCarousel({
         size="icon"
         onClick={handlePrev}
         disabled={currentIndex <= 0}
-        className="rounded-full shrink-0"
+        className="rounded-md shrink-0"
       >
         <ArrowLeft className="size-4" />
       </Button>
 
-      <div className="flex-1 relative h-10 overflow-hidden bg-secondary/30 rounded-full">
+      <div className="flex-1 relative h-9 overflow-hidden bg-secondary/30 rounded-md">
         <div className="absolute inset-0 flex items-center justify-center">
           <AnimatePresence initial={false} mode="popLayout">
             {visibleValues.map(({ val, position }) => {
@@ -153,8 +153,8 @@ export function NumberCarousel({
                   }}
                   className={`absolute font-semibold whitespace-nowrap ${
                     isCenter
-                      ? "text-xl text-foreground"
-                      : "text-base text-muted-foreground cursor-pointer"
+                      ? "md:text-lg text-base  text-foreground"
+                      : "md:text-base text-sm text-muted-foreground cursor-pointer"
                   } ${!isClickable && !isCenter ? "pointer-events-none" : ""}`}
                 >
                   {formatValue(val)}
@@ -170,7 +170,7 @@ export function NumberCarousel({
         size="icon"
         onClick={handleNext}
         disabled={currentIndex >= values.length - 1}
-        className="rounded-full shrink-0"
+        className="rounded-md shrink-0"
       >
         <ArrowRight className="size-4" />
       </Button>

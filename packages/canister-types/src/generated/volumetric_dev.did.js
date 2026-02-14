@@ -523,6 +523,7 @@ export const idlFactory = ({ IDL }) => {
     'list_users' : IDL.Func([], [IDL.Vec(UserInfo)], ['query']),
     'list_whitelisted' : IDL.Func([], [IDL.Vec(IDL.Principal)], ['query']),
     'remove_whitelisted' : IDL.Func([IDL.Principal], [Result_1], []),
+    'reset_oracle_config' : IDL.Func([], [Result_1], []),
     'set_deposit_amount_sats_config' : IDL.Func([IDL.Nat64], [Result_1], []),
     'set_feature_flags_config' : IDL.Func([FeatureFlags], [Result_1], []),
     'set_fee_config_config' : IDL.Func([FeeConfig], [Result_1], []),
@@ -571,6 +572,7 @@ export const idlFactory = ({ IDL }) => {
     'testing_clear_offers_and_options' : IDL.Func([], [Result_19], []),
     'testing_expire_option' : IDL.Func([IDL.Nat64], [Result_20], []),
     'testing_force_settle' : IDL.Func([IDL.Nat64], [Result_18], []),
+    'testing_set_ckbtc_ledger' : IDL.Func([IDL.Principal], [Result_1], []),
     'testing_set_option_expiry' : IDL.Func(
         [IDL.Nat64, IDL.Nat64],
         [Result_20],

@@ -122,9 +122,20 @@ src/
 
 # Testing Conventions
 
-Use the **given/when/then** pattern for all tests:
+Use the **given/when/then** pattern for all tests.
+
+Each comment (`// given`, `// when`, `// then`) must be:
+- On its own line (never combined like `// given/when`)
+- Separated by a blank line from the previous section
+
+## Rust Tests
+
+Add a `/// Given: ... / When: ... / Then: ...` doc comment above each test function, with each clause on its own line.
 
 ```rust
+/// Given: a valid input
+/// When: calling function_under_test
+/// Then: returns the expected result
 #[test]
 fn test_example() {
     // given
@@ -138,8 +149,12 @@ fn test_example() {
 }
 ```
 
+## TypeScript Tests (Vitest)
+
+Use a descriptive test name that reads as a behavioral assertion. No doc comments above the test -- the name is the description.
+
 ```typescript
-test("example test", () => {
+test("should return expected result for valid input", () => {
   // given
   const input = setupTestData();
 
@@ -154,6 +169,10 @@ test("example test", () => {
 ## Guidelines
 
 - Use descriptive variable names in tests to make assertions self-documenting
-- Avoid magic numbers in assertions; derive expected values from input variables when possible
-- Use constants for repeated values or domain-specific numbers (e.g., `SATS_PER_BTC`, `CENTS_PER_DOLLAR`)
+- Avoid magic numbers; use named constants for all values (seeds, amounts, expected results)
+- Use constants for domain-specific numbers (e.g., `SATS_PER_BTC`, `CENTS_PER_DOLLAR`)
 - Keep each test focused on a single behavior
+- Code should be self-documenting; prefer clear naming over comments
+- Define test inputs as constants in the `// given` section
+- Define assertion-only values (prefixed with `EXPECTED_`) in the `// then` section
+- Reuse input constants for assertions when verifying the input was stored correctly

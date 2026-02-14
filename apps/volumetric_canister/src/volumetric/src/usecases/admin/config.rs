@@ -1,10 +1,17 @@
 use candid::Principal;
 
-use crate::oracle::set_oracle_price_internal;
+#[cfg(feature = "testing")]
+use crate::oracle::{reset_oracle_internal, set_oracle_price_internal};
 use crate::storage::{Config, FeatureFlags, FeeConfig, TradingLimits};
 
+#[cfg(feature = "testing")]
 pub fn set_oracle_price_use_case(price_cents: u64) {
     set_oracle_price_internal(price_cents);
+}
+
+#[cfg(feature = "testing")]
+pub fn reset_oracle_use_case() {
+    reset_oracle_internal();
 }
 
 pub fn set_feature_flags_use_case(flags: FeatureFlags) {
@@ -61,4 +68,8 @@ pub fn set_profit_fee_basis_points_use_case(basis_points: u64) {
 
 pub fn set_fee_recipient_use_case(recipient: Principal) {
     Config::set_fee_recipient(recipient);
+}
+
+pub fn testing_set_ckbtc_ledger_use_case(ledger: Principal) {
+    Config::set_ckbtc_ledger(ledger);
 }

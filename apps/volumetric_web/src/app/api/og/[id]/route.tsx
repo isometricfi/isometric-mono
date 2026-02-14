@@ -5,33 +5,7 @@ import { formatBtcBigint } from "@/lib/utils";
 
 function formatBtcForOG(sats: bigint, maxDecimals = 8): string {
   const formatted = formatBtcBigint(sats, maxDecimals);
-  const isNegative = sats < BigInt(0);
-  return `${isNegative ? "-" : ""}${formatted} BTC`;
-}
-
-function hash32(input: string): number {
-  if (!input) return 2166136261;
-  let h = 2166136261;
-  for (let i = 0; i < input.length; i += 1) {
-    h ^= input.charCodeAt(i);
-    h = Math.imul(h, 16777619);
-  }
-  return h >>> 0;
-}
-
-function getAvatarGradient(seed: string) {
-  const h = hash32(seed || "");
-  const h1 = h % 360;
-  const h2 = (h * 7) % 360;
-  const h3 = (h * 13) % 360;
-  const h4 = (h * 29) % 360;
-
-  return [
-    `radial-gradient(circle at 30% 30%, hsl(${h1}, 80%, 60%, 0.9), transparent 55%)`,
-    `radial-gradient(circle at 70% 65%, hsl(${h2}, 85%, 55%, 0.9), transparent 60%)`,
-    `radial-gradient(circle at 35% 80%, hsl(${h3}, 85%, 55%, 0.6), transparent 55%)`,
-    `linear-gradient(135deg, hsl(${h4}, 80%, 35%, 0.9), hsl(${h2}, 80%, 35%, 0.9))`,
-  ].join(", ");
+  return `${formatted} BTC`;
 }
 
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -76,6 +50,8 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
 
     const username = history?.username || (isZh ? `用户 ${id}` : `User ${id}`);
     const principal = history?.principal || id;
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://isometric.fi";
+    const avatarUrl = `${baseUrl}/api/avatar?name=${encodeURIComponent(principal)}`;
 
     // Sort entries by acceptedAt to find the first trade (oldest)
     const sortedEntries = [...entries].sort((a, b) => Number(a.acceptedAt - b.acceptedAt));
@@ -104,8 +80,6 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     const winRateText = `${winRate.toFixed(1)}%`;
     const tradesText = `${entries.length}`;
 
-    const avatarGradient = getAvatarGradient(principal);
-
     // Light theme colors from globals.css
     const BG_COLOR = "#FFF9F5"; // oklch(0.9856 0.0084 56.3169) - background
     const CARD_COLOR = "#ffffff"; // oklch(1 0 0) - card
@@ -130,15 +104,13 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       >
         {/* Header with Avatar and Logo */}
         <div style={{ display: "flex", alignItems: "center", marginBottom: 30 }}>
-          <div
-            style={{
-              width: 100,
-              height: 100,
-              borderRadius: 50,
-              backgroundImage: avatarGradient,
-              marginRight: 24,
-              display: "flex",
-            }}
+          {/* biome-ignore lint: og image rendering */}
+          <img
+            src={avatarUrl}
+            alt="Avatar"
+            width={100}
+            height={100}
+            style={{ borderRadius: 50, marginRight: 24 }}
           />
           <div style={{ display: "flex", flexDirection: "column" }}>
             <div style={{ fontSize: 48, fontWeight: 800, color: TEXT_COLOR }}>{username}</div>

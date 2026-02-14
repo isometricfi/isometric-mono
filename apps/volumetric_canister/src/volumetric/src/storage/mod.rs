@@ -21,8 +21,8 @@ pub use accounts::{
 };
 pub use balances::{
     add_available, add_platform_fee, calculate_premium_fee, calculate_profit_fee, get_balance,
-    get_fee_recipient, get_platform_fees_collected, lock_collateral, release_locked_to_recipient,
-    reverse_release_locked_to_recipient, set_balance, subtract_available, unlock_collateral,
+    get_fee_recipient, get_platform_fees_collected, lock_collateral, release_locked_to_buyer,
+    reverse_release_locked_to_buyer, set_balance, subtract_available, unlock_collateral,
     InsufficientBalance, UserBalance, CKBTC_TRANSFER_FEE,
 };
 pub use cbor::Cbor;
@@ -32,11 +32,12 @@ pub use events::{
     get_events_by_principal, get_events_since, Event, EventData, EventType, TradeRole,
 };
 pub use options::{
-    calculate_premium, calculate_strike_price, clear_active_options, clear_offers,
-    get_active_option, get_offer, insert_active_option, insert_offer, list_active_options_by_buyer,
-    list_active_options_by_writer, list_expired_active_options, list_offers_by_writer,
-    list_open_offers, next_id, update_active_option, update_offer, ActiveOption,
-    ActiveOptionStatus, Asset, CounterKey, Offer, OfferStatus, OptionType, MINIMUM_QUANTITY_SATS,
+    calculate_call_option_payout, calculate_premium, calculate_strike_price, clear_active_options,
+    clear_offers, get_active_option, get_offer, insert_active_option, insert_offer,
+    list_active_options_by_buyer, list_active_options_by_writer, list_expired_active_options,
+    list_offers_by_writer, list_open_offers, next_id, update_active_option, update_offer,
+    ActiveOption, ActiveOptionStatus, Asset, CounterKey, Offer, OfferStatus, OptionType,
+    MINIMUM_QUANTITY_SATS,
 };
 pub use settlements::{
     complete_settlement, create_settlement, fail_settlement, get_settlement,

@@ -6,6 +6,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { usePrices } from "@/hooks";
 import { useBTCHistory } from "@/hooks/queries/use-btc-history";
 import { useChartOptionsStore } from "@/stores/chart-options-store";
+import { Card, CardContent } from "../ui/card";
 
 const EXTRA_DAYS_AFTER_EXPIRY = 3;
 const CHART_PADDING = { top: 10, right: 10, bottom: 25, left: 45 };
@@ -58,7 +59,7 @@ export function BTCPriceChart({ mode }: BTCPriceChartProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
 
-  const { data: historyData, isLoading: historyLoading } = useBTCHistory(30);
+  const { data: historyData, isLoading: historyLoading } = useBTCHistory(14);
   const { data: priceData } = usePrices();
   const { strikePercent, termDays } = useChartOptionsStore();
 
@@ -247,172 +248,174 @@ export function BTCPriceChart({ mode }: BTCPriceChartProps) {
   }
 
   return (
-    <div className="bg-card rounded-3xl border border-border p-4 h-full flex flex-col min-h-64 md:max-h-none max-h-64">
-      <div className="flex items-center justify-between mb-2">
-        <h2 className="text-lg font-semibold">{t("btcUsd")}</h2>
-        {currentPrice > 0 && (
-          <span className="text-lg font-semibold">
-            ${currentPrice.toLocaleString(undefined, { maximumFractionDigits: 0 })}
-          </span>
-        )}
-      </div>
+    <Card>
+      <CardContent className="h-full flex flex-col min-h-64 md:max-h-none max-h-64">
+        <div className="flex items-center justify-between mb-2">
+          <h2 className="text-lg font-semibold">{t("btcUsd")}</h2>
+          {currentPrice > 0 && (
+            <span className="text-lg font-semibold">
+              ${currentPrice.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+            </span>
+          )}
+        </div>
 
-      <div ref={containerRef} className="w-full flex-1 min-h-0">
-        {dimensions.width > 0 && dimensions.height > 0 && chartData.length > 0 && (
-          <svg
-            width={dimensions.width}
-            height={dimensions.height}
-            className="overflow-visible"
-            role="img"
-            aria-labelledby="btc-chart-title"
-          >
-            <title id="btc-chart-title">BTC/USD price chart with strike price projection</title>
-            <defs>
-              <linearGradient id="areaGradient" x1="0" y1="0" x2="0" y2="1">
-                <stop
-                  offset="0%"
-                  stopColor="var(--foreground)"
-                  stopOpacity={AREA_GRADIENT_OPACITY_TOP}
-                />
-                <stop
-                  offset="100%"
-                  stopColor="var(--foreground)"
-                  stopOpacity={AREA_GRADIENT_OPACITY_BOTTOM}
-                />
-              </linearGradient>
-              <linearGradient id="strikeLineGradient" x1="0" y1="0" x2="1" y2="0">
-                <stop offset="0%" stopColor="#71717a" stopOpacity={0.8} />
-                <stop offset="100%" stopColor="#71717a" stopOpacity={0} />
-              </linearGradient>
-              <radialGradient id="profitZoneGradient" cx="0%" cy="100%" r="100%">
-                <stop offset="0%" stopColor={`rgb(${profitColor})`} stopOpacity={0.4} />
-                <stop offset="60%" stopColor={`rgb(${profitColor})`} stopOpacity={0.1} />
-                <stop offset="100%" stopColor={`rgb(${profitColor})`} stopOpacity={0} />
-              </radialGradient>
-              <radialGradient id="lossZoneGradient" cx="0%" cy="0%" r="100%">
-                <stop offset="0%" stopColor={`rgb(${lossColor})`} stopOpacity={0.4} />
-                <stop offset="60%" stopColor={`rgb(${lossColor})`} stopOpacity={0.1} />
-                <stop offset="100%" stopColor={`rgb(${lossColor})`} stopOpacity={0} />
-              </radialGradient>
-            </defs>
+        <div ref={containerRef} className="w-full flex-1 min-h-0">
+          {dimensions.width > 0 && dimensions.height > 0 && chartData.length > 0 && (
+            <svg
+              width={dimensions.width}
+              height={dimensions.height}
+              className="overflow-visible"
+              role="img"
+              aria-labelledby="btc-chart-title"
+            >
+              <title id="btc-chart-title">BTC/USD price chart with strike price projection</title>
+              <defs>
+                <linearGradient id="areaGradient" x1="0" y1="0" x2="0" y2="1">
+                  <stop
+                    offset="0%"
+                    stopColor="var(--foreground)"
+                    stopOpacity={AREA_GRADIENT_OPACITY_TOP}
+                  />
+                  <stop
+                    offset="100%"
+                    stopColor="var(--foreground)"
+                    stopOpacity={AREA_GRADIENT_OPACITY_BOTTOM}
+                  />
+                </linearGradient>
+                <linearGradient id="strikeLineGradient" x1="0" y1="0" x2="1" y2="0">
+                  <stop offset="0%" stopColor="#71717a" stopOpacity={0.8} />
+                  <stop offset="100%" stopColor="#71717a" stopOpacity={0} />
+                </linearGradient>
+                <radialGradient id="profitZoneGradient" cx="0%" cy="100%" r="100%">
+                  <stop offset="0%" stopColor={`rgb(${profitColor})`} stopOpacity={0.4} />
+                  <stop offset="60%" stopColor={`rgb(${profitColor})`} stopOpacity={0.1} />
+                  <stop offset="100%" stopColor={`rgb(${profitColor})`} stopOpacity={0} />
+                </radialGradient>
+                <radialGradient id="lossZoneGradient" cx="0%" cy="0%" r="100%">
+                  <stop offset="0%" stopColor={`rgb(${lossColor})`} stopOpacity={0.4} />
+                  <stop offset="60%" stopColor={`rgb(${lossColor})`} stopOpacity={0.1} />
+                  <stop offset="100%" stopColor={`rgb(${lossColor})`} stopOpacity={0} />
+                </radialGradient>
+              </defs>
 
-            {yTicks.map((tick) => (
-              <g key={tick}>
-                <line
-                  x1={CHART_PADDING.left}
-                  y1={scaleY(tick)}
-                  x2={CHART_PADDING.left + chartWidth}
-                  y2={scaleY(tick)}
-                  stroke="hsl(var(--border))"
-                  strokeOpacity={0.5}
-                  strokeWidth={1}
-                />
+              {yTicks.map((tick) => (
+                <g key={tick}>
+                  <line
+                    x1={CHART_PADDING.left}
+                    y1={scaleY(tick)}
+                    x2={CHART_PADDING.left + chartWidth}
+                    y2={scaleY(tick)}
+                    stroke="hsl(var(--border))"
+                    strokeOpacity={0.5}
+                    strokeWidth={1}
+                  />
+                  <text
+                    x={CHART_PADDING.left - 8}
+                    y={scaleY(tick)}
+                    textAnchor="end"
+                    dominantBaseline="middle"
+                    className="fill-muted-foreground text-[11px]"
+                  >
+                    ${(tick / 1000).toFixed(0)}k
+                  </text>
+                </g>
+              ))}
+
+              {xTicks.map(({ index, label }) => (
                 <text
-                  x={CHART_PADDING.left - 8}
-                  y={scaleY(tick)}
-                  textAnchor="end"
-                  dominantBaseline="middle"
+                  key={index}
+                  x={scaleX(index)}
+                  y={CHART_PADDING.top + chartHeight + 18}
+                  textAnchor="middle"
                   className="fill-muted-foreground text-[11px]"
                 >
-                  ${(tick / 1000).toFixed(0)}k
+                  {label}
                 </text>
-              </g>
-            ))}
+              ))}
 
-            {xTicks.map(({ index, label }) => (
-              <text
-                key={index}
-                x={scaleX(index)}
-                y={CHART_PADDING.top + chartHeight + 18}
-                textAnchor="middle"
-                className="fill-muted-foreground text-[11px]"
-              >
-                {label}
-              </text>
-            ))}
+              {expiryIndex >= 0 && (
+                <>
+                  <rect
+                    x={expiryX}
+                    y={CHART_PADDING.top}
+                    width={zoneEndX - expiryX}
+                    height={strikeY - CHART_PADDING.top}
+                    fill="url(#profitZoneGradient)"
+                  />
+                  <rect
+                    x={expiryX}
+                    y={strikeY}
+                    width={zoneEndX - expiryX}
+                    height={CHART_PADDING.top + chartHeight - strikeY}
+                    fill="url(#lossZoneGradient)"
+                  />
 
-            {expiryIndex >= 0 && (
-              <>
-                <rect
-                  x={expiryX}
-                  y={CHART_PADDING.top}
-                  width={zoneEndX - expiryX}
-                  height={strikeY - CHART_PADDING.top}
-                  fill="url(#profitZoneGradient)"
-                />
-                <rect
-                  x={expiryX}
-                  y={strikeY}
-                  width={zoneEndX - expiryX}
-                  height={CHART_PADDING.top + chartHeight - strikeY}
-                  fill="url(#lossZoneGradient)"
-                />
+                  <line
+                    x1={todayX}
+                    y1={currentPriceY}
+                    x2={expiryX}
+                    y2={currentPriceY}
+                    stroke="#71717a"
+                    strokeWidth={1}
+                    strokeOpacity={0.4}
+                    strokeDasharray="4 4"
+                  />
+                  <text
+                    x={(todayX + expiryX) / 2}
+                    y={currentPriceY - 8}
+                    textAnchor="middle"
+                    className="fill-muted-foreground text-[10px]"
+                  >
+                    {t("days", { count: termDays })}
+                  </text>
 
-                <line
-                  x1={todayX}
-                  y1={currentPriceY}
-                  x2={expiryX}
-                  y2={currentPriceY}
-                  stroke="#71717a"
-                  strokeWidth={1}
-                  strokeOpacity={0.4}
-                  strokeDasharray="4 4"
-                />
-                <text
-                  x={(todayX + expiryX) / 2}
-                  y={currentPriceY - 8}
-                  textAnchor="middle"
-                  className="fill-muted-foreground text-[10px]"
-                >
-                  {t("days", { count: termDays })}
-                </text>
+                  <line
+                    x1={expiryX}
+                    y1={CHART_PADDING.top}
+                    x2={expiryX}
+                    y2={CHART_PADDING.top + chartHeight}
+                    stroke="#71717a"
+                    strokeWidth={1}
+                    strokeOpacity={0.5}
+                  />
 
-                <line
-                  x1={expiryX}
-                  y1={CHART_PADDING.top}
-                  x2={expiryX}
-                  y2={CHART_PADDING.top + chartHeight}
-                  stroke="#71717a"
-                  strokeWidth={1}
-                  strokeOpacity={0.5}
-                />
+                  <line
+                    x1={expiryX}
+                    y1={strikeY}
+                    x2={zoneEndX}
+                    y2={strikeY}
+                    stroke="url(#strikeLineGradient)"
+                    strokeWidth={2}
+                  />
 
-                <line
-                  x1={expiryX}
-                  y1={strikeY}
-                  x2={zoneEndX}
-                  y2={strikeY}
-                  stroke="url(#strikeLineGradient)"
-                  strokeWidth={2}
-                />
+                  <circle cx={expiryX} cy={strikeY} r={5} fill="#71717a" />
+                  <text
+                    x={expiryX - 10}
+                    y={strikeY}
+                    textAnchor="end"
+                    dominantBaseline="middle"
+                    className="fill-muted-foreground text-xs font-medium"
+                  >
+                    {t("strike")}: $
+                    {strikePrice.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                  </text>
+                </>
+              )}
 
-                <circle cx={expiryX} cy={strikeY} r={5} fill="#71717a" />
-                <text
-                  x={expiryX - 10}
-                  y={strikeY}
-                  textAnchor="end"
-                  dominantBaseline="middle"
-                  className="fill-muted-foreground text-xs font-medium"
-                >
-                  {t("strike")}: $
-                  {strikePrice.toLocaleString(undefined, { maximumFractionDigits: 0 })}
-                </text>
-              </>
-            )}
-
-            <path d={areaPath} fill="url(#areaGradient)" />
-            <path
-              d={pricePath}
-              fill="none"
-              stroke="var(--foreground)"
-              strokeWidth={PRICE_LINE_WIDTH}
-              strokeOpacity={PRICE_LINE_OPACITY}
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
-        )}
-      </div>
-    </div>
+              <path d={areaPath} fill="url(#areaGradient)" />
+              <path
+                d={pricePath}
+                fill="none"
+                stroke="var(--foreground)"
+                strokeWidth={PRICE_LINE_WIDTH}
+                strokeOpacity={PRICE_LINE_OPACITY}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          )}
+        </div>
+      </CardContent>
+    </Card>
   );
 }

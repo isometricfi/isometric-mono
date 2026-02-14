@@ -2,9 +2,9 @@
 
 import { useTranslations } from "next-intl";
 import { useMemo } from "react";
+import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ProceduralAvatar } from "@/components/wallet/ProceduralAvatar";
 import { useAccount, useHistory, useModal } from "@/hooks";
 import { formatBtcWithSymbolBigint } from "@/lib/utils";
 import { ShareSummaryModal } from "./ShareSummaryModal";
@@ -76,12 +76,14 @@ export function HistoryStats() {
     </div>
   );
   return (
-    <div className=" w-full bg border bg-muted rounded-lg lg:space-y-0 space-y-3 lg:rounded-full p-3">
+    <div className=" w-full bg border bg-muted rounded-lg lg:space-y-0 space-y-3 lg:rounded-lg p-3">
       <div className="flex items-center gap-5 justify-between w-full">
         <div className="flex gap-2 items-center font-medium">
-          <ProceduralAvatar
+          <Avatar
             seed={account?.profile?.address ?? ""}
-            className="size-8 rounded-full"
+            width={32}
+            height={32}
+            className=" rounded-md"
           />
           {account?.profile?.username ?? `${t("user")} ${account?.profile?.principal.slice(0, 6)}`}
         </div>

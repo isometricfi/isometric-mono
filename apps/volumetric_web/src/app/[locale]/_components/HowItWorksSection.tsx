@@ -60,7 +60,7 @@ export function HowItWorksSection() {
           viewport={{ once: true }}
           className="text-center mb-12"
         >
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-muted text-muted-foreground text-xs font-medium mb-6">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-lg bg-muted text-muted-foreground text-xs font-medium mb-6">
             <Clock className="size-3" />
             {t("gettingStarted")}
           </div>

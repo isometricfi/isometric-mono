@@ -16,7 +16,7 @@ export function HistoryView() {
     return (
       <div className="flex flex-col items-center justify-center gap-4">
         <div className="text-center space-y-2">
-          <h1 className="text-3xl font-bold">{t("title")}</h1>
+          <h1 className="md:text-3xl text-xl font-bold">{t("title")}</h1>
         </div>
         <p className="text-muted-foreground">{t("connectToView")}</p>
         <ConnectButton />
@@ -35,7 +35,7 @@ export function HistoryView() {
   return (
     <div className="flex flex-col gap-6 items-center">
       <div className="text-center space-y-2">
-        <h1 className="text-3xl font-bold">{t("tradingHistory")}</h1>
+        <h1 className="md:text-3xl text-xl font-bold">{t("tradingHistory")}</h1>
       </div>
       <HistoryStats />
       <HistoryTable />

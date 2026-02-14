@@ -370,6 +370,7 @@ service : (opt BtcNetwork) -> {
   list_users : () -> (vec UserInfo) query;
   list_whitelisted : () -> (vec principal) query;
   remove_whitelisted : (principal) -> (Result_1);
+  reset_oracle_config : () -> (Result_1);
   set_deposit_amount_sats_config : (nat64) -> (Result_1);
   set_feature_flags_config : (FeatureFlags) -> (Result_1);
   set_fee_config_config : (FeeConfig) -> (Result_1);
@@ -392,6 +393,7 @@ service : (opt BtcNetwork) -> {
   testing_clear_offers_and_options : () -> (Result_19);
   testing_expire_option : (nat64) -> (Result_20);
   testing_force_settle : (nat64) -> (Result_18);
+  testing_set_ckbtc_ledger : (principal) -> (Result_1);
   testing_set_option_expiry : (nat64, nat64) -> (Result_20);
   testing_sync_balance_from_ledger : (text) -> (Result_3);
   update_ckbtc_balance : (text) -> (Result_21);
