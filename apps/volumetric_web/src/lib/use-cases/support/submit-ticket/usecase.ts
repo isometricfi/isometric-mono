@@ -1,7 +1,10 @@
 import { Resend } from "resend";
 import type { Input, Output } from "./schema";
 
-const SUPPORT_EMAIL = "volumetrichq@gmail.com";
+type SupportEmailConfig = {
+  fromEmail: string;
+  toEmail: string;
+};
 
 function getResendClient(): Resend {
   const apiKey = process.env.RESEND_API_KEY;
@@ -9,6 +12,24 @@ function getResendClient(): Resend {
     throw new Error("RESEND_API_KEY environment variable is not set");
   }
   return new Resend(apiKey);
+}
+
+function getSupportEmailConfig(): SupportEmailConfig {
+  const fromEmail = process.env.SUPPORT_FROM_EMAIL;
+  const toEmail = process.env.SUPPORT_TO_EMAIL;
+
+  if (!fromEmail) {
+    throw new Error("SUPPORT_FROM_EMAIL environment variable is not set");
+  }
+
+  if (!toEmail) {
+    throw new Error("SUPPORT_TO_EMAIL environment variable is not set");
+  }
+
+  return {
+    fromEmail,
+    toEmail,
+  };
 }
 
 export async function submitTicket(input: Input): Promise<Output> {
@@ -41,6 +62,7 @@ ${input.message}
   `.trim();
 
   try {
+    const { fromEmail, toEmail } = getSupportEmailConfig();
     const attachments = input.attachments?.map((att) => ({
       filename: att.filename,
       content: att.content,
@@ -48,8 +70,8 @@ ${input.message}
     }));
 
     const { error } = await getResendClient().emails.send({
-      from: "Isometric Support <support@isometric.fi>",
-      to: SUPPORT_EMAIL,
+      from: fromEmail,
+      to: toEmail,
       replyTo: input.email,
       subject: emailSubject,
       text: emailBody,

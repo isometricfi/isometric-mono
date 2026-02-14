@@ -590,6 +590,7 @@
     "submit": "提交工单",
     "submitting": "提交中...",
     "ticketSubmitted": "工单提交成功！",
+    "successMessage": "感谢您的反馈。我们会尽快回复您。",
     "ticketId": "您的工单编号是 {id}",
     "subjects": {
       "generalInquiry": "一般咨询",

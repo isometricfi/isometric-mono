@@ -609,6 +609,7 @@
     "submit": "Submit Ticket",
     "submitting": "Submitting...",
     "ticketSubmitted": "Ticket submitted successfully!",
+    "successMessage": "Thanks for reaching out. We'll get back to you as soon as possible.",
     "ticketId": "Your ticket ID is {id}",
     "subjects": {
       "generalInquiry": "General Inquiry",

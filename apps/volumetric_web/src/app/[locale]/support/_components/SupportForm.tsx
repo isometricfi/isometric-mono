@@ -5,6 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation } from "@tanstack/react-query";
 import {
   Bug,
+  CircleCheckBig,
   Coins,
   Lightbulb,
   Loader2,
@@ -20,6 +21,7 @@ import { useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -84,6 +86,8 @@ export function SupportForm() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [attachments, setAttachments] = useState<Attachment[]>([]);
+  const [hasSubmittedSuccessfully, setHasSubmittedSuccessfully] = useState(false);
+  const [submittedTicketId, setSubmittedTicketId] = useState<string | null>(null);
 
   // Create schema with translated error messages
   const formSchema = z.object({
@@ -110,6 +114,8 @@ export function SupportForm() {
     trpc.support.submitTicket.mutationOptions({
       onSuccess: (data) => {
         if (data.success) {
+          setHasSubmittedSuccessfully(true);
+          setSubmittedTicketId(data.ticketId ?? null);
           toast.success(t("ticketSubmitted"), {
             description: data.ticketId ? t("ticketId", { id: data.ticketId }) : undefined,
           });
@@ -192,6 +198,21 @@ export function SupportForm() {
         <h1 className="text-2xl font-bold mb-4">{t("title")}</h1>
         <p className="text-muted-foreground mb-6">{t("connectToSubmit")}</p>
         <Button onClick={() => setShowAuthFlow(true)}>{t("connectWallet")}</Button>
+      </Card>
+    );
+  }
+
+  if (hasSubmittedSuccessfully) {
+    return (
+      <Card className="p-8 text-center">
+        <div className="flex flex-col items-center gap-3">
+          <CircleCheckBig className="size-10 text-green-500" />
+          <h2 className="md:text-xl text-lg font-bold">{t("ticketSubmitted")}</h2>
+          <p className="text-muted-foreground">{t("successMessage")}</p>
+          {submittedTicketId ? (
+            <Badge variant="secondary">{t("ticketId", { id: submittedTicketId })}</Badge>
+          ) : null}
+        </div>
       </Card>
     );
   }
