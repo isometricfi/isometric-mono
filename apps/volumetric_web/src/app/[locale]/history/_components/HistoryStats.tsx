@@ -1,8 +1,8 @@
 "use client";
 
-import Image from "next/image";
 import { useTranslations } from "next-intl";
 import { useMemo } from "react";
+import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAccount, useHistory, useModal } from "@/hooks";
@@ -79,13 +79,11 @@ export function HistoryStats() {
     <div className=" w-full bg border bg-muted rounded-lg lg:space-y-0 space-y-3 lg:rounded-lg p-3">
       <div className="flex items-center gap-5 justify-between w-full">
         <div className="flex gap-2 items-center font-medium">
-          <Image
-            src={`/api/avatar?name=${encodeURIComponent(account?.profile?.address ?? "")}`}
-            alt="Avatar"
+          <Avatar
+            seed={account?.profile?.address ?? ""}
             width={32}
             height={32}
             className=" rounded-md"
-            unoptimized
           />
           {account?.profile?.username ?? `${t("user")} ${account?.profile?.principal.slice(0, 6)}`}
         </div>

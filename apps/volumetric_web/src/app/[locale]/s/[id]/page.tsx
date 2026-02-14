@@ -1,6 +1,6 @@
 import { Lock, PiggyBank, Zap } from "lucide-react";
 import type { Metadata } from "next";
-import Image from "next/image";
+import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Link } from "@/i18n/routing";
 import { getHistoryByHash } from "@/lib/use-cases/history/get-history-by-hash/usecase";
@@ -76,13 +76,7 @@ export default async function SharePage({ params }: { params: Promise<{ id: stri
     <div className="container mx-auto md:py-5 py-4 max-w-2xl">
       <div className=" space-y-3 mb-8 border-b pb-3">
         <div className="flex items-center gap-4 justify-center pb-6 border-b">
-          <Image
-            src={`/api/avatar?name=${encodeURIComponent(principal)}`}
-            alt="Avatar"
-            width={48}
-            height={48}
-            unoptimized
-          />
+          <Avatar seed={principal} width={48} height={48} />
           <div>
             <p className="text-xl font-semibold">{username}</p>
             <p className="text-sm text-muted-foreground">Joined {joinedDate}</p>

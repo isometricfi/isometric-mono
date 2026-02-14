@@ -1,10 +1,10 @@
 "use client";
 
 import { useDynamicContext } from "@dynamic-labs/sdk-react-core";
-import Image from "next/image";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { useMediaQuery } from "react-responsive";
+import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { useAccount, useEnsureAccount } from "@/hooks";
 import { cn } from "@/lib/utils";
@@ -38,14 +38,7 @@ export function ConnectButton() {
     return (
       <>
         <Button variant="outline" onClick={() => setOpen(true)} className={cn("gap-2 pl-1.5 pr-3")}>
-          <Image
-            src={`/api/avatar?name=${encodeURIComponent(seed)}`}
-            alt="Avatar"
-            width={24}
-            height={24}
-            className="size-6 rounded-sm"
-            unoptimized
-          />
+          <Avatar seed={seed} width={24} height={24} className="size-6 rounded-sm" />
           <span className="max-w-[10rem] truncate">{displayName}</span>
         </Button>
         <AccountPanel
