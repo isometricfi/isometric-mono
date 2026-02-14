@@ -268,7 +268,12 @@
   "Pages": {
     "buyOptions": "Buy options",
     "writeOptions": "Write options",
-    "putsComingSoon": "Puts coming soon"
+    "putsComingSoon": "Puts coming soon",
+    "featureInterestRegister": "I want this!",
+    "featureInterestRegistering": "Saving...",
+    "featureInterestRegistered": "You're counted",
+    "featureInterestCount": "{count} people interested",
+    "featureInterestWalletRequired": "Connect your wallet to register interest"
   },
   "Components": {
     "btcUsdPriceChart": "BTC/USD Price Chart",

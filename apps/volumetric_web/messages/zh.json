@@ -249,7 +249,12 @@
   "Pages": {
     "buyOptions": "购买期权",
     "writeOptions": "卖出期权",
-    "putsComingSoon": "看跌期权即将推出"
+    "putsComingSoon": "看跌期权即将推出",
+    "featureInterestRegister": "登记意向",
+    "featureInterestRegistering": "保存中...",
+    "featureInterestRegistered": "已计入",
+    "featureInterestCount": "{count} 人感兴趣",
+    "featureInterestWalletRequired": "请先连接钱包再登记意向"
   },
   "Components": {
     "btcUsdPriceChart": "BTC/USD 价格图表",

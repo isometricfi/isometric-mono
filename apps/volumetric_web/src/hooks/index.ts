@@ -28,6 +28,7 @@ export {
 } from "./mutations/use-create-offer";
 export { useSyncDeposit } from "./mutations/use-sync-deposit";
 export { type UpdateUsernameParams, useUpdateUsername } from "./mutations/use-update-username";
+export { useVoteFeatureInterest } from "./mutations/use-vote-feature-interest";
 export { useWithdraw, type WithdrawParams } from "./mutations/use-withdraw";
 // queries
 export { type AccountData, useAccount } from "./queries/use-account";
@@ -41,6 +42,10 @@ export {
   useEventsSince,
   useMyEvents,
 } from "./queries/use-events";
+export {
+  type FeatureInterestKey,
+  useFeatureInterestStatus,
+} from "./queries/use-feature-interest-status";
 export { useHistory } from "./queries/use-history";
 export {
   findBestOffer,

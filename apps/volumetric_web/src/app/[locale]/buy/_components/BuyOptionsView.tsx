@@ -4,6 +4,7 @@ import { HelpCircle } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { BTCPriceChart } from "@/components/options/BTCPriceChart";
+import { FeatureInterestButton } from "@/components/options/FeatureInterestButton";
 import { OptionsViewer } from "@/components/options/OptionsViewer";
 import { OptionTypeToggle } from "@/components/options/OptionTypeToggle";
 import { Button } from "@/components/ui/button";
@@ -39,8 +40,9 @@ export function BuyOptionsView() {
       </div>
 
       {isPutDisabled && (
-        <div className="text-center py-12">
+        <div className="text-center py-12 space-y-4">
           <p className="text-muted-foreground">{t("putsComingSoon")}</p>
+          <FeatureInterestButton featureKey="put_options" />
         </div>
       )}
 
