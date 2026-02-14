@@ -12,7 +12,7 @@ export async function generateMetadata({
 
 export default function SupportPage() {
   return (
-    <div className="container mx-auto py-8 max-w-2xl mt-18">
+    <div className="container mx-auto  max-w-2xl pt-8">
       <SupportForm />
     </div>
   );
