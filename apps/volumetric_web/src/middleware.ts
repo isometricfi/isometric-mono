@@ -17,25 +17,26 @@ const DYNAMIC_CSP_SOURCES = [
   "https://dynamic-static-assets.com",
   "https://*.dynamic-static-assets.com",
 ].join(" ");
+const CHATWOOT_CSP_SOURCE = "https://app.chatwoot.com";
 
 function generateCspHeaders(nonce: string): string {
   // 'strict-dynamic' allows scripts loaded by nonced scripts to execute.
   // We use nonces to eliminate 'unsafe-inline' for script-src in production.
   const scriptSrc = isDev
-    ? `'self' 'unsafe-inline' 'unsafe-eval' ${DYNAMIC_CSP_SOURCES}`
-    : `'self' 'nonce-${nonce}' 'strict-dynamic' ${DYNAMIC_CSP_SOURCES}`;
+    ? `'self' 'unsafe-inline' 'unsafe-eval' ${DYNAMIC_CSP_SOURCES} ${CHATWOOT_CSP_SOURCE}`
+    : `'self' 'nonce-${nonce}' 'strict-dynamic' ${DYNAMIC_CSP_SOURCES} ${CHATWOOT_CSP_SOURCE}`;
 
   // 'unsafe-inline' is required for style-src due to Dynamic Labs SDK injecting inline styles
-  const styleSrc = `'self' 'unsafe-inline' ${DYNAMIC_CSP_SOURCES}`;
+  const styleSrc = `'self' 'unsafe-inline' ${DYNAMIC_CSP_SOURCES} ${CHATWOOT_CSP_SOURCE}`;
 
   const cspDirectives = [
     "default-src 'self'",
     `script-src ${scriptSrc}`,
     `style-src ${styleSrc}`,
-    `img-src 'self' blob: data: ${DYNAMIC_CSP_SOURCES}`,
+    `img-src 'self' blob: data: ${DYNAMIC_CSP_SOURCES} ${CHATWOOT_CSP_SOURCE}`,
     `font-src 'self' data: https://fonts.gstatic.com https://fonts.googleapis.com https://cdn.jsdelivr.net ${DYNAMIC_CSP_SOURCES}`,
-    `connect-src 'self' ${DYNAMIC_CSP_SOURCES} wss://*.dynamic.xyz https://ic0.app https://api.coingecko.com`,
-    `frame-src 'self' https://export.turnkey.com ${DYNAMIC_CSP_SOURCES}`,
+    `connect-src 'self' ${DYNAMIC_CSP_SOURCES} ${CHATWOOT_CSP_SOURCE} wss://*.dynamic.xyz https://ic0.app https://api.coingecko.com`,
+    `frame-src 'self' https://export.turnkey.com ${DYNAMIC_CSP_SOURCES} ${CHATWOOT_CSP_SOURCE}`,
     "worker-src 'self' blob:",
     "object-src 'none'",
     "base-uri 'self'",

@@ -3,6 +3,7 @@
 import { Book, FileText, Github, Mail, MessageCircleQuestionMark, Shield } from "lucide-react";
 import Image from "next/image";
 import { useTranslations } from "next-intl";
+import { useChatwoot } from "@/hooks/use-chatwoot";
 import { Link } from "@/i18n/routing";
 
 const SOCIAL_LINKS = {
@@ -13,7 +14,6 @@ const SOCIAL_LINKS = {
 
 const RESOURCE_LINKS = {
   docs: "https://docs.isometric.fi",
-  support: "/support",
   github: "https://github.com/volumetrichq/volumetric-mono",
 };
 
@@ -41,6 +41,7 @@ function TelegramIcon({ className }: { className?: string }) {
 export function Footer() {
   const t = useTranslations("Footer");
   const currentYear = new Date().getFullYear();
+  const { openMessenger } = useChatwoot();
 
   return (
     <footer className="mx-auto mt-auto w-full max-w-5xl px-0 pb-6 pt-16">
@@ -103,15 +104,14 @@ export function Footer() {
                   </a>
                 </li>
                 <li>
-                  <a
-                    href={RESOURCE_LINKS.support}
-                    target="_blank"
-                    rel="noopener noreferrer"
+                  <button
+                    type="button"
+                    onClick={openMessenger}
                     className="text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center gap-2"
                   >
                     <MessageCircleQuestionMark className="size-4" />
                     {t("support")}
-                  </a>
+                  </button>
                 </li>
                 <li>
                   <a
