@@ -3,9 +3,10 @@
 import { useCallback, useEffect } from "react";
 
 const CHATWOOT_BASE_URL = "https://app.chatwoot.com";
-const CHATWOOT_WEBSITE_TOKEN = "eJogp5PxbSrtvZw9GEkGpdpd";
-const CHATWOOT_READY_TIMEOUT_MS = 5000;
+const CHATWOOT_WEBSITE_TOKEN = process.env.NEXT_PUBLIC_CHATWOOT_WEBSITE_TOKEN ?? "";
+const CHATWOOT_READY_TIMEOUT_MS = 3000;
 const CHATWOOT_SCRIPT_ID = "chatwoot-sdk-script";
+const CSP_NONCE_META_NAME = "csp-nonce";
 
 type ChatwootToggleState = "open" | "close";
 type ChatwootBubbleVisibility = "show" | "hide";
@@ -35,12 +36,12 @@ const hasChatwootWidgetElements = () => {
 };
 
 const getCspNonce = () => {
-  const scriptWithNonce = document.querySelector<HTMLScriptElement>("script[nonce]");
-  if (!scriptWithNonce) {
+  const nonceMeta = document.querySelector<HTMLMetaElement>(`meta[name="${CSP_NONCE_META_NAME}"]`);
+  if (!nonceMeta) {
     return undefined;
   }
 
-  return scriptWithNonce.nonce || scriptWithNonce.getAttribute("nonce") || undefined;
+  return nonceMeta.content || undefined;
 };
 
 declare global {
@@ -67,6 +68,10 @@ export const useChatwoot = () => {
 
   const initializeChatwoot = useCallback(() => {
     if (typeof window === "undefined") {
+      return Promise.resolve();
+    }
+
+    if (!CHATWOOT_WEBSITE_TOKEN) {
       return Promise.resolve();
     }
 
@@ -125,6 +130,11 @@ export const useChatwoot = () => {
           baseUrl: CHATWOOT_BASE_URL,
         });
 
+        if (window.$chatwoot?.hasLoaded) {
+          onReady();
+          return;
+        }
+
         readyTimeout = window.setTimeout(() => {
           if (window.$chatwoot?.hasLoaded) {
             onReady();
@@ -163,7 +173,10 @@ export const useChatwoot = () => {
       script.type = "text/javascript";
       script.async = true;
       script.src = `${CHATWOOT_BASE_URL}/packs/js/sdk.js`;
-      script.nonce = getCspNonce() ?? "";
+      const nonce = getCspNonce();
+      if (nonce) {
+        script.nonce = nonce;
+      }
 
       attachedScript = script;
       script.addEventListener("load", onScriptLoad, { once: true });

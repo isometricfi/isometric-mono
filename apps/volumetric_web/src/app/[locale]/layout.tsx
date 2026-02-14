@@ -107,6 +107,7 @@ export default async function LocaleLayout({
   return (
     <html lang={locale} suppressHydrationWarning>
       <body className={`${geistSans.variable} ${geistMono.variable} font-sans antialiased`}>
+        <head>{nonce ? <meta name="csp-nonce" content={nonce} /> : null}</head>
         <NextIntlClientProvider messages={messages}>
           <ThemeProvider nonce={nonce}>
             <Providers>
