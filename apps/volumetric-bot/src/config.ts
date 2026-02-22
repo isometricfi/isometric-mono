@@ -1,7 +1,7 @@
 import "dotenv/config";
 
 export interface BotConfig {
-  seedPhrase: string;
+  privateKeyWif: string;
   trpcUrl: string;
   canisterId: string;
   icHost: string;
@@ -25,7 +25,7 @@ export function loadConfig(): BotConfig {
   }
 
   return {
-    seedPhrase: requireEnv("BOT_SEED_PHRASE"),
+    privateKeyWif: requireEnv("BOT_PRIVATE_KEY_WIF"),
     trpcUrl: requireEnv("TRPC_URL"),
     canisterId: requireEnv("CANISTER_ID"),
     icHost: process.env.IC_HOST ?? "https://ic0.app",

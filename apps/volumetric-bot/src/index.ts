@@ -18,7 +18,7 @@ async function main() {
     interval_ms: config.intervalMs,
   });
 
-  const wallet = createWallet(config.seedPhrase, config.btcNetwork);
+  const wallet = createWallet(config.privateKeyWif, config.btcNetwork);
   log("info", "Wallet initialized", { address: wallet.address });
 
   const actor = await getCanisterActor(config.canisterId, config.icHost);
@@ -50,9 +50,13 @@ async function main() {
 
       let iteration = 0;
 
+      const randomAction = (): "create" | "accept" => {
+        return Math.random() < 0.5 ? "create" : "accept";
+      };
+
       const tick = async () => {
         iteration++;
-        const action = iteration % 2 === 1 ? "create" : "accept";
+        const action = randomAction();
 
         await withSpan(
           "bot.tick",

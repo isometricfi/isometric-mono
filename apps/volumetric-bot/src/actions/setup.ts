@@ -13,8 +13,13 @@ export async function setup(actor: _SERVICE, trpc: TRPCClient, wallet: BotWallet
     });
 
     if (existingAccount) {
+      const depositInfo = await trpc.account.getDepositAddress.query({
+        address: wallet.address,
+      });
+
       log("info", "Account already registered", {
         address: wallet.address,
+        deposit_address: depositInfo.btcAddress,
       });
       span.setAttribute("account.existed", true);
       return;
@@ -30,9 +35,14 @@ export async function setup(actor: _SERVICE, trpc: TRPCClient, wallet: BotWallet
       signature,
     });
 
+    const depositInfo = await trpc.account.getDepositAddress.query({
+      address: wallet.address,
+    });
+
     log("info", "Account created successfully", {
       address: wallet.address,
       principal: result.principal,
+      deposit_address: depositInfo.btcAddress,
     });
     span.setAttribute("account.existed", false);
     span.setAttribute("account.principal", result.principal);
