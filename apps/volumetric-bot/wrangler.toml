@@ -1,0 +1,45 @@
+name = "volumetric-bot-base"
+main = "src/worker.ts"
+compatibility_date = "2026-02-22"
+compatibility_flags = ["nodejs_compat"]
+keep_vars = true
+
+[vars]
+BTC_NETWORK = "testnet"
+IC_HOST = "https://ic0.app"
+
+[env.bot1]
+name = "volumetric-bot-1"
+
+[env.bot1.vars]
+BTC_NETWORK = "testnet"
+IC_HOST = "https://ic0.app"
+BOT_NAME = "bot-1"
+OTEL_SERVICE_NAME = "volumetric-bot"
+OTEL_EXPORTER_OTLP_TRACES_ENDPOINT = "https://otlp-gateway-prod-eu-central-0.grafana.net/otlp/v1/traces"
+OTEL_EXPORTER_OTLP_LOGS_ENDPOINT = "https://otlp-gateway-prod-eu-central-0.grafana.net/otlp/v1/logs"
+
+[env.bot1.triggers]
+crons = ["0 * * * *"]
+
+[[env.bot1.services]]
+binding = "NEXT_APP"
+service = "volumetric-web"
+
+[env.bot2]
+name = "volumetric-bot-2"
+
+[env.bot2.vars]
+BTC_NETWORK = "testnet"
+IC_HOST = "https://ic0.app"
+BOT_NAME = "bot-2"
+OTEL_SERVICE_NAME = "volumetric-bot"
+OTEL_EXPORTER_OTLP_TRACES_ENDPOINT = "https://otlp-gateway-prod-eu-central-0.grafana.net/otlp/v1/traces"
+OTEL_EXPORTER_OTLP_LOGS_ENDPOINT = "https://otlp-gateway-prod-eu-central-0.grafana.net/otlp/v1/logs"
+
+[env.bot2.triggers]
+crons = ["0 * * * *"]
+
+[[env.bot2.services]]
+binding = "NEXT_APP"
+service = "volumetric-web"

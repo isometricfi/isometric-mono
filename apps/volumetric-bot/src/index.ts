@@ -1,16 +1,12 @@
-import { acceptOffer } from "./actions/accept-offer.js";
-import { createOffer } from "./actions/create-offer.js";
-import { setup } from "./actions/setup.js";
-import { getCanisterActor } from "./canister-client.js";
-import { loadConfig } from "./config.js";
+import "dotenv/config";
+import { createBotRuntime } from "./bot.js";
+import { loadNodeConfig } from "./config.js";
 import { initTelemetry, log, shutdownTelemetry, withSpan } from "./telemetry.js";
-import { getTRPCClient } from "./trpc-client.js";
-import { createWallet } from "./wallet.js";
 
 async function main() {
-  const config = loadConfig();
+  const config = loadNodeConfig();
 
-  initTelemetry(config.botName);
+  initTelemetry(config.botName, process.env);
 
   log("info", "Bot starting", {
     bot_name: config.botName,
@@ -18,65 +14,33 @@ async function main() {
     interval_ms: config.intervalMs,
   });
 
-  const wallet = createWallet(config.privateKeyWif, config.btcNetwork);
-  log("info", "Wallet initialized", { address: wallet.address });
-
-  const actor = await getCanisterActor(config.canisterId, config.icHost);
-  const trpc = getTRPCClient(config.trpcUrl);
+  const botRuntime = await createBotRuntime(config);
 
   const command = process.argv[2] ?? "run";
 
   switch (command) {
     case "setup": {
-      await setup(actor, trpc, wallet);
+      await botRuntime.ensureSetup();
       break;
     }
 
     case "create-offer": {
-      await setup(actor, trpc, wallet);
-      await createOffer(actor, trpc, wallet);
+      await botRuntime.runAction("create");
       break;
     }
 
     case "accept-offer": {
-      await setup(actor, trpc, wallet);
-      await acceptOffer(actor, trpc, wallet);
+      await botRuntime.runAction("accept");
       break;
     }
 
     case "run": {
-      await setup(actor, trpc, wallet);
       log("info", "Starting main loop", { interval_ms: config.intervalMs });
 
-      let iteration = 0;
-
-      const randomAction = (): "create" | "accept" => {
-        return Math.random() < 0.5 ? "create" : "accept";
-      };
-
       const tick = async () => {
-        iteration++;
-        const action = randomAction();
-
-        await withSpan(
-          "bot.tick",
-          { iteration, action, bot_name: config.botName },
-          async (span) => {
-            try {
-              if (action === "create") {
-                log("info", "Tick: creating offer", { iteration });
-                await createOffer(actor, trpc, wallet);
-              } else {
-                log("info", "Tick: accepting offer", { iteration });
-                await acceptOffer(actor, trpc, wallet);
-              }
-            } catch (error) {
-              const message = error instanceof Error ? error.message : String(error);
-              log("error", "Tick failed", { iteration, error: message });
-              span.setAttribute("error.message", message);
-            }
-          },
-        );
+        await withSpan("bot.run_loop", { bot_name: config.botName }, async () => {
+          await botRuntime.runRandomAction();
+        });
       };
 
       // Run first tick immediately

@@ -1,6 +1,6 @@
+import * as ecc from "@bitcoin-js/tiny-secp256k1-asmjs";
 import * as bitcoin from "bitcoinjs-lib";
 import { ECPairFactory } from "ecpair";
-import * as ecc from "tiny-secp256k1";
 import { describe, expect, test } from "vitest";
 import { createWallet } from "./wallet";
 

@@ -6,10 +6,20 @@
   "scripts": {
     "bot": "tsx src/index.ts",
     "build": "tsup src/index.ts --format esm --dts --clean",
+    "worker:dev": "wrangler dev",
+    "worker:dev:bot1": "wrangler dev --env bot1",
+    "worker:dev:bot2": "wrangler dev --env bot2",
+    "worker:deploy": "wrangler deploy",
+    "worker:deploy:bot1": "wrangler deploy --env bot1",
+    "worker:deploy:bot2": "wrangler deploy --env bot2",
+    "worker:deploy:all": "pnpm worker:deploy:bot1 && pnpm worker:deploy:bot2",
+    "worker:tail:bot1": "wrangler tail --env bot1",
+    "worker:tail:bot2": "wrangler tail --env bot2",
     "typecheck": "tsc --noEmit",
     "test": "vitest"
   },
   "dependencies": {
+    "@bitcoin-js/tiny-secp256k1-asmjs": "^2.2.4",
     "@dfinity/agent": "^2.2.0",
     "@dfinity/candid": "^2.2.0",
     "@dfinity/principal": "^2.2.0",
@@ -30,13 +40,14 @@
     "bitcoinjs-message": "^2.2.0",
     "dotenv": "^16.4.7",
     "ecpair": "^3.0.0-rc.0",
-    "superjson": "^2.2.2",
-    "tiny-secp256k1": "^2.2.3"
+    "superjson": "^2.2.2"
   },
   "devDependencies": {
+    "@types/node": "^22.13.14",
     "tsup": "^8.4.0",
     "tsx": "^4.19.0",
     "typescript": "^5.7.0",
-    "vitest": "^4.0.18"
+    "vitest": "^4.0.18",
+    "wrangler": "^4.44.0"
   }
 }

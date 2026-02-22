@@ -1,11 +1,18 @@
+import * as ecc from "@bitcoin-js/tiny-secp256k1-asmjs";
 import * as bitcoin from "bitcoinjs-lib";
 import * as bitcoinMessage from "bitcoinjs-message";
 import { ECPairFactory } from "ecpair";
-import * as ecc from "tiny-secp256k1";
 
-const ECPair = ECPairFactory(ecc);
+let isEccInitialized = false;
 
-bitcoin.initEccLib(ecc);
+function getECPair() {
+  if (!isEccInitialized) {
+    bitcoin.initEccLib(ecc);
+    isEccInitialized = true;
+  }
+
+  return ECPairFactory(ecc);
+}
 
 export interface BotWallet {
   address: string;
@@ -13,6 +20,7 @@ export interface BotWallet {
 }
 
 export function createWallet(privateKeyWif: string, network: "mainnet" | "testnet"): BotWallet {
+  const ECPair = getECPair();
   const btcNetwork = network === "mainnet" ? bitcoin.networks.bitcoin : bitcoin.networks.testnet;
 
   let keyPair: ReturnType<typeof ECPair.fromWIF>;
