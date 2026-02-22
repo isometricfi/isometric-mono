@@ -10,6 +10,7 @@
     "declaration": true,
     "resolveJsonModule": true,
     "isolatedModules": true,
+    "types": ["node"],
     "baseUrl": ".",
     "paths": {
       "@/*": ["../volumetric_web/src/*"]
