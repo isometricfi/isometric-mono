@@ -7,7 +7,13 @@
   },
   "files": {
     "ignoreUnknown": true,
-    "includes": ["apps/volumetric_web/**", "packages/**", "!packages/canister-types", "!**/*.css"]
+    "includes": [
+      "apps/volumetric_web/**",
+      "apps/volumetric-bot/**",
+      "packages/**",
+      "!packages/canister-types",
+      "!**/*.css"
+    ]
   },
   "formatter": {
     "enabled": true,

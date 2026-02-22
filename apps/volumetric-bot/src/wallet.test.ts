@@ -1,35 +1,45 @@
+import * as bitcoin from "bitcoinjs-lib";
+import { ECPairFactory } from "ecpair";
+import * as ecc from "tiny-secp256k1";
 import { describe, expect, test } from "vitest";
 import { createWallet } from "./wallet";
 
-// Constants for test data
-const TEST_MNEMONIC =
-  "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about";
+const ECPair = ECPairFactory(ecc);
+bitcoin.initEccLib(ecc);
 
-// But for now, checking the format is safer.
+const TEST_PRIVATE_KEY_HEX = "0000000000000000000000000000000000000000000000000000000000000001";
+
+const TESTNET_WIF = ECPair.fromPrivateKey(Buffer.from(TEST_PRIVATE_KEY_HEX, "hex"), {
+  network: bitcoin.networks.testnet,
+  compressed: true,
+}).toWIF();
+
+const MAINNET_WIF = ECPair.fromPrivateKey(Buffer.from(TEST_PRIVATE_KEY_HEX, "hex"), {
+  network: bitcoin.networks.bitcoin,
+  compressed: true,
+}).toWIF();
 
 const TEST_MESSAGE = "test message";
 
 describe("Wallet", () => {
-  test("should create a valid testnet wallet from mnemonic", () => {
+  test("should create a valid testnet wallet from WIF", () => {
     // given
-    const mnemonic = TEST_MNEMONIC;
     const network = "testnet";
 
     // when
-    const wallet = createWallet(mnemonic, network);
+    const wallet = createWallet(TESTNET_WIF, network);
 
     // then
     expect(wallet.address).toBeDefined();
     expect(wallet.address).toMatch(/^tb1/); // segwit testnet address starts with tb1
   });
 
-  test("should create a valid mainnet wallet from mnemonic", () => {
+  test("should create a valid mainnet wallet from WIF", () => {
     // given
-    const mnemonic = TEST_MNEMONIC;
     const network = "mainnet";
 
     // when
-    const wallet = createWallet(mnemonic, network);
+    const wallet = createWallet(MAINNET_WIF, network);
 
     // then
     expect(wallet.address).toBeDefined();
@@ -38,9 +48,8 @@ describe("Wallet", () => {
 
   test("should sign a message successfully", () => {
     // given
-    const mnemonic = TEST_MNEMONIC;
     const network = "testnet";
-    const wallet = createWallet(mnemonic, network);
+    const wallet = createWallet(TESTNET_WIF, network);
     const message = TEST_MESSAGE;
 
     // when
@@ -52,13 +61,13 @@ describe("Wallet", () => {
     expect(signature.length).toBeGreaterThan(0);
   });
 
-  test("should throw error for invalid mnemonic", () => {
+  test("should throw error for invalid WIF", () => {
     // given
-    const invalidMnemonic = "invalid mnemonic word count";
+    const invalidWif = "invalid-wif";
     const network = "testnet";
 
     // when
-    const createInvalidWallet = () => createWallet(invalidMnemonic, network);
+    const createInvalidWallet = () => createWallet(invalidWif, network);
 
     // then
     expect(createInvalidWallet).toThrow();

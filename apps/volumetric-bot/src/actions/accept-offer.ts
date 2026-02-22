@@ -4,6 +4,8 @@ import { log, withSpan } from "../telemetry.js";
 import type { TRPCClient } from "../trpc-client.js";
 import type { BotWallet } from "../wallet.js";
 
+const TRANSFER_FEE_BUFFER_SATS = 20;
+
 interface FlatOffer {
   id: string;
   writerId: string;
@@ -13,9 +15,21 @@ interface FlatOffer {
   termDays: number;
 }
 
-function flattenOffers(optionsData: {
+interface OptionsData {
   termGroups: Array<{ strikes: Array<{ offers: FlatOffer[] }> }>;
-}): FlatOffer[] {
+}
+
+interface ConfigData {
+  minOfferAmountSats: number;
+}
+
+interface AccountData {
+  profile: {
+    principal: string;
+  } | null;
+}
+
+function flattenOffers(optionsData: OptionsData): FlatOffer[] {
   const offers: FlatOffer[] = [];
   for (const termGroup of optionsData.termGroups) {
     for (const strike of termGroup.strikes) {
@@ -27,6 +41,17 @@ function flattenOffers(optionsData: {
   return offers;
 }
 
+function isOwnOffer(offer: FlatOffer, walletAddress: string, ownPrincipal: string | null): boolean {
+  if (ownPrincipal && offer.writerId === ownPrincipal) {
+    return true;
+  }
+  return offer.writerId === walletAddress;
+}
+
+function getMinimumQuantityOffers(offers: FlatOffer[], minOfferAmountSats: number): FlatOffer[] {
+  return offers.filter((offer) => offer.amountSats >= minOfferAmountSats);
+}
+
 export async function acceptOffer(
   actor: _SERVICE,
   trpc: TRPCClient,
@@ -35,8 +60,12 @@ export async function acceptOffer(
   await withSpan("bot.accept_offer", { address: wallet.address }, async (span) => {
     log("info", "Fetching open offers");
 
-    const optionsData = await trpc.options.listOptions.query();
-    const allOffers = flattenOffers(optionsData);
+    const [optionsData, config, account] = await Promise.all([
+      trpc.options.listOptions.query(),
+      trpc.config.getConfig.query(),
+      trpc.account.getAccount.query({ address: wallet.address }),
+    ]);
+    const allOffers = flattenOffers(optionsData as OptionsData);
 
     if (allOffers.length === 0) {
       log("info", "No open offers available");
@@ -45,8 +74,12 @@ export async function acceptOffer(
       return;
     }
 
-    // Filter out own offers (the canister blocks self-trade, but we avoid the error)
-    const otherOffers = allOffers.filter((offer) => offer.writerId !== wallet.address);
+    const ownPrincipal = (account as AccountData | null)?.profile?.principal ?? null;
+
+    // Filter out own offers (canister blocks self-trade, but we avoid the error preflight)
+    const otherOffers = allOffers.filter(
+      (offer) => !isOwnOffer(offer, wallet.address, ownPrincipal),
+    );
 
     if (otherOffers.length === 0) {
       log("info", "No offers from other writers available");
@@ -55,9 +88,22 @@ export async function acceptOffer(
       return;
     }
 
+    const minimumOfferAmountSats = (config as ConfigData).minOfferAmountSats;
+    const validOffers = getMinimumQuantityOffers(otherOffers, minimumOfferAmountSats);
+
+    if (validOffers.length === 0) {
+      log("info", "No valid offers above minimum quantity", {
+        minimum_quantity_sats: minimumOfferAmountSats,
+      });
+      span.setAttribute("skipped", true);
+      span.setAttribute("skip_reason", "no_valid_offers");
+      span.setAttribute("minimum_quantity_sats", minimumOfferAmountSats);
+      return;
+    }
+
     // Pick a random offer
-    const randomIndex = Math.floor(Math.random() * otherOffers.length);
-    const selectedOffer = otherOffers[randomIndex];
+    const randomIndex = Math.floor(Math.random() * validOffers.length);
+    const selectedOffer = validOffers[randomIndex];
 
     log("info", "Selected offer to accept", {
       offer_id: selectedOffer.id,
@@ -72,7 +118,7 @@ export async function acceptOffer(
     });
 
     const premiumSats = Math.ceil(selectedOffer.amountSats * (selectedOffer.premium / 100));
-    const estimatedCost = premiumSats + 20; // buffer for transfer fees
+    const estimatedCost = premiumSats + TRANSFER_FEE_BUFFER_SATS;
 
     if (!balance || balance.available < BigInt(estimatedCost)) {
       log("warn", "Insufficient balance to accept offer", {

@@ -3,53 +3,79 @@ import { type Logger, logs, SeverityNumber } from "@opentelemetry/api-logs";
 import { OTLPLogExporter } from "@opentelemetry/exporter-logs-otlp-http";
 import { OTLPTraceExporter } from "@opentelemetry/exporter-trace-otlp-http";
 import { Resource } from "@opentelemetry/resources";
-import { BatchLogRecordProcessor, LoggerProvider } from "@opentelemetry/sdk-logs";
+import { BatchLogRecordProcessor } from "@opentelemetry/sdk-logs";
 import { NodeSDK } from "@opentelemetry/sdk-node";
 import { BatchSpanProcessor, ConsoleSpanExporter } from "@opentelemetry/sdk-trace-base";
-import {
-  SEMRESATTRS_SERVICE_INSTANCE_ID,
-  SEMRESATTRS_SERVICE_NAME,
-} from "@opentelemetry/semantic-conventions";
+import { ATTR_SERVICE_NAME } from "@opentelemetry/semantic-conventions";
 
 let sdk: NodeSDK | null = null;
-let loggerProvider: LoggerProvider | null = null;
+let isOtelLogsEnabled = false;
 
 const BOT_TRACER_NAME = "volumetric-bot";
+const ATTR_SERVICE_INSTANCE_ID = "service.instance.id";
+
+function parseAuthorizationHeader(rawAuth?: string): string | undefined {
+  if (!rawAuth) {
+    return undefined;
+  }
+
+  const decoded = decodeHeaderToken(rawAuth.trim());
+  if (!decoded.length) {
+    return undefined;
+  }
+
+  if (decoded.startsWith("Authorization=")) {
+    return decoded.slice("Authorization=".length).trim();
+  }
+
+  return decoded;
+}
+
+function decodeHeaderToken(token: string): string {
+  try {
+    return decodeURIComponent(token);
+  } catch {
+    return token;
+  }
+}
 
 export function initTelemetry(botName: string): void {
-  const otlpEndpoint = process.env.OTEL_EXPORTER_OTLP_ENDPOINT;
+  const tracesEndpoint = process.env.OTEL_EXPORTER_OTLP_TRACES_ENDPOINT;
+  const logsEndpoint = process.env.OTEL_EXPORTER_OTLP_LOGS_ENDPOINT;
+  const authorizationHeader = parseAuthorizationHeader(process.env.OTEL_EXPORTER_AUTH);
+  const headers = authorizationHeader ? { Authorization: authorizationHeader } : undefined;
+
+  isOtelLogsEnabled = Boolean(logsEndpoint);
+  const serviceName = process.env.OTEL_SERVICE_NAME ?? BOT_TRACER_NAME;
 
   const resource = new Resource({
-    [SEMRESATTRS_SERVICE_NAME]: "volumetric-bot",
-    [SEMRESATTRS_SERVICE_INSTANCE_ID]: botName,
+    [ATTR_SERVICE_NAME]: serviceName,
+    [ATTR_SERVICE_INSTANCE_ID]: botName,
   });
 
-  const spanProcessor = otlpEndpoint
-    ? new BatchSpanProcessor(new OTLPTraceExporter({ url: `${otlpEndpoint}/v1/traces` }))
+  const spanProcessor = tracesEndpoint
+    ? new BatchSpanProcessor(new OTLPTraceExporter({ url: tracesEndpoint, headers }))
     : new BatchSpanProcessor(new ConsoleSpanExporter());
 
   sdk = new NodeSDK({
     resource,
     spanProcessors: [spanProcessor],
+    logRecordProcessors: logsEndpoint
+      ? [new BatchLogRecordProcessor(new OTLPLogExporter({ url: logsEndpoint, headers }))]
+      : [],
   });
 
   sdk.start();
-
-  if (otlpEndpoint) {
-    loggerProvider = new LoggerProvider({ resource });
-    loggerProvider.addLogRecordProcessor(
-      new BatchLogRecordProcessor(new OTLPLogExporter({ url: `${otlpEndpoint}/v1/logs` })),
-    );
-    logs.setGlobalLoggerProvider(loggerProvider);
-  }
 }
 
 export async function shutdownTelemetry(): Promise<void> {
-  if (loggerProvider) {
-    await loggerProvider.shutdown();
-  }
   if (sdk) {
-    await sdk.shutdown();
+    try {
+      await sdk.shutdown();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      console.warn("Telemetry shutdown error", { error: message });
+    }
   }
 }
 
@@ -58,7 +84,7 @@ export function getTracer(): Tracer {
 }
 
 function getOtelLogger(): Logger | null {
-  if (!loggerProvider) return null;
+  if (!isOtelLogsEnabled) return null;
   return logs.getLogger(BOT_TRACER_NAME);
 }
 
