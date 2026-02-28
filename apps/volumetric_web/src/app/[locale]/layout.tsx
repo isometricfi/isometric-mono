@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { headers } from "next/headers";
 import { notFound } from "next/navigation";
+import Script from "next/script";
 import { NextIntlClientProvider } from "next-intl";
 import { getMessages, getTranslations, setRequestLocale } from "next-intl/server";
 import { Footer } from "@/components/layout/Footer";
@@ -22,6 +23,7 @@ const geistMono = Geist_Mono({
 });
 
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || "https://isometric.fi";
+const DEFAULT_TAWK_EMBED_URL = process.env.TAWK_EMBED_URL;
 
 export function generateStaticParams() {
   return routing.locales.map((locale) => ({ locale }));
@@ -107,6 +109,16 @@ export default async function LocaleLayout({
   return (
     <html lang={locale} suppressHydrationWarning>
       <body className={`${geistSans.variable} ${geistMono.variable} font-sans antialiased`}>
+        <Script id="tawk-api-init" strategy="afterInteractive" nonce={nonce}>
+          {`window.Tawk_API = window.Tawk_API || {}; window.Tawk_LoadStart = new Date();`}
+        </Script>
+        <Script
+          id="tawk-embed"
+          src={DEFAULT_TAWK_EMBED_URL}
+          strategy="afterInteractive"
+          nonce={nonce}
+          crossOrigin="anonymous"
+        />
         <NextIntlClientProvider messages={messages}>
           <ThemeProvider nonce={nonce}>
             <Providers>
