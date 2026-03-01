@@ -10,9 +10,9 @@ import { cn, formatBtcWithSymbolBigint, getFallbackUsername } from "@/lib/utils"
 export async function generateMetadata({
   params,
 }: {
-  params: Promise<{ id: string; locale: string }>;
+  params: { id: string; locale: string };
 }): Promise<Metadata> {
-  const { id, locale } = await params;
+  const { id, locale } = params;
   const t = await getTranslations({ locale, namespace: "Metadata.share" });
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://isometric.fi";
   const ogImageUrl = `${baseUrl}/api/og/${id}?locale=${locale}`;
