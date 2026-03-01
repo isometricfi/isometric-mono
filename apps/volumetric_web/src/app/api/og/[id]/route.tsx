@@ -1,7 +1,7 @@
 import { ImageResponse } from "next/og";
 import type { HistoryEntry } from "@/lib/use-cases/history/get-history/schema";
 import { getHistoryByHash } from "@/lib/use-cases/history/get-history-by-hash/usecase";
-import { formatBtcBigint } from "@/lib/utils";
+import { formatBtcBigint, getFallbackUsername } from "@/lib/utils";
 
 function formatBtcForOG(sats: bigint, maxDecimals = 8): string {
   const formatted = formatBtcBigint(sats, maxDecimals);
@@ -22,36 +22,9 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     const history = await getHistoryByHash(id);
 
     const entries = history?.entries ?? [];
-    if (entries.length === 0) {
-      return new ImageResponse(
-        <div
-          style={{
-            height: "100%",
-            width: "100%",
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            justifyContent: "center",
-            backgroundColor: "#000000",
-            color: "white",
-          }}
-        >
-          <div style={{ fontSize: 48, fontWeight: 800 }}>Isometric</div>
-          <div style={{ fontSize: 24, fontWeight: 500, marginTop: 20, opacity: 0.7 }}>
-            {isZh ? "未找到交易历史" : "No trading history found"}
-          </div>
-        </div>,
-        {
-          width: 1200,
-          height: 630,
-        },
-      );
-    }
-
-    const username = history?.username || (isZh ? `用户 ${id}` : `User ${id}`);
-    const principal = history?.principal || id;
+    const username = history?.username || getFallbackUsername(id, locale);
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://isometric.fi";
-    const avatarUrl = `${baseUrl}/api/avatar?name=${encodeURIComponent(principal)}`;
+    const avatarUrl = `${baseUrl}/api/avatar?name=${encodeURIComponent(id)}`;
 
     // Sort entries by acceptedAt to find the first trade (oldest)
     const sortedEntries = [...entries].sort((a, b) => Number(a.acceptedAt - b.acceptedAt));
@@ -67,7 +40,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       BigInt(0),
     );
     const profitableTrades = entries.filter((e: HistoryEntry) => e.result === "profit").length;
-    const winRate = (profitableTrades / entries.length) * 100;
+    const winRate = entries.length > 0 ? (profitableTrades / entries.length) * 100 : 0;
     const totalVolumeSats = entries.reduce(
       (sum: bigint, e: HistoryEntry) => sum + e.quantitySats,
       BigInt(0),

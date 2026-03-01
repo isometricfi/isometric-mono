@@ -574,6 +574,33 @@
       "keywords": "比特币交易历史, 链上历史, 期权结算, 可验证交易",
       "ogTitle": "历史记录 | Isometric",
       "ogImageAlt": "Isometric 交易历史"
+    },
+    "share": {
+      "title": "交易数据 | Isometric",
+      "description": "查看我在 Isometric 上的比特币期权交易表现",
+      "keywords": "比特币期权交易, 交易数据, Isometric, 链上交易",
+      "ogTitle": "我在 Isometric 的交易数据",
+      "ogImageAlt": "Isometric 交易数据"
     }
+  },
+  "SharePage": {
+    "headline": "跟随 <primary>{username}</primary> 交易",
+    "subheadline": "加入 Isometric，在链上交易比特币期权。了解顶级交易者的表现，开启您的交易之旅。",
+    "emptyHeadline": "与 <primary>{username}</primary> 一起加入 Isometric",
+    "emptySubheadline": "{username} 刚刚起步。成为最早与他们一起上链的人。",
+    "newMember": "新成员",
+    "joinedAt": "加入于 {date}",
+    "tradesCount": "{count} 笔交易",
+    "winRateLabel": "胜率",
+    "totalPnlLabel": "总盈亏",
+    "volumeLabel": "交易量",
+    "whyIsometric": "为何选择 Isometric",
+    "leverageTitle": "高达 100 倍杠杆",
+    "leverageDesc": "放大 BTC 价格波动的收益",
+    "yieldTitle": "BTC 生息",
+    "yieldDesc": "无需出售即可从持仓中获得收益",
+    "custodialTitle": "自托管，无需 KYC",
+    "custodialDesc": "去信任化，完全链上",
+    "startTrading": "开始交易"
   }
 }

@@ -593,6 +593,33 @@
       "keywords": "Bitcoin trading history, on-chain history, options settlements, verifiable trades",
       "ogTitle": "History | Isometric",
       "ogImageAlt": "Isometric Trade History"
+    },
+    "share": {
+      "title": "Trading Stats | Isometric",
+      "description": "Check out my Bitcoin options trading performance on Isometric",
+      "keywords": "Bitcoin options trading, trading stats, Isometric, on-chain trading",
+      "ogTitle": "My Trading Stats on Isometric",
+      "ogImageAlt": "Trading Stats on Isometric"
     }
+  },
+  "SharePage": {
+    "headline": "Trade like <primary>{username}</primary>",
+    "subheadline": "Join Isometric to trade Bitcoin options fully on-chain. See how top traders perform and start your own journey.",
+    "emptyHeadline": "Join <primary>{username}</primary> on Isometric",
+    "emptySubheadline": "{username} is just getting started. Be among the first to join them on-chain.",
+    "newMember": "New member",
+    "joinedAt": "Joined {date}",
+    "tradesCount": "{count} trades",
+    "winRateLabel": "Win rate",
+    "totalPnlLabel": "Total P&L",
+    "volumeLabel": "Volume",
+    "whyIsometric": "Why Isometric",
+    "leverageTitle": "Up to 100x leverage",
+    "leverageDesc": "Amplify exposure on BTC price movements",
+    "yieldTitle": "Earn yield on BTC",
+    "yieldDesc": "Generate income on your holdings without selling",
+    "custodialTitle": "Self-custodial, no KYC",
+    "custodialDesc": "Trustless and fully on-chain",
+    "startTrading": "Start Trading"
   }
 }

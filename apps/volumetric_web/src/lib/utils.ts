@@ -86,6 +86,8 @@ export function parseBtcToSatsBigint(btcString: string): bigint {
 const SECONDS_PER_DAY = 86400;
 const NS_PER_MS = 1_000_000;
 const BASIS_POINTS_DIVISOR = 100;
+const FALLBACK_USERNAME_MODULUS = 10_000;
+const FALLBACK_USERNAME_PAD = 4;
 
 export function secondsToDays(seconds: bigint): number {
   const days = Number(seconds) / SECONDS_PER_DAY;
@@ -99,4 +101,21 @@ export function nsToISOString(ns: bigint): string {
 
 export function basisPointsToPercent(basisPoints: number): number {
   return basisPoints / BASIS_POINTS_DIVISOR;
+}
+
+export function generateUserTag(identifier: string): string {
+  const source = identifier.trim();
+  if (!source) return "0000";
+
+  let hash = 0;
+  for (const character of source) {
+    hash = (hash * 31 + character.charCodeAt(0)) % FALLBACK_USERNAME_MODULUS;
+  }
+
+  return hash.toString().padStart(FALLBACK_USERNAME_PAD, "0");
+}
+
+export function getFallbackUsername(identifier: string, locale?: string): string {
+  const tag = generateUserTag(identifier);
+  return locale === "zh" ? `用户 ${tag}` : `User ${tag}`;
 }

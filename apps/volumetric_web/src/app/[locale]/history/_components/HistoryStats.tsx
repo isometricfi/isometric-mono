@@ -6,7 +6,7 @@ import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAccount, useHistory, useModal } from "@/hooks";
-import { formatBtcWithSymbolBigint } from "@/lib/utils";
+import { formatBtcWithSymbolBigint, getFallbackUsername } from "@/lib/utils";
 import { ShareSummaryModal } from "./ShareSummaryModal";
 
 export function HistoryStats() {
@@ -17,20 +17,19 @@ export function HistoryStats() {
 
   const stats = useMemo(() => {
     const entries = history?.entries ?? [];
-    if (entries.length === 0) return null;
 
     const totalPnlSats = entries.reduce((sum, e) => sum + e.pnlSats, BigInt(0));
     const profitableTrades = entries.filter((e) => e.result === "profit").length;
-    const winRate = (profitableTrades / entries.length) * 100;
+    const winRate = entries.length > 0 ? (profitableTrades / entries.length) * 100 : 0;
 
-    const bestTrade = entries.reduce(
-      (best, e) => (e.pnlSats > best.pnlSats ? e : best),
-      entries[0],
-    );
-    const worstTrade = entries.reduce(
-      (worst, e) => (e.pnlSats < worst.pnlSats ? e : worst),
-      entries[0],
-    );
+    const bestTrade =
+      entries.length > 0
+        ? entries.reduce((best, e) => (e.pnlSats > best.pnlSats ? e : best), entries[0])
+        : null;
+    const worstTrade =
+      entries.length > 0
+        ? entries.reduce((worst, e) => (e.pnlSats < worst.pnlSats ? e : worst), entries[0])
+        : null;
 
     const totalVolumeSats = entries.reduce((sum, e) => sum + e.quantitySats, BigInt(0));
 
@@ -39,8 +38,8 @@ export function HistoryStats() {
       totalTrades: entries.length,
       winRate,
       profitableTrades,
-      bestTradeSats: bestTrade.pnlSats,
-      worstTradeSats: worstTrade.pnlSats,
+      bestTradeSats: bestTrade?.pnlSats ?? BigInt(0),
+      worstTradeSats: worstTrade?.pnlSats ?? BigInt(0),
       totalVolumeSats,
     };
   }, [history?.entries]);
@@ -85,7 +84,8 @@ export function HistoryStats() {
             height={32}
             className=" rounded-md"
           />
-          {account?.profile?.username ?? `${t("user")} ${account?.profile?.principal.slice(0, 6)}`}
+          {account?.profile?.username ??
+            getFallbackUsername(account?.profile?.principal ?? account?.profile?.address ?? "")}
         </div>
         <div className="absolute left-1/2 -translate-x-1/2 lg:block hidden">{statSection}</div>
         <Button variant="outline" size="sm" onClick={() => openModal(<ShareSummaryModal />, false)}>
