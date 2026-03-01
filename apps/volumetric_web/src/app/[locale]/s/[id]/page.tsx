@@ -47,9 +47,9 @@ export async function generateMetadata({
 export default async function SharePage({
   params,
 }: {
-  params: Promise<{ id: string; locale: string }>;
+  params: { id: string; locale: string };
 }) {
-  const { id, locale } = await params;
+  const { id, locale } = params;
   const t = await getTranslations({ locale, namespace: "SharePage" });
   const history = await getHistoryByHash(id);
   const entries = history?.entries ?? [];
