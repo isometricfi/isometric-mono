@@ -1,12 +1,15 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { syncEventsFromCanister } from "@/lib/use-cases/events/sync-events/usecase";
+import { syncDepositsFromCanister } from "@/lib/use-cases/account/sync-deposits/usecase";
 import { cronErrorSchema, isAuthorizedCronRequest } from "../_lib/schemas";
 
-const syncEventsSuccessSchema = z.object({
+const syncDepositsSuccessSchema = z.object({
   success: z.literal(true),
-  syncedCount: z.number(),
-  latestEventId: z.string().nullable(),
+  usersScanned: z.number(),
+  maturedDetected: z.number(),
+  syncCalls: z.number(),
+  creditedDeposits: z.number(),
+  snapshotsSaved: z.number(),
 });
 
 export async function GET(request: Request) {
@@ -22,16 +25,19 @@ export async function GET(request: Request) {
   }
 
   try {
-    const result = await syncEventsFromCanister();
-    const payload = syncEventsSuccessSchema.parse({
+    const result = await syncDepositsFromCanister();
+    const payload = syncDepositsSuccessSchema.parse({
       success: true,
-      syncedCount: result.syncedCount,
-      latestEventId: result.latestEventId,
+      usersScanned: result.usersScanned,
+      maturedDetected: result.maturedDetected,
+      syncCalls: result.syncCalls,
+      creditedDeposits: result.creditedDeposits,
+      snapshotsSaved: result.snapshotsSaved,
     });
     return NextResponse.json(payload);
   } catch (error) {
-    console.error("Failed to sync events:", error);
-    const payload = cronErrorSchema.parse({ error: "Failed to sync events" });
+    console.error("Failed to sync deposits:", error);
+    const payload = cronErrorSchema.parse({ error: "Failed to sync deposits" });
     return NextResponse.json(payload, { status: 500 });
   }
 }
