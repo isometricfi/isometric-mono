@@ -37,22 +37,57 @@ async function main() {
     case "run": {
       log("info", "Starting main loop", { interval_ms: config.intervalMs });
 
+      let timeoutId: NodeJS.Timeout | null = null;
+      let isShuttingDown = false;
+
       const tick = async () => {
         await withSpan("bot.run_loop", { bot_name: config.botName }, async () => {
           await botRuntime.runRandomAction();
         });
       };
 
+      const scheduleNextTick = () => {
+        if (isShuttingDown) {
+          return;
+        }
+
+        timeoutId = setTimeout(() => {
+          void runScheduledTick();
+        }, config.intervalMs);
+      };
+
+      const runScheduledTick = async () => {
+        if (isShuttingDown) {
+          return;
+        }
+
+        try {
+          await tick();
+        } catch (error) {
+          const message = error instanceof Error ? error.message : String(error);
+          log("error", "Run loop tick failed", { error: message });
+        }
+
+        scheduleNextTick();
+      };
+
       // Run first tick immediately
       await tick();
 
-      // Set up interval
-      const intervalId = setInterval(tick, config.intervalMs);
+      // Schedule next tick only after the prior one completes.
+      scheduleNextTick();
 
       // Graceful shutdown
       const shutdown = async () => {
+        if (isShuttingDown) {
+          return;
+        }
+
+        isShuttingDown = true;
         log("info", "Shutting down");
-        clearInterval(intervalId);
+        if (timeoutId) {
+          clearTimeout(timeoutId);
+        }
         await shutdownTelemetry();
         process.exit(0);
       };

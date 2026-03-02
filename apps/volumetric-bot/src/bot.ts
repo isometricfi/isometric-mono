@@ -28,6 +28,7 @@ const ACCEPT_FALLBACK_OUTCOMES = new Set<AcceptOfferResult["outcome"]>([
 export interface BotRuntime {
   ensureSetup: () => Promise<void>;
   runAction: (action: BotAction) => Promise<void>;
+  runActionWithResult: (action: BotAction) => Promise<BotActionResult>;
   runRandomAction: () => Promise<BotAction>;
 }
 
@@ -35,6 +36,10 @@ export interface BotRuntimeOptions {
   trpcUrl?: string;
   trpcFetch?: TRPCFetch;
 }
+
+export type BotActionResult =
+  | { ok: true; action: BotAction }
+  | { ok: false; action: BotAction; error: string };
 
 function shouldFallbackToCreate(outcome: AcceptOfferResult["outcome"]): boolean {
   return ACCEPT_FALLBACK_OUTCOMES.has(outcome);
@@ -72,7 +77,12 @@ export async function createBotRuntime(
   };
 
   const runAction = async (action: BotAction): Promise<void> => {
+    await runActionWithResult(action);
+  };
+
+  const runActionWithResult = async (action: BotAction): Promise<BotActionResult> => {
     iteration += 1;
+    let actionError: string | null = null;
 
     await withSpan("bot.tick", { iteration, action, bot_name: config.botName }, async (span) => {
       try {
@@ -90,12 +100,20 @@ export async function createBotRuntime(
         const message = error instanceof Error ? error.message : String(error);
         log("error", "Tick failed", { iteration, error: message });
         span.setAttribute("error.message", message);
+        actionError = message;
       }
     });
+
+    if (actionError) {
+      return { ok: false, action, error: actionError };
+    }
+
+    return { ok: true, action };
   };
 
   const runRandomAction = async (): Promise<BotAction> => {
     iteration += 1;
+    let performedAction: BotAction = BOT_ACTION.accept;
 
     await withSpan(
       "bot.tick",
@@ -116,6 +134,7 @@ export async function createBotRuntime(
             accept_outcome: acceptResult.outcome,
           });
           await createOffer(actor, trpc, wallet);
+          performedAction = BOT_ACTION.create;
         } catch (error) {
           const message = error instanceof Error ? error.message : String(error);
           log("error", "Tick failed", { iteration, error: message });
@@ -124,12 +143,13 @@ export async function createBotRuntime(
       },
     );
 
-    return BOT_ACTION.accept;
+    return performedAction;
   };
 
   return {
     ensureSetup,
     runAction,
+    runActionWithResult,
     runRandomAction,
   };
 }

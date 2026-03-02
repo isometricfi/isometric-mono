@@ -1,6 +1,6 @@
 import type { BotRuntime } from "./bot.js";
 import { createBotRuntime } from "./bot.js";
-import { type BotEnv, loadConfig } from "./config.js";
+import { loadConfig } from "./config.js";
 import { initTelemetry, log, shutdownTelemetry } from "./telemetry.js";
 
 interface WorkerExecutionContext {
@@ -11,19 +11,42 @@ interface ServiceBindingFetcher {
   fetch: (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
 }
 
-type WorkerEnv = BotEnv & {
+type WorkerEnv = {
+  BOT_PRIVATE_KEY_WIF?: string;
+  TRPC_URL?: string;
+  CANISTER_ID?: string;
+  IC_HOST?: string;
+  BTC_NETWORK?: string;
+  INTERVAL_MS?: string;
+  BOT_NAME?: string;
   NEXT_APP: ServiceBindingFetcher;
+  OTEL_SERVICE_NAME?: string;
+  OTEL_EXPORTER_OTLP_TRACES_ENDPOINT?: string;
   OTEL_EXPORTER_OTLP_LOGS_ENDPOINT?: string;
+  OTEL_EXPORTER_AUTH?: string;
 };
 
 let cachedRuntimePromise: Promise<BotRuntime> | null = null;
 let telemetryInitialized = false;
 
 async function getRuntime(env: WorkerEnv) {
-  const config = loadConfig(env);
+  const config = loadConfig({
+    BOT_PRIVATE_KEY_WIF: env.BOT_PRIVATE_KEY_WIF,
+    TRPC_URL: env.TRPC_URL,
+    CANISTER_ID: env.CANISTER_ID,
+    IC_HOST: env.IC_HOST,
+    BTC_NETWORK: env.BTC_NETWORK,
+    INTERVAL_MS: env.INTERVAL_MS,
+    BOT_NAME: env.BOT_NAME,
+  });
 
   if (!telemetryInitialized) {
-    initTelemetry(config.botName, env);
+    initTelemetry(config.botName, {
+      OTEL_SERVICE_NAME: env.OTEL_SERVICE_NAME,
+      OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: env.OTEL_EXPORTER_OTLP_TRACES_ENDPOINT,
+      OTEL_EXPORTER_OTLP_LOGS_ENDPOINT: env.OTEL_EXPORTER_OTLP_LOGS_ENDPOINT,
+      OTEL_EXPORTER_AUTH: env.OTEL_EXPORTER_AUTH,
+    });
     telemetryInitialized = true;
   }
 
@@ -31,6 +54,9 @@ async function getRuntime(env: WorkerEnv) {
     cachedRuntimePromise = createBotRuntime(config, {
       trpcUrl: "https://dummy/api/trpc",
       trpcFetch: (input, init) => env.NEXT_APP.fetch(input, init),
+    }).catch((error) => {
+      cachedRuntimePromise = null;
+      throw error;
     });
   }
 
@@ -67,7 +93,14 @@ async function runActionFromRequest(request: Request, env: WorkerEnv): Promise<R
   }
 
   const runtime = await getRuntime(env);
-  await runtime.runAction(action);
+  const result = await runtime.runActionWithResult(action);
+
+  if (!result.ok) {
+    return new Response(JSON.stringify({ ok: false, error: result.error, action }), {
+      status: 500,
+      headers: { "content-type": "application/json" },
+    });
+  }
 
   return new Response(JSON.stringify({ ok: true, action }), {
     headers: { "content-type": "application/json" },
@@ -99,7 +132,7 @@ export default {
       }
 
       if (url.pathname === "/run") {
-        return runActionFromRequest(request, env);
+        return await runActionFromRequest(request, env);
       }
 
       return new Response(

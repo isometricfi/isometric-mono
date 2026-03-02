@@ -15,10 +15,10 @@ export const ACCEPT_OFFER_OUTCOME = {
 } as const;
 
 const ACCEPT_OFFER_SKIP_REASON = {
-  noOffers: "no_offers",
-  onlyOwnOffers: "only_own_offers",
-  noShortTermOffers: "no_short_term_offers",
-  noValidOffers: "no_valid_offers",
+  noOffers: ACCEPT_OFFER_OUTCOME.noOffers,
+  onlyOwnOffers: ACCEPT_OFFER_OUTCOME.onlyOwnOffers,
+  noShortTermOffers: ACCEPT_OFFER_OUTCOME.noShortTermOffers,
+  noValidOffers: ACCEPT_OFFER_OUTCOME.noValidOffers,
 } as const;
 
 interface FlatOffer {
