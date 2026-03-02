@@ -42,7 +42,7 @@ async function getRuntime(env: WorkerEnv) {
 
   if (!telemetryInitialized) {
     initTelemetry(config.botName, {
-      OTEL_SERVICE_NAME: env.OTEL_SERVICE_NAME,
+      OTEL_SERVICE_NAME: env.OTEL_SERVICE_NAME ?? "volumetric-bot",
       OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: env.OTEL_EXPORTER_OTLP_TRACES_ENDPOINT,
       OTEL_EXPORTER_OTLP_LOGS_ENDPOINT: env.OTEL_EXPORTER_OTLP_LOGS_ENDPOINT,
       OTEL_EXPORTER_AUTH: env.OTEL_EXPORTER_AUTH,
