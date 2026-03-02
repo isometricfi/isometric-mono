@@ -1,3 +1,4 @@
+import { NextResponse } from "next/server";
 import { z } from "zod";
 
 export const cronAuthHeaderSchema = z.object({
@@ -18,4 +19,26 @@ export function isAuthorizedCronRequest(request: Request, cronSecret: string): b
   }
 
   return parsedHeaders.data.authorization === `Bearer ${cronSecret}`;
+}
+
+export function createCronErrorResponse(error: string, status: number) {
+  const payload = cronErrorSchema.parse({ error });
+  return NextResponse.json(payload, { status });
+}
+
+export function createCronSuccessResponse<T>(schema: z.ZodType<T>, payload: unknown) {
+  return NextResponse.json(schema.parse(payload));
+}
+
+export function getCronAuthGuardResponse(request: Request): NextResponse | null {
+  const cronSecret = process.env.CRON_SECRET;
+  if (!cronSecret) {
+    return createCronErrorResponse("Server misconfigured", 500);
+  }
+
+  if (!isAuthorizedCronRequest(request, cronSecret)) {
+    return createCronErrorResponse("Unauthorized", 401);
+  }
+
+  return null;
 }

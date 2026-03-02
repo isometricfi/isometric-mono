@@ -1,7 +1,10 @@
-import { NextResponse } from "next/server";
 import { z } from "zod";
 import { syncEventsFromCanister } from "@/lib/use-cases/events/sync-events/usecase";
-import { cronErrorSchema, isAuthorizedCronRequest } from "../_lib/schemas";
+import {
+  createCronErrorResponse,
+  createCronSuccessResponse,
+  getCronAuthGuardResponse,
+} from "../_lib/schemas";
 
 const syncEventsSuccessSchema = z.object({
   success: z.literal(true),
@@ -10,28 +13,20 @@ const syncEventsSuccessSchema = z.object({
 });
 
 export async function GET(request: Request) {
-  const cronSecret = process.env.CRON_SECRET;
-  if (!cronSecret) {
-    const payload = cronErrorSchema.parse({ error: "Server misconfigured" });
-    return NextResponse.json(payload, { status: 500 });
-  }
-
-  if (!isAuthorizedCronRequest(request, cronSecret)) {
-    const payload = cronErrorSchema.parse({ error: "Unauthorized" });
-    return NextResponse.json(payload, { status: 401 });
+  const guardResponse = getCronAuthGuardResponse(request);
+  if (guardResponse) {
+    return guardResponse;
   }
 
   try {
     const result = await syncEventsFromCanister();
-    const payload = syncEventsSuccessSchema.parse({
+    return createCronSuccessResponse(syncEventsSuccessSchema, {
       success: true,
       syncedCount: result.syncedCount,
       latestEventId: result.latestEventId,
     });
-    return NextResponse.json(payload);
   } catch (error) {
     console.error("Failed to sync events:", error);
-    const payload = cronErrorSchema.parse({ error: "Failed to sync events" });
-    return NextResponse.json(payload, { status: 500 });
+    return createCronErrorResponse("Failed to sync events", 500);
   }
 }

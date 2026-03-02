@@ -92,6 +92,14 @@ Monorepo using pnpm workspaces and Turborepo.
 - **Folders**: lowercase-with-dashes (e.g., `layout/`, `wallet/`)
 - **Component files**: PascalCase (e.g., `ConnectButton.tsx`, `Navbar.tsx`)
 - **shadcn ui/**: Keep lowercase (shadcn convention)
+- **Time constants**: Include explicit duration and unit in the name (e.g., `BASE_BACKOFF_1_MINUTE_MS`, `MAX_AGE_6_MINUTES_MS`)
+
+## TypeScript File Organization
+
+- Place the primary exported/public function near the top of the file (after imports, types, and constants)
+- Keep internal helper functions below the exported API
+- If helper logic grows beyond simple private functions, move it into a colocated `_internal/` directory
+- Keep internal module tests in the same `_internal/` directory (e.g., `_internal/*.test.ts`)
 
 ## Directory Structure
 
