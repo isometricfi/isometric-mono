@@ -6,7 +6,12 @@ use crate::auth::types::{
 use crate::auth::{build_challenge_context, verify_btc_signature};
 use crate::errors::{error_codes, VolumetricError};
 use crate::guards::is_whitelisted;
-use crate::storage::{get_nonce, get_principal_for_wallet, increment_nonce, is_wallet_registered};
+use crate::storage::{
+    get_invite_code_for_principal, get_nonce, get_points as get_points_for_principal,
+    get_principal_for_wallet, get_profile, get_referral_count as get_referrals_for_principal,
+    increment_nonce, is_wallet_registered, resolve_invite_code as resolve_invite_to_principal,
+    PointsProfile,
+};
 use crate::usecases;
 
 #[derive(Debug, candid::CandidType, serde::Serialize, serde::Deserialize)]
@@ -50,6 +55,7 @@ pub fn create_account(
 
     let params = usecases::RegisterAccountParams {
         wallet_address: address.clone(),
+        invite_code: req.data.invite_code.clone(),
     };
     let result = usecases::register_account_use_case(params);
 
@@ -79,10 +85,10 @@ pub fn get_account_info(address: String) -> Option<ProfileInfo> {
 }
 
 #[ic_cdk::query]
-pub fn get_message_to_sign(address: String) -> String {
+pub fn get_message_to_sign(address: String, invite_code: Option<String>) -> String {
     let wallet_key = WalletKey::from_address(&address);
     let context = build_challenge_context(&wallet_key);
-    let req = CreateProfileRequest {};
+    let req = CreateProfileRequest { invite_code };
     req.signing_message(&address, &context)
 }
 
@@ -134,4 +140,32 @@ pub fn list_users() -> Vec<UserInfo> {
             username: u.username,
         })
         .collect()
+}
+
+#[ic_cdk::query]
+pub fn get_points(address: String) -> Option<PointsProfile> {
+    let wallet_key = WalletKey::from_address(&address);
+    let principal = get_principal_for_wallet(&wallet_key)?;
+    Some(get_points_for_principal(&principal))
+}
+
+#[ic_cdk::query]
+pub fn get_invite_code(address: String) -> Option<String> {
+    let wallet_key = WalletKey::from_address(&address);
+    let principal = get_principal_for_wallet(&wallet_key)?;
+    get_invite_code_for_principal(&principal)
+}
+
+#[ic_cdk::query]
+pub fn resolve_invite_code(code: String) -> Option<String> {
+    let principal = resolve_invite_to_principal(&code)?;
+    let profile = get_profile(&principal)?;
+    Some(profile.wallet_address)
+}
+
+#[ic_cdk::query]
+pub fn get_referral_count(address: String) -> Option<u64> {
+    let wallet_key = WalletKey::from_address(&address);
+    let principal = get_principal_for_wallet(&wallet_key)?;
+    Some(get_referrals_for_principal(&principal))
 }

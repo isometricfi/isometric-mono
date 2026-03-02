@@ -14,13 +14,15 @@ import {
 import { useLocale, useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
 import { useMediaQuery } from "react-responsive";
+import { ShareSummaryModal } from "@/app/[locale]/history/_components/ShareSummaryModal";
 import { ThemeToggle } from "@/components/layout/ThemeToggle";
 import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Drawer, DrawerContent, DrawerTitle } from "@/components/ui/drawer";
+import { Drawer, DrawerClose, DrawerContent, DrawerTitle } from "@/components/ui/drawer";
 import { DepositModal } from "@/components/wallet/DepositModal";
 import { WithdrawModal } from "@/components/wallet/WithdrawModal";
 import { useAccount, usePrices, useUpdateUsername } from "@/hooks";
+import { useModal } from "@/hooks/use-modal";
 import { Link, usePathname, useRouter } from "@/i18n/routing";
 import { cn, formatBtcWithSymbolBigint, roundToN } from "@/lib/utils";
 import { Badge } from "../ui/badge";
@@ -66,6 +68,7 @@ function AccountPanelContent({ onDisconnect }: { onDisconnect: () => void }) {
   const { data: priceData } = usePrices();
   const { data: accountData, isLoading: isLoadingBalance } = useAccount();
   const updateUsername = useUpdateUsername();
+  const { openModal } = useModal();
   const router = useRouter();
   const pathname = usePathname();
   const locale = useLocale();
@@ -83,6 +86,8 @@ function AccountPanelContent({ onDisconnect }: { onDisconnect: () => void }) {
   const balance = accountData?.balance;
   const deposited = balance?.total ?? BigInt(0);
   const available = balance?.available ?? BigInt(0);
+  const points = accountData?.rewards.points ?? BigInt(0);
+  const referrals = accountData?.rewards.referrals ?? BigInt(0);
 
   const btcPrice = priceData?.btc ?? 0;
   const depositedBtc = Number(deposited) / 100_000_000;
@@ -202,11 +207,32 @@ function AccountPanelContent({ onDisconnect }: { onDisconnect: () => void }) {
                   <p>{t("withdraw")}</p>
                 </Button>
               </div>
-              <Link href="/history" className="md:absolute right-0 w-full">
-                <Button variant="outline" size="sm" className="w-full">
-                  <History className="size-4 " /> {t("tradeHistory")}
+              <DrawerClose asChild>
+                <Link href="/history" className="w-full">
+                  <Button variant="outline" size="sm" className="w-full">
+                    <History className="size-4 " /> {t("tradeHistory")}
+                  </Button>
+                </Link>
+              </DrawerClose>
+              <div className="flex justify-between gap-2 pl-2 items-center mt-4 border-l">
+                <div>
+                  <div className="flex items-center gap-1">
+                    <p className=" text-muted-foreground">{t("points")}:</p>
+                    <p className=" font-semibold">{points.toLocaleString()}</p>
+                  </div>
+                  <Badge variant="secondary" className="h-fit">
+                    <p className="text-muted-foreground">{t("referrals")}:</p>
+                    <p className=" font-semibold">{referrals.toLocaleString()}</p>{" "}
+                  </Badge>
+                </div>
+                <Button
+                  variant="secondary"
+                  className="min-h-full!"
+                  onClick={() => openModal(<ShareSummaryModal />, false)}
+                >
+                  {t("inviteUsers")}
                 </Button>
-              </Link>
+              </div>
             </motion.div>
           ) : null}
 

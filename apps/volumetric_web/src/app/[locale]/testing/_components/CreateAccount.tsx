@@ -32,7 +32,7 @@ export function CreateAccount() {
     queryKey: ["messageToSign", address],
     queryFn: async () => {
       if (!canister || !address) return null;
-      return canister.get_message_to_sign(address);
+      return canister.get_message_to_sign(address, []);
     },
     enabled: !!canister && !!address && !accountInfo,
   });
@@ -49,7 +49,7 @@ export function CreateAccount() {
         throw new Error("Not ready");
       }
 
-      const message = await canister.get_message_to_sign(address);
+      const message = await canister.get_message_to_sign(address, []);
       const signature = await primaryWallet.signMessage(message, {
         addressType: "payment",
       });

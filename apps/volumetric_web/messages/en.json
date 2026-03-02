@@ -32,7 +32,10 @@
     "save": "Save",
     "saving": "Saving...",
     "saved": "Saved",
-    "system": "System"
+    "system": "System",
+    "points": "Points",
+    "referrals": "Referrals",
+    "inviteUsers": "Invite users"
   },
   "Common": {
     "wallet": "Wallet",

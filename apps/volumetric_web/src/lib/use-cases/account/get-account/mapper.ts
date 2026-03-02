@@ -6,6 +6,7 @@ export function mapProfile(profile: ProfileInfo): ProfileData {
     address: profile.address,
     username: profile.username.length > 0 ? (profile.username[0] ?? null) : null,
     principal: profile.principal.toString(),
+    inviteCode: null,
   };
 }
 

@@ -19,7 +19,8 @@ export function ShareSummaryModal() {
   if (!account?.profile || !history) return null;
 
   const address = account.profile.address;
-  const shareUrl = `/s/${address}`;
+  const shareCode = account.profile.inviteCode ?? address;
+  const shareUrl = `/s/${shareCode}`;
   const absoluteShareUrl =
     typeof window !== "undefined" ? window.location.origin + shareUrl : shareUrl;
   const ogImageUrl = `/api/og/${address}`;

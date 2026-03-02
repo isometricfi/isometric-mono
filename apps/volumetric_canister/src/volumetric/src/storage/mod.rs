@@ -5,6 +5,7 @@ pub mod cbor;
 pub mod config;
 pub mod events;
 pub mod options;
+pub mod points;
 pub mod settlements;
 pub mod state;
 pub mod withdrawals;
@@ -26,7 +27,7 @@ pub use balances::{
     InsufficientBalance, UserBalance,
 };
 pub use cbor::Cbor;
-pub use config::{BtcNetwork, Config, FeatureFlags, FeeConfig, Range, TradingLimits};
+pub use config::{BtcNetwork, Config, FeatureFlags, FeeConfig, PointsConfig, Range, TradingLimits};
 pub use events::{
     clear_events, delete_events_before, emit_event, get_all_events, get_event_count,
     get_events_by_principal, get_events_since, Event, EventData, EventType, TradeRole,
@@ -38,6 +39,10 @@ pub use options::{
     list_expired_active_options, list_offers_by_writer, list_open_offers, next_id,
     update_active_option, update_offer, ActiveOption, ActiveOptionStatus, Asset, CounterKey, Offer,
     OfferStatus, OptionType, MINIMUM_QUANTITY_SATS,
+};
+pub use points::{
+    award_points_safe, get_invite_code_for_principal, get_or_create_invite_code, get_points,
+    get_referral_count, link_referrer_once, resolve_invite_code, PointsProfile, PointsReason,
 };
 pub use settlements::{
     complete_settlement, create_settlement, fail_settlement, get_settlement,

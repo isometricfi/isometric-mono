@@ -49,7 +49,7 @@ fn test_register_account_with_invalid_signature_fails() {
     let invalid_signature = "InvalidBase64SignatureData";
 
     // when
-    let result = create_account_with_signature(&env, &wallet.address, invalid_signature);
+    let result = create_account_with_signature(&env, &wallet.address, invalid_signature, None);
 
     // then
     let error = result.expect_err("Expected account creation to fail with invalid signature");

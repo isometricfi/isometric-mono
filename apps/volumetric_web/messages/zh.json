@@ -32,7 +32,10 @@
     "save": "保存",
     "saving": "保存中...",
     "saved": "已保存",
-    "system": "系统"
+    "system": "系统",
+    "points": "积分",
+    "referrals": "邀请人数",
+    "inviteUsers": "邀请用户"
   },
   "Common": {
     "wallet": "钱包",

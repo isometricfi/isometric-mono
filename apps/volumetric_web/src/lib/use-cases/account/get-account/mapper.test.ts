@@ -30,6 +30,7 @@ describe("mapProfile", () => {
       address: DEFAULT_ADDRESS,
       username: "testuser",
       principal: DEFAULT_PRINCIPAL.toString(),
+      inviteCode: null,
     });
   });
 

@@ -11,6 +11,35 @@ import { useAccount } from "./queries/use-account";
 import { useBtcAddress } from "./queries/use-btc-address";
 import { useCanister } from "./use-canister";
 
+const INVITE_CODE_STORAGE_KEY = "volumetric.inviteCode";
+const INVITE_CODE_PATTERN = /^[A-Z0-9]{6}$/;
+
+function readInviteCodeFromSession(): string | undefined {
+  if (typeof window === "undefined") {
+    return undefined;
+  }
+
+  const rawValue = window.sessionStorage.getItem(INVITE_CODE_STORAGE_KEY);
+  if (!rawValue) {
+    return undefined;
+  }
+
+  const normalizedValue = rawValue.trim().toUpperCase();
+  if (!INVITE_CODE_PATTERN.test(normalizedValue)) {
+    return undefined;
+  }
+
+  return normalizedValue;
+}
+
+function clearInviteCodeFromSession() {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  window.sessionStorage.removeItem(INVITE_CODE_STORAGE_KEY);
+}
+
 export type EnsureAccountStep =
   | "idle"
   | "checking"
@@ -55,8 +84,10 @@ export function useEnsureAccount() {
         throw new Error("Not ready");
       }
 
+      const inviteCode = readInviteCodeFromSession();
+
       setStep("awaiting_signature");
-      const message = await canister.get_message_to_sign(address);
+      const message = await canister.get_message_to_sign(address, inviteCode ? [inviteCode] : []);
       const signature = await primaryWallet.signMessage(message, { addressType: "payment" });
 
       if (!signature) {
@@ -64,10 +95,11 @@ export function useEnsureAccount() {
       }
 
       setStep("creating");
-      return trpcClient.account.createAccount.mutate({ address, signature });
+      return trpcClient.account.createAccount.mutate({ address, signature, inviteCode });
     },
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: [["account"]] });
+      clearInviteCodeFromSession();
       setStep("done");
       setTimeout(() => openOnboardingModal(), 500);
     },
