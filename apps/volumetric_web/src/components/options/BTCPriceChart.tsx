@@ -10,6 +10,14 @@ import { Card, CardContent } from "../ui/card";
 
 const EXTRA_DAYS_AFTER_EXPIRY = 3;
 const CHART_PADDING = { top: 10, right: 10, bottom: 25, left: 45 };
+const CHART_LINE_STROKE_WIDTH = 1.7;
+const CHART_LINE_COLOR = "#6b7280";
+const HISTORY_AREA_TOP_OPACITY = 0.1;
+const HISTORY_AREA_BOTTOM_OPACITY = 0;
+const HISTORY_AREA_FADE_OUT_AT = "82%";
+const HISTORY_AREA_BLUR_STD_DEV = 1.2;
+const HISTORY_LOOKBACK_MULTIPLIER = 1.5;
+const MIN_HISTORY_DAYS = 7;
 
 interface BTCPriceChartProps {
   mode: "buyer" | "writer";
@@ -26,9 +34,11 @@ export function BTCPriceChart({ mode }: BTCPriceChartProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
 
-  const { data: historyData, isLoading: historyLoading } = useBTCHistory(14);
-  const { data: priceData } = usePrices();
   const { strikePercent, termDays } = useChartOptionsStore();
+  const historyDays = Math.max(MIN_HISTORY_DAYS, Math.ceil(termDays * HISTORY_LOOKBACK_MULTIPLIER));
+
+  const { data: historyData, isLoading: historyLoading } = useBTCHistory(historyDays);
+  const { data: priceData } = usePrices();
 
   const currentPrice = priceData?.btc ?? 0;
   const strikePrice = currentPrice * (1 + strikePercent / 100);
@@ -74,13 +84,19 @@ export function BTCPriceChart({ mode }: BTCPriceChartProps) {
       return { chartData: [], expiryIndex: -1 };
     }
 
-    const historicalPoints: DataPoint[] = historyData.map((point) => ({
-      date: point.date.toLocaleDateString("en-US", { month: "short", day: "numeric" }),
-      price: point.price,
-      timestamp: point.timestamp,
-    }));
+    const historicalPoints: DataPoint[] = [...historyData]
+      .sort((a, b) => a.timestamp - b.timestamp)
+      .filter((point) => Number.isFinite(point.timestamp) && Number.isFinite(point.price))
+      .map((point) => ({
+        date: point.date.toLocaleDateString("en-US", { month: "short", day: "numeric" }),
+        price: point.price,
+        timestamp: point.timestamp,
+      }));
 
-    const lastPoint = historyData[historyData.length - 1];
+    const lastPoint = historicalPoints[historicalPoints.length - 1];
+    if (!lastPoint) {
+      return { chartData: [], expiryIndex: -1 };
+    }
     const futureDays = termDays + EXTRA_DAYS_AFTER_EXPIRY;
     const futurePoints: DataPoint[] = [];
 
@@ -94,13 +110,8 @@ export function BTCPriceChart({ mode }: BTCPriceChartProps) {
     }
 
     const expiryTimestamp = lastPoint.timestamp + termDays * 24 * 60 * 60 * 1000;
-    const expiryDateStr = new Date(expiryTimestamp).toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-    });
-
     const allData = [...historicalPoints, ...futurePoints];
-    const expIdx = allData.findIndex((d) => d.date === expiryDateStr);
+    const expIdx = allData.findIndex((d) => d.timestamp === expiryTimestamp);
 
     return {
       chartData: allData,
@@ -111,8 +122,13 @@ export function BTCPriceChart({ mode }: BTCPriceChartProps) {
   const { minPrice, maxPrice } = useMemo(() => {
     if (chartData.length === 0) return { minPrice: 0, maxPrice: 100000 };
 
-    const prices = chartData.filter((d) => d.price !== null).map((d) => d.price as number);
-    const allPrices = [...prices, strikePrice];
+    const prices = chartData
+      .filter((d) => d.price !== null && Number.isFinite(d.price))
+      .map((d) => d.price as number);
+    const allPrices = Number.isFinite(strikePrice) ? [...prices, strikePrice] : prices;
+
+    if (allPrices.length === 0) return { minPrice: 0, maxPrice: 100000 };
+
     const min = Math.min(...allPrices);
     const max = Math.max(...allPrices);
     const padding = (max - min) * 0.15;
@@ -127,11 +143,19 @@ export function BTCPriceChart({ mode }: BTCPriceChartProps) {
   const chartHeight = dimensions.height - CHART_PADDING.top - CHART_PADDING.bottom;
 
   const scaleX = useMemo(() => {
-    return (index: number) => {
-      if (chartData.length <= 1) return CHART_PADDING.left;
-      return CHART_PADDING.left + (index / (chartData.length - 1)) * chartWidth;
+    if (chartData.length <= 1) {
+      return () => CHART_PADDING.left;
+    }
+
+    const firstTimestamp = chartData[0].timestamp;
+    const lastTimestamp = chartData[chartData.length - 1].timestamp;
+    const timestampRange = lastTimestamp - firstTimestamp;
+
+    return (timestamp: number) => {
+      if (timestampRange <= 0) return CHART_PADDING.left;
+      return CHART_PADDING.left + ((timestamp - firstTimestamp) / timestampRange) * chartWidth;
     };
-  }, [chartData.length, chartWidth]);
+  }, [chartData, chartWidth]);
 
   const scaleY = useMemo(() => {
     return (price: number) => {
@@ -141,51 +165,52 @@ export function BTCPriceChart({ mode }: BTCPriceChartProps) {
     };
   }, [minPrice, maxPrice, chartHeight]);
 
-  const pricePath = useMemo(() => {
-    const validPoints = chartData
-      .map((d, i) => ({ ...d, index: i }))
-      .filter((d) => d.price !== null);
+  const pricePolylinePoints = useMemo(() => {
+    const points = chartData
+      .filter((d) => d.price !== null && Number.isFinite(d.timestamp) && Number.isFinite(d.price))
+      .map((d) => ({
+        x: scaleX(d.timestamp),
+        y: scaleY(d.price as number),
+      }))
+      .filter((point) => Number.isFinite(point.x) && Number.isFinite(point.y));
 
-    if (validPoints.length === 0) return "";
+    if (points.length < 2) return "";
 
-    const pathParts = validPoints.map((point, i) => {
-      const x = scaleX(point.index);
-      const y = scaleY(point.price as number);
-      return i === 0 ? `M ${x} ${y}` : `L ${x} ${y}`;
-    });
-
-    return pathParts.join(" ");
+    return points.map((point) => `${point.x},${point.y}`).join(" ");
   }, [chartData, scaleX, scaleY]);
 
-  const areaPath = useMemo(() => {
-    const validPoints = chartData
-      .map((d, i) => ({ ...d, index: i }))
-      .filter((d) => d.price !== null);
+  const historyAreaPolygonPoints = useMemo(() => {
+    const points = chartData
+      .filter((d) => d.price !== null && Number.isFinite(d.timestamp) && Number.isFinite(d.price))
+      .map((d) => ({
+        x: scaleX(d.timestamp),
+        y: scaleY(d.price as number),
+      }))
+      .filter((point) => Number.isFinite(point.x) && Number.isFinite(point.y));
 
-    if (validPoints.length === 0) return "";
+    if (points.length < 2) return "";
 
-    const lineParts = validPoints.map((point, i) => {
-      const x = scaleX(point.index);
-      const y = scaleY(point.price as number);
-      return i === 0 ? `M ${x} ${y}` : `L ${x} ${y}`;
-    });
-
-    const lastValidPoint = validPoints[validPoints.length - 1];
-    const firstValidPoint = validPoints[0];
     const bottomY = CHART_PADDING.top + chartHeight;
+    const firstPoint = points[0];
+    const lastPoint = points[points.length - 1];
+    const linePoints = points.map((point) => `${point.x},${point.y}`).join(" ");
 
-    return `${lineParts.join(" ")} L ${scaleX(lastValidPoint.index)} ${bottomY} L ${scaleX(firstValidPoint.index)} ${bottomY} Z`;
+    return `${firstPoint.x},${bottomY} ${linePoints} ${lastPoint.x},${bottomY}`;
   }, [chartData, scaleX, scaleY, chartHeight]);
 
   const lastPriceIndex = chartData.findIndex((d) => d.price === null) - 1;
   const todayIndex = lastPriceIndex >= 0 ? lastPriceIndex : chartData.length - 1;
-  const todayX = scaleX(todayIndex);
+  const todayPoint = chartData[todayIndex];
+  const todayX = todayPoint ? scaleX(todayPoint.timestamp) : CHART_PADDING.left;
   const currentPriceY = scaleY(currentPrice);
 
-  const expiryX = expiryIndex >= 0 ? scaleX(expiryIndex) : 0;
+  const expiryPoint = expiryIndex >= 0 ? chartData[expiryIndex] : undefined;
+  const expiryX = expiryPoint ? scaleX(expiryPoint.timestamp) : CHART_PADDING.left;
   const strikeY = scaleY(strikePrice);
-  const zoneEndIndex = Math.min(expiryIndex + 3, chartData.length - 1);
-  const zoneEndX = scaleX(zoneEndIndex);
+  const zoneEndIndex =
+    expiryIndex >= 0 ? Math.min(expiryIndex + 3, chartData.length - 1) : chartData.length - 1;
+  const zoneEndPoint = chartData[zoneEndIndex];
+  const zoneEndX = zoneEndPoint ? scaleX(zoneEndPoint.timestamp) : expiryX;
 
   const profitColor = mode === "buyer" ? "34, 197, 94" : "239, 68, 68";
   const lossColor = mode === "buyer" ? "239, 68, 68" : "34, 197, 94";
@@ -198,21 +223,33 @@ export function BTCPriceChart({ mode }: BTCPriceChartProps) {
 
   const xTicks = useMemo(() => {
     if (chartData.length === 0) return [];
-    const indices = [
-      0,
-      Math.floor(chartData.length / 3),
-      Math.floor((2 * chartData.length) / 3),
-      chartData.length - 1,
+
+    const firstTimestamp = chartData[0].timestamp;
+    const lastTimestamp = chartData[chartData.length - 1].timestamp;
+    const timestampRange = lastTimestamp - firstTimestamp;
+
+    if (timestampRange <= 0) {
+      return [{ timestamp: firstTimestamp, label: chartData[0].date }];
+    }
+
+    const tickTimestamps = [
+      firstTimestamp,
+      firstTimestamp + timestampRange / 3,
+      firstTimestamp + (2 * timestampRange) / 3,
+      lastTimestamp,
     ];
-    return indices.map((i) => ({ index: i, label: chartData[i]?.date ?? "" }));
+
+    return tickTimestamps.map((timestamp) => ({
+      timestamp,
+      label: new Date(timestamp).toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+      }),
+    }));
   }, [chartData]);
 
   if (historyLoading) {
-    return (
-      <div className="bg-card rounded-3xl border border-border p-6 h-full min-h-64 md:max-h-none max-h-64">
-        <Skeleton className="w-full h-full rounded-2xl" />
-      </div>
-    );
+    return <Skeleton className="w-full  rounded-xl h-full min-h-64 md:max-h-none max-h-64" />;
   }
 
   return (
@@ -238,10 +275,36 @@ export function BTCPriceChart({ mode }: BTCPriceChartProps) {
             >
               <title id="btc-chart-title">BTC/USD price chart with strike price projection</title>
               <defs>
-                <linearGradient id="areaGradient" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="hsl(var(--chart-1))" stopOpacity={0.3} />
-                  <stop offset="100%" stopColor="hsl(var(--chart-1))" stopOpacity={0.02} />
+                <linearGradient id="historyAreaGradient" x1="0" y1="0" x2="0" y2="1">
+                  <stop
+                    offset="0%"
+                    stopColor="hsl(var(--foreground))"
+                    stopOpacity={HISTORY_AREA_TOP_OPACITY}
+                  />
+                  <stop
+                    offset={HISTORY_AREA_FADE_OUT_AT}
+                    stopColor="hsl(var(--foreground))"
+                    stopOpacity={HISTORY_AREA_BOTTOM_OPACITY}
+                  />
+                  <stop
+                    offset="100%"
+                    stopColor="hsl(var(--foreground))"
+                    stopOpacity={HISTORY_AREA_BOTTOM_OPACITY}
+                  />
                 </linearGradient>
+                <filter
+                  id="historyAreaSoftBlur"
+                  x={CHART_PADDING.left - 8}
+                  y={CHART_PADDING.top}
+                  width={chartWidth + 16}
+                  height={chartHeight}
+                  filterUnits="userSpaceOnUse"
+                >
+                  <feGaussianBlur
+                    in="SourceGraphic"
+                    stdDeviation={`${HISTORY_AREA_BLUR_STD_DEV} 0`}
+                  />
+                </filter>
                 <linearGradient id="strikeLineGradient" x1="0" y1="0" x2="1" y2="0">
                   <stop offset="0%" stopColor="#71717a" stopOpacity={0.8} />
                   <stop offset="100%" stopColor="#71717a" stopOpacity={0} />
@@ -281,10 +344,10 @@ export function BTCPriceChart({ mode }: BTCPriceChartProps) {
                 </g>
               ))}
 
-              {xTicks.map(({ index, label }) => (
+              {xTicks.map(({ timestamp, label }) => (
                 <text
-                  key={index}
-                  x={scaleX(index)}
+                  key={timestamp}
+                  x={scaleX(timestamp)}
                   y={CHART_PADDING.top + chartHeight + 18}
                   textAnchor="middle"
                   className="fill-muted-foreground text-[11px]"
@@ -292,6 +355,12 @@ export function BTCPriceChart({ mode }: BTCPriceChartProps) {
                   {label}
                 </text>
               ))}
+
+              <polygon
+                points={historyAreaPolygonPoints}
+                fill="url(#historyAreaGradient)"
+                filter="url(#historyAreaSoftBlur)"
+              />
 
               {expiryIndex >= 0 && (
                 <>
@@ -362,12 +431,12 @@ export function BTCPriceChart({ mode }: BTCPriceChartProps) {
                 </>
               )}
 
-              <path d={areaPath} fill="url(#areaGradient)" />
-              <path
-                d={pricePath}
+              <polyline
+                points={pricePolylinePoints}
                 fill="none"
-                stroke="hsl(var(--chart-1))"
-                strokeWidth={2}
+                stroke={CHART_LINE_COLOR}
+                strokeOpacity={0.95}
+                strokeWidth={CHART_LINE_STROKE_WIDTH}
                 strokeLinecap="round"
                 strokeLinejoin="round"
               />
