@@ -43,6 +43,8 @@ function makeRepositoryMock(): IDepositSyncRepository {
     listDueTrackedDeposits: vi.fn(),
     listUserPendingDeposits: vi.fn(),
     saveBalanceSnapshot: vi.fn(),
+    getUserDepositAddress: vi.fn(),
+    saveUserDepositAddress: vi.fn(),
   };
 }
 
