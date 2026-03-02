@@ -1,144 +1,195 @@
-import { Lock, PiggyBank, Zap } from "lucide-react";
+import { ArrowRight, Lock, TrendingUp, Zap } from "lucide-react";
 import type { Metadata } from "next";
-import { Avatar } from "@/components/ui/avatar";
+import Image from "next/image";
+import { getTranslations } from "next-intl/server";
 import { Button } from "@/components/ui/button";
 import { Link } from "@/i18n/routing";
 import { getHistoryByHash } from "@/lib/use-cases/history/get-history-by-hash/usecase";
-import { formatBtcWithSymbolBigint } from "@/lib/utils";
+import { cn, formatBtcWithSymbolBigint, getFallbackUsername } from "@/lib/utils";
 
 export async function generateMetadata({
   params,
 }: {
-  params: Promise<{ id: string; locale: string }>;
+  params: { id: string; locale: string };
 }): Promise<Metadata> {
-  const { id, locale } = await params;
+  const { id, locale } = params;
+  const t = await getTranslations({ locale, namespace: "Metadata.share" });
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://isometric.fi";
   const ogImageUrl = `${baseUrl}/api/og/${id}?locale=${locale}`;
 
   return {
-    title: "Trading Stats | Isometric",
-    description: "Check out my Bitcoin options trading performance on Isometric",
+    title: t("title"),
+    description: t("description"),
+    keywords: t("keywords")
+      .split(",")
+      .map((k) => k.trim()),
     openGraph: {
-      title: "My Trading Stats on Isometric",
-      description: "Bitcoin Options Trading Performance",
+      title: t("ogTitle"),
+      description: t("description"),
       images: [
         {
           url: ogImageUrl,
           width: 1200,
           height: 630,
-          alt: "Trading Stats",
+          alt: t("ogImageAlt"),
         },
       ],
     },
     twitter: {
       card: "summary_large_image",
-      title: "My Trading Stats on Isometric",
-      description: "Bitcoin Options Trading Performance",
+      title: t("ogTitle"),
+      description: t("description"),
       images: [ogImageUrl],
     },
   };
 }
 
-export default async function SharePage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params;
+export default async function SharePage({ params }: { params: { id: string; locale: string } }) {
+  const { id, locale } = params;
+  const t = await getTranslations({ locale, namespace: "SharePage" });
   const history = await getHistoryByHash(id);
   const entries = history?.entries ?? [];
-  const username = history?.username ?? `User ${id}`;
-  const principal = history?.principal ?? id;
+  const username = history?.username ?? getFallbackUsername(id, locale);
 
-  if (entries.length === 0) {
-    return (
-      <div className="container mx-auto py-16 max-w-2xl text-center">
-        <h1 className="text-3xl font-bold mb-4">No Trading History</h1>
-        <p className="text-muted-foreground mb-8">This user hasn't completed any trades yet.</p>
-        <Button asChild>
-          <Link href="/">Visit Isometric</Link>
-        </Button>
-      </div>
-    );
-  }
+  const hasHistory = entries.length > 0;
 
-  const totalPnlSats = entries.reduce((sum, e) => sum + e.pnlSats, BigInt(0));
-  const profitableTrades = entries.filter((e) => e.result === "profit").length;
-  const winRate = (profitableTrades / entries.length) * 100;
-  const totalVolumeSats = entries.reduce((sum, e) => sum + e.quantitySats, BigInt(0));
+  const totalPnlSats = hasHistory ? entries.reduce((sum, e) => sum + e.pnlSats, BigInt(0)) : null;
+  const profitableTrades = hasHistory ? entries.filter((e) => e.result === "profit").length : 0;
+  const winRate = hasHistory ? (profitableTrades / entries.length) * 100 : null;
+  const totalVolumeSats = hasHistory
+    ? entries.reduce((sum, e) => sum + e.quantitySats, BigInt(0))
+    : null;
+  const isPnlPositive = totalPnlSats !== null && totalPnlSats >= BigInt(0);
 
-  const sortedEntries = [...entries].sort((a, b) => Number(a.acceptedAt - b.acceptedAt));
+  const sortedEntries = hasHistory
+    ? [...entries].sort((a, b) => Number(a.acceptedAt - b.acceptedAt))
+    : [];
   const firstTrade = sortedEntries[0];
   const joinedDate = firstTrade
-    ? new Date(Number(firstTrade.acceptedAt / BigInt(1_000_000))).toLocaleDateString("en-US", {
+    ? new Date(Number(firstTrade.acceptedAt / BigInt(1_000_000))).toLocaleDateString(locale, {
         month: "long",
         year: "numeric",
       })
-    : "New Member";
+    : null;
+
+  const pnlDisplay =
+    totalPnlSats !== null
+      ? isPnlPositive
+        ? `+${formatBtcWithSymbolBigint(totalPnlSats, 6)}`
+        : formatBtcWithSymbolBigint(totalPnlSats, 6)
+      : null;
+
+  const headlineKey = hasHistory ? "headline" : "emptyHeadline";
+  const subheadlineKey = hasHistory ? "subheadline" : "emptySubheadline";
 
   return (
-    <div className="container mx-auto md:py-5 py-4 max-w-2xl">
-      <div className=" space-y-3 mb-8 border-b pb-3">
-        <div className="flex items-center gap-4 justify-center pb-6 border-b">
-          <Avatar seed={principal} width={48} height={48} />
-          <div>
-            <p className="text-xl font-semibold">{username}</p>
-            <p className="text-sm text-muted-foreground">Joined {joinedDate}</p>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 ">
-          <div className="text-center">
-            <p className="text-sm text-muted-foreground">Total P&L</p>
-            <p className="text-xl font-bold">{formatBtcWithSymbolBigint(totalPnlSats, 6)}</p>
-          </div>
-          <div className="text-center">
-            <p className="text-sm text-muted-foreground">Win Rate</p>
-            <p className="text-xl font-bold">{winRate.toFixed(1)}%</p>
-          </div>
-          <div className="text-center">
-            <p className="text-sm text-muted-foreground">Volume</p>
-            <p className="text-xl font-bold">{formatBtcWithSymbolBigint(totalVolumeSats, 5)}</p>
-          </div>
-          <div className="text-center ">
-            <p className="text-sm text-muted-foreground">Trades</p>
-            <p className="text-xl font-bold  ">{entries.length}</p>
-          </div>
-        </div>
+    <div className="container mx-auto md:py-8 py-6 max-w-xl space-y-5">
+      {/* Hero headline */}
+      <div className="text-center space-y-2 px-2">
+        <h1 className="md:text-3xl text-2xl font-bold tracking-tight">
+          {t.rich(headlineKey, {
+            username,
+            primary: (chunks) => <span className="text-primary">{chunks}</span>,
+          })}
+        </h1>
+        <p className="text-muted-foreground md:text-sm text-xs leading-relaxed max-w-md mx-auto">
+          {t(subheadlineKey, { username })}
+        </p>
       </div>
 
+      {/* Profile card */}
       <div className="rounded-xl border bg-card p-5 space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="flex md:flex-col items-center gap-3 md:text-center p-4 rounded-xl bg-muted/50">
-            <div className="size-12! min-w-12 rounded-xl bg-primary/10 flex items-center justify-center">
-              <Zap className="size-6 text-primary" />
+        {/* Profile row */}
+        <div className="flex items-center gap-3">
+          <Image
+            src={`/api/avatar?name=${id}`}
+            alt="Avatar"
+            width={44}
+            height={44}
+            className="rounded-full shrink-0"
+          />
+          <div className="flex-1 min-w-0">
+            <p className="font-semibold truncate">{username}</p>
+            <p className="text-xs text-muted-foreground">
+              {joinedDate ? t("joinedAt", { date: joinedDate }) : t("newMember")}
+              {hasHistory ? ` · ${t("tradesCount", { count: entries.length })}` : null}
+            </p>
+          </div>
+          {winRate !== null && (
+            <div className="text-right shrink-0">
+              <p className="text-xs text-muted-foreground">{t("winRateLabel")}</p>
+              <p className="text-lg font-bold text-primary">{winRate.toFixed(0)}%</p>
             </div>
-            <div>
-              <p className="font-semibold">Leverage</p>
-              <p className="text-sm text-muted-foreground">Up to 100x on price movements</p>
+          )}
+        </div>
+
+        {/* P&L + volume — only when trades exist */}
+        {pnlDisplay !== null && totalVolumeSats !== null && (
+          <div className="grid grid-cols-2 gap-3">
+            <div className="rounded-lg bg-muted/40 px-4 py-3">
+              <p className="text-xs text-muted-foreground uppercase tracking-wide mb-0.5">
+                {t("totalPnlLabel")}
+              </p>
+              <p
+                className={cn(
+                  "md:text-xl text-lg font-bold tabular-nums",
+                  isPnlPositive ? "text-green-500" : "text-destructive",
+                )}
+              >
+                {pnlDisplay}
+              </p>
+            </div>
+            <div className="rounded-lg bg-muted/40 px-4 py-3">
+              <p className="text-xs text-muted-foreground uppercase tracking-wide mb-0.5">
+                {t("volumeLabel")}
+              </p>
+              <p className="md:text-xl text-lg font-bold tabular-nums">
+                {formatBtcWithSymbolBigint(totalVolumeSats, 5)}
+              </p>
             </div>
           </div>
+        )}
+      </div>
 
-          <div className="flex md:flex-col items-center gap-3 md:text-center p-4 rounded-xl bg-green-500/10">
-            <div className="size-12! min-w-12 rounded-xl bg-green-500/10 flex items-center justify-center">
-              <PiggyBank className="size-6 text-green-600 dark:text-green-400" />
+      {/* Why Isometric + CTA */}
+      <div className="rounded-xl border bg-card p-5 space-y-5">
+        <div className="space-y-3">
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">
+            {t("whyIsometric")}
+          </p>
+          <div className="space-y-3">
+            <div className="flex items-start gap-3">
+              <Zap className="size-4 text-primary mt-0.5 shrink-0" />
+              <div>
+                <p className="text-sm font-medium">{t("leverageTitle")}</p>
+                <p className="text-xs text-muted-foreground">{t("leverageDesc")}</p>
+              </div>
             </div>
-            <div>
-              <p className="font-semibold">Earn Yield</p>
-              <p className="text-sm text-muted-foreground">Generate income on your BTC holdings</p>
+            <div className="flex items-start gap-3">
+              <TrendingUp className="size-4 text-primary mt-0.5 shrink-0" />
+              <div>
+                <p className="text-sm font-medium">{t("yieldTitle")}</p>
+                <p className="text-xs text-muted-foreground">{t("yieldDesc")}</p>
+              </div>
             </div>
-          </div>
-
-          <div className="flex md:flex-col items-center gap-3 md:text-center p-4 rounded-xl bg-muted/50">
-            <div className="size-12! min-w-12 rounded-xl bg-muted flex items-center justify-center">
-              <Lock className="size-6 text-foreground" />
-            </div>
-            <div>
-              <p className="font-semibold">Fully On-Chain</p>
-              <p className="text-sm text-muted-foreground">Trustless, self-custodial trading</p>
+            <div className="flex items-start gap-3">
+              <Lock className="size-4 text-primary mt-0.5 shrink-0" />
+              <div>
+                <p className="text-sm font-medium">{t("custodialTitle")}</p>
+                <p className="text-xs text-muted-foreground">{t("custodialDesc")}</p>
+              </div>
             </div>
           </div>
         </div>
 
-        <Button asChild size="lg" className="w-full">
-          <Link href="/write">Open App</Link>
-        </Button>
+        <div className="space-y-2">
+          <Button asChild size="lg" className="w-full">
+            <Link href="/write">
+              {t("startTrading")}
+              <ArrowRight className="size-4 ml-1" />
+            </Link>
+          </Button>
+        </div>
       </div>
     </div>
   );

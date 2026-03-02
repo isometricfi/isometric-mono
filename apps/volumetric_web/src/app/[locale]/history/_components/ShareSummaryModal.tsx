@@ -28,7 +28,7 @@ export function ShareSummaryModal() {
   const totalPnlSats = entries.reduce((sum, e) => sum + e.pnlSats, BigInt(0));
   const totalTrades = entries.length;
   const profitableTrades = entries.filter((e) => e.result === "profit").length;
-  const winRate = (profitableTrades / totalTrades) * 100;
+  const winRate = totalTrades > 0 ? (profitableTrades / totalTrades) * 100 : 0;
 
   const twitterText = encodeURIComponent(
     t("twitterText", {
