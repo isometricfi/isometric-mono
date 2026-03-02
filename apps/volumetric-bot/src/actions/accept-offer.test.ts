@@ -8,7 +8,6 @@ const BOT_ADDRESS = "mock-address";
 const BOT_PRINCIPAL = "mock-principal";
 const OTHER_PRINCIPAL = "other-principal";
 const MIN_OFFER_AMOUNT_SATS = 90_000;
-const LARGE_AVAILABLE_BALANCE_SATS = BigInt(100_000_000);
 const VALID_OFFER_ID = "42";
 const BEST_OFFER_ID = "101";
 const WORSE_OFFER_ID = "102";
@@ -34,7 +33,6 @@ interface MockAcceptOfferTrpc {
   };
   account: {
     getAccount: Pick<MockProcedure, "query">;
-    getBalance: Pick<MockProcedure, "query">;
   };
 }
 
@@ -88,11 +86,6 @@ describe("acceptOffer", () => {
             profile: {
               principal: BOT_PRINCIPAL,
             },
-          }),
-        },
-        getBalance: {
-          query: vi.fn().mockResolvedValue({
-            available: LARGE_AVAILABLE_BALANCE_SATS,
           }),
         },
       },
