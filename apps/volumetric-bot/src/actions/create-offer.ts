@@ -7,9 +7,16 @@ import type { BotWallet } from "../wallet.js";
 const TEN_YEARS_NS = BigInt(86400) * BigInt(1_000_000_000) * BigInt(365 * 10);
 
 const MAX_OPEN_OFFERS = 4;
+const MAX_OPTION_TERM_DAYS = 3;
 const SECONDS_PER_DAY = 86400;
 const BASIS_POINTS_PER_PERCENT = 100;
 const MAX_SAFE_INTEGER_BIGINT = BigInt(Number.MAX_SAFE_INTEGER);
+const CREATE_OFFER_SKIP_REASON = {
+  maxOpenOffersReached: "max_open_offers_reached",
+  noShortTermTermOptions: "no_short_term_term_options",
+  insufficientBalance: "insufficient_balance",
+  invalidOfferConstraints: "invalid_offer_constraints",
+} as const;
 
 interface FlatOffer {
   writerId: string;
@@ -123,8 +130,9 @@ function buildOfferParams(
   config: BotConfigData,
   optionsData: OptionsData,
   maxAffordableSats: number,
+  availableTermOptions: number[],
 ): OfferParams | null {
-  if (config.termOptions.length === 0 || config.strikePercentOptions.length === 0) {
+  if (availableTermOptions.length === 0 || config.strikePercentOptions.length === 0) {
     return null;
   }
 
@@ -132,7 +140,7 @@ function buildOfferParams(
     return null;
   }
 
-  const termDays = randomFromArray(config.termOptions);
+  const termDays = randomFromArray(availableTermOptions);
   const strikePercent = randomFromArray(config.strikePercentOptions);
 
   const minPremiumBps = toBasisPoints(config.premium.min);
@@ -191,13 +199,27 @@ export async function createOffer(
           max_open_offers: MAX_OPEN_OFFERS,
         });
         span.setAttribute("skipped", true);
-        span.setAttribute("skip_reason", "max_open_offers_reached");
+        span.setAttribute("skip_reason", CREATE_OFFER_SKIP_REASON.maxOpenOffersReached);
         span.setAttribute("own_open_offers", ownOpenOffers);
         span.setAttribute("max_open_offers", MAX_OPEN_OFFERS);
         return;
       }
 
       const config = await trpc.config.getConfig.query();
+      const shortTermOptions = config.termOptions.filter(
+        (termDays) => termDays <= MAX_OPTION_TERM_DAYS,
+      );
+
+      if (shortTermOptions.length === 0) {
+        log("warn", "No short-term term options available in config", {
+          max_term_days: MAX_OPTION_TERM_DAYS,
+        });
+        span.setAttribute("skipped", true);
+        span.setAttribute("skip_reason", CREATE_OFFER_SKIP_REASON.noShortTermTermOptions);
+        span.setAttribute("max_term_days", MAX_OPTION_TERM_DAYS);
+        return;
+      }
+
       const minRequiredForOffer = config.minOfferAmountSats;
 
       const balance = await trpc.account.getBalance.query({
@@ -234,7 +256,7 @@ export async function createOffer(
           });
 
           span.setAttribute("skipped", true);
-          span.setAttribute("skip_reason", "insufficient_balance");
+          span.setAttribute("skip_reason", CREATE_OFFER_SKIP_REASON.insufficientBalance);
           span.setAttribute("deposit_address", depositInfo.btcAddress);
           return;
         }
@@ -245,7 +267,7 @@ export async function createOffer(
         });
       }
 
-      const params = buildOfferParams(config, optionsData, availableSats);
+      const params = buildOfferParams(config, optionsData, availableSats, shortTermOptions);
       if (!params) {
         log("warn", "Unable to build a valid offer with current constraints", {
           available: availableSats,
@@ -253,7 +275,7 @@ export async function createOffer(
           max_offer_amount_sats: config.maxOfferAmountSats,
         });
         span.setAttribute("skipped", true);
-        span.setAttribute("skip_reason", "invalid_offer_constraints");
+        span.setAttribute("skip_reason", CREATE_OFFER_SKIP_REASON.invalidOfferConstraints);
         return;
       }
 
