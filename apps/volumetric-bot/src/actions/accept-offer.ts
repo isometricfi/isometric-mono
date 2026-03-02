@@ -4,7 +4,6 @@ import { log, withSpan } from "../telemetry.js";
 import type { TRPCClient } from "../trpc-client.js";
 import type { BotWallet } from "../wallet.js";
 
-const TRANSFER_FEE_BUFFER_SATS = 20;
 const MAX_OPTION_TERM_DAYS = 3;
 
 export const ACCEPT_OFFER_OUTCOME = {
@@ -13,7 +12,6 @@ export const ACCEPT_OFFER_OUTCOME = {
   onlyOwnOffers: "only_own_offers",
   noShortTermOffers: "no_short_term_offers",
   noValidOffers: "no_valid_offers",
-  insufficientBalance: "insufficient_balance",
 } as const;
 
 const ACCEPT_OFFER_SKIP_REASON = {
@@ -21,7 +19,6 @@ const ACCEPT_OFFER_SKIP_REASON = {
   onlyOwnOffers: "only_own_offers",
   noShortTermOffers: "no_short_term_offers",
   noValidOffers: "no_valid_offers",
-  insufficientBalance: "insufficient_balance",
 } as const;
 
 interface FlatOffer {
@@ -57,15 +54,9 @@ export interface AcceptOfferResult {
 }
 
 function flattenOffers(optionsData: OptionsData): FlatOffer[] {
-  const offers: FlatOffer[] = [];
-  for (const termGroup of optionsData.termGroups) {
-    for (const strike of termGroup.strikes) {
-      for (const offer of strike.offers) {
-        offers.push(offer);
-      }
-    }
-  }
-  return offers;
+  return optionsData.termGroups.flatMap((termGroup) =>
+    termGroup.strikes.flatMap((strike) => strike.offers),
+  );
 }
 
 function isOwnOffer(offer: FlatOffer, walletAddress: string, ownPrincipal: string | null): boolean {
@@ -195,29 +186,6 @@ export async function acceptOffer(
       premium: selectedOffer.premium,
       strike_percent: selectedOffer.strikePercent,
     });
-
-    // Check buyer balance (premium + transfer fees)
-    const balance = await trpc.account.getBalance.query({
-      address: wallet.address,
-    });
-
-    const premiumSats = Math.ceil(selectedOffer.amountSats * (selectedOffer.premium / 100));
-    const estimatedCost = premiumSats + TRANSFER_FEE_BUFFER_SATS;
-
-    if (!balance || balance.available < BigInt(estimatedCost)) {
-      log("warn", "Insufficient balance to accept offer", {
-        available: balance?.available.toString() ?? "0",
-        estimated_cost: estimatedCost,
-      });
-      span.setAttribute("skipped", true);
-      span.setAttribute("skip_reason", ACCEPT_OFFER_SKIP_REASON.insufficientBalance);
-      return {
-        outcome: ACCEPT_OFFER_OUTCOME.insufficientBalance,
-        selectedOfferId: selectedOffer.id,
-        selectedOfferScore,
-        candidateCount: rankedOffers.length,
-      } as const;
-    }
 
     const items = [
       {
