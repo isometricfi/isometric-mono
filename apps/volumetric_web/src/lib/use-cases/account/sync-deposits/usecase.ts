@@ -23,24 +23,19 @@ export async function syncDepositsFromCanister(): Promise<Output> {
   const minDepositAmountSats = Number(tradingLimits.deposit_amount_sats);
   const users = await actor.list_users();
 
-  let maturedDetected = 0;
-  let totalSyncCalls = 0;
-  let totalCreditedDeposits = 0;
-  let totalSnapshotsSaved = 0;
-
-  for (const user of users) {
-    const userAddress = user.address;
-    const detectedDepositsForUser = await detectMaturedDepositsForUser({
+  const detectionPromises = users.map((user) =>
+    detectMaturedDepositsForUser({
       repository,
       actor,
-      userAddress,
+      userAddress: user.address,
       nowMs,
       currentBlockTipHeight,
       minDepositAmountSats,
       minterConfirmations: MINTER_CONFIRMATIONS,
-    });
-    maturedDetected += detectedDepositsForUser;
-  }
+    }),
+  );
+  const detectionResults = await Promise.all(detectionPromises);
+  const maturedDetected = detectionResults.reduce((sum, count) => sum + count, 0);
 
   const dueDepositsByUser = await groupDueDepositsByUser({
     repository,
@@ -49,18 +44,26 @@ export async function syncDepositsFromCanister(): Promise<Output> {
     maxTrackedDepositAgeMs: MAX_TRACKED_DEPOSIT_AGE_6_HOURS_MS,
   });
 
-  for (const [userAddress, dueDeposits] of dueDepositsByUser.entries()) {
-    const reconciliationResult = await reconcileUserDepositsAfterSync({
-      repository,
-      actor,
-      userAddress,
-      dueDeposits,
-      nowMs,
-      zeroBigInt: ZERO_BIGINT,
-      maxSyncAttempts: MAX_SYNC_ATTEMPTS,
-      getBackoffDelayMs,
-    });
+  const reconciliationPromises = Array.from(dueDepositsByUser.entries()).map(
+    ([userAddress, dueDeposits]) =>
+      reconcileUserDepositsAfterSync({
+        repository,
+        actor,
+        userAddress,
+        dueDeposits,
+        nowMs,
+        zeroBigInt: ZERO_BIGINT,
+        maxSyncAttempts: MAX_SYNC_ATTEMPTS,
+        getBackoffDelayMs,
+      }),
+  );
+  const reconciliationResults = await Promise.all(reconciliationPromises);
 
+  let totalSyncCalls = 0;
+  let totalCreditedDeposits = 0;
+  let totalSnapshotsSaved = 0;
+
+  for (const reconciliationResult of reconciliationResults) {
     totalSyncCalls += reconciliationResult.syncCalls;
     totalCreditedDeposits += reconciliationResult.creditedDeposits;
     totalSnapshotsSaved += reconciliationResult.snapshotsSaved;
