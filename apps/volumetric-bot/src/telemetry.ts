@@ -29,10 +29,17 @@ interface TelemetryState {
   authHeader?: string;
 }
 
+interface SpanContext {
+  traceId: string;
+  spanId: string;
+}
+
 const telemetryState: TelemetryState = {
   serviceName: BOT_TRACER_NAME,
   serviceInstanceId: "unknown",
 };
+
+let activeSpanContext: SpanContext | undefined;
 
 function parseAuthorizationHeader(rawAuth?: string): string | undefined {
   if (!rawAuth) {
@@ -151,6 +158,7 @@ function exportOtelSpan(
   spanName: string,
   traceId: string,
   spanId: string,
+  parentSpanId: string | undefined,
   startTimeUnixNano: string,
   endTimeUnixNano: string,
   statusCode: 0 | 1 | 2,
@@ -180,6 +188,7 @@ function exportOtelSpan(
               {
                 traceId,
                 spanId,
+                ...(parentSpanId ? { parentSpanId } : {}),
                 name: spanName,
                 startTimeUnixNano,
                 endTimeUnixNano,
@@ -248,8 +257,10 @@ export async function withSpan<T>(
   attributes: SpanAttributes,
   fn: (span: Span) => Promise<T>,
 ): Promise<T> {
-  const traceId = randomHex(16);
+  const parentSpanContext = activeSpanContext;
+  const traceId = parentSpanContext?.traceId ?? randomHex(16);
   const spanId = randomHex(8);
+  const currentSpanContext: SpanContext = { traceId, spanId };
   const spanAttributes: SpanAttributes = { ...attributes };
   const startTimeUnixNano = nowUnixNano();
 
@@ -273,12 +284,15 @@ export async function withSpan<T>(
     }),
   } as unknown as Span;
 
+  activeSpanContext = currentSpanContext;
+
   try {
     const result = await fn(spanShim);
     exportOtelSpan(
       name,
       traceId,
       spanId,
+      parentSpanContext?.spanId,
       startTimeUnixNano,
       nowUnixNano(),
       1,
@@ -293,6 +307,7 @@ export async function withSpan<T>(
       name,
       traceId,
       spanId,
+      parentSpanContext?.spanId,
       startTimeUnixNano,
       nowUnixNano(),
       2,
@@ -300,5 +315,7 @@ export async function withSpan<T>(
       spanAttributes,
     );
     throw error;
+  } finally {
+    activeSpanContext = parentSpanContext;
   }
 }

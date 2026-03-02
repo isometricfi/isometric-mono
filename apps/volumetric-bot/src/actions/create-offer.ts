@@ -136,6 +136,10 @@ function buildOfferParams(
     return null;
   }
 
+  if (config.maxOfferAmountSats < config.minOfferAmountSats) {
+    return null;
+  }
+
   if (maxAffordableSats < config.minOfferAmountSats) {
     return null;
   }
@@ -162,6 +166,9 @@ function buildOfferParams(
   );
 
   const quantityUpperBound = Math.min(config.maxOfferAmountSats, maxAffordableSats);
+  if (quantityUpperBound < config.minOfferAmountSats) {
+    return null;
+  }
   const quantitySats = randomInt(config.minOfferAmountSats, quantityUpperBound);
   const strikeBasisPoints = toBasisPoints(strikePercent);
   const optionDurationSeconds = termDays * SECONDS_PER_DAY;
