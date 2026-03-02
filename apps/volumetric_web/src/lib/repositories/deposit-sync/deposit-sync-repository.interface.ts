@@ -33,6 +33,11 @@ export interface UserDepositAddress {
   updatedAtMs: number;
 }
 
+export interface DepositSyncCursor {
+  lastProcessedBlockHeight: number;
+  updatedAtMs: number;
+}
+
 export interface IDepositSyncRepository {
   getTrackedDepositByKey(key: string): Promise<TrackedDeposit | null>;
   saveTrackedDeposit(deposit: TrackedDeposit): Promise<void>;
@@ -41,4 +46,6 @@ export interface IDepositSyncRepository {
   saveBalanceSnapshot(snapshot: BalanceSnapshot): Promise<void>;
   getUserDepositAddress(userAddress: string): Promise<UserDepositAddress | null>;
   saveUserDepositAddress(record: UserDepositAddress): Promise<void>;
+  getDepositSyncCursor(): Promise<DepositSyncCursor | null>;
+  saveDepositSyncCursor(cursor: DepositSyncCursor): Promise<void>;
 }

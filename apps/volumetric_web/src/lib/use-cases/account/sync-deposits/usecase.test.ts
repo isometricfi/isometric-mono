@@ -28,6 +28,7 @@ class InMemoryDepositSyncRepository implements IDepositSyncRepository {
   private tracked = new Map<string, TrackedDeposit>();
   private snapshots: BalanceSnapshot[] = [];
   private userDepositAddresses = new Map<string, { depositAddress: string; updatedAtMs: number }>();
+  private cursor: { lastProcessedBlockHeight: number; updatedAtMs: number } | null = null;
 
   async getTrackedDepositByKey(key: string): Promise<TrackedDeposit | null> {
     return this.tracked.get(key) ?? null;
@@ -87,6 +88,20 @@ class InMemoryDepositSyncRepository implements IDepositSyncRepository {
     });
   }
 
+  async getDepositSyncCursor(): Promise<{
+    lastProcessedBlockHeight: number;
+    updatedAtMs: number;
+  } | null> {
+    return this.cursor;
+  }
+
+  async saveDepositSyncCursor(cursor: {
+    lastProcessedBlockHeight: number;
+    updatedAtMs: number;
+  }): Promise<void> {
+    this.cursor = cursor;
+  }
+
   getAllTracked(): TrackedDeposit[] {
     return Array.from(this.tracked.values());
   }
@@ -144,6 +159,43 @@ describe("syncDepositsFromCanister", () => {
     expect(result.syncCalls).toBe(1);
     expect(result.creditedDeposits).toBe(1);
     expect(actor.update_ckbtc_balance).toHaveBeenCalledWith(USER_ADDRESS);
+  });
+
+  test("should skip sync work when current tip height was already processed", async () => {
+    // given
+    const repository = new InMemoryDepositSyncRepository();
+    await repository.saveDepositSyncCursor({
+      lastProcessedBlockHeight: 500,
+      updatedAtMs: 1_700_000_000_000,
+    });
+    const actor = {
+      get_trading_limits: vi.fn(),
+      list_users: vi.fn(),
+      get_deposit_address: vi.fn(),
+      get_user_balance: vi.fn(),
+      update_ckbtc_balance: vi.fn(),
+    };
+    getCanisterActorMock.mockResolvedValue(actor);
+    getDepositSyncRepositoryMock.mockReturnValue(repository);
+    vi.mocked(fetch).mockResolvedValueOnce({
+      ok: true,
+      text: async () => "500",
+    } as Response);
+
+    // when
+    const result = await syncDepositsFromCanister();
+
+    // then
+    expect(result).toEqual({
+      usersScanned: 0,
+      maturedDetected: 0,
+      syncCalls: 0,
+      creditedDeposits: 0,
+      snapshotsSaved: 0,
+    });
+    expect(actor.get_trading_limits).not.toHaveBeenCalled();
+    expect(actor.list_users).not.toHaveBeenCalled();
+    expect(actor.update_ckbtc_balance).not.toHaveBeenCalled();
   });
 
   test("should credit three matured deposits detected at the same time", async () => {

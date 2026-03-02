@@ -18,6 +18,17 @@ export async function syncDepositsFromCanister(): Promise<Output> {
   const repository = getDepositSyncRepository();
   const nowMs = Date.now();
   const currentBlockTipHeight = await getMempoolTipHeight();
+  const cursor = await repository.getDepositSyncCursor();
+  if (cursor?.lastProcessedBlockHeight === currentBlockTipHeight) {
+    return mapResult({
+      usersScanned: 0,
+      maturedDetected: 0,
+      syncCalls: 0,
+      creditedDeposits: 0,
+      snapshotsSaved: 0,
+    });
+  }
+
   const actor = await getCanisterActor();
   const tradingLimits = await actor.get_trading_limits();
   const minDepositAmountSats = Number(tradingLimits.deposit_amount_sats);
@@ -68,6 +79,11 @@ export async function syncDepositsFromCanister(): Promise<Output> {
     totalCreditedDeposits += reconciliationResult.creditedDeposits;
     totalSnapshotsSaved += reconciliationResult.snapshotsSaved;
   }
+
+  await repository.saveDepositSyncCursor({
+    lastProcessedBlockHeight: currentBlockTipHeight,
+    updatedAtMs: nowMs,
+  });
 
   return mapResult({
     usersScanned: users.length,
