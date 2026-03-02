@@ -474,6 +474,7 @@
     "breakEven": "Break Even",
     "quantity": "Quantity",
     "premiumPaid": "Premium Paid",
+    "premiumEarned": "Premium Earned",
     "expiresAt": "Expires",
     "timeRemaining": "Time Remaining",
     "progress": "Progress",

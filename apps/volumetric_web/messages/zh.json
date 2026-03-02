@@ -455,6 +455,7 @@
     "breakEven": "盈亏平衡",
     "quantity": "数量",
     "premiumPaid": "已付溢价",
+    "premiumEarned": "已赚取溢价",
     "expiresAt": "到期",
     "timeRemaining": "剩余时间",
     "progress": "进度",

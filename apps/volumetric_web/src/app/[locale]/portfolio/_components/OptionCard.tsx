@@ -37,6 +37,7 @@ interface OptionCardProps {
 function calculatePnL(
   option: PortfolioOption,
   currentPrice: number,
+  role: ViewerMode,
 ): { valueBtc: number; valueUsd: number; percent: number; isProfit: boolean } | null {
   if (currentPrice <= 0) return null;
 
@@ -48,46 +49,20 @@ function calculatePnL(
   const premiumBtc = premiumSats / SATS_PER_BTC;
   const premiumUsd = premiumBtc * currentPrice;
   const quantityBtc = quantitySats / SATS_PER_BTC;
+  const payoutBtc =
+    currentPrice > strikePriceUsd
+      ? (quantityBtc * (currentPrice - strikePriceUsd)) / currentPrice
+      : 0;
+  const payoutUsd = payoutBtc * currentPrice;
+  const netPnLBtc = role === "buyer" ? payoutBtc - premiumBtc : premiumBtc - payoutBtc;
+  const netPnLUsd = role === "buyer" ? payoutUsd - premiumUsd : premiumUsd - payoutUsd;
+  const percent = premiumUsd > 0 ? (netPnLUsd / premiumUsd) * 100 : 0;
 
-  if (option.status === "Active") {
-    if (currentPrice > strikePriceUsd) {
-      const maxPayoutBtc = quantityBtc;
-      const maxPayoutUsd = maxPayoutBtc * currentPrice;
-      const netPnL = maxPayoutUsd - premiumUsd;
-      const netPnLBtc = netPnL / currentPrice;
-      return {
-        valueBtc: netPnLBtc,
-        valueUsd: netPnL,
-        percent: (netPnL / premiumUsd) * 100,
-        isProfit: netPnL > 0,
-      };
-    }
-    return {
-      valueBtc: -premiumBtc,
-      valueUsd: -premiumUsd,
-      percent: -100,
-      isProfit: false,
-    };
-  }
-
-  // As a writer
-  if (currentPrice > strikePriceUsd) {
-    const maxPayoutBtc = quantityBtc;
-    const maxPayoutUsd = maxPayoutBtc * currentPrice;
-    const netPnL = premiumUsd - maxPayoutUsd;
-    const netPnLBtc = netPnL / currentPrice;
-    return {
-      valueBtc: netPnLBtc,
-      valueUsd: netPnL,
-      percent: (netPnL / premiumUsd) * 100,
-      isProfit: netPnL > 0,
-    };
-  }
   return {
-    valueBtc: premiumBtc,
-    valueUsd: premiumUsd,
-    percent: 100,
-    isProfit: true,
+    valueBtc: netPnLBtc,
+    valueUsd: netPnLUsd,
+    percent,
+    isProfit: netPnLUsd > 0,
   };
 }
 
@@ -154,16 +129,18 @@ function OptionDetailContent({
   const premiumBtc = Number(option.premiumPaid) / SATS_PER_BTC;
   const quantityBtc = Number(option.quantity) / SATS_PER_BTC;
 
+  const premiumToQuantityRatio = quantityBtc > 0 ? premiumBtc / quantityBtc : 0;
   const breakEvenPrice =
-    role === "buyer"
-      ? strikePrice + (premiumBtc / quantityBtc) * btcPrice
-      : strikePrice - (premiumBtc / quantityBtc) * btcPrice;
+    role === "buyer" && quantityBtc > premiumBtc
+      ? strikePrice / (1 - premiumToQuantityRatio)
+      : null;
 
-  const priceToBreakEven = btcPrice > 0 ? ((breakEvenPrice - btcPrice) / btcPrice) * 100 : 0;
+  const priceToBreakEven =
+    breakEvenPrice !== null && btcPrice > 0 ? ((breakEvenPrice - btcPrice) / btcPrice) * 100 : null;
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-2 gap-4">
+      <div className={cn("grid grid-cols-2 gap-4", role === "writer" && "grid-cols-3")}>
         <div className="space-y-1">
           <div className="text-xs text-muted-foreground">{t("currentPrice")}</div>
           <div className="font-mono font-medium">${roundToN(btcPrice, 0).toLocaleString()}</div>
@@ -176,21 +153,23 @@ function OptionDetailContent({
           <div className="text-xs text-muted-foreground">{t("entryPrice")}</div>
           <div className="font-mono font-medium">${roundToN(entryPrice, 0).toLocaleString()}</div>
         </div>
-        <div className="space-y-1">
-          <div className="text-xs text-muted-foreground">{t("breakEven")}</div>
-          <div className="font-mono font-medium">
-            ${roundToN(breakEvenPrice, 0).toLocaleString()}
-            <span
-              className={cn(
-                "text-xs ml-1",
-                priceToBreakEven > 0 ? "text-red-500" : "text-green-500",
-              )}
-            >
-              ({priceToBreakEven > 0 ? "+" : ""}
-              {roundToN(priceToBreakEven, 1)}%)
-            </span>
+        {breakEvenPrice !== null && priceToBreakEven !== null ? (
+          <div className="space-y-1">
+            <div className="text-xs text-muted-foreground">{t("breakEven")}</div>
+            <div className="font-mono font-medium">
+              ${roundToN(breakEvenPrice, 0).toLocaleString()}
+              <span
+                className={cn(
+                  "text-xs ml-1",
+                  priceToBreakEven > 0 ? "text-red-500" : "text-green-500",
+                )}
+              >
+                ({priceToBreakEven > 0 ? "+" : ""}
+                {roundToN(priceToBreakEven, 1)}%)
+              </span>
+            </div>
           </div>
-        </div>
+        ) : null}
       </div>
 
       <div className="border-t pt-4 space-y-3">
@@ -199,7 +178,9 @@ function OptionDetailContent({
           <span className="font-mono">{formatBtcWithSymbolBigint(option.quantity)}</span>
         </div>
         <div className="flex justify-between text-sm">
-          <span className="text-muted-foreground">{t("premiumPaid")}</span>
+          <span className="text-muted-foreground">
+            {role === "buyer" ? t("premiumPaid") : t("premiumEarned")}
+          </span>
           <span className="font-mono">₿{roundToN(premiumBtc, 6)}</span>
         </div>
         <div className="flex justify-between text-sm">
@@ -254,7 +235,7 @@ export function OptionCard({ option, btcPrice, role }: OptionCardProps) {
   const isMobile = useMediaQuery({ query: "(max-width: 768px)" });
   const t = useTranslations("OptionCard");
   const timeRemaining = getTimeRemaining(option.expiry, option.acceptedAt, (key: string) => t(key));
-  const pnl = calculatePnL(option, btcPrice);
+  const pnl = calculatePnL(option, btcPrice, role);
   const strikePrice = Number(option.strikePriceCents) / 100;
 
   const cardContent = (
