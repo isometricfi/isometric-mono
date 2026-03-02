@@ -1,11 +1,11 @@
 BOT_PRIVATE_KEY_WIF=your-wif-private-key-goes-here
 CANISTER_ID=your-canister-id
 IC_HOST=https://ic0.app
-BTC_NETWORK=mainnet
+BTC_NETWORK=testnet
 BOT_NAME=bot-1
 
 # Optional telemetry
 OTEL_SERVICE_NAME=volumetric-bot
 OTEL_EXPORTER_OTLP_TRACES_ENDPOINT=
 OTEL_EXPORTER_OTLP_LOGS_ENDPOINT=
-OTEL_EXPORTER_AUTH=Authorization=Basic <base64>
+OTEL_EXPORTER_AUTH=Authorization=Basic%20<base64>

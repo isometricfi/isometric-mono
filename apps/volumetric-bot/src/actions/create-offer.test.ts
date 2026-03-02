@@ -1,5 +1,5 @@
 import type { _SERVICE } from "@volumetric/canister-types";
-import { beforeEach, describe, expect, test, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import type { TRPCClient } from "../trpc-client";
 import type { BotWallet } from "../wallet";
 import { createOffer } from "./create-offer";
@@ -10,6 +10,27 @@ const DEPOSIT_ADDRESS = "tb1qdeposit";
 const MIN_OFFER_AMOUNT_SATS = 90_000;
 const MAX_OFFER_AMOUNT_SATS = 10_000_000;
 const LARGE_AVAILABLE_BALANCE_SATS = BigInt(100_000_000);
+const SECONDS_PER_DAY = 86_400;
+type MockProcedure = {
+  query: ReturnType<typeof vi.fn>;
+  mutate: ReturnType<typeof vi.fn>;
+};
+
+interface MockCreateOfferTrpc {
+  account: {
+    getAccount: Pick<MockProcedure, "query">;
+    getBalance: Pick<MockProcedure, "query">;
+    syncBalance: Pick<MockProcedure, "mutate">;
+    getDepositAddress: Pick<MockProcedure, "query">;
+  };
+  options: {
+    listOptions: Pick<MockProcedure, "query">;
+    createOffer: Pick<MockProcedure, "mutate">;
+  };
+  config: {
+    getConfig: Pick<MockProcedure, "query">;
+  };
+}
 
 // Mock dependencies
 vi.mock("../canister-client.js", () => ({
@@ -38,7 +59,7 @@ describe("createOffer", () => {
 
   const mockActor = {} as _SERVICE; // cast as we mock the helper function that uses it
 
-  let mockTrpc: any;
+  let mockTrpc: MockCreateOfferTrpc;
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -79,12 +100,17 @@ describe("createOffer", () => {
       },
     });
     mockTrpc.config.getConfig.query.mockResolvedValue({
-      termOptions: [7, 14],
+      termOptions: [2, 3],
       strikePercentOptions: [5, 10, 15],
       premium: { min: 1, max: 10, step: 0.25 },
       minOfferAmountSats: MIN_OFFER_AMOUNT_SATS,
       maxOfferAmountSats: MAX_OFFER_AMOUNT_SATS,
     });
+    mockTrpc.options.createOffer.mutate.mockResolvedValue({ offerId: "unexpected-create" });
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
   });
 
   test("should skip offer creation if balance is insufficient", async () => {
@@ -98,7 +124,7 @@ describe("createOffer", () => {
     mockTrpc.account.getDepositAddress.query.mockResolvedValue({ btcAddress: DEPOSIT_ADDRESS });
 
     // when
-    await createOffer(mockActor, mockTrpc as TRPCClient, mockWallet);
+    await createOffer(mockActor, mockTrpc as unknown as TRPCClient, mockWallet);
 
     // then
     expect(mockTrpc.account.getBalance.query).toHaveBeenCalledWith({ address: BOT_ADDRESS });
@@ -129,7 +155,7 @@ describe("createOffer", () => {
     });
 
     // when
-    await createOffer(mockActor, mockTrpc as TRPCClient, mockWallet);
+    await createOffer(mockActor, mockTrpc as unknown as TRPCClient, mockWallet);
 
     // then
     expect(mockTrpc.account.getBalance.query).not.toHaveBeenCalled();
@@ -149,7 +175,7 @@ describe("createOffer", () => {
     mockTrpc.options.createOffer.mutate.mockResolvedValue({ offerId: "new-offer-id" });
 
     // when
-    await createOffer(mockActor, mockTrpc as TRPCClient, mockWallet);
+    await createOffer(mockActor, mockTrpc as unknown as TRPCClient, mockWallet);
 
     // then
     expect(mockTrpc.account.getBalance.query).toHaveBeenCalled();
@@ -161,5 +187,51 @@ describe("createOffer", () => {
     expect(callArgs.address).toBe(BOT_ADDRESS);
     expect(callArgs.signature).toBe("mock-signature");
     expect(callArgs.quantity).toBeDefined();
+  });
+
+  test("should create only short-term offers with duration three days or less", async () => {
+    // given
+    vi.spyOn(Math, "random").mockReturnValue(0);
+    mockTrpc.config.getConfig.query.mockResolvedValue({
+      termOptions: [7, 2],
+      strikePercentOptions: [5, 10, 15],
+      premium: { min: 1, max: 10, step: 0.25 },
+      minOfferAmountSats: MIN_OFFER_AMOUNT_SATS,
+      maxOfferAmountSats: MAX_OFFER_AMOUNT_SATS,
+    });
+    mockTrpc.account.getBalance.query.mockResolvedValue({
+      available: LARGE_AVAILABLE_BALANCE_SATS,
+    });
+    mockTrpc.options.createOffer.mutate.mockResolvedValue({ offerId: "short-term-offer" });
+
+    // when
+    await createOffer(mockActor, mockTrpc as unknown as TRPCClient, mockWallet);
+
+    // then
+    expect(mockTrpc.options.createOffer.mutate).toHaveBeenCalled();
+    const payload = mockTrpc.options.createOffer.mutate.mock.calls[0][0];
+    const optionDurationSeconds = Number(payload.optionDurationSeconds);
+    const maxAllowedSeconds = 3 * SECONDS_PER_DAY;
+    expect(optionDurationSeconds).toBeLessThanOrEqual(maxAllowedSeconds);
+  });
+
+  test("should skip offer creation when no short-term term option exists", async () => {
+    // given
+    mockTrpc.config.getConfig.query.mockResolvedValue({
+      termOptions: [7, 14],
+      strikePercentOptions: [5, 10, 15],
+      premium: { min: 1, max: 10, step: 0.25 },
+      minOfferAmountSats: MIN_OFFER_AMOUNT_SATS,
+      maxOfferAmountSats: MAX_OFFER_AMOUNT_SATS,
+    });
+    mockTrpc.account.getBalance.query.mockResolvedValue({
+      available: LARGE_AVAILABLE_BALANCE_SATS,
+    });
+
+    // when
+    await createOffer(mockActor, mockTrpc as unknown as TRPCClient, mockWallet);
+
+    // then
+    expect(mockTrpc.options.createOffer.mutate).not.toHaveBeenCalled();
   });
 });

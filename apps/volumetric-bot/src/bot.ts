@@ -1,4 +1,8 @@
-import { acceptOffer } from "./actions/accept-offer.js";
+import {
+  ACCEPT_OFFER_OUTCOME,
+  type AcceptOfferResult,
+  acceptOffer,
+} from "./actions/accept-offer.js";
 import { createOffer } from "./actions/create-offer.js";
 import { setup } from "./actions/setup.js";
 import { getCanisterActor } from "./canister-client.js";
@@ -8,7 +12,18 @@ import type { TRPCFetch } from "./trpc-client.js";
 import { getTRPCClient } from "./trpc-client.js";
 import { createWallet } from "./wallet.js";
 
-export type BotAction = "create" | "accept";
+export const BOT_ACTION = {
+  create: "create",
+  accept: "accept",
+} as const;
+
+export type BotAction = (typeof BOT_ACTION)[keyof typeof BOT_ACTION];
+const ACCEPT_FALLBACK_OUTCOMES = new Set<AcceptOfferResult["outcome"]>([
+  ACCEPT_OFFER_OUTCOME.noOffers,
+  ACCEPT_OFFER_OUTCOME.onlyOwnOffers,
+  ACCEPT_OFFER_OUTCOME.noShortTermOffers,
+  ACCEPT_OFFER_OUTCOME.noValidOffers,
+]);
 
 export interface BotRuntime {
   ensureSetup: () => Promise<void>;
@@ -21,8 +36,8 @@ export interface BotRuntimeOptions {
   trpcFetch?: TRPCFetch;
 }
 
-function randomAction(): BotAction {
-  return Math.random() < 0.5 ? "create" : "accept";
+function shouldFallbackToCreate(outcome: AcceptOfferResult["outcome"]): boolean {
+  return ACCEPT_FALLBACK_OUTCOMES.has(outcome);
 }
 
 export async function createBotRuntime(
@@ -63,7 +78,7 @@ export async function createBotRuntime(
       try {
         await ensureSetup();
 
-        if (action === "create") {
+        if (action === BOT_ACTION.create) {
           log("info", "Tick: creating offer", { iteration });
           await createOffer(actor, trpc, wallet);
           return;
@@ -80,9 +95,36 @@ export async function createBotRuntime(
   };
 
   const runRandomAction = async (): Promise<BotAction> => {
-    const action = randomAction();
-    await runAction(action);
-    return action;
+    iteration += 1;
+
+    await withSpan(
+      "bot.tick",
+      { iteration, action: BOT_ACTION.accept, bot_name: config.botName },
+      async (span) => {
+        try {
+          await ensureSetup();
+
+          log("info", "Tick: accepting offer", { iteration });
+          const acceptResult = await acceptOffer(actor, trpc, wallet);
+
+          if (!shouldFallbackToCreate(acceptResult.outcome)) {
+            return;
+          }
+
+          log("info", "Tick: no valid accept candidate, creating offer", {
+            iteration,
+            accept_outcome: acceptResult.outcome,
+          });
+          await createOffer(actor, trpc, wallet);
+        } catch (error) {
+          const message = error instanceof Error ? error.message : String(error);
+          log("error", "Tick failed", { iteration, error: message });
+          span.setAttribute("error.message", message);
+        }
+      },
+    );
+
+    return BOT_ACTION.accept;
   };
 
   return {

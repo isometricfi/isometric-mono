@@ -20,7 +20,7 @@ OTEL_EXPORTER_OTLP_TRACES_ENDPOINT = "https://otlp-gateway-prod-eu-central-0.gra
 OTEL_EXPORTER_OTLP_LOGS_ENDPOINT = "https://otlp-gateway-prod-eu-central-0.grafana.net/otlp/v1/logs"
 
 [env.bot1.triggers]
-crons = ["0 * * * *"]
+crons = ["0 */12 * * *"]
 
 [[env.bot1.services]]
 binding = "NEXT_APP"
@@ -38,8 +38,44 @@ OTEL_EXPORTER_OTLP_TRACES_ENDPOINT = "https://otlp-gateway-prod-eu-central-0.gra
 OTEL_EXPORTER_OTLP_LOGS_ENDPOINT = "https://otlp-gateway-prod-eu-central-0.grafana.net/otlp/v1/logs"
 
 [env.bot2.triggers]
-crons = ["0 * * * *"]
+crons = ["0 */12 * * *"]
 
 [[env.bot2.services]]
+binding = "NEXT_APP"
+service = "volumetric-web"
+
+[env.bot3]
+name = "volumetric-bot-3"
+
+[env.bot3.vars]
+BTC_NETWORK = "testnet"
+IC_HOST = "https://ic0.app"
+BOT_NAME = "bot-3"
+OTEL_SERVICE_NAME = "volumetric-bot"
+OTEL_EXPORTER_OTLP_TRACES_ENDPOINT = "https://otlp-gateway-prod-eu-central-0.grafana.net/otlp/v1/traces"
+OTEL_EXPORTER_OTLP_LOGS_ENDPOINT = "https://otlp-gateway-prod-eu-central-0.grafana.net/otlp/v1/logs"
+
+[env.bot3.triggers]
+crons = ["0 */12 * * *"]
+
+[[env.bot3.services]]
+binding = "NEXT_APP"
+service = "volumetric-web"
+
+[env.bot4]
+name = "volumetric-bot-4"
+
+[env.bot4.vars]
+BTC_NETWORK = "testnet"
+IC_HOST = "https://ic0.app"
+BOT_NAME = "bot-4"
+OTEL_SERVICE_NAME = "volumetric-bot"
+OTEL_EXPORTER_OTLP_TRACES_ENDPOINT = "https://otlp-gateway-prod-eu-central-0.grafana.net/otlp/v1/traces"
+OTEL_EXPORTER_OTLP_LOGS_ENDPOINT = "https://otlp-gateway-prod-eu-central-0.grafana.net/otlp/v1/logs"
+
+[env.bot4.triggers]
+crons = ["0 */12 * * *"]
+
+[[env.bot4.services]]
 binding = "NEXT_APP"
 service = "volumetric-web"
