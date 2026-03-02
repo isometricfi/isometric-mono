@@ -40,6 +40,7 @@
     "@opentelemetry/semantic-conventions": "^1.28.0",
     "@trpc/client": "^11.0.0",
     "@volumetric/canister-types": "workspace:*",
+    "@volumetric/telemetry": "workspace:*",
     "bip32": "^5.0.1",
     "bip39": "^3.1.0",
     "bitcoinjs-lib": "^6.1.5",

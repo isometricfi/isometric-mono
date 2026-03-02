@@ -6,7 +6,10 @@ import { initTelemetry, log, shutdownTelemetry, withSpan } from "./telemetry.js"
 async function main() {
   const config = loadNodeConfig();
 
-  initTelemetry(config.botName, process.env);
+  initTelemetry(config.botName, {
+    ...process.env,
+    OTEL_SERVICE_NAME: process.env.OTEL_SERVICE_NAME ?? "volumetric-bot",
+  });
 
   log("info", "Bot starting", {
     bot_name: config.botName,
