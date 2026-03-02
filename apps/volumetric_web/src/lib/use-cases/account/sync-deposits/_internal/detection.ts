@@ -29,16 +29,32 @@ function getDepositTrackingKey(userAddress: string, txid: string, vout: number):
 
 const depositAddressCache = new Map<string, string>();
 
-async function resolveUserDepositAddress(actor: _SERVICE, address: string): Promise<string | null> {
+async function resolveUserDepositAddress(
+  repository: IDepositSyncRepository,
+  actor: _SERVICE,
+  address: string,
+  nowMs: number,
+): Promise<string | null> {
   const cached = depositAddressCache.get(address);
   if (cached) {
     return cached;
+  }
+
+  const persisted = await repository.getUserDepositAddress(address);
+  if (persisted) {
+    depositAddressCache.set(address, persisted.depositAddress);
+    return persisted.depositAddress;
   }
 
   try {
     const result = await actor.get_deposit_address(address);
     const data = unwrapResult(result);
     depositAddressCache.set(address, data.btc_address);
+    await repository.saveUserDepositAddress({
+      userAddress: address,
+      depositAddress: data.btc_address,
+      updatedAtMs: nowMs,
+    });
     return data.btc_address;
   } catch {
     return null;
@@ -58,7 +74,7 @@ export async function detectMaturedDepositsForUser(
     minterConfirmations,
   } = params;
 
-  const depositAddress = await resolveUserDepositAddress(actor, userAddress);
+  const depositAddress = await resolveUserDepositAddress(repository, actor, userAddress, nowMs);
   if (!depositAddress) {
     return 0;
   }

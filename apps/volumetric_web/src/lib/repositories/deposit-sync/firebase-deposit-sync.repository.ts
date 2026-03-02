@@ -4,10 +4,12 @@ import type {
   BalanceSnapshot,
   IDepositSyncRepository,
   TrackedDeposit,
+  UserDepositAddress,
 } from "./deposit-sync-repository.interface";
 
 const TRACKED_DEPOSITS_COLLECTION = "tracked_deposits";
 const BALANCE_SNAPSHOTS_COLLECTION = "deposit_balance_snapshots";
+const USER_DEPOSIT_ADDRESSES_COLLECTION = "user_deposit_addresses";
 const DEFAULT_QUERY_LIMIT = 500;
 const PENDING_DEPOSIT_STATUSES = ["matured", "syncing"] as const;
 type FirestoreRow = Record<string, unknown> & { id: string };
@@ -29,13 +31,28 @@ const trackedDepositSchema = z.object({
   updatedAtMs: z.number(),
 });
 
+const userDepositAddressSchema = z.object({
+  userAddress: z.string(),
+  depositAddress: z.string(),
+  updatedAtMs: z.number(),
+});
+
 function isTrackedDeposit(value: unknown): value is TrackedDeposit {
   return trackedDepositSchema.safeParse(value).success;
+}
+
+function isUserDepositAddress(value: unknown): value is UserDepositAddress {
+  return userDepositAddressSchema.safeParse(value).success;
 }
 
 function toTrackedDeposit(row: FirestoreRow): TrackedDeposit | null {
   const { id: _id, ...data } = row;
   return isTrackedDeposit(data) ? data : null;
+}
+
+function toUserDepositAddress(row: FirestoreRow): UserDepositAddress | null {
+  const { id: _id, ...data } = row;
+  return isUserDepositAddress(data) ? data : null;
 }
 
 export class FirebaseDepositSyncRepository implements IDepositSyncRepository {
@@ -90,5 +107,25 @@ export class FirebaseDepositSyncRepository implements IDepositSyncRepository {
 
   async saveBalanceSnapshot(snapshot: BalanceSnapshot): Promise<void> {
     await this.client.collection(BALANCE_SNAPSHOTS_COLLECTION).doc(snapshot.id).set(snapshot);
+  }
+
+  async getUserDepositAddress(userAddress: string): Promise<UserDepositAddress | null> {
+    const rows = await this.client.query(USER_DEPOSIT_ADDRESSES_COLLECTION, {
+      where: [{ field: "userAddress", op: "EQUAL", value: userAddress }],
+      limit: 1,
+    });
+
+    const record = rows
+      .map((row) => toUserDepositAddress(row as FirestoreRow))
+      .find((value): value is UserDepositAddress => value !== null);
+
+    return record ?? null;
+  }
+
+  async saveUserDepositAddress(record: UserDepositAddress): Promise<void> {
+    await this.client
+      .collection(USER_DEPOSIT_ADDRESSES_COLLECTION)
+      .doc(record.userAddress)
+      .set(record);
   }
 }

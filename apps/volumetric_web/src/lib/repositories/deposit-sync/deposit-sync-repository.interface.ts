@@ -27,10 +27,18 @@ export interface BalanceSnapshot {
   linkedTxRefs: Array<{ txid: string; vout: number }>;
 }
 
+export interface UserDepositAddress {
+  userAddress: string;
+  depositAddress: string;
+  updatedAtMs: number;
+}
+
 export interface IDepositSyncRepository {
   getTrackedDepositByKey(key: string): Promise<TrackedDeposit | null>;
   saveTrackedDeposit(deposit: TrackedDeposit): Promise<void>;
   listDueTrackedDeposits(nowMs: number, limit: number): Promise<TrackedDeposit[]>;
   listUserPendingDeposits(userAddress: string): Promise<TrackedDeposit[]>;
   saveBalanceSnapshot(snapshot: BalanceSnapshot): Promise<void>;
+  getUserDepositAddress(userAddress: string): Promise<UserDepositAddress | null>;
+  saveUserDepositAddress(record: UserDepositAddress): Promise<void>;
 }

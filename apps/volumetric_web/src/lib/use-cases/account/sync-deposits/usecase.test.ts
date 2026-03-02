@@ -27,6 +27,7 @@ vi.mock("@/lib/repositories/deposit-sync/get-deposit-sync-repository", () => ({
 class InMemoryDepositSyncRepository implements IDepositSyncRepository {
   private tracked = new Map<string, TrackedDeposit>();
   private snapshots: BalanceSnapshot[] = [];
+  private userDepositAddresses = new Map<string, { depositAddress: string; updatedAtMs: number }>();
 
   async getTrackedDepositByKey(key: string): Promise<TrackedDeposit | null> {
     return this.tracked.get(key) ?? null;
@@ -56,6 +57,34 @@ class InMemoryDepositSyncRepository implements IDepositSyncRepository {
 
   async saveBalanceSnapshot(snapshot: BalanceSnapshot): Promise<void> {
     this.snapshots.push(snapshot);
+  }
+
+  async getUserDepositAddress(userAddress: string): Promise<{
+    userAddress: string;
+    depositAddress: string;
+    updatedAtMs: number;
+  } | null> {
+    const record = this.userDepositAddresses.get(userAddress);
+    if (!record) {
+      return null;
+    }
+
+    return {
+      userAddress,
+      depositAddress: record.depositAddress,
+      updatedAtMs: record.updatedAtMs,
+    };
+  }
+
+  async saveUserDepositAddress(record: {
+    userAddress: string;
+    depositAddress: string;
+    updatedAtMs: number;
+  }): Promise<void> {
+    this.userDepositAddresses.set(record.userAddress, {
+      depositAddress: record.depositAddress,
+      updatedAtMs: record.updatedAtMs,
+    });
   }
 
   getAllTracked(): TrackedDeposit[] {
