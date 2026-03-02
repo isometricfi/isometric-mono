@@ -135,6 +135,7 @@ mod tests {
     const WITHDRAW_AMOUNT_SATS: u64 = 100_000;
     const INITIAL_BALANCE_SATS: u64 = 500_000;
     const EXPECTED_BLOCK_INDEX: u64 = 42;
+    const MOCK_TRANSFER_FEE_SATS: u64 = 10;
     const TEST_BTC_ADDRESS: &str = "tb1qwithdraw";
 
     fn test_principal() -> Principal {
@@ -165,6 +166,7 @@ mod tests {
             _to: Account,
             _amount: u64,
             _created_at_time: u64,
+            _expected_fee: Option<u64>,
         ) -> Result<u64, VolumetricError> {
             Ok(1)
         }
@@ -173,6 +175,9 @@ mod tests {
         }
         async fn icrc2_approve(&self, _args: ApproveArgs) -> Result<Nat, VolumetricError> {
             self.approve_result.clone()
+        }
+        async fn icrc1_fee(&self) -> Result<u64, VolumetricError> {
+            Ok(MOCK_TRANSFER_FEE_SATS)
         }
     }
 

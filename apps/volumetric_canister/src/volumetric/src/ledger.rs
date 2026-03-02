@@ -23,11 +23,14 @@ pub trait LedgerClient {
         to: Account,
         amount: u64,
         created_at_time: u64,
+        expected_fee: Option<u64>,
     ) -> Result<u64, VolumetricError>;
 
     async fn icrc1_balance_of(&self, account: Account) -> Result<Nat, VolumetricError>;
 
     async fn icrc2_approve(&self, args: ApproveArgs) -> Result<Nat, VolumetricError>;
+
+    async fn icrc1_fee(&self) -> Result<u64, VolumetricError>;
 }
 
 /// Production implementation — delegates to ckBTC ledger via `ic_cdk`.
@@ -41,6 +44,7 @@ impl LedgerClient for IcLedger {
         to: Account,
         amount: u64,
         created_at_time: u64,
+        expected_fee: Option<u64>,
     ) -> Result<u64, VolumetricError> {
         let ledger = Config::ckbtc_ledger();
 
@@ -48,7 +52,7 @@ impl LedgerClient for IcLedger {
             from_subaccount,
             to,
             amount: Nat::from(amount),
-            fee: None,
+            fee: expected_fee.map(Nat::from),
             memo: None,
             created_at_time: Some(created_at_time),
         };
@@ -73,6 +77,18 @@ impl LedgerClient for IcLedger {
                 .0
                 .try_into()
                 .expect("block index should fit into u64")),
+            Err(TransferError::BadFee { expected_fee }) => {
+                let expected_fee_u64: u64 = expected_fee.0.try_into().map_err(|_| {
+                    VolumetricError::inter_canister_call_failed(
+                        "icrc1_transfer bad_fee expected_fee conversion overflow",
+                    )
+                })?;
+
+                Err(VolumetricError::inter_canister_call_failed(&format!(
+                    "icrc1_transfer bad_fee expected_fee: {}",
+                    expected_fee_u64
+                )))
+            }
             Err(e) => Err(VolumetricError::inter_canister_call_failed(&format!(
                 "icrc1_transfer rejected: {:?}",
                 e
@@ -123,6 +139,24 @@ impl LedgerClient for IcLedger {
             ))),
         }
     }
+
+    async fn icrc1_fee(&self) -> Result<u64, VolumetricError> {
+        let ledger = Config::ckbtc_ledger();
+
+        let response = ic_cdk::call::Call::unbounded_wait(ledger, "icrc1_fee")
+            .await
+            .map_err(|e| {
+                VolumetricError::inter_canister_call_failed(&format!("icrc1_fee: {:?}", e))
+            })?;
+
+        let fee: Nat = response.candid().map_err(|e| {
+            VolumetricError::inter_canister_call_failed(&format!("icrc1_fee decode: {:?}", e))
+        })?;
+
+        fee.0.try_into().map_err(|_| {
+            VolumetricError::inter_canister_call_failed("icrc1_fee conversion overflow")
+        })
+    }
 }
 
 thread_local! {
@@ -134,10 +168,11 @@ pub async fn icrc1_transfer(
     to: Account,
     amount: u64,
     created_at_time: u64,
+    expected_fee: Option<u64>,
 ) -> Result<u64, VolumetricError> {
     let ledger = LEDGER.with(|l| Rc::clone(&l.borrow()));
     ledger
-        .icrc1_transfer(from_subaccount, to, amount, created_at_time)
+        .icrc1_transfer(from_subaccount, to, amount, created_at_time, expected_fee)
         .await
 }
 
@@ -149,6 +184,11 @@ pub async fn icrc1_balance_of(account: Account) -> Result<Nat, VolumetricError> 
 pub async fn icrc2_approve(args: ApproveArgs) -> Result<Nat, VolumetricError> {
     let ledger = LEDGER.with(|l| Rc::clone(&l.borrow()));
     ledger.icrc2_approve(args).await
+}
+
+pub async fn icrc1_fee() -> Result<u64, VolumetricError> {
+    let ledger = LEDGER.with(|l| Rc::clone(&l.borrow()));
+    ledger.icrc1_fee().await
 }
 
 /// Swap the ledger implementation (test-only, compiled out in production).

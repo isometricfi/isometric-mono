@@ -120,6 +120,7 @@ mod tests {
     const TEST_CANISTER_ID: Principal = Principal::anonymous();
     const MINTED_AMOUNT_SATS: u64 = 500_000;
     const LEDGER_BALANCE_SATS: u64 = 1_000_000;
+    const MOCK_TRANSFER_FEE_SATS: u64 = 10;
     const TEST_BTC_ADDRESS: &str = "tb1qtest";
 
     fn test_principal() -> Principal {
@@ -150,6 +151,7 @@ mod tests {
             _to: Account,
             _amount: u64,
             _created_at_time: u64,
+            _expected_fee: Option<u64>,
         ) -> Result<u64, VolumetricError> {
             Ok(1)
         }
@@ -158,6 +160,9 @@ mod tests {
         }
         async fn icrc2_approve(&self, _args: ApproveArgs) -> Result<Nat, VolumetricError> {
             Ok(Nat::from(0u64))
+        }
+        async fn icrc1_fee(&self) -> Result<u64, VolumetricError> {
+            Ok(MOCK_TRANSFER_FEE_SATS)
         }
     }
 

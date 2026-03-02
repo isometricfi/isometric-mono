@@ -14,7 +14,9 @@ use crate::storage::{
     SettlementPhase, TradeRole,
 };
 
-use crate::usecases::balances::transfer_ckbtc;
+use crate::usecases::balances::{
+    prefetch_ckbtc_transfer_fee, transfer_ckbtc_with_cached_fee_retry,
+};
 
 pub struct SettlementResult {
     pub option_id: u64,
@@ -47,6 +49,8 @@ pub async fn settle_single_option(
     if option.status != ActiveOptionStatus::Active {
         return Err(VolumetricError::option_already_settled());
     }
+
+    prefetch_ckbtc_transfer_fee().await?;
 
     option.status = ActiveOptionStatus::Settling;
     update_active_option(option.clone());
@@ -101,7 +105,7 @@ pub async fn settle_single_option(
             payout_to_buyer
         ));
 
-        if let Err(e) = transfer_ckbtc(
+        if let Err(e) = transfer_ckbtc_with_cached_fee_retry(
             Some(writer_subaccount),
             Account {
                 owner: ic::canister_self(),
@@ -136,7 +140,7 @@ pub async fn settle_single_option(
                 profit_fee
             ));
 
-            if let Err(e) = transfer_ckbtc(
+            if let Err(e) = transfer_ckbtc_with_cached_fee_retry(
                 Some(writer_subaccount),
                 Account {
                     owner: get_fee_recipient(),
@@ -300,4 +304,230 @@ pub fn testing_set_option_expiry_use_case(
     update_active_option(option.clone());
 
     Ok(option)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::cell::Cell;
+    use std::rc::Rc;
+
+    use async_trait::async_trait;
+    use candid::{Nat, Principal};
+    use icrc_ledger_types::icrc2::approve::ApproveArgs;
+
+    use crate::ic::IcRuntime;
+    use crate::ledger::LedgerClient;
+    use crate::storage::{
+        clear_active_options, get_balance, get_settlement, insert_active_option, remove_settlement,
+        set_balance, ActiveOption, ActiveOptionStatus, Asset, OptionType, SettlementPhase,
+        UserBalance,
+    };
+    use crate::usecases::balances::{
+        testing_clear_transfer_fee_cache, testing_set_transfer_fee_cache,
+    };
+    use crate::{ic, ledger};
+
+    const TEST_NOW_NS: u64 = 1_000_000_000_000;
+    const TEST_OPTION_ID: u64 = 50_001;
+    const TEST_SETTLEMENT_PRICE_CENTS: u64 = 200_000;
+    const TEST_STRIKE_PRICE_CENTS: u64 = 100_000;
+    const TEST_QUANTITY_SATS: u64 = 100_000;
+    const STALE_CACHED_FEE: u64 = 10;
+    const CURRENT_LEDGER_FEE: u64 = 15;
+
+    fn writer_principal() -> Principal {
+        Principal::from_slice(&[11; 29])
+    }
+
+    fn buyer_principal() -> Principal {
+        Principal::from_slice(&[12; 29])
+    }
+
+    struct MockRuntime;
+
+    impl IcRuntime for MockRuntime {
+        fn time(&self) -> u64 {
+            TEST_NOW_NS
+        }
+
+        fn canister_self(&self) -> Principal {
+            Principal::anonymous()
+        }
+
+        fn log(&self, _message: &str) {}
+    }
+
+    struct MockLedger {
+        expected_fee: u64,
+        fail_even_with_correct_fee: bool,
+        transfer_attempts: Cell<u64>,
+        fee_queries: Cell<u64>,
+    }
+
+    #[async_trait(?Send)]
+    impl LedgerClient for MockLedger {
+        async fn icrc1_transfer(
+            &self,
+            _from_subaccount: Option<[u8; 32]>,
+            _to: Account,
+            _amount: u64,
+            _created_at_time: u64,
+            expected_fee: Option<u64>,
+        ) -> Result<u64, VolumetricError> {
+            let attempt = self.transfer_attempts.get().saturating_add(1);
+            self.transfer_attempts.set(attempt);
+
+            if expected_fee != Some(self.expected_fee) {
+                return Err(VolumetricError::inter_canister_call_failed(&format!(
+                    "icrc1_transfer bad_fee expected_fee: {}",
+                    self.expected_fee
+                )));
+            }
+
+            if self.fail_even_with_correct_fee {
+                return Err(VolumetricError::inter_canister_call_failed(
+                    "icrc1_transfer rejected: transient",
+                ));
+            }
+
+            Ok(123)
+        }
+
+        async fn icrc1_balance_of(&self, _account: Account) -> Result<Nat, VolumetricError> {
+            Ok(Nat::from(0u64))
+        }
+
+        async fn icrc2_approve(&self, _args: ApproveArgs) -> Result<Nat, VolumetricError> {
+            Ok(Nat::from(0u64))
+        }
+
+        async fn icrc1_fee(&self) -> Result<u64, VolumetricError> {
+            self.fee_queries
+                .set(self.fee_queries.get().saturating_add(1));
+            Ok(self.expected_fee)
+        }
+    }
+
+    fn seed_option_state(option_id: u64) {
+        let writer = writer_principal();
+        let buyer = buyer_principal();
+
+        set_balance(
+            writer,
+            UserBalance {
+                available: 0,
+                locked_as_writer: TEST_QUANTITY_SATS,
+            },
+        );
+
+        set_balance(
+            buyer,
+            UserBalance {
+                available: 0,
+                locked_as_writer: 0,
+            },
+        );
+
+        insert_active_option(ActiveOption {
+            id: option_id,
+            offer_id: 1,
+            buyer,
+            writer,
+            asset: Asset::CkBtc,
+            option_type: OptionType::Call,
+            quantity: TEST_QUANTITY_SATS,
+            entry_price_cents: TEST_STRIKE_PRICE_CENTS,
+            strike_price_cents: TEST_STRIKE_PRICE_CENTS,
+            premium_paid: 1_000,
+            accepted_at: TEST_NOW_NS,
+            expiry: 0,
+            status: ActiveOptionStatus::Active,
+            fill_group_id: None,
+            profit_fee_basis_points: 0,
+        });
+    }
+
+    fn setup(mock_ledger: Rc<MockLedger>) {
+        clear_active_options();
+        testing_clear_transfer_fee_cache();
+        ic::set_runtime(Box::new(MockRuntime));
+        ledger::set_ledger(mock_ledger);
+    }
+
+    /// Given: stale cached transfer fee
+    /// When: settle_single_option executes
+    /// Then: it refreshes fee and retries once successfully
+    #[tokio::test]
+    async fn test_settlement_refreshes_fee_and_retries_once() {
+        // given
+        let mock_ledger = Rc::new(MockLedger {
+            expected_fee: CURRENT_LEDGER_FEE,
+            fail_even_with_correct_fee: false,
+            transfer_attempts: Cell::new(0),
+            fee_queries: Cell::new(0),
+        });
+        setup(Rc::clone(&mock_ledger));
+        seed_option_state(TEST_OPTION_ID);
+        testing_set_transfer_fee_cache(STALE_CACHED_FEE, TEST_NOW_NS);
+
+        // when
+        let result = settle_single_option(TEST_OPTION_ID, TEST_SETTLEMENT_PRICE_CENTS).await;
+
+        // then
+        assert!(result.is_ok());
+        assert_eq!(mock_ledger.transfer_attempts.get(), 2);
+        assert_eq!(mock_ledger.fee_queries.get(), 1);
+
+        let buyer_balance = get_balance(&buyer_principal());
+        let writer_balance = get_balance(&writer_principal());
+        let expected_payout_to_buyer = TEST_QUANTITY_SATS / 2;
+        let expected_payout_to_writer = TEST_QUANTITY_SATS - expected_payout_to_buyer;
+
+        assert_eq!(buyer_balance.available, expected_payout_to_buyer);
+        assert_eq!(writer_balance.available, expected_payout_to_writer);
+        assert_eq!(writer_balance.locked_as_writer, 0);
+        assert!(get_settlement(TEST_OPTION_ID).is_none());
+    }
+
+    /// Given: stale cached fee and retry still fails
+    /// When: settle_single_option executes
+    /// Then: it reverses released balances and marks settlement failed
+    #[tokio::test]
+    async fn test_settlement_retry_failure_restores_state() {
+        // given
+        let option_id = TEST_OPTION_ID + 1;
+        let mock_ledger = Rc::new(MockLedger {
+            expected_fee: CURRENT_LEDGER_FEE,
+            fail_even_with_correct_fee: true,
+            transfer_attempts: Cell::new(0),
+            fee_queries: Cell::new(0),
+        });
+        setup(Rc::clone(&mock_ledger));
+        seed_option_state(option_id);
+        testing_set_transfer_fee_cache(STALE_CACHED_FEE, TEST_NOW_NS);
+
+        // when
+        let result = settle_single_option(option_id, TEST_SETTLEMENT_PRICE_CENTS).await;
+
+        // then
+        assert!(result.is_err());
+        assert_eq!(mock_ledger.transfer_attempts.get(), 2);
+        assert_eq!(mock_ledger.fee_queries.get(), 1);
+
+        let buyer_balance = get_balance(&buyer_principal());
+        let writer_balance = get_balance(&writer_principal());
+
+        assert_eq!(buyer_balance.available, 0);
+        assert_eq!(writer_balance.available, 0);
+        assert_eq!(writer_balance.locked_as_writer, TEST_QUANTITY_SATS);
+
+        let option = get_active_option(option_id).unwrap();
+        assert_eq!(option.status, ActiveOptionStatus::Active);
+
+        let settlement = get_settlement(option_id).unwrap();
+        assert!(matches!(settlement.phase, SettlementPhase::Failed { .. }));
+
+        remove_settlement(option_id);
+    }
 }

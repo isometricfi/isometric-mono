@@ -8,5 +8,9 @@ pub use deposit_ckbtc::{
     DepositAddressResult,
 };
 pub use get_user_balance::{get_user_balance_use_case, UserBalanceResult};
-pub use transfer_ckbtc::transfer_ckbtc;
+pub use transfer_ckbtc::{
+    prefetch_ckbtc_transfer_fee, transfer_ckbtc, transfer_ckbtc_with_cached_fee_retry,
+};
+#[cfg(test)]
+pub use transfer_ckbtc::{testing_clear_transfer_fee_cache, testing_set_transfer_fee_cache};
 pub use withdraw_ckbtc::{withdraw_ckbtc_use_case, WithdrawParams, WithdrawResult};
