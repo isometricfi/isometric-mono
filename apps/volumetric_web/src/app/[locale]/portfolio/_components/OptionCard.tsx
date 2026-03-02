@@ -54,9 +54,11 @@ function calculatePnL(
       ? (quantityBtc * (currentPrice - strikePriceUsd)) / currentPrice
       : 0;
   const payoutUsd = payoutBtc * currentPrice;
+  const quantityUsd = quantityBtc * currentPrice;
   const netPnLBtc = role === "buyer" ? payoutBtc - premiumBtc : premiumBtc - payoutBtc;
   const netPnLUsd = role === "buyer" ? payoutUsd - premiumUsd : premiumUsd - payoutUsd;
-  const percent = premiumUsd > 0 ? (netPnLUsd / premiumUsd) * 100 : 0;
+  const percentDenominatorUsd = role === "buyer" ? premiumUsd : quantityUsd;
+  const percent = percentDenominatorUsd > 0 ? (netPnLUsd / percentDenominatorUsd) * 100 : 0;
 
   return {
     valueBtc: netPnLBtc,
