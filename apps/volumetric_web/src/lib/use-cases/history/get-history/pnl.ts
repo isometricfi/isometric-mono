@@ -12,11 +12,10 @@ export function calculatePnl(
     // Buyer pays premium upfront, receives payout at settlement
     return payoutSats - premiumSats;
   } else {
-    // Writer receives premium upfront, but locks quantity as collateral
-    // Payout is their remaining collateral + premium
-    // PnL = payout - quantity (their initial collateral)
-    // Which equals: premium - (what they paid to buyer)
-    return payoutSats - quantitySats;
+    // Writer receives premium upfront and gets remaining collateral back at settlement.
+    // Event payout for writers is only returned collateral (premium is separate in event data).
+    // PnL = (returned collateral + premium) - locked collateral.
+    return payoutSats + premiumSats - quantitySats;
   }
 }
 

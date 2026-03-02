@@ -42,33 +42,33 @@ describe("calculatePnl", () => {
     expect(result).toBe(EXPECTED_PNL);
   });
 
-  test("should return positive PnL for writer when payout exceeds quantity", () => {
-    // given
-    const PAYOUT_SATS = BigInt(220_000);
-
-    // when
-    const result = calculatePnl("writer", PREMIUM_SATS, PAYOUT_SATS, QUANTITY_SATS);
-
-    // then
-    const EXPECTED_PNL = BigInt(20_000);
-    expect(result).toBe(EXPECTED_PNL);
-  });
-
-  test("should return negative PnL for writer when payout is less than quantity", () => {
-    // given
-    const PAYOUT_SATS = BigInt(150_000);
-
-    // when
-    const result = calculatePnl("writer", PREMIUM_SATS, PAYOUT_SATS, QUANTITY_SATS);
-
-    // then
-    const EXPECTED_PNL = BigInt(-50_000);
-    expect(result).toBe(EXPECTED_PNL);
-  });
-
-  test("should return zero PnL for writer when payout equals quantity", () => {
+  test("should return positive PnL for writer when collateral is fully returned", () => {
     // given
     const PAYOUT_SATS = QUANTITY_SATS;
+
+    // when
+    const result = calculatePnl("writer", PREMIUM_SATS, PAYOUT_SATS, QUANTITY_SATS);
+
+    // then
+    const EXPECTED_PNL = PREMIUM_SATS;
+    expect(result).toBe(EXPECTED_PNL);
+  });
+
+  test("should return negative PnL for writer when buyer payout exceeds premium", () => {
+    // given
+    const PAYOUT_SATS = BigInt(120_000);
+
+    // when
+    const result = calculatePnl("writer", PREMIUM_SATS, PAYOUT_SATS, QUANTITY_SATS);
+
+    // then
+    const EXPECTED_PNL = BigInt(-30_000);
+    expect(result).toBe(EXPECTED_PNL);
+  });
+
+  test("should return zero PnL for writer when premium offsets buyer payout", () => {
+    // given
+    const PAYOUT_SATS = BigInt(150_000);
 
     // when
     const result = calculatePnl("writer", PREMIUM_SATS, PAYOUT_SATS, QUANTITY_SATS);
