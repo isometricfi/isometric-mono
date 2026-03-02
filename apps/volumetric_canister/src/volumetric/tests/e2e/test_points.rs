@@ -255,6 +255,8 @@ fn test_admin_can_update_points_config_and_awards_use_latest_values() {
         &writer_profile,
         &buyer_profile,
     );
+    const ITM_SETTLEMENT_PRICE_CENTS: u64 = 11_000_000;
+    set_oracle_price(&env, ITM_SETTLEMENT_PRICE_CENTS);
     testing_set_option_expiry(&env, option_id, 0).expect("Set option expiry failed");
     settle_option_by_id(&env, option_id).expect("Settle option failed");
 
