@@ -23,7 +23,7 @@ const geistMono = Geist_Mono({
 });
 
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || "https://isometric.fi";
-const DEFAULT_TAWK_EMBED_URL = process.env.TAWK_EMBED_URL;
+const TAWK_EMBED_URL = process.env.TAWK_EMBED_URL;
 
 export function generateStaticParams() {
   return routing.locales.map((locale) => ({ locale }));
