@@ -234,4 +234,24 @@ describe("createOffer", () => {
     // then
     expect(mockTrpc.options.createOffer.mutate).not.toHaveBeenCalled();
   });
+
+  test("should skip offer creation when max offer amount is below minimum", async () => {
+    // given
+    mockTrpc.config.getConfig.query.mockResolvedValue({
+      termOptions: [2, 3],
+      strikePercentOptions: [5, 10, 15],
+      premium: { min: 1, max: 10, step: 0.25 },
+      minOfferAmountSats: 100_000,
+      maxOfferAmountSats: 50_000,
+    });
+    mockTrpc.account.getBalance.query.mockResolvedValue({
+      available: LARGE_AVAILABLE_BALANCE_SATS,
+    });
+
+    // when
+    await createOffer(mockActor, mockTrpc as unknown as TRPCClient, mockWallet);
+
+    // then
+    expect(mockTrpc.options.createOffer.mutate).not.toHaveBeenCalled();
+  });
 });
