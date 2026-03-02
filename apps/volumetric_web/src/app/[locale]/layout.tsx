@@ -109,16 +109,20 @@ export default async function LocaleLayout({
   return (
     <html lang={locale} suppressHydrationWarning>
       <body className={`${geistSans.variable} ${geistMono.variable} font-sans antialiased`}>
-        <Script id="tawk-api-init" strategy="afterInteractive" nonce={nonce}>
-          {`window.Tawk_API = window.Tawk_API || {}; window.Tawk_LoadStart = new Date();`}
-        </Script>
-        <Script
-          id="tawk-embed"
-          src={DEFAULT_TAWK_EMBED_URL}
-          strategy="afterInteractive"
-          nonce={nonce}
-          crossOrigin="anonymous"
-        />
+        {TAWK_EMBED_URL && (
+          <>
+            <Script id="tawk-api-init" strategy="afterInteractive" nonce={nonce}>
+              {`window.Tawk_API = window.Tawk_API || {}; window.Tawk_LoadStart = new Date();`}
+            </Script>
+            <Script
+              id="tawk-embed"
+              src={TAWK_EMBED_URL}
+              strategy="afterInteractive"
+              nonce={nonce}
+              crossOrigin="anonymous"
+            />
+          </>
+        )}
         <NextIntlClientProvider messages={messages}>
           <ThemeProvider nonce={nonce}>
             <Providers>
