@@ -6,6 +6,8 @@ import { inputSchema as getBalanceSchema } from "@/lib/use-cases/account/get-bal
 import { getBalance } from "@/lib/use-cases/account/get-balance/usecase";
 import { inputSchema as getDepositAddressSchema } from "@/lib/use-cases/account/get-deposit-address/schema";
 import { getDepositAddress } from "@/lib/use-cases/account/get-deposit-address/usecase";
+import { inputSchema as getPendingDepositsSchema } from "@/lib/use-cases/account/get-pending-deposits/schema";
+import { getPendingDeposits } from "@/lib/use-cases/account/get-pending-deposits/usecase";
 import { inputSchema as syncBalanceSchema } from "@/lib/use-cases/account/sync-balance/schema";
 import { syncBalance } from "@/lib/use-cases/account/sync-balance/usecase";
 import { inputSchema as updateUsernameSchema } from "@/lib/use-cases/account/update-username/schema";
@@ -30,6 +32,10 @@ export const accountRouter = router({
   getBalance: publicProcedure
     .input(getBalanceSchema)
     .query(({ input }) => getBalance(input.address)),
+
+  getPendingDeposits: publicProcedure
+    .input(getPendingDepositsSchema)
+    .query(({ input }) => getPendingDeposits(input.address)),
 
   updateUsername: publicProcedure
     .input(updateUsernameSchema)
