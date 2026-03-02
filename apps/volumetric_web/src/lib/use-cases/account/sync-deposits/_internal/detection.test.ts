@@ -50,6 +50,8 @@ function makeRepositoryMocks() {
     saveBalanceSnapshot: vi.fn(),
     getUserDepositAddress: vi.fn(),
     saveUserDepositAddress: vi.fn(),
+    getDepositSyncCursor: vi.fn(),
+    saveDepositSyncCursor: vi.fn(),
   };
   return repository;
 }

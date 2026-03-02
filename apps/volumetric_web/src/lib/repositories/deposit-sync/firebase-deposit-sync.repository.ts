@@ -2,6 +2,7 @@ import type { FirestoreClient } from "firebase-rest-firestore";
 import { z } from "zod";
 import type {
   BalanceSnapshot,
+  DepositSyncCursor,
   IDepositSyncRepository,
   TrackedDeposit,
   UserDepositAddress,
@@ -10,8 +11,10 @@ import type {
 const TRACKED_DEPOSITS_COLLECTION = "tracked_deposits";
 const BALANCE_SNAPSHOTS_COLLECTION = "deposit_balance_snapshots";
 const USER_DEPOSIT_ADDRESSES_COLLECTION = "user_deposit_addresses";
+const DEPOSIT_SYNC_STATE_COLLECTION = "deposit_sync_state";
 const DEFAULT_QUERY_LIMIT = 500;
 const PENDING_DEPOSIT_STATUSES = ["matured", "syncing"] as const;
+const DEPOSIT_SYNC_CURSOR_DOC_ID = "cursor";
 type FirestoreRow = Record<string, unknown> & { id: string };
 
 const trackedDepositSchema = z.object({
@@ -37,6 +40,11 @@ const userDepositAddressSchema = z.object({
   updatedAtMs: z.number(),
 });
 
+const depositSyncCursorSchema = z.object({
+  lastProcessedBlockHeight: z.number(),
+  updatedAtMs: z.number(),
+});
+
 function isTrackedDeposit(value: unknown): value is TrackedDeposit {
   return trackedDepositSchema.safeParse(value).success;
 }
@@ -53,6 +61,15 @@ function toTrackedDeposit(row: FirestoreRow): TrackedDeposit | null {
 function toUserDepositAddress(row: FirestoreRow): UserDepositAddress | null {
   const { id: _id, ...data } = row;
   return isUserDepositAddress(data) ? data : null;
+}
+
+function isDepositSyncCursor(value: unknown): value is DepositSyncCursor {
+  return depositSyncCursorSchema.safeParse(value).success;
+}
+
+function toDepositSyncCursor(row: FirestoreRow): DepositSyncCursor | null {
+  const { id: _id, ...data } = row;
+  return isDepositSyncCursor(data) ? data : null;
 }
 
 export class FirebaseDepositSyncRepository implements IDepositSyncRepository {
@@ -127,5 +144,22 @@ export class FirebaseDepositSyncRepository implements IDepositSyncRepository {
       .collection(USER_DEPOSIT_ADDRESSES_COLLECTION)
       .doc(record.userAddress)
       .set(record);
+  }
+
+  async getDepositSyncCursor(): Promise<DepositSyncCursor | null> {
+    const row = await this.client.get(DEPOSIT_SYNC_STATE_COLLECTION, DEPOSIT_SYNC_CURSOR_DOC_ID);
+    if (!row) {
+      return null;
+    }
+
+    const cursor = toDepositSyncCursor(row as FirestoreRow);
+    return cursor ?? null;
+  }
+
+  async saveDepositSyncCursor(cursor: DepositSyncCursor): Promise<void> {
+    await this.client
+      .collection(DEPOSIT_SYNC_STATE_COLLECTION)
+      .doc(DEPOSIT_SYNC_CURSOR_DOC_ID)
+      .set(cursor);
   }
 }
