@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, test, vi } from "vitest";
-import { createBotRuntime } from "./bot";
+import { BOT_ACTION, createBotRuntime } from "./bot";
 import type { BotConfig } from "./config";
 
 const BOT_CONFIG: BotConfig = {
@@ -79,11 +79,12 @@ describe("createBotRuntime", () => {
     const runtime = await createBotRuntime(BOT_CONFIG);
 
     // when
-    await runtime.runRandomAction();
+    const performedAction = await runtime.runRandomAction();
 
     // then
     expect(acceptOfferMock).toHaveBeenCalledTimes(1);
     expect(createOfferMock).toHaveBeenCalledTimes(1);
+    expect(performedAction).toBe(BOT_ACTION.create);
   });
 
   test("should not create when accept succeeds", async () => {
@@ -92,10 +93,11 @@ describe("createBotRuntime", () => {
     const runtime = await createBotRuntime(BOT_CONFIG);
 
     // when
-    await runtime.runRandomAction();
+    const performedAction = await runtime.runRandomAction();
 
     // then
     expect(acceptOfferMock).toHaveBeenCalledTimes(1);
     expect(createOfferMock).not.toHaveBeenCalled();
+    expect(performedAction).toBe(BOT_ACTION.accept);
   });
 });

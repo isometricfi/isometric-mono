@@ -43,7 +43,3 @@ export async function getAcceptOffersMessage(
 export async function getCreateAccountMessage(actor: _SERVICE, address: string): Promise<string> {
   return actor.get_message_to_sign(address);
 }
-
-export async function getAccountNonce(actor: _SERVICE, address: string): Promise<bigint> {
-  return actor.get_account_nonce(address);
-}
