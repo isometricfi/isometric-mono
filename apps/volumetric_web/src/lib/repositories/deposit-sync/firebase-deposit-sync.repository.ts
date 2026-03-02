@@ -1,4 +1,5 @@
 import type { FirestoreClient } from "firebase-rest-firestore";
+import { z } from "zod";
 import type {
   BalanceSnapshot,
   IDepositSyncRepository,
@@ -8,34 +9,28 @@ import type {
 const TRACKED_DEPOSITS_COLLECTION = "tracked_deposits";
 const BALANCE_SNAPSHOTS_COLLECTION = "deposit_balance_snapshots";
 const DEFAULT_QUERY_LIMIT = 500;
+const PENDING_DEPOSIT_STATUSES = ["matured", "syncing"] as const;
 type FirestoreRow = Record<string, unknown> & { id: string };
 
-function isDepositStatus(value: unknown): value is TrackedDeposit["status"] {
-  return value === "matured" || value === "syncing" || value === "credited" || value === "expired";
-}
+const trackedDepositSchema = z.object({
+  key: z.string(),
+  userAddress: z.string(),
+  depositAddress: z.string(),
+  txid: z.string(),
+  vout: z.number(),
+  valueSats: z.number(),
+  firstSeenAtMs: z.number(),
+  firstSeenHeight: z.number(),
+  confirmations: z.number(),
+  syncAttemptCount: z.number(),
+  nextSyncAtMs: z.number(),
+  lastSyncAtMs: z.number().nullable(),
+  status: z.enum(["matured", "syncing", "credited", "expired"]),
+  updatedAtMs: z.number(),
+});
 
 function isTrackedDeposit(value: unknown): value is TrackedDeposit {
-  if (!value || typeof value !== "object") {
-    return false;
-  }
-
-  const row = value as Record<string, unknown>;
-  return (
-    typeof row.key === "string" &&
-    typeof row.userAddress === "string" &&
-    typeof row.depositAddress === "string" &&
-    typeof row.txid === "string" &&
-    typeof row.vout === "number" &&
-    typeof row.valueSats === "number" &&
-    typeof row.firstSeenAtMs === "number" &&
-    typeof row.firstSeenHeight === "number" &&
-    typeof row.confirmations === "number" &&
-    typeof row.syncAttemptCount === "number" &&
-    typeof row.nextSyncAtMs === "number" &&
-    (typeof row.lastSyncAtMs === "number" || row.lastSyncAtMs === null) &&
-    isDepositStatus(row.status) &&
-    typeof row.updatedAtMs === "number"
-  );
+  return trackedDepositSchema.safeParse(value).success;
 }
 
 function toTrackedDeposit(row: FirestoreRow): TrackedDeposit | null {
@@ -63,34 +58,34 @@ export class FirebaseDepositSyncRepository implements IDepositSyncRepository {
   }
 
   async listDueTrackedDeposits(nowMs: number, limit: number): Promise<TrackedDeposit[]> {
+    const effectiveLimit = Math.min(limit, DEFAULT_QUERY_LIMIT);
     const rows = await this.client.query(TRACKED_DEPOSITS_COLLECTION, {
+      where: [
+        { field: "status", op: "IN", value: [...PENDING_DEPOSIT_STATUSES] },
+        { field: "nextSyncAtMs", op: "LESS_THAN_OR_EQUAL", value: nowMs },
+      ],
       orderBy: "nextSyncAtMs",
-      limit: Math.min(limit, DEFAULT_QUERY_LIMIT),
+      limit: effectiveLimit,
     });
 
-    const tracked = rows
+    return rows
       .map((row) => toTrackedDeposit(row as FirestoreRow))
       .filter((deposit): deposit is TrackedDeposit => deposit !== null);
-    return tracked.filter(
-      (deposit) =>
-        (deposit.status === "matured" || deposit.status === "syncing") &&
-        deposit.nextSyncAtMs <= nowMs,
-    );
   }
 
   async listUserPendingDeposits(userAddress: string): Promise<TrackedDeposit[]> {
     const rows = await this.client.query(TRACKED_DEPOSITS_COLLECTION, {
-      where: [{ field: "userAddress", op: "EQUAL", value: userAddress }],
+      where: [
+        { field: "userAddress", op: "EQUAL", value: userAddress },
+        { field: "status", op: "IN", value: [...PENDING_DEPOSIT_STATUSES] },
+      ],
       orderBy: "firstSeenAtMs",
       limit: DEFAULT_QUERY_LIMIT,
     });
 
-    const tracked = rows
+    return rows
       .map((row) => toTrackedDeposit(row as FirestoreRow))
       .filter((deposit): deposit is TrackedDeposit => deposit !== null);
-    return tracked.filter(
-      (deposit) => deposit.status === "matured" || deposit.status === "syncing",
-    );
   }
 
   async saveBalanceSnapshot(snapshot: BalanceSnapshot): Promise<void> {
