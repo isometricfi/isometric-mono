@@ -23,7 +23,7 @@ export function TermSelector({ value, onChange }: TermSelectorProps) {
   }));
 
   if (termOptions.length === 0) {
-    return <Skeleton className="h-[44px] w-full" />;
+    return <Skeleton className="h-9 w-full" />;
   }
   return (
     <AnimatedToggle

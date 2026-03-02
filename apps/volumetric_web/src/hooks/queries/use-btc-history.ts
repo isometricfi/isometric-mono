@@ -14,7 +14,7 @@ interface CoinGeckoMarketChartResponse {
 
 async function fetchBTCHistory(days: number): Promise<BTCHistoryPoint[]> {
   const response = await fetch(
-    `https://api.coingecko.com/api/v3/coins/bitcoin/market_chart?vs_currency=usd&days=${days}&interval=daily`,
+    `https://api.coingecko.com/api/v3/coins/bitcoin/market_chart?vs_currency=usd&days=${days}`,
   );
 
   if (!response.ok) {
