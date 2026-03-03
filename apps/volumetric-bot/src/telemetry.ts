@@ -8,4 +8,5 @@ const botTelemetry = createAppTelemetry({
 export const initBotTelemetry = botTelemetry.ensureInitialized;
 export const botLog = botTelemetry.log;
 export const withBotSpan = botTelemetry.withSpan;
+export const getBotTraceHeaders = botTelemetry.getTraceHeaders;
 export const shutdownBotTelemetry = botTelemetry.shutdown;

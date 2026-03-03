@@ -7,6 +7,7 @@ const webTelemetry = createAppTelemetry({
 
 export const ensureWebTelemetryInitialized = webTelemetry.ensureInitialized;
 export const withWebSpan = webTelemetry.withSpan;
+export const withWebRemoteParentSpan = webTelemetry.withRemoteParentSpan;
 export const webLog = webTelemetry.log;
 export const shutdownWebTelemetry = webTelemetry.shutdown;
 export const withWebSpanWrappedMethods = webTelemetry.withSpanWrappedMethods;
