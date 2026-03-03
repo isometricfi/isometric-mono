@@ -1,5 +1,4 @@
 import type { Span } from "@opentelemetry/api";
-import type pino from "pino";
 
 export interface TelemetryEnv {
   [key: string]: string | undefined;
@@ -30,7 +29,7 @@ export interface CreateAppTelemetryOptions {
 
 export interface AppTelemetry {
   ensureInitialized: (explicitEnv?: TelemetryEnv) => void;
-  logger: pino.Logger;
+  logger: TelemetryLogger;
   getTraceHeaders: () => Record<string, string>;
   withSpan: <T>(
     name: string,
@@ -54,4 +53,12 @@ export interface AppTelemetry {
     target: T,
     options?: SpanWrappedMethodsOptions,
   ) => T;
+}
+
+export interface TelemetryLogger {
+  debug: (attributes: Record<string, unknown>, message: string) => void;
+  info: (attributes: Record<string, unknown>, message: string) => void;
+  warn: (attributes: Record<string, unknown>, message: string) => void;
+  error: (attributes: Record<string, unknown>, message: string) => void;
+  child: (attributes: Record<string, unknown>) => TelemetryLogger;
 }

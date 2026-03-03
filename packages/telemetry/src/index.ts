@@ -1,4 +1,3 @@
-export type { Logger } from "pino";
 export { createAppTelemetry } from "./_internal/create-app-telemetry";
 export {
   createProcessEnvResolver,
@@ -16,4 +15,5 @@ export type {
   LogLevel,
   SpanWrappedMethodsOptions,
   TelemetryEnv,
+  TelemetryLogger,
 } from "./types";

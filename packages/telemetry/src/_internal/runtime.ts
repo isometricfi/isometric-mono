@@ -11,13 +11,14 @@ import { OTLPTraceExporter } from "@opentelemetry/exporter-trace-otlp-http";
 import { Resource } from "@opentelemetry/resources";
 import { BatchLogRecordProcessor, LoggerProvider } from "@opentelemetry/sdk-logs";
 import { BasicTracerProvider, BatchSpanProcessor } from "@opentelemetry/sdk-trace-base";
-import pino from "pino";
+import { createConsola } from "consola";
 import type {
   AnyFunction,
   LogLevel,
   SpanAttributes,
   SpanWrappedMethodsOptions,
   TelemetryEnv,
+  TelemetryLogger,
 } from "../types";
 
 const DEFAULT_TRACER_NAME = "volumetric";
@@ -49,8 +50,22 @@ const OTEL_LOG_SEVERITY: Record<LogLevel, number> = {
   error: 17,
 };
 
+const LOGGER_LEVEL_NUMBERS: Record<LogLevel, number> = {
+  debug: 20,
+  info: 30,
+  warn: 40,
+  error: 50,
+};
+
+const CONSOLA_LEVEL_NUMBERS: Record<LogLevel, number> = {
+  debug: 4,
+  info: 3,
+  warn: 1,
+  error: 0,
+};
+
 let activeStandardSpan: Span | undefined;
-let pinoLogger: pino.Logger | undefined;
+let telemetryLogger: TelemetryLogger | undefined;
 
 interface OtlpLogger {
   emit: (record: {
@@ -190,20 +205,17 @@ function setupStandardLogExporter(): void {
   }
 }
 
-function setupPinoLogger(): void {
-  pinoLogger = pino({
-    level: "debug",
-    base: {
-      [ATTR_SERVICE_NAME]: telemetryState.serviceName,
-      [ATTR_SERVICE_INSTANCE_ID]: telemetryState.serviceInstanceId,
-    },
+function setupStructuredLogger(): void {
+  telemetryLogger = createStructuredLogger({
+    [ATTR_SERVICE_NAME]: telemetryState.serviceName,
+    [ATTR_SERVICE_INSTANCE_ID]: telemetryState.serviceInstanceId,
   });
 }
 
 function setupStandardTelemetry(): void {
   setupStandardTraceExporter();
   setupStandardLogExporter();
-  setupPinoLogger();
+  setupStructuredLogger();
 }
 
 function exportOtlpLog(
@@ -395,16 +407,16 @@ export async function shutdownTelemetry(): Promise<void> {
   standardTelemetryState.tracer = undefined;
   standardTelemetryState.loggerProvider = undefined;
   standardTelemetryState.otlpLogger = undefined;
-  pinoLogger = undefined;
+  telemetryLogger = undefined;
   activeStandardSpan = undefined;
 }
 
-export function getLogger(): pino.Logger {
-  if (!pinoLogger) {
-    return pino({ level: "debug" });
+export function getLogger(): TelemetryLogger {
+  if (!telemetryLogger) {
+    return createStructuredLogger({});
   }
 
-  return pinoLogger;
+  return telemetryLogger;
 }
 
 export function log(
@@ -413,7 +425,7 @@ export function log(
   attributes?: Record<string, string | number | boolean>,
 ): void {
   const logAttributes = buildLogAttributes(attributes);
-  const logger = pinoLogger;
+  const logger = telemetryLogger;
 
   if (logger) {
     logger[level](logAttributes, message);
@@ -430,6 +442,83 @@ export function log(
   }
 
   exportOtlpLog(level, message, logAttributes);
+}
+
+function createStructuredLogger(baseAttributes: Record<string, unknown>): TelemetryLogger {
+  const consola = createConsola({
+    level: CONSOLA_LEVEL_NUMBERS.debug,
+    reporters: [
+      {
+        log: (logObject) => {
+          const firstArg = logObject.args[0];
+          const secondArg = logObject.args[1];
+          const attributes =
+            typeof firstArg === "object" && firstArg !== null
+              ? (firstArg as Record<string, unknown>)
+              : {};
+          const message =
+            typeof secondArg === "string"
+              ? secondArg
+              : typeof firstArg === "string"
+                ? firstArg
+                : "";
+
+          const level = mapConsolaTypeToLogLevel(logObject.type);
+          const payload = {
+            level: LOGGER_LEVEL_NUMBERS[level],
+            time: Date.now(),
+            ...baseAttributes,
+            ...attributes,
+            msg: message,
+          };
+
+          if (level === "error") {
+            console.error(JSON.stringify(payload));
+            return;
+          }
+
+          if (level === "warn") {
+            console.warn(JSON.stringify(payload));
+            return;
+          }
+
+          console.log(JSON.stringify(payload));
+        },
+      },
+    ],
+  });
+
+  const emit = (level: LogLevel, attributes: Record<string, unknown>, message: string): void => {
+    consola[level]({ ...attributes }, message);
+  };
+
+  return {
+    debug: (attributes, message) => emit("debug", attributes, message),
+    info: (attributes, message) => emit("info", attributes, message),
+    warn: (attributes, message) => emit("warn", attributes, message),
+    error: (attributes, message) => emit("error", attributes, message),
+    child: (attributes) =>
+      createStructuredLogger({
+        ...baseAttributes,
+        ...attributes,
+      }),
+  };
+}
+
+function mapConsolaTypeToLogLevel(type: string): LogLevel {
+  if (type === "error" || type === "fatal") {
+    return "error";
+  }
+
+  if (type === "warn") {
+    return "warn";
+  }
+
+  if (type === "debug" || type === "trace") {
+    return "debug";
+  }
+
+  return "info";
 }
 
 function buildLogAttributes(

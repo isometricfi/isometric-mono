@@ -1,5 +1,4 @@
 import type { Span } from "@opentelemetry/api";
-import type pino from "pino";
 import type {
   AppTelemetry,
   CreateAppTelemetryOptions,
@@ -7,6 +6,7 @@ import type {
   SpanAttributes,
   SpanWrappedMethodsOptions,
   TelemetryEnv,
+  TelemetryLogger,
 } from "../types";
 import {
   createProcessEnvResolver,
@@ -86,7 +86,7 @@ export function createAppTelemetry(options: CreateAppTelemetryOptions): AppTelem
     return withSpanWrappedMethods(buildMethodNamespace(namespace), target, wrappedOptions);
   };
 
-  const resolveLogger = (): pino.Logger => {
+  const resolveLogger = (): TelemetryLogger => {
     ensureInitialized();
     return getLogger();
   };
