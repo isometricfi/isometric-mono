@@ -23,6 +23,8 @@ import type {
 const DEFAULT_TRACER_NAME = "volumetric";
 const ATTR_SERVICE_NAME = "service.name";
 const ATTR_SERVICE_INSTANCE_ID = "service.instance.id";
+const ATTR_TRACE_ID = "trace_id";
+const ATTR_SPAN_ID = "span_id";
 const TRACEPARENT_HEADER = "traceparent";
 const TRACEPARENT_VERSION = "00";
 const TRACEPARENT_REGEX = /^00-([0-9a-f]{32})-([0-9a-f]{16})-([0-9a-f]{2})$/;
@@ -410,7 +412,7 @@ export function log(
   message: string,
   attributes?: Record<string, string | number | boolean>,
 ): void {
-  const logAttributes = attributes ?? {};
+  const logAttributes = buildLogAttributes(attributes);
   const logger = pinoLogger;
 
   if (logger) {
@@ -428,6 +430,21 @@ export function log(
   }
 
   exportOtlpLog(level, message, logAttributes);
+}
+
+function buildLogAttributes(
+  attributes?: Record<string, string | number | boolean>,
+): Record<string, string | number | boolean> {
+  const spanContext = activeStandardSpan?.spanContext();
+  if (!spanContext) {
+    return attributes ?? {};
+  }
+
+  return {
+    ...(attributes ?? {}),
+    [ATTR_TRACE_ID]: spanContext.traceId,
+    [ATTR_SPAN_ID]: spanContext.spanId,
+  };
 }
 
 export function getTraceHeaders(): Record<string, string> {
