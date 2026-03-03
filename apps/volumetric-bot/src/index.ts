@@ -1,17 +1,14 @@
 import "dotenv/config";
 import { createBotRuntime } from "./bot.js";
 import { loadNodeConfig } from "./config.js";
-import { initTelemetry, log, shutdownTelemetry, withSpan } from "./telemetry.js";
+import { botLog, initBotTelemetry, shutdownBotTelemetry, withBotSpan } from "./telemetry.js";
 
 async function main() {
   const config = loadNodeConfig();
 
-  initTelemetry(config.botName, {
-    ...process.env,
-    OTEL_SERVICE_NAME: process.env.OTEL_SERVICE_NAME ?? "volumetric-bot",
-  });
+  initBotTelemetry();
 
-  log("info", "Bot starting", {
+  botLog("info", "Bot starting", {
     bot_name: config.botName,
     btc_network: config.btcNetwork,
     interval_ms: config.intervalMs,
@@ -38,13 +35,13 @@ async function main() {
     }
 
     case "run": {
-      log("info", "Starting main loop", { interval_ms: config.intervalMs });
+      botLog("info", "Starting main loop", { interval_ms: config.intervalMs });
 
       let timeoutId: NodeJS.Timeout | null = null;
       let isShuttingDown = false;
 
       const tick = async () => {
-        await withSpan("bot.run_loop", { bot_name: config.botName }, async () => {
+        await withBotSpan("bot.run_loop", { bot_name: config.botName }, async () => {
           await botRuntime.runRandomAction();
         });
       };
@@ -68,7 +65,7 @@ async function main() {
           await tick();
         } catch (error) {
           const message = error instanceof Error ? error.message : String(error);
-          log("error", "Run loop tick failed", { error: message });
+          botLog("error", "Run loop tick failed", { error: message });
         }
 
         scheduleNextTick();
@@ -87,11 +84,11 @@ async function main() {
         }
 
         isShuttingDown = true;
-        log("info", "Shutting down");
+        botLog("info", "Shutting down");
         if (timeoutId) {
           clearTimeout(timeoutId);
         }
-        await shutdownTelemetry();
+        await shutdownBotTelemetry();
         process.exit(0);
       };
 
@@ -109,12 +106,12 @@ async function main() {
   }
 
   if (command !== "run") {
-    await shutdownTelemetry();
+    await shutdownBotTelemetry();
   }
 }
 
 main().catch(async (error) => {
   console.error("Fatal error:", error);
-  await shutdownTelemetry();
+  await shutdownBotTelemetry();
   process.exit(1);
 });

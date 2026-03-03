@@ -1,13 +1,18 @@
 import { beforeEach, describe, expect, test, vi } from "vitest";
 
-const { createBotRuntimeMock, loadConfigMock, initTelemetryMock, shutdownTelemetryMock, logMock } =
-  vi.hoisted(() => ({
-    createBotRuntimeMock: vi.fn(),
-    loadConfigMock: vi.fn(),
-    initTelemetryMock: vi.fn(),
-    shutdownTelemetryMock: vi.fn(),
-    logMock: vi.fn(),
-  }));
+const {
+  createBotRuntimeMock,
+  loadConfigMock,
+  initBotTelemetryMock,
+  shutdownBotTelemetryMock,
+  botLogMock,
+} = vi.hoisted(() => ({
+  createBotRuntimeMock: vi.fn(),
+  loadConfigMock: vi.fn(),
+  initBotTelemetryMock: vi.fn(),
+  shutdownBotTelemetryMock: vi.fn(),
+  botLogMock: vi.fn(),
+}));
 
 vi.mock("./bot.js", () => ({
   createBotRuntime: createBotRuntimeMock,
@@ -18,9 +23,9 @@ vi.mock("./config.js", () => ({
 }));
 
 vi.mock("./telemetry.js", () => ({
-  initTelemetry: initTelemetryMock,
-  shutdownTelemetry: shutdownTelemetryMock,
-  log: logMock,
+  initBotTelemetry: initBotTelemetryMock,
+  shutdownBotTelemetry: shutdownBotTelemetryMock,
+  botLog: botLogMock,
 }));
 
 const WORKER_ENV = {

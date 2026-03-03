@@ -1,7 +1,7 @@
 import type { BotRuntime } from "./bot.js";
 import { createBotRuntime } from "./bot.js";
 import { loadConfig } from "./config.js";
-import { initTelemetry, log, shutdownTelemetry } from "./telemetry.js";
+import { botLog, initBotTelemetry, shutdownBotTelemetry } from "./telemetry.js";
 
 interface WorkerExecutionContext {
   waitUntil: (promise: Promise<unknown>) => void;
@@ -27,7 +27,6 @@ type WorkerEnv = {
 };
 
 let cachedRuntimePromise: Promise<BotRuntime> | null = null;
-let telemetryInitialized = false;
 
 async function getRuntime(env: WorkerEnv) {
   const config = loadConfig({
@@ -40,15 +39,12 @@ async function getRuntime(env: WorkerEnv) {
     BOT_NAME: env.BOT_NAME,
   });
 
-  if (!telemetryInitialized) {
-    initTelemetry(config.botName, {
-      OTEL_SERVICE_NAME: env.OTEL_SERVICE_NAME ?? "volumetric-bot",
-      OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: env.OTEL_EXPORTER_OTLP_TRACES_ENDPOINT,
-      OTEL_EXPORTER_OTLP_LOGS_ENDPOINT: env.OTEL_EXPORTER_OTLP_LOGS_ENDPOINT,
-      OTEL_EXPORTER_AUTH: env.OTEL_EXPORTER_AUTH,
-    });
-    telemetryInitialized = true;
-  }
+  initBotTelemetry({
+    OTEL_SERVICE_NAME: env.OTEL_SERVICE_NAME ?? "volumetric-bot",
+    OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: env.OTEL_EXPORTER_OTLP_TRACES_ENDPOINT,
+    OTEL_EXPORTER_OTLP_LOGS_ENDPOINT: env.OTEL_EXPORTER_OTLP_LOGS_ENDPOINT,
+    OTEL_EXPORTER_AUTH: env.OTEL_EXPORTER_AUTH,
+  });
 
   if (!cachedRuntimePromise) {
     cachedRuntimePromise = createBotRuntime(config, {
@@ -116,7 +112,7 @@ export default {
     ctx.waitUntil(
       runScheduledTick(env).catch((error) => {
         const message = error instanceof Error ? error.message : String(error);
-        log("error", "Scheduled tick failed", { error: message });
+        botLog("error", "Scheduled tick failed", { error: message });
       }),
     );
   },
@@ -144,8 +140,8 @@ export default {
       );
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      log("error", "Request failed", { error: message });
-      await shutdownTelemetry();
+      botLog("error", "Request failed", { error: message });
+      await shutdownBotTelemetry();
       return new Response(JSON.stringify({ ok: false, error: message }), {
         status: 500,
         headers: { "content-type": "application/json" },

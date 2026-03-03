@@ -1,6 +1,6 @@
 import type { _SERVICE } from "@volumetric/canister-types";
 import { getAcceptOffersMessage } from "../canister-client.js";
-import { log, withSpan } from "../telemetry.js";
+import { botLog, withBotSpan } from "../telemetry.js";
 import type { TRPCClient } from "../trpc-client.js";
 import type { BotWallet } from "../wallet.js";
 
@@ -110,8 +110,8 @@ export async function acceptOffer(
   trpc: TRPCClient,
   wallet: BotWallet,
 ): Promise<AcceptOfferResult> {
-  return withSpan("bot.accept_offer", { address: wallet.address }, async (span) => {
-    log("info", "Fetching open offers");
+  return withBotSpan("bot.accept_offer", { address: wallet.address }, async (span) => {
+    botLog("info", "Fetching open offers");
 
     const [optionsData, config, account] = await Promise.all([
       trpc.options.listOptions.query(),
@@ -121,7 +121,7 @@ export async function acceptOffer(
     const allOffers = flattenOffers(optionsData as OptionsData);
 
     if (allOffers.length === 0) {
-      log("info", "No open offers available");
+      botLog("info", "No open offers available");
       span.setAttribute("skipped", true);
       span.setAttribute("skip_reason", ACCEPT_OFFER_SKIP_REASON.noOffers);
       return {
@@ -137,7 +137,7 @@ export async function acceptOffer(
     );
 
     if (otherOffers.length === 0) {
-      log("info", "No offers from other writers available");
+      botLog("info", "No offers from other writers available");
       span.setAttribute("skipped", true);
       span.setAttribute("skip_reason", ACCEPT_OFFER_SKIP_REASON.onlyOwnOffers);
       return {
@@ -147,7 +147,7 @@ export async function acceptOffer(
 
     const shortTermOffers = getShortTermOffers(otherOffers);
     if (shortTermOffers.length === 0) {
-      log("info", "No short-term offers available", {
+      botLog("info", "No short-term offers available", {
         max_term_days: MAX_OPTION_TERM_DAYS,
       });
       span.setAttribute("skipped", true);
@@ -162,7 +162,7 @@ export async function acceptOffer(
     const validOffers = getMinimumQuantityOffers(shortTermOffers, minimumOfferAmountSats);
 
     if (validOffers.length === 0) {
-      log("info", "No valid offers above minimum quantity", {
+      botLog("info", "No valid offers above minimum quantity", {
         minimum_quantity_sats: minimumOfferAmountSats,
       });
       span.setAttribute("skipped", true);
@@ -180,7 +180,7 @@ export async function acceptOffer(
     span.setAttribute("selected_offer_id", selectedOffer.id);
     span.setAttribute("selected_offer_score", selectedOfferScore);
 
-    log("info", "Selected offer to accept", {
+    botLog("info", "Selected offer to accept", {
       offer_id: selectedOffer.id,
       amount_sats: selectedOffer.amountSats,
       premium: selectedOffer.premium,
@@ -208,7 +208,7 @@ export async function acceptOffer(
       ],
     });
 
-    log("info", "Offer accepted", {
+    botLog("info", "Offer accepted", {
       fill_group_id: result.fillGroupId,
       active_option_ids: result.activeOptionIds.join(", "),
       offer_id: selectedOffer.id,

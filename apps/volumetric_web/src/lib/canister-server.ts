@@ -1,6 +1,7 @@
 import { Actor, HttpAgent, type Identity } from "@dfinity/agent";
 import { Ed25519KeyIdentity } from "@dfinity/identity";
 import { type _SERVICE, idlFactory } from "@volumetric/canister-types";
+import { withWebSpanWrappedMethods } from "@/lib/telemetry";
 
 let cachedAgent: HttpAgent | null = null;
 let cachedActor: _SERVICE | null = null;
@@ -50,9 +51,18 @@ export async function getCanisterActor(): Promise<_SERVICE> {
 
   const agent = await getAgent();
 
-  cachedActor = Actor.createActor<_SERVICE>(idlFactory, {
+  const actor = Actor.createActor<_SERVICE>(idlFactory, {
     agent,
     canisterId,
+  });
+  cachedActor = withWebSpanWrappedMethods("canister", actor, {
+    getAttributes: (args): Record<string, string | number | boolean> => {
+      const firstArgument = args[0];
+      if (typeof firstArgument === "string" && firstArgument.length > 0) {
+        return { user_id: firstArgument };
+      }
+      return {};
+    },
   });
 
   return cachedActor;

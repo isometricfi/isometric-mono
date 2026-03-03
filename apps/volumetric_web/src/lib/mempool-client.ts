@@ -1,3 +1,5 @@
+import { withWebSpan } from "@/lib/telemetry";
+
 export interface MempoolOutput {
   scriptpubkey_address?: string;
   value?: number;
@@ -22,32 +24,38 @@ function getMempoolApiBaseUrl(): string {
 }
 
 async function fetchMempool(path: string): Promise<Response> {
-  const baseUrl = getMempoolApiBaseUrl();
-  const response = await fetch(`${baseUrl}${path}`);
+  return withWebSpan("web.backend.mempool.fetch", { path }, async () => {
+    const baseUrl = getMempoolApiBaseUrl();
+    const response = await fetch(`${baseUrl}${path}`);
 
-  if (!response.ok) {
-    throw new Error(`Mempool request failed (${response.status}) for ${path}`);
-  }
+    if (!response.ok) {
+      throw new Error(`Mempool request failed (${response.status}) for ${path}`);
+    }
 
-  return response;
+    return response;
+  });
 }
 
 export async function getMempoolTipHeight(): Promise<number> {
-  const response = await fetchMempool("/blocks/tip/height");
-  const body = await response.text();
-  const tipHeight = Number.parseInt(body, 10);
+  return withWebSpan("web.backend.mempool.get_tip_height", {}, async () => {
+    const response = await fetchMempool("/blocks/tip/height");
+    const body = await response.text();
+    const tipHeight = Number.parseInt(body, 10);
 
-  if (!Number.isFinite(tipHeight)) {
-    throw new Error("Invalid mempool tip height response");
-  }
+    if (!Number.isFinite(tipHeight)) {
+      throw new Error("Invalid mempool tip height response");
+    }
 
-  return tipHeight;
+    return tipHeight;
+  });
 }
 
 export async function getMempoolAddressTransactions(
   address: string,
 ): Promise<MempoolAddressTransaction[]> {
-  const response = await fetchMempool(`/address/${address}/txs`);
-  const body = await response.json();
-  return Array.isArray(body) ? (body as MempoolAddressTransaction[]) : [];
+  return withWebSpan("web.backend.mempool.get_address_transactions", { address }, async () => {
+    const response = await fetchMempool(`/address/${address}/txs`);
+    const body = await response.json();
+    return Array.isArray(body) ? (body as MempoolAddressTransaction[]) : [];
+  });
 }

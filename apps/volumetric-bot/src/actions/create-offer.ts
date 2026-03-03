@@ -1,6 +1,6 @@
 import type { _SERVICE } from "@volumetric/canister-types";
 import { getCreateOfferMessage } from "../canister-client.js";
-import { log, withSpan } from "../telemetry.js";
+import { botLog, withBotSpan } from "../telemetry.js";
 import type { TRPCClient } from "../trpc-client.js";
 import type { BotWallet } from "../wallet.js";
 
@@ -187,7 +187,7 @@ export async function createOffer(
   trpc: TRPCClient,
   wallet: BotWallet,
 ): Promise<void> {
-  await withSpan(
+  await withBotSpan(
     "bot.create_offer",
     {
       address: wallet.address,
@@ -201,7 +201,7 @@ export async function createOffer(
       const ownOpenOffers = countOwnOpenOffers(optionsData, wallet.address, ownPrincipal);
 
       if (ownOpenOffers >= MAX_OPEN_OFFERS) {
-        log("info", "Skipping offer creation, max open offers reached", {
+        botLog("info", "Skipping offer creation, max open offers reached", {
           own_open_offers: ownOpenOffers,
           max_open_offers: MAX_OPEN_OFFERS,
         });
@@ -218,7 +218,7 @@ export async function createOffer(
       );
 
       if (shortTermOptions.length === 0) {
-        log("warn", "No short-term term options available in config", {
+        botLog("warn", "No short-term term options available in config", {
           max_term_days: MAX_OPTION_TERM_DAYS,
         });
         span.setAttribute("skipped", true);
@@ -236,7 +236,7 @@ export async function createOffer(
       let availableSats = getAvailableSats(balance as AccountBalance | null);
 
       if (availableSats < minRequiredForOffer) {
-        log("info", "Balance too low, syncing ckBTC balance", {
+        botLog("info", "Balance too low, syncing ckBTC balance", {
           available: availableSats,
           required: minRequiredForOffer,
         });
@@ -256,7 +256,7 @@ export async function createOffer(
             address: wallet.address,
           });
 
-          log("warn", "Insufficient balance to create offer, deposit required", {
+          botLog("warn", "Insufficient balance to create offer, deposit required", {
             available: availableSats,
             required: minRequiredForOffer,
             deposit_address: depositInfo.btcAddress,
@@ -268,7 +268,7 @@ export async function createOffer(
           return;
         }
 
-        log("info", "Balance sync succeeded, proceeding with offer creation", {
+        botLog("info", "Balance sync succeeded, proceeding with offer creation", {
           available: availableSats,
           required: minRequiredForOffer,
         });
@@ -276,7 +276,7 @@ export async function createOffer(
 
       const params = buildOfferParams(config, optionsData, availableSats, shortTermOptions);
       if (!params) {
-        log("warn", "Unable to build a valid offer with current constraints", {
+        botLog("warn", "Unable to build a valid offer with current constraints", {
           available: availableSats,
           min_offer_amount_sats: config.minOfferAmountSats,
           max_offer_amount_sats: config.maxOfferAmountSats,
@@ -286,7 +286,7 @@ export async function createOffer(
         return;
       }
 
-      log("info", "Creating offer", {
+      botLog("info", "Creating offer", {
         quantity_sats: params.quantitySats,
         strike_bps: params.strikeBasisPoints,
         premium_bps: params.premiumBasisPoints,
@@ -317,7 +317,7 @@ export async function createOffer(
         optionDurationSeconds: params.optionDurationSeconds.toString(),
       });
 
-      log("info", "Offer created", {
+      botLog("info", "Offer created", {
         offer_id: result.offerId,
         quantity_sats: params.quantitySats,
         strike_bps: params.strikeBasisPoints,

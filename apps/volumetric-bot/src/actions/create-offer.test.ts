@@ -38,9 +38,8 @@ vi.mock("../canister-client.js", () => ({
 }));
 
 vi.mock("../telemetry.js", () => ({
-  log: vi.fn(),
-  withSpan: vi.fn().mockImplementation((_name, _attrs, fn) => {
-    // Execute the callback immediately with a mock span
+  botLog: vi.fn(),
+  withBotSpan: vi.fn().mockImplementation((_name, _attrs, fn) => {
     return fn({
       setAttribute: vi.fn(),
       setStatus: vi.fn(),

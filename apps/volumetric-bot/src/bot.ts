@@ -7,7 +7,7 @@ import { createOffer } from "./actions/create-offer.js";
 import { setup } from "./actions/setup.js";
 import { getCanisterActor } from "./canister-client.js";
 import type { BotConfig } from "./config.js";
-import { log, withSpan } from "./telemetry.js";
+import { botLog, withBotSpan } from "./telemetry.js";
 import type { TRPCFetch } from "./trpc-client.js";
 import { getTRPCClient } from "./trpc-client.js";
 import { createWallet } from "./wallet.js";
@@ -62,7 +62,7 @@ export async function createBotRuntime(
     fetch: options?.trpcFetch,
   });
 
-  log("info", "Wallet initialized", { address: wallet.address });
+  botLog("info", "Wallet initialized", { address: wallet.address });
 
   let setupCompleted = false;
   let iteration = 0;
@@ -84,21 +84,21 @@ export async function createBotRuntime(
     iteration += 1;
     let actionError: string | null = null;
 
-    await withSpan("bot.tick", { iteration, action, bot_name: config.botName }, async (span) => {
+    await withBotSpan("bot.tick", { iteration, action, bot_name: config.botName }, async (span) => {
       try {
         await ensureSetup();
 
         if (action === BOT_ACTION.create) {
-          log("info", "Tick: creating offer", { iteration });
+          botLog("info", "Tick: creating offer", { iteration });
           await createOffer(actor, trpc, wallet);
           return;
         }
 
-        log("info", "Tick: accepting offer", { iteration });
+        botLog("info", "Tick: accepting offer", { iteration });
         await acceptOffer(actor, trpc, wallet);
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
-        log("error", "Tick failed", { iteration, error: message });
+        botLog("error", "Tick failed", { iteration, error: message });
         span.setAttribute("error.message", message);
         actionError = message;
       }
@@ -115,21 +115,21 @@ export async function createBotRuntime(
     iteration += 1;
     let performedAction: BotAction = BOT_ACTION.accept;
 
-    await withSpan(
+    await withBotSpan(
       "bot.tick",
       { iteration, action: BOT_ACTION.accept, bot_name: config.botName },
       async (span) => {
         try {
           await ensureSetup();
 
-          log("info", "Tick: accepting offer", { iteration });
+          botLog("info", "Tick: accepting offer", { iteration });
           const acceptResult = await acceptOffer(actor, trpc, wallet);
 
           if (!shouldFallbackToCreate(acceptResult.outcome)) {
             return;
           }
 
-          log("info", "Tick: no valid accept candidate, creating offer", {
+          botLog("info", "Tick: no valid accept candidate, creating offer", {
             iteration,
             accept_outcome: acceptResult.outcome,
           });
@@ -137,7 +137,7 @@ export async function createBotRuntime(
           performedAction = BOT_ACTION.create;
         } catch (error) {
           const message = error instanceof Error ? error.message : String(error);
-          log("error", "Tick failed", { iteration, error: message });
+          botLog("error", "Tick failed", { iteration, error: message });
           span.setAttribute("error.message", message);
         }
       },

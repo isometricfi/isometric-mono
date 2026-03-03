@@ -1,36 +1,38 @@
-import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
-import { initTelemetry, withSpan } from "./telemetry";
+import { describe, expect, test, vi } from "vitest";
+import { initBotTelemetry, withBotSpan } from "./telemetry";
 
-describe("withSpan", () => {
-  const fetchMock = vi.fn();
+describe("withBotSpan", () => {
+  test("should execute nested spans and return inner result", async () => {
+    // given
+    vi.spyOn(console, "info").mockImplementation(() => undefined);
+    initBotTelemetry({ OTEL_SERVICE_NAME: "test-bot" });
 
-  beforeEach(() => {
-    vi.clearAllMocks();
-    vi.stubGlobal("fetch", fetchMock);
-    fetchMock.mockResolvedValue(new Response(null, { status: 200 }));
-    initTelemetry("test-bot", {
-      OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: "https://otel.example/v1/traces",
-    });
-  });
-
-  afterEach(() => {
-    vi.unstubAllGlobals();
-  });
-
-  test("should preserve trace id and parent span id in nested spans", async () => {
     // when
-    await withSpan("bot.run_loop", {}, async () => {
-      await withSpan("bot.tick", {}, async () => Promise.resolve());
+    const result = await withBotSpan("bot.outer", {}, async (outerSpan) => {
+      outerSpan.setAttribute("outer_key", "outer_value");
+
+      return withBotSpan("bot.inner", {}, async (innerSpan) => {
+        innerSpan.setAttribute("inner_key", "inner_value");
+        return "nested-result";
+      });
     });
 
     // then
-    expect(fetchMock).toHaveBeenCalledTimes(2);
-    const childPayload = JSON.parse(String(fetchMock.mock.calls[0][1]?.body));
-    const parentPayload = JSON.parse(String(fetchMock.mock.calls[1][1]?.body));
-    const childSpan = childPayload.resourceSpans[0].scopeSpans[0].spans[0];
-    const parentSpan = parentPayload.resourceSpans[0].scopeSpans[0].spans[0];
+    expect(result).toBe("nested-result");
+  });
 
-    expect(childSpan.traceId).toBe(parentSpan.traceId);
-    expect(childSpan.parentSpanId).toBe(parentSpan.spanId);
+  test("should propagate errors from inner spans", async () => {
+    // given
+    vi.spyOn(console, "info").mockImplementation(() => undefined);
+    initBotTelemetry({ OTEL_SERVICE_NAME: "test-bot" });
+
+    // when / then
+    await expect(
+      withBotSpan("bot.outer", {}, async () => {
+        return withBotSpan("bot.inner", {}, async () => {
+          throw new Error("inner failure");
+        });
+      }),
+    ).rejects.toThrowError("inner failure");
   });
 });

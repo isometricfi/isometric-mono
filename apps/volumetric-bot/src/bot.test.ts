@@ -55,8 +55,8 @@ vi.mock("./trpc-client.js", () => ({
 }));
 
 vi.mock("./telemetry.js", () => ({
-  log: vi.fn(),
-  withSpan: vi.fn().mockImplementation((_name, _attrs, fn) =>
+  botLog: vi.fn(),
+  withBotSpan: vi.fn().mockImplementation((_name, _attrs, fn) =>
     fn({
       setAttribute: vi.fn(),
       setStatus: vi.fn(),
