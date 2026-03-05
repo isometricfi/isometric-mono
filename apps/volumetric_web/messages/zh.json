@@ -97,16 +97,41 @@
     "call": "看涨",
     "put": "看跌",
     "amount": "数量",
-    "max": "最大"
+    "max": "最大",
+    "bitcoin": "比特币",
+    "willBeAbove": "将高于",
+    "inLabel": "在",
+    "swapCurrencyInput": "切换币种输入"
   },
   "Summary": {
     "premium": "溢价：",
     "maxProfit": "最大利润：",
+    "leverage": "杠杆",
+    "terms": "条款",
     "apy": "年化收益率：",
     "learn": "了解",
     "noOffersAvailable": "此金额没有可用报价",
     "buyDescription": "预付 ₿{premium}。行权价锁定在约 ${strike}。如果 BTC 在 {term} 天内超过行权价，利润将自动行权。最大损失是溢价。",
-    "writeDescription": "接受后，抵押品将锁定 {term} 天。行权价设置为接受时价格的 {strikePercent}% 以上。溢价立即收到。如果 BTC 在到期时高于行权价，将从抵押品中支付利润。"
+    "writeDescription": "接受后，抵押品将锁定 {term} 天。行权价设置为接受时价格的 {strikePercent}% 以上。溢价立即收到。如果 BTC 在到期时高于行权价，将从抵押品中支付利润。",
+    "optionBreakdown": "明细",
+    "buyExplainer": {
+      "intro": "您先支付 {premium}，获得在 {term} 内当 BTC 涨到 {strike} 以上时获利的权利。",
+      "ifRises": "如果 BTC 上涨：",
+      "ifRisesDesc": "您会自动收到 BTC 利润（最高 {maxProfit}）",
+      "ifBelow": "如果 BTC 维持在下方：",
+      "ifBelowDesc": "期权将归零到期，您损失全部溢价",
+      "platformFee": "平台费用：",
+      "platformFeeDesc": "利润的 {fee}%"
+    },
+    "writeExplainer": {
+      "intro": "您锁定 {amount} 作为抵押，买家接受后立刻获得 {premium}。行权价为 {strike}，期限 {term}。",
+      "ifBelow": "如果 BTC 维持在下方：",
+      "ifBelowDesc": "您保留抵押品并获得溢价",
+      "ifRises": "如果 BTC 上涨：",
+      "ifRisesDesc": "买家的利润从您的抵押品中支付，您保留溢价",
+      "platformFee": "平台费用：",
+      "platformFeeDesc": "溢价的 {fee}%"
+    }
   },
   "Deposit": {
     "title": "存入 BTC",

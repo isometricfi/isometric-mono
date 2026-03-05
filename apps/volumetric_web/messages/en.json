@@ -97,11 +97,17 @@
     "call": "Call",
     "put": "Put",
     "amount": "Amount",
-    "max": "Max"
+    "max": "Max",
+    "bitcoin": "Bitcoin",
+    "willBeAbove": "Will be above",
+    "inLabel": "In",
+    "swapCurrencyInput": "Swap currency input"
   },
   "Summary": {
     "premium": "Premium:",
     "maxProfit": "Max profit:",
+    "leverage": "Leverage",
+    "terms": "Terms",
     "apy": "APY:",
     "learn": "Learn",
     "noOffersAvailable": "No offers available for this amount",

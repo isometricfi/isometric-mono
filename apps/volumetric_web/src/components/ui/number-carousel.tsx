@@ -1,7 +1,7 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowLeft, ArrowRight } from "lucide-react";
+import { MinusIcon, PlusIcon } from "lucide-react";
 import { useLayoutEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 
@@ -17,11 +17,11 @@ type Direction = 1 | -1;
 // iOS-style picker positions with 3D-like scaling and opacity
 // using fixed pixel values for consistent spacing regardless of text width
 const POSITIONS = {
-  farLeft: { x: -120, scale: 0, opacity: 0 },
+  farLeft: { x: -100, scale: 0, opacity: 0 },
   left: { x: -80, scale: 0.7, opacity: 0.4 },
   center: { x: 0, scale: 1, opacity: 1 },
   right: { x: 80, scale: 0.7, opacity: 0.4 },
-  farRight: { x: 120, scale: 0.6, opacity: 0 },
+  farRight: { x: 100, scale: 0.6, opacity: 0 },
 };
 
 export function NumberCarousel({
@@ -30,7 +30,8 @@ export function NumberCarousel({
   onChange,
   formatValue = (v) => v.toString(),
 }: NumberCarouselProps) {
-  const currentIndex = values.indexOf(value);
+  const resolvedIndex = values.indexOf(value);
+  const currentIndex = resolvedIndex === -1 ? 0 : resolvedIndex;
   const prevIndexRef = useRef<number | null>(null);
   const directionRef = useRef<Direction>(1);
 
@@ -98,7 +99,7 @@ export function NumberCarousel({
 
   if (values.length === 0) {
     return (
-      <div className="flex items-center justify-center py-3 px-4 bg-secondary/50 rounded-md">
+      <div className="flex items-center justify-center py-2 px-4 bg-secondary/50 rounded-md">
         <span className="text-sm text-muted-foreground">No values available</span>
       </div>
     );
@@ -107,7 +108,7 @@ export function NumberCarousel({
   const visibleValues = getVisibleValues();
 
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex items-center gap-2 w-full">
       <Button
         variant="secondary"
         size="icon"
@@ -115,10 +116,10 @@ export function NumberCarousel({
         disabled={currentIndex <= 0}
         className="rounded-md shrink-0"
       >
-        <ArrowLeft className="size-4" />
+        <MinusIcon className="size-4" />
       </Button>
 
-      <div className="flex-1 relative h-9 overflow-hidden bg-secondary/30 rounded-md">
+      <div className="flex-1 relative h-9 overflow-hidden rounded-md">
         <div className="absolute inset-0 flex items-center justify-center">
           <AnimatePresence initial={false} mode="popLayout">
             {visibleValues.map(({ val, position }) => {
@@ -128,7 +129,7 @@ export function NumberCarousel({
 
               return (
                 <motion.button
-                  key={val}
+                  key={`${val}-${position}`}
                   type="button"
                   onClick={() => {
                     if (position === "left") handlePrev();
@@ -153,7 +154,7 @@ export function NumberCarousel({
                   }}
                   className={`absolute font-semibold whitespace-nowrap ${
                     isCenter
-                      ? "md:text-lg text-base  text-foreground"
+                      ? "md:text-base text-sm  text-foreground"
                       : "md:text-base text-sm text-muted-foreground cursor-pointer"
                   } ${!isClickable && !isCenter ? "pointer-events-none" : ""}`}
                 >
@@ -172,7 +173,7 @@ export function NumberCarousel({
         disabled={currentIndex >= values.length - 1}
         className="rounded-md shrink-0"
       >
-        <ArrowRight className="size-4" />
+        <PlusIcon className="size-4" />
       </Button>
     </div>
   );

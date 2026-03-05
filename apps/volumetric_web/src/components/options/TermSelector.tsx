@@ -31,7 +31,6 @@ export function TermSelector({ value, onChange }: TermSelectorProps) {
       value={value}
       onChange={onChange}
       layoutId={`termSelector-${layoutId}`}
-      className="w-full "
     />
   );
 }
