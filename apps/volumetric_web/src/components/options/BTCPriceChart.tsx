@@ -254,9 +254,16 @@ export function BTCPriceChart({ mode }: BTCPriceChartProps) {
 
   return (
     <Card>
-      <CardContent className="h-full flex flex-col min-h-64 md:max-h-none max-h-64">
+      <CardContent className="h-full flex flex-col  md:max-h-none max-h-64 min-h-64">
         <div className="flex items-center justify-between mb-2">
-          <h2 className="text-lg font-semibold">{t("btcUsd")}</h2>
+          <div className="flex items-center gap-2 font-semibold bg-muted px-2 py-1 rounded-full w-fit ">
+            <img
+              src="https://cdn.freebiesupply.com/logos/large/2x/bitcoin-logo-png-transparent.png"
+              alt={t("bitcoin")}
+              className="size-5"
+            />
+            Bitcoin
+          </div>
           {currentPrice > 0 && (
             <span className="text-lg font-semibold">
               ${currentPrice.toLocaleString(undefined, { maximumFractionDigits: 0 })}

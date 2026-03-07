@@ -1,6 +1,5 @@
 "use client";
 
-import { List } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { SlidingNumber } from "@/components/ui/sliding-number";
@@ -93,14 +92,14 @@ export function CallBuyOptionSummary({
       <div className="flex items-center justify-between text-sm gap-3">
         <div className="rounded-lg bg-muted px-1.5 py-1">
           <p className="text-xs font-medium text-muted-foreground">{t("leverage")}</p>
-          <div className="font-semibold flex items-center">
+          <div className="font-semibold flex items-center md:text-sm text-xs">
             <SlidingNumber value={leverageDisplay} />
             <span>x&nbsp;</span>
           </div>
         </div>
         <div className="rounded-lg bg-muted px-1.5 py-1">
           <p className="text-xs font-medium text-muted-foreground">{t("maxProfit")}</p>
-          <div className="font-semibold flex items-center">
+          <div className="font-semibold flex items-center md:text-sm text-xs">
             <span>₿&nbsp;</span>
             <SlidingNumber value={maxProfitDisplay} />
             <div className="text-muted-foreground text-xs bg-background/60 px-1 rounded-sm flex items-center font-medium ml-1">
@@ -113,9 +112,8 @@ export function CallBuyOptionSummary({
         variant="outline"
         size="sm"
         onClick={handleOpenBreakdown}
-        className=" text-xs text-muted-foreground justify-between  px-2  h-11"
+        className=" text-xs text-muted-foreground justify-between  px-2  md:h-11 h-10"
       >
-        <List className="size-3" />
         {t("terms")}
       </Button>
     </div>

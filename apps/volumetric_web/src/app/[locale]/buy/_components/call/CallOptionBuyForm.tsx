@@ -35,19 +35,13 @@ export function CallOptionBuyForm() {
   } = useCallOptionBuyFormModel();
 
   return (
-    <Card className="relative">
-      <CardContent className="h-fit  space-y-5  pt-9">
-        <div className="flex items-center gap-2 font-semibold bg-muted px-2 py-2 rounded-b-xl w-fit absolute top-0 left-1/2 -translate-x-1/2">
-          <img
-            src="https://cdn.freebiesupply.com/logos/large/2x/bitcoin-logo-png-transparent.png"
-            alt={t("bitcoin")}
-            className="size-6"
-          />
-          {t("bitcoin")}
-        </div>
+    <Card className="relative ">
+      <CardContent className="space-y-5 ">
         <div className="flex items-center justify-between p-1 rounded-lg border">
-          <p className="text-base font-medium text-foreground ml-2">{t("willBeAbove")}: </p>
-          <div className="min-w-[200px]">
+          <p className="md:text-base text-sm font-medium text-foreground ml-2">
+            {t("willBeAbove")}:{" "}
+          </p>
+          <div className="md:min-w-[190px] min-w-[150px]">
             <NumberCarousel
               values={strikeUsdValues}
               value={selectedStrikeUsd}
@@ -55,12 +49,10 @@ export function CallOptionBuyForm() {
               formatValue={(v) => `$${v.toLocaleString()}`}
             />
           </div>
-          {/* <span className="text-sm text-muted-foreground">{strikePercent}%</span> */}
         </div>
         <div className="flex items-center justify-between border p-1 rounded-lg    ">
-          <p className="text-base font-medium text-foreground ml-2">{t("inLabel")}: </p>
-
-          <div className="min-w-[200px]">
+          <p className="md:text-base text-sm font-medium text-foreground ml-2">{t("inLabel")}: </p>
+          <div className="md:min-w-[190px] min-w-[150px]">
             <NumberCarousel
               values={termDays}
               value={selectedTermDay}

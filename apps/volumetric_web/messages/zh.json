@@ -101,10 +101,26 @@
     "bitcoin": "比特币",
     "willBeAbove": "将高于",
     "inLabel": "在",
-    "swapCurrencyInput": "切换币种输入"
+    "swapCurrencyInput": "切换币种输入",
+    "willBeBelow": "将低于",
+    "collateral": "抵押",
+    "youEarn": "你赚取",
+    "setCollateralFirst": "先设置抵押金额",
+    "lowerReturnFillsFaster": "回报更低更容易成交",
+    "firstOffer": "首个报价",
+    "fastFill": "更快成交",
+    "balanced": "平衡",
+    "higherYield": "更高收益",
+    "wouldRank": "排名 #{rank}/{total}",
+    "noYieldOptions": "没有可用收益选项",
+    "bestOffer": "最优报价"
   },
   "Summary": {
     "premium": "溢价：",
+    "competitiveness": "竞争力",
+    "rank": "排名",
+    "bestOffer": "最优报价",
+    "youEarn": "你赚取：",
     "maxProfit": "最大利润：",
     "leverage": "杠杆",
     "terms": "条款",
@@ -112,7 +128,7 @@
     "learn": "了解",
     "noOffersAvailable": "此金额没有可用报价",
     "buyDescription": "预付 ₿{premium}。行权价锁定在约 ${strike}。如果 BTC 在 {term} 天内超过行权价，利润将自动行权。最大损失是溢价。",
-    "writeDescription": "接受后，抵押品将锁定 {term} 天。行权价设置为接受时价格的 {strikePercent}% 以上。溢价立即收到。如果 BTC 在到期时高于行权价，将从抵押品中支付利润。",
+    "writeDescription": "锁定 BTC {term} 天。如果有买家接受且 BTC 保持低于 ${strike}，您将保留 BTC 并获得收益。",
     "optionBreakdown": "明细",
     "buyExplainer": {
       "intro": "您先支付 {premium}，获得在 {term} 内当 BTC 涨到 {strike} 以上时获利的权利。",
@@ -124,13 +140,13 @@
       "platformFeeDesc": "利润的 {fee}%"
     },
     "writeExplainer": {
-      "intro": "您锁定 {amount} 作为抵押，买家接受后立刻获得 {premium}。行权价为 {strike}，期限 {term}。",
+      "intro": "您锁定 {amount} BTC，期限 {term}。如果有买家接受，您会立刻赚取 {earnings}。如果 BTC 涨到 {strike} 以上，部分锁定的 BTC 可能会用于支付买方收益。",
       "ifBelow": "如果 BTC 维持在下方：",
-      "ifBelowDesc": "您保留抵押品并获得溢价",
-      "ifRises": "如果 BTC 上涨：",
-      "ifRisesDesc": "买家的利润从您的抵押品中支付，您保留溢价",
+      "ifBelowDesc": "您保留 BTC 并获得收益",
+      "ifRises": "如果 BTC 涨破安全价格：",
+      "ifRisesDesc": "部分锁定的 BTC 可能会用于支付买方，最多不超过您预留的抵押",
       "platformFee": "平台费用：",
-      "platformFeeDesc": "溢价的 {fee}%"
+      "platformFeeDesc": "收益的 {fee}%"
     }
   },
   "Deposit": {

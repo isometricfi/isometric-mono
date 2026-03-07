@@ -99,12 +99,27 @@
     "amount": "Amount",
     "max": "Max",
     "bitcoin": "Bitcoin",
-    "willBeAbove": "Will be above",
     "inLabel": "In",
-    "swapCurrencyInput": "Swap currency input"
+    "swapCurrencyInput": "Swap currency input",
+    "willBeAbove": "Will be below",
+    "collateral": "Collateral",
+    "youEarn": "You earn",
+    "setCollateralFirst": "Set collateral first",
+    "lowerReturnFillsFaster": "Lower return fills faster",
+    "firstOffer": "First offer",
+    "fastFill": "Fast fill",
+    "balanced": "Balanced",
+    "higherYield": "Higher yield",
+    "wouldRank": "Rank #{rank} of {total}",
+    "noYieldOptions": "No yield options available",
+    "bestOffer": "Best"
   },
   "Summary": {
     "premium": "Premium:",
+    "competitiveness": "Competitiveness",
+    "rank": "Rank",
+    "bestOffer": "Best offer",
+    "youEarn": "You earn:",
     "maxProfit": "Max profit:",
     "leverage": "Leverage",
     "terms": "Terms",
@@ -112,7 +127,7 @@
     "learn": "Learn",
     "noOffersAvailable": "No offers available for this amount",
     "buyDescription": "Pay ₿{premium} upfront. Strike locks at ~${strike}. Profit auto-exercised if BTC exceeds strike in {term} days. Max loss is the premium.",
-    "writeDescription": "When accepted collateral is locked for {term} days. Strike set to {strikePercent}% above the price when accepted. Premium received instantly. If BTC is higher than strike at expiry, profit paid from collateral.",
+    "writeDescription": "Lock BTC for {term} days. If a buyer accepts and BTC stays below ${strike}, you keep your BTC plus the earnings.",
     "optionBreakdown": "Breakdown",
     "buyExplainer": {
       "intro": "You pay {premium} upfront to lock in the right to profit if BTC rises above {strike} within {term}.",
@@ -124,13 +139,13 @@
       "platformFeeDesc": "{fee}% of profit"
     },
     "writeExplainer": {
-      "intro": "You lock {amount} as collateral and earn {premium} instantly when a buyer accepts. Strike locks at {strike} for {term}.",
+      "intro": "You lock {amount} of BTC for {term}. If a buyer accepts, you earn {earnings} right away. If BTC goes above {strike}, some of your locked BTC may be used to pay the buyer.",
       "ifBelow": "If BTC stays below:",
-      "ifBelowDesc": "You keep your collateral plus the premium",
-      "ifRises": "If BTC rises:",
-      "ifRisesDesc": "Buyer's profit is paid from your collateral, you keep the premium",
+      "ifBelowDesc": "You keep your BTC and the earnings",
+      "ifRises": "If BTC rises above the safe price:",
+      "ifRisesDesc": "Some of your locked BTC may be used to pay the buyer, up to the collateral you set aside",
       "platformFee": "Platform fee:",
-      "platformFeeDesc": "{fee}% of premium"
+      "platformFeeDesc": "{fee}% of earnings"
     }
   },
   "Deposit": {

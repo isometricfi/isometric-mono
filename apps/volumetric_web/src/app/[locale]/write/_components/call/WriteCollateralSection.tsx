@@ -5,23 +5,23 @@ import { useTranslations } from "next-intl";
 import { useEffect, useMemo, useState } from "react";
 import { Slider } from "@/components/ui/slider";
 import { btcToSats, formatBtc, parseBtcToSats, satsToBtc } from "@/lib/utils";
-import { sanitizePremiumAmountInput, sanitizeUsdAmountInput } from "./_internal/premium-amount";
+import { sanitizeWriterBtcInput, sanitizeWriterUsdInput } from "./_internal/earnings-amount";
 
-interface BuyPremiumAmountSectionProps {
+interface WriteCollateralSectionProps {
   amountSats: number;
-  maxPremiumAmountSats: number;
   btcPrice: number;
+  maxCollateralSats: number;
   onAmountSatsChange: (amountSats: number) => void;
 }
 
 type InputUnit = "btc" | "usd";
 
-export function BuyPremiumAmountSection({
+export function WriteCollateralSection({
   amountSats,
-  maxPremiumAmountSats,
   btcPrice,
+  maxCollateralSats,
   onAmountSatsChange,
-}: BuyPremiumAmountSectionProps) {
+}: WriteCollateralSectionProps) {
   const t = useTranslations("Forms");
   const [activeInputUnit, setActiveInputUnit] = useState<InputUnit>("btc");
   const [activeInputValue, setActiveInputValue] = useState("");
@@ -43,8 +43,8 @@ export function BuyPremiumAmountSection({
   const handleAmountInputChange = (nextValue: string) => {
     const sanitizedValue =
       activeInputUnit === "btc"
-        ? sanitizePremiumAmountInput(nextValue)
-        : sanitizeUsdAmountInput(nextValue);
+        ? sanitizeWriterBtcInput(nextValue)
+        : sanitizeWriterUsdInput(nextValue);
     if (sanitizedValue === null) return;
 
     setActiveInputValue(sanitizedValue);
@@ -59,30 +59,30 @@ export function BuyPremiumAmountSection({
     setActiveInputUnit((currentUnit) => (currentUnit === "btc" ? "usd" : "btc"));
   };
 
+  const handleMaxClick = () => {
+    onAmountSatsChange(maxCollateralSats);
+  };
+
   const handleAmountSliderChange = (sliderValue: number[]) => {
     const nextPercentage = sliderValue[0] ?? 0;
-    if (maxPremiumAmountSats <= 0) {
+    if (maxCollateralSats <= 0) {
       onAmountSatsChange(0);
       return;
     }
 
-    const nextAmountSats = Math.round((nextPercentage / 100) * maxPremiumAmountSats);
+    const nextAmountSats = Math.round((nextPercentage / 100) * maxCollateralSats);
     onAmountSatsChange(nextAmountSats);
   };
 
-  const handleMaxClick = () => {
-    onAmountSatsChange(maxPremiumAmountSats);
-  };
-
   const sliderValue =
-    maxPremiumAmountSats > 0 ? [Math.min((amountSats / maxPremiumAmountSats) * 100, 100)] : [0];
+    maxCollateralSats > 0 ? [Math.min((amountSats / maxCollateralSats) * 100, 100)] : [0];
   const inputWidthCh = Math.max(1, activeInputValue.length || 1);
 
   return (
     <div className="rounded-lg bg-muted/20 p-3 space-y-3 border">
       <div className="flex justify-between items-center">
-        <div className="">
-          <p className="font-semibold text-foreground text-sm">{t("amount")}</p>
+        <div>
+          <p className="font-semibold text-foreground text-sm">{t("collateral")}</p>
           <button
             type="button"
             onClick={handleMaxClick}
@@ -90,8 +90,8 @@ export function BuyPremiumAmountSection({
           >
             <span className="text-muted-foreground">{t("max")}: </span>
             {activeInputUnit === "btc"
-              ? `₿${formatBtc(maxPremiumAmountSats, 6)}`
-              : `$${Math.round(satsToBtc(maxPremiumAmountSats) * btcPrice).toLocaleString()}`}
+              ? `₿${formatBtc(maxCollateralSats, 6)}`
+              : `$${Math.round(satsToBtc(maxCollateralSats) * btcPrice).toLocaleString()}`}
           </button>
         </div>
         <div className="flex items-center gap-2">
@@ -116,7 +116,7 @@ export function BuyPremiumAmountSection({
               placeholder="0"
               style={{ width: `${inputWidthCh}ch` }}
               className="bg-transparent border-0 p-0 text-inherit font-inherit text-left tabular-nums focus:outline-none"
-              aria-label={t("amount")}
+              aria-label={t("collateral")}
             />
           </div>
         </div>

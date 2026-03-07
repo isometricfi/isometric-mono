@@ -99,7 +99,7 @@ export function NumberCarousel({
 
   if (values.length === 0) {
     return (
-      <div className="flex items-center justify-center py-2 px-4 bg-secondary/50 rounded-md">
+      <div className="flex items-center justify-center h-8 px-4 bg-secondary/50 rounded-md">
         <span className="text-sm text-muted-foreground">No values available</span>
       </div>
     );
@@ -114,12 +114,12 @@ export function NumberCarousel({
         size="icon"
         onClick={handlePrev}
         disabled={currentIndex <= 0}
-        className="rounded-md shrink-0"
+        className="rounded-md shrink-0 size-8"
       >
         <MinusIcon className="size-4" />
       </Button>
 
-      <div className="flex-1 relative h-9 overflow-hidden rounded-md">
+      <div className="flex-1 relative h-8 overflow-hidden rounded-md">
         <div className="absolute inset-0 flex items-center justify-center">
           <AnimatePresence initial={false} mode="popLayout">
             {visibleValues.map(({ val, position }) => {
@@ -171,7 +171,7 @@ export function NumberCarousel({
         size="icon"
         onClick={handleNext}
         disabled={currentIndex >= values.length - 1}
-        className="rounded-md shrink-0"
+        className="rounded-md shrink-0  size-8"
       >
         <PlusIcon className="size-4" />
       </Button>
