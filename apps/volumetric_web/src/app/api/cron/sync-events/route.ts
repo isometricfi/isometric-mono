@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { logError } from "@/lib/telemetry/logs";
 import { syncEventsFromCanister } from "@/lib/use-cases/events/sync-events/usecase";
 import {
   createCronErrorResponse,
@@ -26,7 +27,7 @@ export async function GET(request: Request) {
       latestEventId: result.latestEventId,
     });
   } catch (error) {
-    console.error("Failed to sync events:", error);
+    await logError("Failed to sync events", error);
     return createCronErrorResponse("Failed to sync events", 500);
   }
 }

@@ -60,10 +60,10 @@ npx wrangler secret put CANISTER_ID --env bot4
 Optional telemetry secrets (if exporting OTLP traces/logs):
 
 ```bash
-npx wrangler secret put OTEL_EXPORTER_AUTH --env bot1
-npx wrangler secret put OTEL_EXPORTER_AUTH --env bot2
-npx wrangler secret put OTEL_EXPORTER_AUTH --env bot3
-npx wrangler secret put OTEL_EXPORTER_AUTH --env bot4
+npx wrangler secret put OTEL_EXPORTER_OTLP_HEADERS --env bot1
+npx wrangler secret put OTEL_EXPORTER_OTLP_HEADERS --env bot2
+npx wrangler secret put OTEL_EXPORTER_OTLP_HEADERS --env bot3
+npx wrangler secret put OTEL_EXPORTER_OTLP_HEADERS --env bot4
 ```
 
 Non-secret vars are in `wrangler.toml` per env (`BTC_NETWORK`, `IC_HOST`, `BOT_NAME`).
