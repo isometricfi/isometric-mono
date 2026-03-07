@@ -23,7 +23,7 @@ type WorkerEnv = {
   OTEL_SERVICE_NAME?: string;
   OTEL_EXPORTER_OTLP_TRACES_ENDPOINT?: string;
   OTEL_EXPORTER_OTLP_LOGS_ENDPOINT?: string;
-  OTEL_EXPORTER_AUTH?: string;
+  OTEL_EXPORTER_OTLP_HEADERS?: string;
 };
 
 let cachedRuntimePromise: Promise<BotRuntime> | null = null;
@@ -45,7 +45,7 @@ async function getRuntime(env: WorkerEnv) {
       OTEL_SERVICE_NAME: env.OTEL_SERVICE_NAME,
       OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: env.OTEL_EXPORTER_OTLP_TRACES_ENDPOINT,
       OTEL_EXPORTER_OTLP_LOGS_ENDPOINT: env.OTEL_EXPORTER_OTLP_LOGS_ENDPOINT,
-      OTEL_EXPORTER_AUTH: env.OTEL_EXPORTER_AUTH,
+      OTEL_EXPORTER_OTLP_HEADERS: env.OTEL_EXPORTER_OTLP_HEADERS,
     });
     telemetryInitialized = true;
   }

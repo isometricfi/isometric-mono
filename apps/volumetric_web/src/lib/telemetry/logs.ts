@@ -6,7 +6,7 @@ import { WEB_APP_TRACER_NAME } from "./traceConstants";
 const CONTENT_TYPE_JSON = "application/json";
 const EXPORTER_AUTH_PREFIX = "Authorization=";
 const LOG_SCOPE_NAME = "volumetric-web.logs";
-const OTEL_AUTH = process.env.OTEL_EXPORTER_AUTH;
+const OTEL_AUTH = process.env.OTEL_EXPORTER_OTLP_HEADERS;
 const OTEL_LOGS_ENDPOINT = process.env.OTEL_EXPORTER_OTLP_LOGS_ENDPOINT;
 const OTEL_SERVICE_NAME = process.env.OTEL_SERVICE_NAME;
 const OTEL_SEVERITY_NUMBER_ERROR = 17;

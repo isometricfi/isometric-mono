@@ -8,7 +8,7 @@ import generatedWorker from "./.open-next/worker.js";
 type EnvValue = string | undefined;
 
 interface CloudflareEnv extends Record<string, unknown> {
-  OTEL_EXPORTER_AUTH?: string;
+  OTEL_EXPORTER_OTLP_HEADERS?: string;
   OTEL_EXPORTER_OTLP_TRACES_ENDPOINT?: string;
   OTEL_SERVICE_NAME?: string;
 }
@@ -22,7 +22,7 @@ const DYNAMIC_PATH_SEGMENT = ":id";
 const resolveTraceConfig: ResolveConfigFn<CloudflareEnv> = (env) => ({
   exporter: {
     url: getRequiredEnv(env, "OTEL_EXPORTER_OTLP_TRACES_ENDPOINT"),
-    headers: parseExporterHeaders(getOptionalEnv(env, "OTEL_EXPORTER_AUTH")),
+    headers: parseExporterHeaders(getOptionalEnv(env, "OTEL_EXPORTER_OTLP_HEADERS")),
   },
   service: {
     name: getOptionalEnv(env, "OTEL_SERVICE_NAME") ?? DEFAULT_SERVICE_NAME,

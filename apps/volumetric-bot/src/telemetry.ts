@@ -5,7 +5,7 @@ interface TelemetryEnv {
   OTEL_SERVICE_NAME?: string;
   OTEL_EXPORTER_OTLP_TRACES_ENDPOINT?: string;
   OTEL_EXPORTER_OTLP_LOGS_ENDPOINT?: string;
-  OTEL_EXPORTER_AUTH?: string;
+  OTEL_EXPORTER_OTLP_HEADERS?: string;
 }
 
 type LogLevel = "info" | "warn" | "error" | "debug";
@@ -220,7 +220,7 @@ export function initTelemetry(botName: string, env?: TelemetryEnv): void {
   telemetryState.serviceInstanceId = botName;
   telemetryState.tracesEndpoint = env?.OTEL_EXPORTER_OTLP_TRACES_ENDPOINT;
   telemetryState.logsEndpoint = env?.OTEL_EXPORTER_OTLP_LOGS_ENDPOINT;
-  telemetryState.authHeader = parseAuthorizationHeader(env?.OTEL_EXPORTER_AUTH);
+  telemetryState.authHeader = parseAuthorizationHeader(env?.OTEL_EXPORTER_OTLP_HEADERS);
 }
 
 export async function shutdownTelemetry(): Promise<void> {
