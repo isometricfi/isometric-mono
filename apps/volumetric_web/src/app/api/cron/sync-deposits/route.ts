@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { logError } from "@/lib/telemetry/logs";
 import { syncDepositsFromCanister } from "@/lib/use-cases/account/sync-deposits/usecase";
 import {
   createCronErrorResponse,
@@ -32,7 +33,7 @@ export async function GET(request: Request) {
       snapshotsSaved: result.snapshotsSaved,
     });
   } catch (error) {
-    console.error("Failed to sync deposits:", error);
+    await logError("Failed to sync deposits", error);
     return createCronErrorResponse("Failed to sync deposits", 500);
   }
 }

@@ -1,4 +1,5 @@
 import { ImageResponse } from "next/og";
+import { logError } from "@/lib/telemetry/logs";
 import type { HistoryEntry } from "@/lib/use-cases/history/get-history/schema";
 import { getHistoryByHash } from "@/lib/use-cases/history/get-history-by-hash/usecase";
 import { formatBtcBigint, getFallbackUsername } from "@/lib/utils";
@@ -248,7 +249,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       },
     );
   } catch (error) {
-    console.error("OG Image generation error:", error);
+    await logError("OG Image generation error", error);
     const referer = request.headers.get("referer") || "";
     const isZh = referer.includes("/zh/") || referer.includes("/zh");
 

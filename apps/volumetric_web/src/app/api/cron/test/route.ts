@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { logInfo } from "@/lib/telemetry/logs";
 
 export async function GET(request: Request) {
   const cronSecret = process.env.CRON_SECRET;
@@ -11,7 +12,7 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  console.log("Test cron: I've been hit");
+  await logInfo("Test cron: I've been hit");
 
   return NextResponse.json({ success: true, message: "I've been hit" });
 }
