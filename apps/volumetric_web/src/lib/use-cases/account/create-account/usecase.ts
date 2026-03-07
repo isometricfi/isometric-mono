@@ -8,7 +8,7 @@ import type { Input, Output } from "./schema";
 const CREATE_ACCOUNT_SPAN_NAME = "usecase.account.create_account";
 
 export async function createAccount(input: Input): Promise<Output> {
-  return withSpan(CREATE_ACCOUNT_SPAN_NAME, async () => {
+  return withSpan(CREATE_ACCOUNT_SPAN_NAME, async (span) => {
     const actor = await getCanisterActor();
     const repository = getDepositSyncRepository();
 
@@ -25,7 +25,9 @@ export async function createAccount(input: Input): Promise<Output> {
         depositAddress: depositAddressData.btc_address,
         updatedAtMs: Date.now(),
       });
-    } catch {}
+    } catch (error) {
+      span.recordException(error instanceof Error ? error : new Error(String(error)));
+    }
 
     const data = unwrapResult(result);
     return mapResult(data);
