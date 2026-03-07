@@ -1,6 +1,8 @@
 import { getCanisterActor } from "@/lib/canister-server";
 import { getMempoolTipHeight } from "@/lib/mempool-client";
 import { getDepositSyncRepository } from "@/lib/repositories/deposit-sync/get-deposit-sync-repository";
+import { ATTR_RESULT_COUNT } from "@/lib/telemetry/traceConstants";
+import { withSpan } from "@/lib/telemetry/withSpan";
 import { detectMaturedDepositsForUser, groupDueDepositsByUser } from "./_internal/detection";
 import { reconcileUserDepositsAfterSync } from "./_internal/reconciliation";
 import { mapResult } from "./mapper";
@@ -14,83 +16,128 @@ const BASE_BACKOFF_1_MINUTE_MS = 60 * 1000;
 const MAX_BACKOFF_16_MINUTES_MS = 16 * 60 * 1000;
 const ZERO_BIGINT = BigInt(0);
 
+const SYNC_DEPOSITS_SPAN_NAME = "usecase.account.sync_deposits";
+const LOAD_CURSOR_AND_TIP_SPAN_NAME = "sync_deposits.load_cursor_and_tip";
+const LOAD_USERS_AND_LIMITS_SPAN_NAME = "sync_deposits.load_users_and_limits";
+const DETECT_MATURED_DEPOSITS_SPAN_NAME = "sync_deposits.detect_matured_deposits";
+const GROUP_DUE_DEPOSITS_SPAN_NAME = "sync_deposits.group_due_deposits";
+const RECONCILE_DUE_DEPOSITS_SPAN_NAME = "sync_deposits.reconcile_due_deposits";
+const SAVE_CURSOR_SPAN_NAME = "sync_deposits.save_cursor";
+
 export async function syncDepositsFromCanister(): Promise<Output> {
-  const repository = getDepositSyncRepository();
-  const nowMs = Date.now();
-  const currentBlockTipHeight = await getMempoolTipHeight();
-  const cursor = await repository.getDepositSyncCursor();
-  if (cursor?.lastProcessedBlockHeight === currentBlockTipHeight) {
-    return mapResult({
-      usersScanned: 0,
-      maturedDetected: 0,
-      syncCalls: 0,
-      creditedDeposits: 0,
-      snapshotsSaved: 0,
+  return withSpan(SYNC_DEPOSITS_SPAN_NAME, async () => {
+    const repository = getDepositSyncRepository();
+    const nowMs = Date.now();
+    const { currentBlockTipHeight, cursor } = await withSpan(
+      LOAD_CURSOR_AND_TIP_SPAN_NAME,
+      async () => {
+        const currentBlockTipHeight = await getMempoolTipHeight();
+        const cursor = await repository.getDepositSyncCursor();
+        return { currentBlockTipHeight, cursor };
+      },
+    );
+
+    if (cursor?.lastProcessedBlockHeight === currentBlockTipHeight) {
+      return mapResult({
+        usersScanned: 0,
+        maturedDetected: 0,
+        syncCalls: 0,
+        creditedDeposits: 0,
+        snapshotsSaved: 0,
+      });
+    }
+
+    const { actor, minDepositAmountSats, users } = await withSpan(
+      LOAD_USERS_AND_LIMITS_SPAN_NAME,
+      async () => {
+        const actor = await getCanisterActor();
+        const tradingLimits = await actor.get_trading_limits();
+        const minDepositAmountSats = Number(tradingLimits.deposit_amount_sats);
+        const users = await actor.list_users();
+
+        return {
+          actor,
+          minDepositAmountSats,
+          users,
+        };
+      },
+    );
+
+    const maturedDetected = await withSpan(DETECT_MATURED_DEPOSITS_SPAN_NAME, async (span) => {
+      const detectionPromises = users.map((user) =>
+        detectMaturedDepositsForUser({
+          repository,
+          actor,
+          userAddress: user.address,
+          nowMs,
+          currentBlockTipHeight,
+          minDepositAmountSats,
+          minterConfirmations: MINTER_CONFIRMATIONS,
+        }),
+      );
+      const detectionResults = await Promise.all(detectionPromises);
+      const detectedDeposits = detectionResults.reduce((sum, count) => sum + count, 0);
+
+      span.setAttribute(ATTR_RESULT_COUNT, detectedDeposits);
+      return detectedDeposits;
     });
-  }
 
-  const actor = await getCanisterActor();
-  const tradingLimits = await actor.get_trading_limits();
-  const minDepositAmountSats = Number(tradingLimits.deposit_amount_sats);
-  const users = await actor.list_users();
-
-  const detectionPromises = users.map((user) =>
-    detectMaturedDepositsForUser({
-      repository,
-      actor,
-      userAddress: user.address,
-      nowMs,
-      currentBlockTipHeight,
-      minDepositAmountSats,
-      minterConfirmations: MINTER_CONFIRMATIONS,
-    }),
-  );
-  const detectionResults = await Promise.all(detectionPromises);
-  const maturedDetected = detectionResults.reduce((sum, count) => sum + count, 0);
-
-  const dueDepositsByUser = await groupDueDepositsByUser({
-    repository,
-    nowMs,
-    maxDueDepositsPerTick: MAX_DUE_DEPOSITS_PER_TICK,
-    maxTrackedDepositAgeMs: MAX_TRACKED_DEPOSIT_AGE_6_HOURS_MS,
-  });
-
-  const reconciliationPromises = Array.from(dueDepositsByUser.entries()).map(
-    ([userAddress, dueDeposits]) =>
-      reconcileUserDepositsAfterSync({
+    const dueDepositsByUser = await withSpan(GROUP_DUE_DEPOSITS_SPAN_NAME, async () =>
+      groupDueDepositsByUser({
         repository,
-        actor,
-        userAddress,
-        dueDeposits,
         nowMs,
-        zeroBigInt: ZERO_BIGINT,
-        maxSyncAttempts: MAX_SYNC_ATTEMPTS,
-        getBackoffDelayMs,
+        maxDueDepositsPerTick: MAX_DUE_DEPOSITS_PER_TICK,
+        maxTrackedDepositAgeMs: MAX_TRACKED_DEPOSIT_AGE_6_HOURS_MS,
       }),
-  );
-  const reconciliationResults = await Promise.all(reconciliationPromises);
+    );
 
-  let totalSyncCalls = 0;
-  let totalCreditedDeposits = 0;
-  let totalSnapshotsSaved = 0;
+    const reconciliationTotals = await withSpan(RECONCILE_DUE_DEPOSITS_SPAN_NAME, async () => {
+      const reconciliationPromises = Array.from(dueDepositsByUser.entries()).map(
+        ([userAddress, dueDeposits]) =>
+          reconcileUserDepositsAfterSync({
+            repository,
+            actor,
+            userAddress,
+            dueDeposits,
+            nowMs,
+            zeroBigInt: ZERO_BIGINT,
+            maxSyncAttempts: MAX_SYNC_ATTEMPTS,
+            getBackoffDelayMs,
+          }),
+      );
+      const reconciliationResults = await Promise.all(reconciliationPromises);
 
-  for (const reconciliationResult of reconciliationResults) {
-    totalSyncCalls += reconciliationResult.syncCalls;
-    totalCreditedDeposits += reconciliationResult.creditedDeposits;
-    totalSnapshotsSaved += reconciliationResult.snapshotsSaved;
-  }
+      let totalSyncCalls = 0;
+      let totalCreditedDeposits = 0;
+      let totalSnapshotsSaved = 0;
 
-  await repository.saveDepositSyncCursor({
-    lastProcessedBlockHeight: currentBlockTipHeight,
-    updatedAtMs: nowMs,
-  });
+      for (const reconciliationResult of reconciliationResults) {
+        totalSyncCalls += reconciliationResult.syncCalls;
+        totalCreditedDeposits += reconciliationResult.creditedDeposits;
+        totalSnapshotsSaved += reconciliationResult.snapshotsSaved;
+      }
 
-  return mapResult({
-    usersScanned: users.length,
-    maturedDetected,
-    syncCalls: totalSyncCalls,
-    creditedDeposits: totalCreditedDeposits,
-    snapshotsSaved: totalSnapshotsSaved,
+      return {
+        totalSyncCalls,
+        totalCreditedDeposits,
+        totalSnapshotsSaved,
+      };
+    });
+
+    await withSpan(SAVE_CURSOR_SPAN_NAME, async () => {
+      await repository.saveDepositSyncCursor({
+        lastProcessedBlockHeight: currentBlockTipHeight,
+        updatedAtMs: nowMs,
+      });
+    });
+
+    return mapResult({
+      usersScanned: users.length,
+      maturedDetected,
+      syncCalls: reconciliationTotals.totalSyncCalls,
+      creditedDeposits: reconciliationTotals.totalCreditedDeposits,
+      snapshotsSaved: reconciliationTotals.totalSnapshotsSaved,
+    });
   });
 }
 
