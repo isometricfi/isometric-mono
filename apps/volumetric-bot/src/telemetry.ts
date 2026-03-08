@@ -69,6 +69,7 @@ function exportOtelLog(
     return;
   }
 
+  const spanContext = trace.getActiveSpan()?.spanContext();
   const payload = {
     resourceLogs: [
       {
@@ -91,8 +92,8 @@ function exportOtelLog(
                 severityText: level.toUpperCase(),
                 body: { stringValue: message },
                 attributes: toOtelAttributes(attributes),
-                traceId: trace.getActiveSpan()?.spanContext().traceId ?? "",
-                spanId: trace.getActiveSpan()?.spanContext().spanId ?? "",
+                traceId: spanContext?.traceId ?? "",
+                spanId: spanContext?.spanId ?? "",
               },
             ],
           },
