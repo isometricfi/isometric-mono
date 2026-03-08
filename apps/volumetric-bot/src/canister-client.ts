@@ -8,7 +8,10 @@ export async function getCanisterActor(canisterId: string, icHost: string): Prom
     return cachedActor;
   }
 
-  const agent = await HttpAgent.create({ host: icHost });
+  const agent = await HttpAgent.create({
+    host: icHost,
+    fetch: (input, init) => fetch(input, init),
+  });
 
   if (!icHost.includes("ic0.app") && !icHost.includes("icp0.io")) {
     await agent.fetchRootKey();

@@ -1,12 +1,12 @@
 import "server-only";
 
 import { trace } from "@opentelemetry/api";
+import { parseOtlpHeaders } from "@volumetric/telemetry";
 import { WEB_APP_TRACER_NAME } from "./traceConstants";
 
 const CONTENT_TYPE_JSON = "application/json";
-const EXPORTER_AUTH_PREFIX = "Authorization=";
 const LOG_SCOPE_NAME = "volumetric-web.logs";
-const OTEL_AUTH = process.env.OTEL_EXPORTER_OTLP_HEADERS;
+const OTEL_HEADERS = parseOtlpHeaders(process.env.OTEL_EXPORTER_OTLP_HEADERS);
 const OTEL_LOGS_ENDPOINT = process.env.OTEL_EXPORTER_OTLP_LOGS_ENDPOINT;
 const OTEL_SERVICE_NAME = process.env.OTEL_SERVICE_NAME;
 const OTEL_SEVERITY_NUMBER_ERROR = 17;
@@ -42,7 +42,7 @@ async function sendLog(
     const response = await fetch(OTEL_LOGS_ENDPOINT, {
       method: "POST",
       headers: {
-        ...getExporterHeaders(),
+        ...(OTEL_HEADERS ?? {}),
         "Content-Type": CONTENT_TYPE_JSON,
       },
       body: JSON.stringify({
@@ -104,30 +104,4 @@ function getErrorMessage(message: string, error?: unknown): string {
 
 function getUnixTimeNanoseconds(): string {
   return (BigInt(Date.now()) * BigInt(1_000_000)).toString();
-}
-
-function getExporterHeaders(): Record<string, string> {
-  if (!OTEL_AUTH) {
-    return {};
-  }
-
-  const decodedHeader = decodeHeaderValue(OTEL_AUTH);
-
-  if (decodedHeader.startsWith(EXPORTER_AUTH_PREFIX)) {
-    return {
-      Authorization: decodedHeader.slice(EXPORTER_AUTH_PREFIX.length).trim(),
-    };
-  }
-
-  return {
-    Authorization: decodedHeader,
-  };
-}
-
-function decodeHeaderValue(value: string): string {
-  try {
-    return decodeURIComponent(value.trim());
-  } catch {
-    return value.trim();
-  }
 }

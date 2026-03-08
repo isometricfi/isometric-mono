@@ -1,3 +1,5 @@
+import { instrument, type ResolveConfigFn } from "@microlabs/otel-cf-workers";
+import { createOtlpTraceConfig } from "@volumetric/telemetry";
 import type { BotRuntime } from "./bot.js";
 import { createBotRuntime } from "./bot.js";
 import { loadConfig } from "./config.js";
@@ -26,8 +28,13 @@ type WorkerEnv = {
   OTEL_EXPORTER_OTLP_HEADERS?: string;
 };
 
+const DEFAULT_SERVICE_NAME = "volumetric-bot";
+
 let cachedRuntimePromise: Promise<BotRuntime> | null = null;
 let telemetryInitialized = false;
+
+const resolveTraceConfig: ResolveConfigFn<WorkerEnv> = (env) =>
+  createOtlpTraceConfig(env, DEFAULT_SERVICE_NAME);
 
 async function getRuntime(env: WorkerEnv) {
   const config = loadConfig({
@@ -107,7 +114,7 @@ async function runActionFromRequest(request: Request, env: WorkerEnv): Promise<R
   });
 }
 
-export default {
+const handler = {
   async scheduled(
     _controller: unknown,
     env: WorkerEnv,
@@ -153,3 +160,5 @@ export default {
     }
   },
 };
+
+export default instrument(handler, resolveTraceConfig);
