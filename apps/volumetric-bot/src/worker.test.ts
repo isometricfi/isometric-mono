@@ -17,6 +17,10 @@ vi.mock("./config.js", () => ({
   loadConfig: loadConfigMock,
 }));
 
+vi.mock("@microlabs/otel-cf-workers", () => ({
+  instrument: (handler: unknown) => handler,
+}));
+
 vi.mock("./telemetry.js", () => ({
   initTelemetry: initTelemetryMock,
   shutdownTelemetry: shutdownTelemetryMock,

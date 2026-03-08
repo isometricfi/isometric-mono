@@ -1,4 +1,5 @@
-import type { Span } from "@opentelemetry/api";
+import { trace } from "@opentelemetry/api";
+import { createWithSpan, parseOtlpHeaders } from "@volumetric/telemetry";
 
 interface TelemetryEnv {
   [key: string]: string | undefined;
@@ -11,8 +12,10 @@ interface TelemetryEnv {
 type LogLevel = "info" | "warn" | "error" | "debug";
 
 const BOT_TRACER_NAME = "volumetric-bot";
+const BOT_LOG_SCOPE_NAME = "volumetric-bot.logs";
 const ATTR_SERVICE_NAME = "service.name";
 const ATTR_SERVICE_INSTANCE_ID = "service.instance.id";
+const CONTENT_TYPE_JSON = "application/json";
 
 const OTEL_LOG_SEVERITY: Record<LogLevel, number> = {
   debug: 5,
@@ -24,14 +27,8 @@ const OTEL_LOG_SEVERITY: Record<LogLevel, number> = {
 interface TelemetryState {
   serviceName: string;
   serviceInstanceId: string;
-  tracesEndpoint?: string;
   logsEndpoint?: string;
-  authHeader?: string;
-}
-
-interface SpanContext {
-  traceId: string;
-  spanId: string;
+  otlpHeaders?: Record<string, string>;
 }
 
 const telemetryState: TelemetryState = {
@@ -39,35 +36,10 @@ const telemetryState: TelemetryState = {
   serviceInstanceId: "unknown",
 };
 
-let activeSpanContext: SpanContext | undefined;
-
-function parseAuthorizationHeader(rawAuth?: string): string | undefined {
-  if (!rawAuth) {
-    return undefined;
-  }
-
-  const decoded = decodeHeaderToken(rawAuth.trim());
-  if (!decoded.length) {
-    return undefined;
-  }
-
-  if (decoded.startsWith("Authorization=")) {
-    return decoded.slice("Authorization=".length).trim();
-  }
-
-  return decoded;
-}
-
-function decodeHeaderToken(token: string): string {
-  try {
-    return decodeURIComponent(token);
-  } catch {
-    return token;
-  }
-}
+export const withSpan = createWithSpan(BOT_TRACER_NAME);
 
 function nowUnixNano(): string {
-  return (BigInt(Date.now()) * 1_000_000n).toString();
+  return (BigInt(Date.now()) * BigInt(1_000_000)).toString();
 }
 
 function toOtelAttributes(attributes: Record<string, string | number | boolean>) {
@@ -86,23 +58,6 @@ function toOtelAttributes(attributes: Record<string, string | number | boolean>)
 
     return { key, value: { doubleValue: value } };
   });
-}
-
-function withOtelHeaders(baseHeaders: Record<string, string>): Record<string, string> {
-  if (!telemetryState.authHeader) {
-    return baseHeaders;
-  }
-
-  return {
-    ...baseHeaders,
-    Authorization: telemetryState.authHeader,
-  };
-}
-
-function randomHex(bytes: number): string {
-  const values = new Uint8Array(bytes);
-  crypto.getRandomValues(values);
-  return Array.from(values, (value) => value.toString(16).padStart(2, "0")).join("");
 }
 
 function exportOtelLog(
@@ -128,7 +83,7 @@ function exportOtelLog(
         },
         scopeLogs: [
           {
-            scope: { name: BOT_TRACER_NAME },
+            scope: { name: BOT_LOG_SCOPE_NAME },
             logRecords: [
               {
                 timeUnixNano: nowUnixNano(),
@@ -136,6 +91,8 @@ function exportOtelLog(
                 severityText: level.toUpperCase(),
                 body: { stringValue: message },
                 attributes: toOtelAttributes(attributes),
+                traceId: trace.getActiveSpan()?.spanContext().traceId ?? "",
+                spanId: trace.getActiveSpan()?.spanContext().spanId ?? "",
               },
             ],
           },
@@ -146,7 +103,10 @@ function exportOtelLog(
 
   void fetch(telemetryState.logsEndpoint, {
     method: "POST",
-    headers: withOtelHeaders({ "content-type": "application/json" }),
+    headers: {
+      ...(telemetryState.otlpHeaders ?? {}),
+      "content-type": CONTENT_TYPE_JSON,
+    },
     body: JSON.stringify(payload),
   }).catch((error) => {
     const otelError = error instanceof Error ? error.message : String(error);
@@ -154,73 +114,11 @@ function exportOtelLog(
   });
 }
 
-function exportOtelSpan(
-  spanName: string,
-  traceId: string,
-  spanId: string,
-  parentSpanId: string | undefined,
-  startTimeUnixNano: string,
-  endTimeUnixNano: string,
-  statusCode: 0 | 1 | 2,
-  statusMessage: string | undefined,
-  attributes: Record<string, string | number | boolean>,
-) {
-  if (!telemetryState.tracesEndpoint) {
-    return;
-  }
-
-  const payload = {
-    resourceSpans: [
-      {
-        resource: {
-          attributes: [
-            { key: ATTR_SERVICE_NAME, value: { stringValue: telemetryState.serviceName } },
-            {
-              key: ATTR_SERVICE_INSTANCE_ID,
-              value: { stringValue: telemetryState.serviceInstanceId },
-            },
-          ],
-        },
-        scopeSpans: [
-          {
-            scope: { name: BOT_TRACER_NAME },
-            spans: [
-              {
-                traceId,
-                spanId,
-                ...(parentSpanId ? { parentSpanId } : {}),
-                name: spanName,
-                startTimeUnixNano,
-                endTimeUnixNano,
-                attributes: toOtelAttributes(attributes),
-                status: {
-                  code: statusCode,
-                  message: statusMessage,
-                },
-              },
-            ],
-          },
-        ],
-      },
-    ],
-  };
-
-  void fetch(telemetryState.tracesEndpoint, {
-    method: "POST",
-    headers: withOtelHeaders({ "content-type": "application/json" }),
-    body: JSON.stringify(payload),
-  }).catch((error) => {
-    const otelError = error instanceof Error ? error.message : String(error);
-    console.warn("Failed to export OTLP span", { error: otelError });
-  });
-}
-
 export function initTelemetry(botName: string, env?: TelemetryEnv): void {
-  telemetryState.serviceName = env?.OTEL_SERVICE_NAME ?? BOT_TRACER_NAME;
+  telemetryState.serviceName = env?.OTEL_SERVICE_NAME?.trim() || BOT_TRACER_NAME;
   telemetryState.serviceInstanceId = botName;
-  telemetryState.tracesEndpoint = env?.OTEL_EXPORTER_OTLP_TRACES_ENDPOINT;
-  telemetryState.logsEndpoint = env?.OTEL_EXPORTER_OTLP_LOGS_ENDPOINT;
-  telemetryState.authHeader = parseAuthorizationHeader(env?.OTEL_EXPORTER_OTLP_HEADERS);
+  telemetryState.logsEndpoint = env?.OTEL_EXPORTER_OTLP_LOGS_ENDPOINT?.trim() || undefined;
+  telemetryState.otlpHeaders = parseOtlpHeaders(env?.OTEL_EXPORTER_OTLP_HEADERS);
 }
 
 export async function shutdownTelemetry(): Promise<void> {
@@ -248,74 +146,4 @@ export function log(
   }
 
   exportOtelLog(level, message, logAttributes);
-}
-
-type SpanAttributes = Record<string, string | number | boolean>;
-
-export async function withSpan<T>(
-  name: string,
-  attributes: SpanAttributes,
-  fn: (span: Span) => Promise<T>,
-): Promise<T> {
-  const parentSpanContext = activeSpanContext;
-  const traceId = parentSpanContext?.traceId ?? randomHex(16);
-  const spanId = randomHex(8);
-  const currentSpanContext: SpanContext = { traceId, spanId };
-  const spanAttributes: SpanAttributes = { ...attributes };
-  const startTimeUnixNano = nowUnixNano();
-
-  const spanShim = {
-    setAttribute: (key: string, value: string | number | boolean) => {
-      spanAttributes[key] = value;
-      return spanShim;
-    },
-    setStatus: () => spanShim,
-    addEvent: () => spanShim,
-    addLink: () => spanShim,
-    recordException: () => undefined,
-    updateName: () => spanShim,
-    end: () => undefined,
-    isRecording: () => true,
-    spanContext: () => ({
-      traceId,
-      spanId,
-      traceFlags: 1,
-      isRemote: false,
-    }),
-  } as unknown as Span;
-
-  activeSpanContext = currentSpanContext;
-
-  try {
-    const result = await fn(spanShim);
-    exportOtelSpan(
-      name,
-      traceId,
-      spanId,
-      parentSpanContext?.spanId,
-      startTimeUnixNano,
-      nowUnixNano(),
-      1,
-      undefined,
-      spanAttributes,
-    );
-    return result;
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    spanAttributes["error.message"] = message;
-    exportOtelSpan(
-      name,
-      traceId,
-      spanId,
-      parentSpanContext?.spanId,
-      startTimeUnixNano,
-      nowUnixNano(),
-      2,
-      message,
-      spanAttributes,
-    );
-    throw error;
-  } finally {
-    activeSpanContext = parentSpanContext;
-  }
 }
