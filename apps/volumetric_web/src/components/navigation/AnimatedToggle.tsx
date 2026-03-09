@@ -53,7 +53,7 @@ export function AnimatedToggle<T extends string | number>({
                 transition={{ type: "spring", duration: 0.5 }}
               />
             )}
-            <span className="relative z-10 flex items-center gap-2 justify-center">
+            <span className="relative z-10 flex items-center gap-2 justify-center whitespace-nowrap">
               {Icon && <Icon className={cn(size === "sm" ? "size-3" : "size-3.5")} />}
               {option.label}
             </span>

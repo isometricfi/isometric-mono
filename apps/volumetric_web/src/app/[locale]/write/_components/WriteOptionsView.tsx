@@ -23,7 +23,7 @@ export function WriteOptionsView() {
     <>
       <div className="text-center mb-6  flex justify-between items-center">
         <div className="flex items-center justify-center md:gap-1">
-          <h1 className="md:text-3xl text-xl font-bold">{t("writeOptions")}</h1>
+          <h1 className="md:text-2xl text-xl font-bold">{t("writeOptions")}</h1>
           <Button
             variant="ghost"
             size="icon"

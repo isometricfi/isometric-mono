@@ -1,184 +1,47 @@
 "use client";
 
-import { useDynamicContext } from "@dynamic-labs/sdk-react-core";
 import { useTranslations } from "next-intl";
-import { useEffect, useMemo, useState } from "react";
-import { AmountInput } from "@/components/options/AmountInput";
+import { BtcUsdAmountSection } from "@/components/options/BtcUsdAmountSection";
 import { OfferResultModal } from "@/components/options/OfferResultModal";
-import { TermSelector } from "@/components/options/TermSelector";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { NumberCarousel } from "@/components/ui/number-carousel";
-import { Skeleton } from "@/components/ui/skeleton";
-import {
-  findBestOffer,
-  getMaxLiquiditySats,
-  getStrikePercentsForTerm,
-  useAcceptOffer,
-  useAccount,
-  useConfig,
-  useOptions,
-  usePrices,
-} from "@/hooks";
-import { DEFAULT_MIN_OFFER_AMOUNT_SATS, formatBtc, parseBtcToSats } from "@/lib/utils";
-import { useChartOptionsStore } from "@/stores/chart-options-store";
+import { useCallOptionBuyFormModel } from "./_internal/use-call-option-buy-form-model";
 import { CallBuyOptionSummary } from "./CallBuyOptionSummary";
 
-function computeStrikeUsdValues(strikePercents: number[], btcPrice: number): number[] {
-  return strikePercents.map((pct) => Math.round(btcPrice * (1 + pct / 100)));
-}
-
 export function CallOptionBuyForm() {
-  const { primaryWallet } = useDynamicContext();
-  const { data, isLoading } = useOptions();
-  const { data: account } = useAccount();
-  const { data: priceData } = usePrices();
-  const { data: config } = useConfig();
-  const acceptOffer = useAcceptOffer();
-  const btcPrice = priceData?.btc ?? 0;
   const t = useTranslations("Forms");
-  const tCommon = useTranslations("Common");
-
-  const setChartStrikePercent = useChartOptionsStore((state) => state.setStrikePercent);
-  const setChartTermDays = useChartOptionsStore((state) => state.setTermDays);
-
-  const minOfferAmountSats = config?.minOfferAmountSats ?? DEFAULT_MIN_OFFER_AMOUNT_SATS;
-  const defaultTerm = config?.termOptions[0] ?? 7;
-
-  const [term, setTermLocal] = useState(defaultTerm);
-  const [amountBtc, setAmountBtc] = useState("");
-
-  const setTerm = (value: number) => {
-    setTermLocal(value);
-    setChartTermDays(value);
-  };
-
-  const showModal = acceptOffer.step !== "idle";
-
-  // Filter out options created by the current user
-  const filteredData = useMemo(() => {
-    if (!data) return undefined;
-    if (!account?.profile?.principal) return data;
-
-    const userPrincipal = account.profile.principal;
-
-    return {
-      ...data,
-      termGroups: data.termGroups
-        .map((group) => ({
-          ...group,
-          strikes: group.strikes
-            .map((strike) => ({
-              ...strike,
-              offers: strike.offers.filter((offer) => offer.writerId !== userPrincipal),
-            }))
-            .filter((strike) => strike.offers.length > 0),
-        }))
-        .filter((group) => group.strikes.length > 0),
-    };
-  }, [data, account]);
-
-  const strikePercents = useMemo(
-    () => getStrikePercentsForTerm(filteredData, term),
-    [filteredData, term],
-  );
-
-  const strikeUsdValues = useMemo(
-    () => computeStrikeUsdValues(strikePercents, btcPrice),
-    [strikePercents, btcPrice],
-  );
-
-  const [strikePercent, setStrikePercentLocal] = useState<number>(strikePercents[0] ?? 5);
-
-  const setStrikePercent = (value: number) => {
-    setStrikePercentLocal(value);
-    setChartStrikePercent(value);
-  };
-
-  const amountSats = parseBtcToSats(amountBtc);
-  const maxLiquiditySats = getMaxLiquiditySats(filteredData, term, strikePercent);
-  const displayMaxSats = maxLiquiditySats >= minOfferAmountSats ? maxLiquiditySats : 0;
-  const bestOffer = findBestOffer(filteredData, term, strikePercent, amountSats);
-
-  const selectedStrikeUsd = useMemo(
-    () => Math.round(btcPrice * (1 + strikePercent / 100)),
-    [btcPrice, strikePercent],
-  );
-
-  useEffect(() => {
-    if (maxLiquiditySats < minOfferAmountSats) {
-      setAmountBtc("");
-      return;
-    }
-
-    if (maxLiquiditySats > 0) {
-      const halfMaxSats = Math.floor(maxLiquiditySats / 2);
-      const defaultAmountSats =
-        halfMaxSats >= minOfferAmountSats ? halfMaxSats : minOfferAmountSats;
-      setAmountBtc(formatBtc(defaultAmountSats, 5));
-    }
-  }, [maxLiquiditySats, minOfferAmountSats]);
-
-  const handleStrikeUsdChange = (usdValue: number) => {
-    const index = strikeUsdValues.indexOf(usdValue);
-    if (index !== -1) {
-      setStrikePercent(strikePercents[index]);
-    }
-  };
-
-  const handleSubmit = () => {
-    if (!bestOffer) return;
-    acceptOffer.mutate({
-      offerId: bestOffer.id,
-      quantitySats: amountSats,
-    });
-  };
-
-  const handleMaxClick = () => {
-    setAmountBtc(formatBtc(maxLiquiditySats, 8));
-  };
-
-  const handleModalClose = (open: boolean) => {
-    if (!open) {
-      if (acceptOffer.step === "success") {
-        setAmountBtc("");
-      }
-      acceptOffer.reset();
-    }
-  };
-
-  const isWalletConnected = !!primaryWallet;
-  const isValidAmount = amountSats >= minOfferAmountSats && amountSats <= displayMaxSats;
-  const hasInsufficientLiquidity = amountSats > displayMaxSats && displayMaxSats > 0;
-  const isBelowMinimum = amountSats > 0 && amountSats < minOfferAmountSats;
-
-  const getButtonText = () => {
-    if (!isWalletConnected) return t("connectWallet");
-    if (acceptOffer.isPending) return t("buyingOption");
-    if (hasInsufficientLiquidity) return t("insufficientLiquidity");
-    if (isBelowMinimum) return `${tCommon("min")}: ₿${formatBtc(minOfferAmountSats)}`;
-    if (!bestOffer && amountSats > 0) return t("noOffersAvailable");
-    return t("buyOption");
-  };
+  const {
+    acceptOffer,
+    amountSats,
+    btcPrice,
+    getButtonText,
+    handleModalClose,
+    handleStrikeUsdChange,
+    handleSubmit,
+    isSubmitDisabled,
+    leverage,
+    maxPremiumAmountSats,
+    quantitySats,
+    selectedStrikeUsd,
+    selectedTermDay,
+    setAmountSats,
+    setTerm,
+    showModal,
+    strikePercent,
+    strikeUsdValues,
+    term,
+    termDays,
+  } = useCallOptionBuyFormModel();
 
   return (
-    <Card>
-      <CardContent className="h-fit space-y-5">
-        <TermSelector value={term} onChange={setTerm} />
-
-        {isLoading ? (
-          <div className="space-y-2">
-            <p className="text-sm font-medium text-foreground">{t("strike")}</p>
-            <Skeleton className="h-[40px] w-full" />
-          </div>
-        ) : strikePercents.length > 0 && btcPrice > 0 ? (
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <p className="text-sm font-medium text-foreground">{t("strike")}</p>
-              <span className="text-sm text-muted-foreground">
-                {t("strikePercentAbove", { percent: strikePercent })}
-              </span>
-            </div>
+    <Card className="relative ">
+      <CardContent className="space-y-5 ">
+        <div className="flex items-center justify-between p-1 rounded-lg border">
+          <p className="md:text-base text-sm font-medium text-foreground ml-2">
+            {t("willBeAbove")}:{" "}
+          </p>
+          <div className="md:min-w-[190px] min-w-[150px]">
             <NumberCarousel
               values={strikeUsdValues}
               value={selectedStrikeUsd}
@@ -186,28 +49,37 @@ export function CallOptionBuyForm() {
               formatValue={(v) => `$${v.toLocaleString()}`}
             />
           </div>
-        ) : (
-          <div className="space-y-2">
-            <p className="text-sm font-medium text-foreground">{t("strike")}</p>
-            <div className="flex items-center justify-center py-3 px-4 bg-secondary/50 rounded-md h-9">
-              <span className="text-sm text-muted-foreground">{t("noStrikesAvailable")}</span>
-            </div>
+        </div>
+        <div className="flex items-center justify-between border p-1 rounded-lg    ">
+          <p className="md:text-base text-sm font-medium text-foreground ml-2">{t("inLabel")}: </p>
+          <div className="md:min-w-[190px] min-w-[150px]">
+            <NumberCarousel
+              values={termDays}
+              value={selectedTermDay}
+              onChange={setTerm}
+              formatValue={(value) => `${value} ${t("days").toLowerCase()}`}
+            />
           </div>
-        )}
-
-        <AmountInput
-          value={amountBtc}
-          onChange={setAmountBtc}
-          maxAmountSats={displayMaxSats}
-          minAmountSats={minOfferAmountSats}
-          onMaxClick={handleMaxClick}
+        </div>
+        <BtcUsdAmountSection
+          label={t("amount")}
+          amountSats={amountSats}
+          btcPrice={btcPrice}
+          maxAmountSats={maxPremiumAmountSats}
+          onAmountSatsChange={setAmountSats}
         />
-
+        <CallBuyOptionSummary
+          premiumAmountSats={amountSats}
+          quantitySats={quantitySats}
+          leverage={leverage}
+          term={term}
+          strikePercent={strikePercent}
+        />
         <Button
           onClick={handleSubmit}
-          className="w-full py-6 text-base font-semibold"
+          className="w-full  text-base font-semibold"
           size="lg"
-          disabled={!isWalletConnected || !isValidAmount || !bestOffer || acceptOffer.isPending}
+          disabled={isSubmitDisabled}
         >
           {getButtonText()}
         </Button>
@@ -219,13 +91,6 @@ export function CallOptionBuyForm() {
           step={acceptOffer.step}
           fillGroupId={acceptOffer.data?.fillGroupId}
           errorMessage={acceptOffer.error?.message}
-        />
-
-        <CallBuyOptionSummary
-          amountSats={amountSats}
-          bestOffer={bestOffer}
-          term={term}
-          strikePercent={strikePercent}
         />
       </CardContent>
     </Card>

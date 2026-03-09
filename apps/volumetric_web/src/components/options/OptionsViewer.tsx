@@ -6,6 +6,7 @@ import { useTranslations } from "next-intl";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatedToggle, type ToggleOption } from "@/components/navigation/AnimatedToggle";
 import { useAccount, useConfig, useOptions, usePrices } from "@/hooks";
+import { getStrikeUsd } from "@/lib/options-form";
 import { cn, formatBtc } from "@/lib/utils";
 import type { StrikeBucket } from "@/types/options";
 import type { ViewerMode } from "@/types/ui";
@@ -29,7 +30,7 @@ function StrikeRow({
   currentUserId,
 }: StrikeRowProps) {
   const t = useTranslations("OptionsViewer");
-  const strikeUsd = Math.round(btcPrice * (1 + bucket.strikePercent / 100));
+  const strikeUsd = getStrikeUsd(btcPrice, bucket.strikePercent);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [hasScrolled, setHasScrolled] = useState(false);
   const isScrollable = bucket.offers.length > 4;

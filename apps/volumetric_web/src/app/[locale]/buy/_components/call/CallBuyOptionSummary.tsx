@@ -1,40 +1,43 @@
 "use client";
 
-import { List } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { SlidingNumber } from "@/components/ui/sliding-number";
 import { useConfig, useModal, usePrices } from "@/hooks";
+import { getStrikeUsd } from "@/lib/options-form";
 import { basisPointsToPercent, satsToBtc } from "@/lib/utils";
-import type { OptionOffer } from "@/types/options";
 
 interface CallBuyOptionSummaryProps {
-  amountSats: number;
-  bestOffer: OptionOffer | null;
+  premiumAmountSats: number;
+  quantitySats: number;
+  leverage: number;
   term: number;
   strikePercent: number;
 }
 
 export function CallBuyOptionSummary({
-  amountSats,
-  bestOffer,
+  premiumAmountSats,
+  quantitySats,
+  leverage,
   term,
   strikePercent,
 }: CallBuyOptionSummaryProps) {
+  const tForms = useTranslations("Forms");
   const { data: priceData } = usePrices();
   const { data: config } = useConfig();
   const btcPrice = priceData?.btc ?? 0;
   const t = useTranslations("Summary");
   const { openModal } = useModal();
 
-  const premium = bestOffer?.premium ?? 0;
-  const premiumSats = Math.round(amountSats * (premium / 100));
+  const premiumSats = premiumAmountSats;
   const premiumBtc = satsToBtc(premiumSats);
-  const maxProfitSats = amountSats - premiumSats;
+  const maxProfitSats = Math.max(quantitySats - premiumSats, 0);
   const maxProfitBtc = satsToBtc(maxProfitSats);
-  const strikeUsd = Math.round(btcPrice * (1 + strikePercent / 100));
+  const maxProfitUsd = Math.round(maxProfitBtc * btcPrice);
+  const strikeUsd = getStrikeUsd(btcPrice, strikePercent);
   const premiumDisplay = Number(premiumBtc.toFixed(6));
   const maxProfitDisplay = Number(maxProfitBtc.toFixed(6));
+  const leverageDisplay = leverage > 0 ? Number(leverage.toFixed(1)) : 0;
 
   const platformFeePercent = basisPointsToPercent(
     Number(config?.fees.profitFeeBasisPoints ?? BigInt(0)),
@@ -50,7 +53,7 @@ export function CallBuyOptionSummary({
               {t("buyExplainer.intro", {
                 premium: `₿${premiumDisplay}`,
                 strike: `$${strikeUsd.toLocaleString()}`,
-                term: `${term} ${term === 1 ? "day" : "days"}`,
+                term: `${term} ${tForms("days").toLowerCase()}`,
               })}
             </p>
 
@@ -86,33 +89,33 @@ export function CallBuyOptionSummary({
   };
 
   return (
-    <div className="space-y-3 border-border">
-      <div className="flex items-center justify-between text-sm">
-        <div className="md:flex items-center gap-2">
-          <p className="text-muted-foreground">{t("premium")}</p>
-          <div className="font-semibold flex items-center">
-            <span>₿&nbsp;</span>
-            <SlidingNumber value={premiumDisplay} />
-            <div className="text-sm text-primary font-medium ml-1">({premium}%)</div>
+    <div className="border-border flex  w-full justify-between">
+      <div className="flex items-center justify-between text-sm gap-3">
+        <div className="rounded-lg bg-muted px-1.5 py-1">
+          <p className="text-xs font-medium text-muted-foreground">{t("leverage")}</p>
+          <div className="font-semibold flex items-center md:text-sm text-xs">
+            <SlidingNumber value={leverageDisplay} />
+            <span>x&nbsp;</span>
           </div>
         </div>
-        <div className="md:flex items-end gap-2">
-          <p className="text-muted-foreground">{t("maxProfit")}</p>
-          <div className="font-semibold text-green-500 flex items-center">
+        <div className="rounded-lg bg-muted px-1.5 py-1">
+          <p className="text-xs font-medium text-muted-foreground">{t("maxProfit")}</p>
+          <div className="font-semibold flex items-center md:text-sm text-xs">
             <span>₿&nbsp;</span>
             <SlidingNumber value={maxProfitDisplay} />
+            <div className="text-muted-foreground text-xs bg-background/60 px-1 rounded-sm flex items-center font-medium ml-1">
+              $<SlidingNumber value={maxProfitUsd} />
+            </div>
           </div>
         </div>
       </div>
-
       <Button
         variant="outline"
         size="sm"
         onClick={handleOpenBreakdown}
-        className="w-full text-sm text-muted-foreground justify-between  px-3!"
+        className=" text-xs text-muted-foreground justify-between  px-2  md:h-11 h-10"
       >
-        {t("optionBreakdown")}
-        <List className="size-4" />
+        {t("terms")}
       </Button>
     </div>
   );

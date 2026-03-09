@@ -1,43 +1,47 @@
 "use client";
 
-import { List } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { SlidingNumber } from "@/components/ui/sliding-number";
 import { useConfig, useModal, usePrices } from "@/hooks";
+import { getStrikeUsd } from "@/lib/options-form";
 import { basisPointsToPercent, roundToN, satsToBtc } from "@/lib/utils";
 
 interface CallWriteOptionSummaryProps {
   amountSats: number;
-  premium: number;
+  competitivenessRankDisplay: string | null;
+  earningsSats: number;
   term: number;
   strikePercent: number;
 }
 
 export function CallWriteOptionSummary({
   amountSats,
-  premium,
+  competitivenessRankDisplay,
+  earningsSats,
   term,
   strikePercent,
 }: CallWriteOptionSummaryProps) {
+  const tForms = useTranslations("Forms");
   const { data: priceData } = usePrices();
   const { data: config } = useConfig();
   const btcPrice = priceData?.btc ?? 0;
   const t = useTranslations("Summary");
   const { openModal } = useModal();
-  const premiumSats = Math.round(amountSats * (premium / 100));
-  const premiumBtc = satsToBtc(premiumSats);
-  const premiumUsd = roundToN(btcPrice * premiumBtc, 1);
-
-  const apy = Math.round((premium / 100) * (365 / term) * 100);
-
-  const premiumDisplay = Number(premiumBtc.toFixed(6));
+  const earningsBtc = satsToBtc(earningsSats);
+  const earningsUsd = roundToN(btcPrice * earningsBtc, 1);
+  const earningsDisplay = Number(earningsBtc.toFixed(6));
   const amountBtc = satsToBtc(amountSats);
   const amountDisplay = Number(amountBtc.toFixed(6));
-  const strikeUsd = Math.round(btcPrice * (1 + strikePercent / 100));
+  const strikeUsd = getStrikeUsd(btcPrice, strikePercent);
+
+  const apyPercent = roundToN(
+    amountSats > 0 && term > 0 ? (earningsSats / amountSats) * (365 / term) * 100 : 0,
+    0,
+  );
 
   const platformFeePercent = basisPointsToPercent(
-    Number(config?.fees.profitFeeBasisPoints ?? BigInt(0)),
+    Number(config?.fees.premiumFeeBasisPoints ?? BigInt(0)),
   );
 
   const handleOpenBreakdown = () => {
@@ -49,9 +53,9 @@ export function CallWriteOptionSummary({
             <p className="text-muted-foreground leading-relaxed">
               {t("writeExplainer.intro", {
                 amount: `₿${amountDisplay}`,
-                premium: `₿${premiumDisplay}`,
+                earnings: `₿${earningsDisplay}`,
                 strike: `$${strikeUsd.toLocaleString()}`,
-                term: `${term} ${term === 1 ? "day" : "days"}`,
+                term: `${term} ${tForms("days").toLowerCase()}`,
               })}
             </p>
 
@@ -87,23 +91,33 @@ export function CallWriteOptionSummary({
   };
 
   return (
-    <div className="space-y-3">
-      <div className="flex items-center justify-between text-sm">
-        <div className="flex items-end gap-1">
-          <p className=" text-muted-foreground">{t("premium")}</p>
-          <div className="font-semibold flex items-center">
-            <span>₿&nbsp;</span>
-            <SlidingNumber value={premiumDisplay} />
-            <div className="text-muted-foreground text-sm bg-muted px-1 rounded-sm flex items-center font-medium ml-1">
-              $<SlidingNumber value={premiumUsd} />
+    <div className="border-border flex  w-full justify-between">
+      <div className="flex items-center justify-between text-sm gap-3">
+        <div className="rounded-lg bg-muted px-1.5 py-1">
+          <p className="text-xs font-medium text-muted-foreground">{t("rank")}</p>
+          {competitivenessRankDisplay ? (
+            <div className="font-semibold flex items-center md:text-sm text-xs">
+              {competitivenessRankDisplay}
             </div>
+          ) : (
+            <div className="text-muted-foreground text-xs">--</div>
+          )}
+        </div>
+        <div className="rounded-lg bg-muted px-1.5 py-1">
+          <p className="text-xs font-medium text-muted-foreground">{t("apy")}</p>
+          <div className="font-semibold flex items-center md:text-sm text-xs">
+            <SlidingNumber value={apyPercent} />
+            <span className="text-xs ml-0.5">%</span>
           </div>
         </div>
-        <div className="text-right flex items-end gap-1">
-          <p className="text-muted-foreground">{t("apy")}</p>
-          <div className=" font-semibold text-primary flex items-center justify-end">
-            <SlidingNumber value={apy} />
-            <span>%</span>
+        <div className="rounded-lg bg-muted px-1.5 py-1">
+          <p className="text-xs font-medium text-muted-foreground">{t("youEarn")}</p>
+          <div className="font-semibold flex items-center md:text-sm text-xs">
+            <span>₿&nbsp;</span>
+            <SlidingNumber value={earningsDisplay} />
+            <div className="text-muted-foreground text-xs bg-background/60 px-1 rounded-sm flex items-center font-medium ml-1">
+              $<SlidingNumber value={earningsUsd} />
+            </div>
           </div>
         </div>
       </div>
@@ -111,10 +125,9 @@ export function CallWriteOptionSummary({
         variant="outline"
         size="sm"
         onClick={handleOpenBreakdown}
-        className="w-full text-sm text-muted-foreground justify-between  px-3!"
+        className=" text-xs text-muted-foreground justify-between  px-2  md:h-11 h-10"
       >
-        {t("optionBreakdown")}
-        <List className="size-4" />
+        {t("terms")}
       </Button>
     </div>
   );

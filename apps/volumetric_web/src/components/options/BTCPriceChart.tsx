@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useTranslations } from "next-intl";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -254,9 +255,18 @@ export function BTCPriceChart({ mode }: BTCPriceChartProps) {
 
   return (
     <Card>
-      <CardContent className="h-full flex flex-col min-h-64 md:max-h-none max-h-64">
+      <CardContent className="h-full flex flex-col  md:max-h-none max-h-64 min-h-64">
         <div className="flex items-center justify-between mb-2">
-          <h2 className="text-lg font-semibold">{t("btcUsd")}</h2>
+          <div className="flex items-center gap-2 font-semibold bg-muted px-2 py-1 rounded-full w-fit ">
+            <Image
+              src="/assets/btc.svg"
+              alt={t("bitcoin")}
+              className="size-5"
+              width={20}
+              height={20}
+            />
+            Bitcoin
+          </div>
           {currentPrice > 0 && (
             <span className="text-lg font-semibold">
               ${currentPrice.toLocaleString(undefined, { maximumFractionDigits: 0 })}
