@@ -1,57 +1,10 @@
 import type { OptionOffer } from "@/types/options";
 
-const MAX_BTC_INPUT = 100;
-const MAX_BTC_DECIMALS = 6;
-const MAX_USD_INPUT = 10_000_000;
-const MAX_USD_DECIMALS = 2;
-
 export interface WriterCompetitiveness {
   bestPremiumPercent: number | null;
   fillSpeed: "firstOffer" | "fastFill" | "balanced" | "higherYield";
   rank: number;
   totalOffers: number;
-}
-
-export function sanitizeWriterBtcInput(input: string): string | null {
-  if (input === "") return "";
-  if (!/^\d*\.?\d*$/.test(input)) return null;
-
-  if (/^0\d+/.test(input) && !input.startsWith("0.")) {
-    input = input.replace(/^0+/, "");
-  }
-
-  const parts = input.split(".");
-  if (parts.length === 2 && parts[1].length > MAX_BTC_DECIMALS) {
-    input = `${parts[0]}.${parts[1].slice(0, MAX_BTC_DECIMALS)}`;
-  }
-
-  const numericValue = parseFloat(input);
-  if (!Number.isNaN(numericValue) && numericValue >= MAX_BTC_INPUT) {
-    return null;
-  }
-
-  return input;
-}
-
-export function sanitizeWriterUsdInput(input: string): string | null {
-  if (input === "") return "";
-  if (!/^\d*\.?\d*$/.test(input)) return null;
-
-  if (/^0\d+/.test(input) && !input.startsWith("0.")) {
-    input = input.replace(/^0+/, "");
-  }
-
-  const parts = input.split(".");
-  if (parts.length === 2 && parts[1].length > MAX_USD_DECIMALS) {
-    input = `${parts[0]}.${parts[1].slice(0, MAX_USD_DECIMALS)}`;
-  }
-
-  const numericValue = parseFloat(input);
-  if (!Number.isNaN(numericValue) && numericValue >= MAX_USD_INPUT) {
-    return null;
-  }
-
-  return input;
 }
 
 export function getEarningsSatsForPremiumPercent(

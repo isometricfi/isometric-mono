@@ -1,13 +1,13 @@
 "use client";
 
 import { useTranslations } from "next-intl";
+import { BtcUsdAmountSection } from "@/components/options/BtcUsdAmountSection";
 import { OfferResultModal } from "@/components/options/OfferResultModal";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { NumberCarousel } from "@/components/ui/number-carousel";
 import { useCallWriteOptionFormModel } from "./_internal/use-call-write-option-form-model";
 import { CallWriteOptionSummary } from "./CallWriteOptionSummary";
-import { WriteCollateralSection } from "./WriteCollateralSection";
 import { WriteEarningsSection } from "./WriteEarningsSection";
 
 export function CallWriteOptionForm() {
@@ -68,10 +68,11 @@ export function CallWriteOptionForm() {
           </div>
         </div>
 
-        <WriteCollateralSection
+        <BtcUsdAmountSection
+          label={t("collateral")}
           amountSats={amountSats}
           btcPrice={btcPrice}
-          maxCollateralSats={maxOfferAmountSats}
+          maxAmountSats={maxOfferAmountSats}
           onAmountSatsChange={handleAmountSatsChange}
         />
 

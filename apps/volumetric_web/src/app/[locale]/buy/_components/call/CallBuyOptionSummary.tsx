@@ -4,6 +4,7 @@ import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { SlidingNumber } from "@/components/ui/sliding-number";
 import { useConfig, useModal, usePrices } from "@/hooks";
+import { getStrikeUsd } from "@/lib/options-form";
 import { basisPointsToPercent, satsToBtc } from "@/lib/utils";
 
 interface CallBuyOptionSummaryProps {
@@ -33,7 +34,7 @@ export function CallBuyOptionSummary({
   const maxProfitSats = Math.max(quantitySats - premiumSats, 0);
   const maxProfitBtc = satsToBtc(maxProfitSats);
   const maxProfitUsd = Math.round(maxProfitBtc * btcPrice);
-  const strikeUsd = Math.round(btcPrice * (1 + strikePercent / 100));
+  const strikeUsd = getStrikeUsd(btcPrice, strikePercent);
   const premiumDisplay = Number(premiumBtc.toFixed(6));
   const maxProfitDisplay = Number(maxProfitBtc.toFixed(6));
   const leverageDisplay = leverage > 0 ? Number(leverage.toFixed(1)) : 0;

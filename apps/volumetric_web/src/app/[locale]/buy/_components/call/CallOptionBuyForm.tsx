@@ -1,12 +1,12 @@
 "use client";
 
 import { useTranslations } from "next-intl";
+import { BtcUsdAmountSection } from "@/components/options/BtcUsdAmountSection";
 import { OfferResultModal } from "@/components/options/OfferResultModal";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { NumberCarousel } from "@/components/ui/number-carousel";
 import { useCallOptionBuyFormModel } from "./_internal/use-call-option-buy-form-model";
-import { BuyPremiumAmountSection } from "./BuyPremiumAmountSection";
 import { CallBuyOptionSummary } from "./CallBuyOptionSummary";
 
 export function CallOptionBuyForm() {
@@ -61,10 +61,11 @@ export function CallOptionBuyForm() {
             />
           </div>
         </div>
-        <BuyPremiumAmountSection
+        <BtcUsdAmountSection
+          label={t("amount")}
           amountSats={amountSats}
-          maxPremiumAmountSats={maxPremiumAmountSats}
           btcPrice={btcPrice}
+          maxAmountSats={maxPremiumAmountSats}
           onAmountSatsChange={setAmountSats}
         />
         <CallBuyOptionSummary

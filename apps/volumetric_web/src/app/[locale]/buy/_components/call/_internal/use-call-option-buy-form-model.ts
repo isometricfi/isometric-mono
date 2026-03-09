@@ -9,6 +9,11 @@ import {
   useOptions,
   usePrices,
 } from "@/hooks";
+import {
+  getSortedPositiveUniqueValues,
+  getStrikeUsd,
+  getStrikeUsdValues,
+} from "@/lib/options-form";
 import { DEFAULT_MIN_OFFER_AMOUNT_SATS, formatBtc } from "@/lib/utils";
 import { useChartOptionsStore } from "@/stores/chart-options-store";
 import {
@@ -39,7 +44,7 @@ export function useCallOptionBuyFormModel() {
   const [strikePercent, setStrikePercentLocal] = useState<number>(DEFAULT_STRIKE_PERCENT);
 
   const termDays = useMemo(
-    () => [...new Set(config?.termOptions ?? [])].filter((days) => days > 0).sort((a, b) => a - b),
+    () => getSortedPositiveUniqueValues(config?.termOptions),
     [config?.termOptions],
   );
   const selectedTermDay = termDays.includes(term) ? term : (termDays[0] ?? term);
@@ -71,7 +76,7 @@ export function useCallOptionBuyFormModel() {
     [filteredData, term],
   );
   const strikeUsdValues = useMemo(
-    () => computeStrikeUsdValues(strikePercents, btcPrice),
+    () => getStrikeUsdValues(strikePercents, btcPrice),
     [strikePercents, btcPrice],
   );
 
@@ -100,7 +105,7 @@ export function useCallOptionBuyFormModel() {
   const quantitySats = offerMatch?.quantitySats ?? 0;
 
   const selectedStrikeUsd = useMemo(
-    () => Math.round(btcPrice * (1 + strikePercent / 100)),
+    () => getStrikeUsd(btcPrice, strikePercent),
     [btcPrice, strikePercent],
   );
 
@@ -204,8 +209,4 @@ export function useCallOptionBuyFormModel() {
     term,
     termDays,
   };
-}
-
-function computeStrikeUsdValues(strikePercents: number[], btcPrice: number): number[] {
-  return strikePercents.map((percent) => Math.round(btcPrice * (1 + percent / 100)));
 }

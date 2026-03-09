@@ -4,6 +4,7 @@ import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { SlidingNumber } from "@/components/ui/sliding-number";
 import { useConfig, useModal, usePrices } from "@/hooks";
+import { getStrikeUsd } from "@/lib/options-form";
 import { basisPointsToPercent, roundToN, satsToBtc } from "@/lib/utils";
 
 interface CallWriteOptionSummaryProps {
@@ -32,7 +33,7 @@ export function CallWriteOptionSummary({
   const earningsDisplay = Number(earningsBtc.toFixed(6));
   const amountBtc = satsToBtc(amountSats);
   const amountDisplay = Number(amountBtc.toFixed(6));
-  const strikeUsd = Math.round(btcPrice * (1 + strikePercent / 100));
+  const strikeUsd = getStrikeUsd(btcPrice, strikePercent);
 
   const apyPercent = roundToN(
     amountSats > 0 && term > 0 ? (earningsSats / amountSats) * (365 / term) * 100 : 0,

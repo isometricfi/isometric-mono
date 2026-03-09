@@ -10,6 +10,11 @@ import {
   usePrices,
 } from "@/hooks";
 import {
+  getSortedPositiveUniqueValues,
+  getStrikeUsd,
+  getStrikeUsdValues,
+} from "@/lib/options-form";
+import {
   DEFAULT_MAX_OFFER_AMOUNT_SATS,
   DEFAULT_MIN_OFFER_AMOUNT_SATS,
   formatBtc,
@@ -40,14 +45,11 @@ export function useCallWriteOptionFormModel() {
   const setChartTermDays = useChartOptionsStore((state) => state.setTermDays);
 
   const termDays = useMemo(
-    () => [...new Set(config?.termOptions ?? [])].filter((days) => days > 0).sort((a, b) => a - b),
+    () => getSortedPositiveUniqueValues(config?.termOptions),
     [config?.termOptions],
   );
   const strikePercentOptions = useMemo(
-    () =>
-      [...new Set(config?.strikePercentOptions ?? [])]
-        .filter((percent) => percent > 0)
-        .sort((a, b) => a - b),
+    () => getSortedPositiveUniqueValues(config?.strikePercentOptions),
     [config?.strikePercentOptions],
   );
   const premiumValues = useMemo(() => generatePremiumValues(config), [config]);
@@ -72,11 +74,11 @@ export function useCallWriteOptionFormModel() {
     : (strikePercentOptions[0] ?? strikePercent);
 
   const strikeUsdValues = useMemo(
-    () => computeStrikeUsdValues(strikePercentOptions, btcPrice),
+    () => getStrikeUsdValues(strikePercentOptions, btcPrice),
     [strikePercentOptions, btcPrice],
   );
   const selectedStrikeUsd = useMemo(
-    () => Math.round(btcPrice * (1 + selectedStrikePercent / 100)),
+    () => getStrikeUsd(btcPrice, selectedStrikePercent),
     [btcPrice, selectedStrikePercent],
   );
 
@@ -204,8 +206,4 @@ export function useCallWriteOptionFormModel() {
     strikeUsdValues,
     termDays,
   };
-}
-
-function computeStrikeUsdValues(strikePercents: number[], btcPrice: number): number[] {
-  return strikePercents.map((percent) => Math.round(btcPrice * (1 + percent / 100)));
 }
