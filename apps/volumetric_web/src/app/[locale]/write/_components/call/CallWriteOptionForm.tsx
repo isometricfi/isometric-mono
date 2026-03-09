@@ -42,7 +42,7 @@ export function CallWriteOptionForm() {
       <CardContent className="space-y-5">
         <div className="flex items-center justify-between p-1 rounded-lg border">
           <p className="md:text-base text-sm font-medium text-foreground ml-2">
-            {t("willBeAbove")}:{" "}
+            {t("willBeBelow")}:{" "}
           </p>
           <div className="md:min-w-[190px] min-w-[150px]">
             <NumberCarousel
