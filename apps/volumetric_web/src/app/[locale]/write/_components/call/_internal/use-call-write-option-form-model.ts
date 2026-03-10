@@ -100,6 +100,7 @@ export function useCallWriteOptionFormModel() {
   );
 
   const isWalletConnected = !!primaryWallet;
+  const needDepositMore = isWalletConnected && availableBalanceSats < minOfferAmountSats;
   const isValidAmount = amountSats >= minOfferAmountSats && amountSats <= maxOfferAmountSats;
 
   useEffect(() => {
@@ -166,6 +167,7 @@ export function useCallWriteOptionFormModel() {
 
   const getButtonText = () => {
     if (!isWalletConnected) return t("connectWallet");
+    if (needDepositMore) return t("depositMoreToCreateOffers");
     if (createOffer.isPending) return t("creatingOffer");
     if (amountSats < minOfferAmountSats)
       return `${tCommon("min")}: ₿${formatBtc(minOfferAmountSats)}`;
@@ -196,6 +198,7 @@ export function useCallWriteOptionFormModel() {
     handleSubmit,
     isSubmitDisabled: !isWalletConnected || !isValidAmount || createOffer.isPending,
     maxOfferAmountSats,
+    needDepositMore,
     premiumPercent,
     premiumValues,
     selectedStrikePercent,
