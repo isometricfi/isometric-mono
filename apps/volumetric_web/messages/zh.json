@@ -78,6 +78,8 @@
   },
   "Forms": {
     "connectWallet": "连接钱包",
+    "depositMoreToCreateOffers": "存入 BTC 以创建报价",
+    "depositMoreToBuyOptions": "存入 BTC 以购买期权",
     "creatingOffer": "正在创建报价...",
     "createOffer": "创建报价",
     "buyingOption": "正在购买期权...",
@@ -155,7 +157,7 @@
     "wallet": "钱包",
     "depositAddress": "存入地址",
     "fetchingInfo": "正在获取存入信息...",
-    "requiresConfirmations": "需要 6 次确认",
+    "requiresConfirmations": "需要 4 次确认",
     "minDeposit": "最低存入：{amount}",
     "depositAddressLabel": "存入地址",
     "autoDetect": "我们将自动检测您的存入",

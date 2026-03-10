@@ -78,6 +78,8 @@
   },
   "Forms": {
     "connectWallet": "Connect Wallet",
+    "depositMoreToCreateOffers": "Deposit BTC to create offers",
+    "depositMoreToBuyOptions": "Deposit BTC to buy options",
     "creatingOffer": "Creating Offer...",
     "createOffer": "Create Offer",
     "buyingOption": "Buying Option...",
@@ -130,21 +132,22 @@
     "buyDescription": "Pay ₿{premium} upfront. Strike locks at ~${strike}. Profit auto-exercised if BTC exceeds strike in {term} days. Max loss is the premium.",
     "writeDescription": "Lock BTC for {term} days. If a buyer accepts and BTC stays below ${strike}, you keep your BTC plus the earnings.",
     "optionBreakdown": "Breakdown",
+    "viewDocs": "View Docs",
     "buyExplainer": {
-      "intro": "You pay {premium} upfront to lock in the right to profit if BTC rises above {strike} within {term}.",
+      "intro": "You pay <bold>{amount}</bold> upfront for <bold>{leverage}x</bold> exposure. If BTC rises above <bold>{strike}</bold> within <bold>{term}</bold>, you profit.",
       "ifRises": "If BTC rises:",
-      "ifRisesDesc": "You automatically receive your profit in BTC (max {maxProfit})",
+      "ifRisesDesc": "You receive profit in BTC (max {maxProfit})",
       "ifBelow": "If BTC stays below:",
-      "ifBelowDesc": "Option expires worthless, you lose the premium",
+      "ifBelowDesc": "Option expires worthless, you lose your amount",
       "platformFee": "Platform fee:",
       "platformFeeDesc": "{fee}% of profit"
     },
     "writeExplainer": {
-      "intro": "You lock {amount} of BTC for {term}. If a buyer accepts, you earn {earnings} right away. If BTC goes above {strike}, some of your locked BTC may be used to pay the buyer.",
-      "ifBelow": "If BTC stays below:",
-      "ifBelowDesc": "You keep your BTC and the earnings",
-      "ifRises": "If BTC rises above the safe price:",
-      "ifRisesDesc": "Some of your locked BTC may be used to pay the buyer, up to the collateral you set aside",
+      "intro": "When accepted you lock <bold>{amount}</bold> for <bold>{term}</bold> and receive <bold>{earnings}</bold> upfront.",
+      "ifBelow": "BTC below strike:",
+      "ifBelowDesc": "Collateral returned, you keep earnings",
+      "ifRises": "BTC above strike:",
+      "ifRisesDesc": "You keep earnings; pay buyer gains above strike (capped at collateral)",
       "platformFee": "Platform fee:",
       "platformFeeDesc": "{fee}% of earnings"
     }
@@ -155,7 +158,7 @@
     "wallet": "Wallet",
     "depositAddress": "Deposit Address",
     "fetchingInfo": "Fetching deposit information...",
-    "requiresConfirmations": "Requires 6 confirmations",
+    "requiresConfirmations": "Requires 4 confirmations",
     "minDeposit": "Minimum deposit: {amount}",
     "depositAddressLabel": "Deposit address",
     "autoDetect": "We will automatically detect your deposit",

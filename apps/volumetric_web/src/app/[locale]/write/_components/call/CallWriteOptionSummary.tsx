@@ -4,7 +4,6 @@ import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { SlidingNumber } from "@/components/ui/sliding-number";
 import { useConfig, useModal, usePrices } from "@/hooks";
-import { getStrikeUsd } from "@/lib/options-form";
 import { basisPointsToPercent, roundToN, satsToBtc } from "@/lib/utils";
 
 interface CallWriteOptionSummaryProps {
@@ -20,7 +19,6 @@ export function CallWriteOptionSummary({
   competitivenessRankDisplay,
   earningsSats,
   term,
-  strikePercent,
 }: CallWriteOptionSummaryProps) {
   const tForms = useTranslations("Forms");
   const { data: priceData } = usePrices();
@@ -33,7 +31,6 @@ export function CallWriteOptionSummary({
   const earningsDisplay = Number(earningsBtc.toFixed(6));
   const amountBtc = satsToBtc(amountSats);
   const amountDisplay = Number(amountBtc.toFixed(6));
-  const strikeUsd = getStrikeUsd(btcPrice, strikePercent);
 
   const apyPercent = roundToN(
     amountSats > 0 && term > 0 ? (earningsSats / amountSats) * (365 / term) * 100 : 0,
@@ -51,11 +48,11 @@ export function CallWriteOptionSummary({
         <div className="space-y-2">
           <div className="text-sm space-y-2">
             <p className="text-muted-foreground leading-relaxed">
-              {t("writeExplainer.intro", {
+              {t.rich("writeExplainer.intro", {
                 amount: `₿${amountDisplay}`,
                 earnings: `₿${earningsDisplay}`,
-                strike: `$${strikeUsd.toLocaleString()}`,
                 term: `${term} ${tForms("days").toLowerCase()}`,
+                bold: (chunks) => <strong>{chunks}</strong>,
               })}
             </p>
 
@@ -86,6 +83,11 @@ export function CallWriteOptionSummary({
             </div>
           </div>
         </div>
+        <Button asChild variant="outline" size="sm" className="w-full">
+          <a href="https://docs.isometric.fi/" target="_blank" rel="noopener noreferrer">
+            {t("viewDocs")}
+          </a>
+        </Button>
       </div>,
     );
   };

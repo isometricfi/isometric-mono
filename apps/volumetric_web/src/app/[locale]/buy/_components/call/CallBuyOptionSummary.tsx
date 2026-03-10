@@ -50,10 +50,12 @@ export function CallBuyOptionSummary({
         <div className="space-y-2">
           <div className="text-sm space-y-2">
             <p className="text-muted-foreground leading-relaxed">
-              {t("buyExplainer.intro", {
-                premium: `₿${premiumDisplay}`,
+              {t.rich("buyExplainer.intro", {
+                amount: `₿${premiumDisplay}`,
+                leverage: leverageDisplay,
                 strike: `$${strikeUsd.toLocaleString()}`,
                 term: `${term} ${tForms("days").toLowerCase()}`,
+                bold: (chunks) => <strong>{chunks}</strong>,
               })}
             </p>
 
@@ -84,6 +86,11 @@ export function CallBuyOptionSummary({
             </div>
           </div>
         </div>
+        <Button asChild variant="outline" size="sm" className="w-full">
+          <a href="https://docs.isometric.fi/" target="_blank" rel="noopener noreferrer">
+            {t("viewDocs")}
+          </a>
+        </Button>
       </div>,
     );
   };

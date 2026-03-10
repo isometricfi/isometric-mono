@@ -40,6 +40,7 @@ export function useCallOptionBuyFormModel() {
   const setChartTermDays = useChartOptionsStore((state) => state.setTermDays);
 
   const minOfferAmountSats = config?.minOfferAmountSats ?? DEFAULT_MIN_OFFER_AMOUNT_SATS;
+  const availableBalanceSats = Number(account?.balance?.available ?? 0);
   const [amountSats, setAmountSats] = useState(0);
   const [strikePercent, setStrikePercentLocal] = useState<number>(DEFAULT_STRIKE_PERCENT);
 
@@ -172,6 +173,7 @@ export function useCallOptionBuyFormModel() {
   };
 
   const isWalletConnected = !!primaryWallet;
+  const needDepositMore = isWalletConnected && availableBalanceSats < minOfferAmountSats;
   const hasInsufficientLiquidity = amountSats > maxPremiumAmountSats && maxPremiumAmountSats > 0;
   const isBelowMinimum = amountSats > 0 && amountSats < minPremiumAmountSats;
   const isValidAmount =
@@ -180,6 +182,7 @@ export function useCallOptionBuyFormModel() {
 
   const getButtonText = () => {
     if (!isWalletConnected) return t("connectWallet");
+    if (needDepositMore) return t("depositMoreToBuyOptions");
     if (acceptOffer.isPending) return t("buyingOption");
     if (hasInsufficientLiquidity) return t("insufficientLiquidity");
     if (isBelowMinimum) return `${tCommon("min")}: ₿${formatBtc(minPremiumAmountSats)}`;
@@ -197,6 +200,7 @@ export function useCallOptionBuyFormModel() {
     handleSubmit,
     isSubmitDisabled: !isWalletConnected || !isValidAmount || !bestOffer || acceptOffer.isPending,
     leverage,
+    needDepositMore,
     maxPremiumAmountSats,
     quantitySats,
     selectedStrikeUsd,
