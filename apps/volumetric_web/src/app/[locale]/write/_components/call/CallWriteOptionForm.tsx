@@ -44,13 +44,18 @@ export function CallWriteOptionForm() {
           <p className="md:text-base text-sm font-medium text-foreground ml-2">
             {t("willBeBelow")}:{" "}
           </p>
-          <div className="md:min-w-[190px] min-w-[150px]">
-            <NumberCarousel
-              values={strikeUsdValues}
-              value={selectedStrikeUsd}
-              onChange={handleStrikeUsdChange}
-              formatValue={(value) => `$${value.toLocaleString()}`}
-            />
+          <div className="flex items-center">
+            <p className="text-muted-foreground md:text-base text-sm md:mr-3 mr-2">
+              {selectedStrikePercent}%
+            </p>
+            <div className="md:min-w-[190px] min-w-[150px]">
+              <NumberCarousel
+                values={strikeUsdValues}
+                value={selectedStrikeUsd}
+                onChange={handleStrikeUsdChange}
+                formatValue={(value) => `$${value.toLocaleString()}`}
+              />
+            </div>
           </div>
         </div>
 

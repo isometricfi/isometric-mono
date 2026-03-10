@@ -51,11 +51,11 @@ export function CallWriteOptionSummary({
         <div className="space-y-2">
           <div className="text-sm space-y-2">
             <p className="text-muted-foreground leading-relaxed">
-              {t("writeExplainer.intro", {
+              {t.rich("writeExplainer.intro", {
                 amount: `₿${amountDisplay}`,
                 earnings: `₿${earningsDisplay}`,
-                strike: `$${strikeUsd.toLocaleString()}`,
                 term: `${term} ${tForms("days").toLowerCase()}`,
+                bold: (chunks) => <strong>{chunks}</strong>,
               })}
             </p>
 
@@ -86,6 +86,11 @@ export function CallWriteOptionSummary({
             </div>
           </div>
         </div>
+        <Button asChild variant="outline" size="sm" className="w-full">
+          <a href="https://docs.isometric.fi/" target="_blank" rel="noopener noreferrer">
+            {t("viewDocs")}
+          </a>
+        </Button>
       </div>,
     );
   };
