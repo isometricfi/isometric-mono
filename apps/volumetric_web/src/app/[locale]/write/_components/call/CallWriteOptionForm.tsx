@@ -1,5 +1,6 @@
 "use client";
 
+import { useDynamicContext } from "@dynamic-labs/sdk-react-core";
 import { useTranslations } from "next-intl";
 import { BtcUsdAmountSection } from "@/components/options/BtcUsdAmountSection";
 import { OfferResultModal } from "@/components/options/OfferResultModal";
@@ -11,6 +12,7 @@ import { CallWriteOptionSummary } from "./CallWriteOptionSummary";
 import { WriteEarningsSection } from "./WriteEarningsSection";
 
 export function CallWriteOptionForm() {
+  const { primaryWallet, setShowAuthFlow } = useDynamicContext();
   const t = useTranslations("Forms");
   const {
     acceptOffer,
@@ -96,10 +98,10 @@ export function CallWriteOptionForm() {
         />
 
         <Button
-          onClick={handleSubmit}
+          onClick={primaryWallet ? handleSubmit : () => setShowAuthFlow(true)}
           className="w-full text-base "
           size="default"
-          disabled={isSubmitDisabled}
+          disabled={primaryWallet ? isSubmitDisabled : false}
         >
           {getButtonText()}
         </Button>
