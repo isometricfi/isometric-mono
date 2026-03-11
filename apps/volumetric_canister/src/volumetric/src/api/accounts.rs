@@ -7,10 +7,9 @@ use crate::auth::{build_challenge_context, verify_btc_signature};
 use crate::errors::{error_codes, VolumetricError};
 use crate::guards::is_whitelisted;
 use crate::storage::{
-    get_invite_code_for_principal, get_nonce, get_points as get_points_for_principal,
-    get_principal_for_wallet, get_profile, get_referral_count as get_referrals_for_principal,
-    increment_nonce, is_wallet_registered, resolve_invite_code as resolve_invite_to_principal,
-    PointsProfile,
+    get_invite_code_for_principal, get_nonce, get_principal_for_wallet, get_profile,
+    get_referral_count as get_referrals_for_principal, increment_nonce, is_wallet_registered,
+    resolve_invite_code as resolve_invite_to_principal,
 };
 use crate::usecases;
 
@@ -140,13 +139,6 @@ pub fn list_users() -> Vec<UserInfo> {
             username: u.username,
         })
         .collect()
-}
-
-#[ic_cdk::query]
-pub fn get_points(address: String) -> Option<PointsProfile> {
-    let wallet_key = WalletKey::from_address(&address);
-    let principal = get_principal_for_wallet(&wallet_key)?;
-    Some(get_points_for_principal(&principal))
 }
 
 #[ic_cdk::query]

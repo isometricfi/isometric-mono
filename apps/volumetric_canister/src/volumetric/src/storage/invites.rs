@@ -1,15 +1,12 @@
 use std::borrow::Cow;
 use std::cell::RefCell;
 
-use candid::{CandidType, Principal};
+use candid::Principal;
 use ic_stable_structures::memory_manager::MemoryId;
 use ic_stable_structures::storable::Bound;
 use ic_stable_structures::{StableBTreeMap, Storable};
-use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
-use super::cbor::Cbor;
-use super::config::Config;
 use super::state::{Memory, MemoryIndex, MEMORY_MANAGER};
 use crate::ic;
 
@@ -17,12 +14,6 @@ const INVITE_CODE_LENGTH: usize = 6;
 const INVITE_ALPHABET: &[u8; 36] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
 
 thread_local! {
-    pub static USER_POINTS: RefCell<StableBTreeMap<Principal, Cbor<PointsProfile>, Memory>> = RefCell::new(
-        StableBTreeMap::init(
-            MEMORY_MANAGER.with_borrow(|m| m.get(MemoryId::new(MemoryIndex::PointsMemory as u8))),
-        )
-    );
-
     pub static INVITE_CODE_REGISTRY: RefCell<StableBTreeMap<InviteCodeKey, Principal, Memory>> = RefCell::new(
         StableBTreeMap::init(
             MEMORY_MANAGER.with_borrow(|m| m.get(MemoryId::new(MemoryIndex::InviteCodeRegistryMemory as u8))),
@@ -40,29 +31,6 @@ thread_local! {
             MEMORY_MANAGER.with_borrow(|m| m.get(MemoryId::new(MemoryIndex::ReferralLinksMemory as u8))),
         )
     );
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, CandidType)]
-pub enum PointsReason {
-    OfferAcceptedBuyer,
-    OfferAcceptedWriter,
-    BuyerWinBonus,
-    ReferralBonus,
-}
-
-#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize, CandidType)]
-pub struct PointsProfile {
-    pub total_points: u64,
-    #[serde(default)]
-    pub points_from_offer_accepted_buyer: u64,
-    #[serde(default)]
-    pub points_from_offer_accepted_writer: u64,
-    #[serde(default)]
-    pub points_from_buyer_win_bonus: u64,
-    #[serde(default)]
-    pub points_from_referrals: u64,
-    #[serde(default)]
-    pub updated_at: u64,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -103,26 +71,6 @@ impl Storable for InviteCodeKey {
     };
 }
 
-pub fn award_points_safe(principal: Principal, points: u64, reason: PointsReason) {
-    if points == 0 {
-        return;
-    }
-
-    let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-        award_points_internal(principal, points, reason);
-    }));
-
-    if result.is_err() {
-        ic::log("Failed to award points - continuing without points update");
-    }
-}
-
-pub fn get_points(principal: &Principal) -> PointsProfile {
-    USER_POINTS
-        .with_borrow(|p| p.get(principal).map(|cbor| cbor.0))
-        .unwrap_or_default()
-}
-
 pub fn get_or_create_invite_code(principal: Principal, existing_code: Option<String>) -> String {
     if let Some(existing_key) = PRINCIPAL_INVITE_CODES.with_borrow(|codes| codes.get(&principal)) {
         return existing_key.to_code();
@@ -141,7 +89,6 @@ pub fn get_or_create_invite_code(principal: Principal, existing_code: Option<Str
         }
     }
 
-    // This fallback should be unreachable because the keyspace is large.
     ic::log("Invite code generation exhausted attempts, using deterministic fallback");
     generate_invite_code(principal, u32::MAX)
 }
@@ -204,64 +151,6 @@ pub fn get_referral_count(principal: &Principal) -> u64 {
             .filter(|entry| entry.value() == *principal)
             .count() as u64
     })
-}
-
-fn award_points_internal(principal: Principal, points: u64, reason: PointsReason) {
-    apply_points(principal, points, reason);
-
-    if reason == PointsReason::ReferralBonus {
-        return;
-    }
-
-    let points_config = Config::points_config();
-    let referral_points = (points.saturating_mul(points_config.referral_basis_points)) / 10_000;
-    if referral_points == 0 {
-        return;
-    }
-
-    let Some(referrer_principal) = get_referrer_for_principal(&principal) else {
-        return;
-    };
-
-    apply_points(
-        referrer_principal,
-        referral_points,
-        PointsReason::ReferralBonus,
-    );
-}
-
-fn apply_points(principal: Principal, points: u64, reason: PointsReason) {
-    USER_POINTS.with_borrow_mut(|storage| {
-        let mut profile = storage
-            .get(&principal)
-            .map(|cbor| cbor.0)
-            .unwrap_or_default();
-        profile.total_points = profile.total_points.saturating_add(points);
-
-        match reason {
-            PointsReason::OfferAcceptedBuyer => {
-                profile.points_from_offer_accepted_buyer = profile
-                    .points_from_offer_accepted_buyer
-                    .saturating_add(points);
-            }
-            PointsReason::OfferAcceptedWriter => {
-                profile.points_from_offer_accepted_writer = profile
-                    .points_from_offer_accepted_writer
-                    .saturating_add(points);
-            }
-            PointsReason::BuyerWinBonus => {
-                profile.points_from_buyer_win_bonus =
-                    profile.points_from_buyer_win_bonus.saturating_add(points);
-            }
-            PointsReason::ReferralBonus => {
-                profile.points_from_referrals =
-                    profile.points_from_referrals.saturating_add(points);
-            }
-        }
-
-        profile.updated_at = ic::time();
-        storage.insert(principal, Cbor(profile));
-    });
 }
 
 fn get_referrer_for_principal(principal: &Principal) -> Option<Principal> {

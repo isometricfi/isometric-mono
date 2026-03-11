@@ -1,9 +1,7 @@
 use candid::Decode;
 
 use volumetric::auth::types::WalletProof;
-use volumetric::{
-    AuthenticatedPayload, CreateProfileRequest, PointsProfile, ProfileInfo, VolumetricError,
-};
+use volumetric::{AuthenticatedPayload, CreateProfileRequest, ProfileInfo, VolumetricError};
 
 use crate::common::{wallets, TestEnv, TestWallet};
 
@@ -61,19 +59,6 @@ pub fn create_account_with_signature(
     Decode!(&response, Result<ProfileInfo, VolumetricError>).unwrap()
 }
 
-pub fn get_points(env: &TestEnv, address: &str) -> Option<PointsProfile> {
-    let response = env
-        .pic
-        .query_call(
-            env.volumetric_canister,
-            candid::Principal::anonymous(),
-            "get_points",
-            candid::encode_one(address.to_string()).unwrap(),
-        )
-        .expect("Query failed");
-    Decode!(&response, Option<PointsProfile>).unwrap()
-}
-
 pub fn get_invite_code(env: &TestEnv, address: &str) -> Option<String> {
     let response = env
         .pic
@@ -98,17 +83,4 @@ pub fn resolve_invite_code(env: &TestEnv, invite_code: &str) -> Option<String> {
         )
         .expect("Query failed");
     Decode!(&response, Option<String>).unwrap()
-}
-
-pub fn get_referral_count(env: &TestEnv, address: &str) -> Option<u64> {
-    let response = env
-        .pic
-        .query_call(
-            env.volumetric_canister,
-            candid::Principal::anonymous(),
-            "get_referral_count",
-            candid::encode_one(address.to_string()).unwrap(),
-        )
-        .expect("Query failed");
-    Decode!(&response, Option<u64>).unwrap()
 }

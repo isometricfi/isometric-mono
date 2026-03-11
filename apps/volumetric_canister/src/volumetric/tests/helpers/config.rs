@@ -1,7 +1,7 @@
 use candid::{Decode, Nat, Principal};
 use icrc_ledger_types::icrc1::account::Account;
 
-use volumetric::{FeatureFlags, FeeConfig, PointsConfig, VolumetricError};
+use volumetric::{FeatureFlags, FeeConfig, VolumetricError};
 
 use crate::common::TestEnv;
 
@@ -86,36 +86,6 @@ pub fn get_fee_config(env: &TestEnv) -> FeeConfig {
 pub fn get_fee_recipient_ledger_balance(env: &TestEnv) -> u64 {
     let fee_config = get_fee_config(env);
     get_principal_ledger_balance(env, fee_config.fee_recipient)
-}
-
-pub fn set_points_config(env: &TestEnv, points_config: PointsConfig) {
-    let response = env
-        .pic
-        .update_call(
-            env.volumetric_canister,
-            env.controller,
-            "set_points_config_config",
-            candid::encode_one(points_config).unwrap(),
-        )
-        .expect("Set points config call failed");
-
-    let result: Result<(), VolumetricError> =
-        Decode!(&response, Result<(), VolumetricError>).unwrap();
-    result.expect("Failed to set points config");
-}
-
-pub fn get_points_config(env: &TestEnv) -> PointsConfig {
-    let response = env
-        .pic
-        .query_call(
-            env.volumetric_canister,
-            env.controller,
-            "get_points_config",
-            candid::encode_one(()).unwrap(),
-        )
-        .expect("Get points config call failed");
-
-    Decode!(&response, PointsConfig).expect("Failed to decode points config")
 }
 
 pub fn get_principal_ledger_balance(env: &TestEnv, principal: Principal) -> u64 {

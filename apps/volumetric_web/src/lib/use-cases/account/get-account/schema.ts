@@ -19,13 +19,8 @@ export interface BalanceData {
   locked: bigint;
 }
 
-export interface RewardsData {
-  points: bigint;
-  referrals: bigint;
-}
-
 export interface Output {
   profile: ProfileData | null;
   balance: BalanceData | null;
-  rewards: RewardsData;
+  referrals: bigint;
 }

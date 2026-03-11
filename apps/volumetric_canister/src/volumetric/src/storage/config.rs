@@ -55,14 +55,6 @@ pub struct FeeConfig {
     pub fee_recipient: Principal,
 }
 
-#[derive(Debug, Deserialize, Serialize, CandidType, Clone, Copy)]
-pub struct PointsConfig {
-    pub referral_basis_points: u64,
-    pub offer_accepted_buyer_points: u64,
-    pub offer_accepted_writer_points: u64,
-    pub buyer_win_bonus_points: u64,
-}
-
 impl Default for FeeConfig {
     fn default() -> Self {
         Self {
@@ -72,17 +64,6 @@ impl Default for FeeConfig {
                 "a6nyt-23cn7-g5zvc-pxir2-dfi7d-z726j-vz4ky-ds6a2-2a4rb-6g7kp-7qe",
             )
             .unwrap(),
-        }
-    }
-}
-
-impl Default for PointsConfig {
-    fn default() -> Self {
-        Self {
-            referral_basis_points: 500,
-            offer_accepted_buyer_points: 100,
-            offer_accepted_writer_points: 100,
-            buyer_win_bonus_points: 50,
         }
     }
 }
@@ -125,8 +106,6 @@ pub struct Config {
     pub trading_limits: TradingLimits,
     #[serde(default)]
     pub fee_config: FeeConfig,
-    #[serde(default)]
-    pub points_config: PointsConfig,
 }
 
 impl Default for Config {
@@ -148,7 +127,6 @@ impl Config {
             feature_flags: FeatureFlags::default(),
             trading_limits: TradingLimits::default(),
             fee_config: FeeConfig::default(),
-            points_config: PointsConfig::default(),
         }
     }
 }
@@ -278,22 +256,10 @@ impl Config {
         CONFIG.with_borrow(|c| c.get().0.fee_config)
     }
 
-    pub fn points_config() -> PointsConfig {
-        CONFIG.with_borrow(|c| c.get().0.points_config)
-    }
-
     pub fn set_fee_config(fee_config: FeeConfig) {
         CONFIG.with_borrow_mut(|c| {
             let mut config = c.get().0.clone();
             config.fee_config = fee_config;
-            let _ = c.set(Cbor(config));
-        });
-    }
-
-    pub fn set_points_config(points_config: PointsConfig) {
-        CONFIG.with_borrow_mut(|c| {
-            let mut config = c.get().0.clone();
-            config.points_config = points_config;
             let _ = c.set(Cbor(config));
         });
     }

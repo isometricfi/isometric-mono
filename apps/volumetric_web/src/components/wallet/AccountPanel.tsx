@@ -10,6 +10,7 @@ import {
   History,
   LogOut,
   Settings,
+  Sparkles,
 } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
@@ -86,8 +87,7 @@ function AccountPanelContent({ onDisconnect }: { onDisconnect: () => void }) {
   const balance = accountData?.balance;
   const deposited = balance?.total ?? BigInt(0);
   const available = balance?.available ?? BigInt(0);
-  const points = accountData?.rewards.points ?? BigInt(0);
-  const referrals = accountData?.rewards.referrals ?? BigInt(0);
+  const referrals = accountData?.referrals ?? BigInt(0);
 
   const btcPrice = priceData?.btc ?? 0;
   const depositedBtc = Number(deposited) / 100_000_000;
@@ -214,24 +214,21 @@ function AccountPanelContent({ onDisconnect }: { onDisconnect: () => void }) {
                   </Button>
                 </Link>
               </DrawerClose>
-              <div className="flex justify-between gap-2 pl-2 items-center mt-4 border-l">
-                <div>
-                  <div className="flex items-center gap-1">
-                    <p className=" text-muted-foreground">{t("points")}:</p>
-                    <p className=" font-semibold">{points.toLocaleString()}</p>
-                  </div>
-                  <Badge variant="secondary" className="h-fit">
-                    <p className="text-muted-foreground">{t("referrals")}:</p>
-                    <p className=" font-semibold">{referrals.toLocaleString()}</p>{" "}
-                  </Badge>
-                </div>
+              <div className="flex items-center justify-between gap-3 mt-4 border p-1 rounded-lg pr-4">
                 <Button
                   variant="secondary"
-                  className="min-h-full!"
+                  className="w-fit"
                   onClick={() => openModal(<ShareSummaryModal />, false)}
                 >
+                  <Sparkles className="size-4" />
                   {t("inviteUsers")}
                 </Button>
+                <p className="text-sm text-muted-foreground">
+                  {t("referred")}:{" "}
+                  <span className="font-semibold text-foreground">
+                    {referrals.toLocaleString()}
+                  </span>
+                </p>
               </div>
             </motion.div>
           ) : null}

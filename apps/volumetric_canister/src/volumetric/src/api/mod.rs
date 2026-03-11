@@ -10,7 +10,7 @@ pub mod withdrawals;
 
 pub use accounts::{
     create_account, get_account_info, get_account_nonce, get_invite_code, get_message_to_sign,
-    get_points, get_referral_count, get_username_update_message, list_users, resolve_invite_code,
+    get_referral_count, get_username_update_message, list_users, resolve_invite_code,
     update_username,
 };
 #[cfg(feature = "testing")]
@@ -18,12 +18,12 @@ pub use config::reset_oracle_config;
 #[cfg(feature = "testing")]
 pub use config::set_oracle_price_config;
 pub use config::{
-    get_config, get_feature_flags, get_points_config, get_trading_limits,
-    set_deposit_amount_sats_config, set_feature_flags_config, set_max_offers_per_term_config,
-    set_option_duration_seconds_range_config, set_points_config_config,
-    set_premium_basis_points_range_config, set_quantity_sats_range_config,
-    set_strike_basis_points_range_config, set_term_days_range_config, set_trading_limits_config,
-    set_withdraw_amount_sats_config, testing_set_ckbtc_ledger,
+    get_config, get_feature_flags, get_trading_limits, set_deposit_amount_sats_config,
+    set_feature_flags_config, set_max_offers_per_term_config,
+    set_option_duration_seconds_range_config, set_premium_basis_points_range_config,
+    set_quantity_sats_range_config, set_strike_basis_points_range_config,
+    set_term_days_range_config, set_trading_limits_config, set_withdraw_amount_sats_config,
+    testing_set_ckbtc_ledger,
 };
 pub use deposits::{
     get_ckbtc_balance, get_deposit_address, get_user_balance, testing_sync_balance_from_ledger,
