@@ -1,7 +1,7 @@
 use icrc_ledger_types::icrc1::account::Account;
 
 use crate::auth::derive_subaccount;
-use crate::errors::VolumetricError;
+use crate::errors::{error_codes, VolumetricError};
 use crate::ic;
 use crate::locks::SettlementLock;
 use crate::oracle::get_btc_usd_price_cents;
@@ -35,8 +35,13 @@ pub async fn settle_single_option(
     settlement_price_cents: u64,
 ) -> Result<SettlementResult, VolumetricError> {
     let _lock = SettlementLock::new(option_id)?;
-    let mut option =
-        get_active_option(option_id).ok_or_else(|| VolumetricError::option_not_found(option_id))?;
+    let mut option = get_active_option(option_id).ok_or_else(|| {
+        VolumetricError::from_def(
+            error_codes::OPTION_NOT_FOUND,
+            Some(&format!("id: {}", option_id)),
+            None,
+        )
+    })?;
     let created_at_time = ic::time();
 
     ic::log(&format!(
@@ -45,7 +50,11 @@ pub async fn settle_single_option(
     ));
 
     if option.status != ActiveOptionStatus::Active {
-        return Err(VolumetricError::option_already_settled());
+        return Err(VolumetricError::from_def(
+            error_codes::OPTION_ALREADY_SETTLED,
+            None,
+            None,
+        ));
     }
 
     option.status = ActiveOptionStatus::Settling;
@@ -83,12 +92,28 @@ pub async fn settle_single_option(
     );
 
     if gross_payout_to_buyer > 0 {
-        release_locked_to_buyer(option.writer, option.buyer, payout_to_buyer)
-            .map_err(|e| VolumetricError::insufficient_balance(e.available, e.required))?;
+        release_locked_to_buyer(option.writer, option.buyer, payout_to_buyer).map_err(|e| {
+            VolumetricError::from_def(
+                error_codes::INSUFFICIENT_BALANCE,
+                Some(&format!(
+                    "available: {}, required: {}",
+                    e.available, e.required
+                )),
+                None,
+            )
+        })?;
 
         if profit_fee > 0 {
-            unlock_collateral(option.writer, profit_fee)
-                .map_err(|e| VolumetricError::insufficient_balance(e.available, e.required))?;
+            unlock_collateral(option.writer, profit_fee).map_err(|e| {
+                VolumetricError::from_def(
+                    error_codes::INSUFFICIENT_BALANCE,
+                    Some(&format!(
+                        "available: {}, required: {}",
+                        e.available, e.required
+                    )),
+                    None,
+                )
+            })?;
         }
 
         update_settlement_phase(option.id, SettlementPhase::BalanceReleased);
@@ -167,8 +192,16 @@ pub async fn settle_single_option(
     }
 
     if payout_to_writer > 0 {
-        unlock_collateral(option.writer, payout_to_writer)
-            .map_err(|e| VolumetricError::insufficient_balance(e.available, e.required))?;
+        unlock_collateral(option.writer, payout_to_writer).map_err(|e| {
+            VolumetricError::from_def(
+                error_codes::INSUFFICIENT_BALANCE,
+                Some(&format!(
+                    "available: {}, required: {}",
+                    e.available, e.required
+                )),
+                None,
+            )
+        })?;
     }
 
     option.status = ActiveOptionStatus::Settled;
@@ -253,11 +286,20 @@ pub async fn settle_option_by_id_use_case(
 ) -> Result<SettlementResult, VolumetricError> {
     let now = ic::time();
 
-    let option =
-        get_active_option(option_id).ok_or_else(|| VolumetricError::option_not_found(option_id))?;
+    let option = get_active_option(option_id).ok_or_else(|| {
+        VolumetricError::from_def(
+            error_codes::OPTION_NOT_FOUND,
+            Some(&format!("id: {}", option_id)),
+            None,
+        )
+    })?;
 
     if option.expiry > now {
-        return Err(VolumetricError::option_not_expired());
+        return Err(VolumetricError::from_def(
+            error_codes::OPTION_NOT_EXPIRED,
+            None,
+            None,
+        ));
     }
 
     let settlement_price_cents = get_btc_usd_price_cents().await?;
@@ -272,11 +314,20 @@ pub async fn testing_force_settle_option_use_case(
 }
 
 pub fn testing_expire_option_use_case(option_id: u64) -> Result<ActiveOption, VolumetricError> {
-    let mut option =
-        get_active_option(option_id).ok_or_else(|| VolumetricError::option_not_found(option_id))?;
+    let mut option = get_active_option(option_id).ok_or_else(|| {
+        VolumetricError::from_def(
+            error_codes::OPTION_NOT_FOUND,
+            Some(&format!("id: {}", option_id)),
+            None,
+        )
+    })?;
 
     if option.status != ActiveOptionStatus::Active {
-        return Err(VolumetricError::option_already_settled());
+        return Err(VolumetricError::from_def(
+            error_codes::OPTION_ALREADY_SETTLED,
+            None,
+            None,
+        ));
     }
 
     option.expiry = 0;
@@ -289,11 +340,20 @@ pub fn testing_set_option_expiry_use_case(
     option_id: u64,
     expiry_ns: u64,
 ) -> Result<ActiveOption, VolumetricError> {
-    let mut option =
-        get_active_option(option_id).ok_or_else(|| VolumetricError::option_not_found(option_id))?;
+    let mut option = get_active_option(option_id).ok_or_else(|| {
+        VolumetricError::from_def(
+            error_codes::OPTION_NOT_FOUND,
+            Some(&format!("id: {}", option_id)),
+            None,
+        )
+    })?;
 
     if option.status != ActiveOptionStatus::Active {
-        return Err(VolumetricError::option_already_settled());
+        return Err(VolumetricError::from_def(
+            error_codes::OPTION_ALREADY_SETTLED,
+            None,
+            None,
+        ));
     }
 
     option.expiry = expiry_ns;

@@ -10,6 +10,7 @@ use std::fmt;
 /// - 5xxx: Options errors
 /// - 9xxx: Internal/generic errors
 pub mod error_codes {
+    #[derive(Clone, Copy, Debug)]
     pub struct ErrorDef {
         pub code: u32,
         pub name: &'static str,
@@ -75,16 +76,6 @@ pub mod error_codes {
         name: "OFFER_EXPIRED",
         message: "Offer has expired",
     };
-    pub const OFFER_CANCELLED: ErrorDef = ErrorDef {
-        code: 5004,
-        name: "OFFER_CANCELLED",
-        message: "Offer has been cancelled",
-    };
-    pub const OFFER_FILLED: ErrorDef = ErrorDef {
-        code: 5005,
-        name: "OFFER_FILLED",
-        message: "Offer has been fully filled",
-    };
     pub const QUANTITY_BELOW_MINIMUM: ErrorDef = ErrorDef {
         code: 5006,
         name: "QUANTITY_BELOW_MINIMUM",
@@ -119,11 +110,6 @@ pub mod error_codes {
         code: 5012,
         name: "CANNOT_ACCEPT_OWN_OFFER",
         message: "Cannot accept your own offer",
-    };
-    pub const OFFER_PROCESSING: ErrorDef = ErrorDef {
-        code: 5013,
-        name: "OFFER_PROCESSING",
-        message: "Offer is currently being processed by another transaction",
     };
     pub const OPTION_SETTLING: ErrorDef = ErrorDef {
         code: 5014,
@@ -190,6 +176,11 @@ pub mod error_codes {
         name: "OFFER_LIMIT_EXCEEDED",
         message: "Maximum offers per term exceeded",
     };
+    pub const INVALID_OFFER_STATE: ErrorDef = ErrorDef {
+        code: 5027,
+        name: "INVALID_OFFER_STATE",
+        message: "Invalid offer state",
+    };
 
     // 9xxx: Internal/generic errors
     pub const INTERNAL_ERROR: ErrorDef = ErrorDef {
@@ -213,205 +204,31 @@ pub struct VolumetricError {
 }
 
 impl VolumetricError {
-    fn from_def(def: &error_codes::ErrorDef) -> Self {
-        Self {
-            code: def.code,
-            name: def.name.to_string(),
-            message: def.message.to_string(),
-            details: None,
-        }
-    }
+    pub fn from_def(
+        def: error_codes::ErrorDef,
+        message_context: Option<&str>,
+        caller: Option<&str>,
+    ) -> Self {
+        let mut message = def.message.to_string();
 
-    fn from_def_with_reason(def: &error_codes::ErrorDef, reason: &str) -> Self {
-        Self {
-            code: def.code,
-            name: def.name.to_string(),
-            message: format!("{}: {}", def.message, reason),
-            details: None,
+        if let Some(message_context) = message_context {
+            message.push_str(": ");
+            message.push_str(message_context);
         }
-    }
 
-    fn from_def_with_caller(def: &error_codes::ErrorDef, caller: &str) -> Self {
+        if let Some(caller) = caller {
+            message.push_str(": ");
+            message.push_str(caller);
+        }
+
         Self {
             code: def.code,
             name: def.name.to_string(),
-            message: format!("{}: {}", def.message, caller),
-            details: Some(ErrorDetails {
+            message,
+            details: caller.map(|caller| ErrorDetails {
                 caller: Some(caller.to_string()),
             }),
         }
-    }
-
-    pub fn unauthorized_controller(caller: &str) -> Self {
-        Self::from_def_with_caller(&error_codes::UNAUTHORIZED_CONTROLLER, caller)
-    }
-
-    pub fn unauthorized_whitelisted(caller: &str) -> Self {
-        Self::from_def_with_caller(&error_codes::UNAUTHORIZED_WHITELISTED, caller)
-    }
-
-    pub fn invalid_signature(reason: &str) -> Self {
-        Self::from_def_with_reason(&error_codes::INVALID_SIGNATURE, reason)
-    }
-
-    pub fn profile_not_found() -> Self {
-        Self::from_def(&error_codes::PROFILE_NOT_FOUND)
-    }
-
-    pub fn profile_already_registered() -> Self {
-        Self::from_def(&error_codes::PROFILE_ALREADY_REGISTERED)
-    }
-
-    pub fn inter_canister_call_failed(reason: &str) -> Self {
-        Self::from_def_with_reason(&error_codes::INTER_CANISTER_CALL_FAILED, reason)
-    }
-
-    pub fn config_error(reason: &str) -> Self {
-        Self::from_def_with_reason(&error_codes::CONFIG_ERROR, reason)
-    }
-
-    pub fn internal(reason: &str) -> Self {
-        Self::from_def_with_reason(&error_codes::INTERNAL_ERROR, reason)
-    }
-
-    pub fn insufficient_balance(available: u64, required: u64) -> Self {
-        Self::from_def_with_reason(
-            &error_codes::INSUFFICIENT_BALANCE,
-            &format!("available: {}, required: {}", available, required),
-        )
-    }
-
-    pub fn offer_not_found(offer_id: u64) -> Self {
-        Self::from_def_with_reason(&error_codes::OFFER_NOT_FOUND, &format!("id: {}", offer_id))
-    }
-
-    pub fn offer_expired() -> Self {
-        Self::from_def(&error_codes::OFFER_EXPIRED)
-    }
-
-    pub fn offer_cancelled() -> Self {
-        Self::from_def(&error_codes::OFFER_CANCELLED)
-    }
-
-    pub fn offer_filled() -> Self {
-        Self::from_def(&error_codes::OFFER_FILLED)
-    }
-
-    pub fn quantity_below_minimum(quantity: u64, minimum: u64) -> Self {
-        Self::from_def_with_reason(
-            &error_codes::QUANTITY_BELOW_MINIMUM,
-            &format!("got: {}, minimum: {}", quantity, minimum),
-        )
-    }
-
-    pub fn quantity_exceeds_available(requested: u64, available: u64) -> Self {
-        Self::from_def_with_reason(
-            &error_codes::QUANTITY_EXCEEDS_AVAILABLE,
-            &format!("requested: {}, available: {}", requested, available),
-        )
-    }
-
-    pub fn not_offer_owner() -> Self {
-        Self::from_def(&error_codes::NOT_OFFER_OWNER)
-    }
-
-    pub fn option_not_found(option_id: u64) -> Self {
-        Self::from_def_with_reason(
-            &error_codes::OPTION_NOT_FOUND,
-            &format!("id: {}", option_id),
-        )
-    }
-
-    pub fn option_not_expired() -> Self {
-        Self::from_def(&error_codes::OPTION_NOT_EXPIRED)
-    }
-
-    pub fn option_already_settled() -> Self {
-        Self::from_def(&error_codes::OPTION_ALREADY_SETTLED)
-    }
-
-    pub fn cannot_accept_own_offer() -> Self {
-        Self::from_def(&error_codes::CANNOT_ACCEPT_OWN_OFFER)
-    }
-
-    pub fn offer_processing() -> Self {
-        Self::from_def(&error_codes::OFFER_PROCESSING)
-    }
-
-    pub fn option_settling() -> Self {
-        Self::from_def(&error_codes::OPTION_SETTLING)
-    }
-
-    pub fn partial_filling_disabled() -> Self {
-        Self::from_def(&error_codes::PARTIAL_FILLING_DISABLED)
-    }
-
-    pub fn stitching_disabled() -> Self {
-        Self::from_def(&error_codes::STITCHING_DISABLED)
-    }
-
-    pub fn quantity_above_maximum(quantity: u64, maximum: u64) -> Self {
-        Self::from_def_with_reason(
-            &error_codes::QUANTITY_ABOVE_MAXIMUM,
-            &format!("got: {}, maximum: {}", quantity, maximum),
-        )
-    }
-
-    pub fn strike_below_minimum(value: u16, minimum: u16) -> Self {
-        Self::from_def_with_reason(
-            &error_codes::STRIKE_BELOW_MINIMUM,
-            &format!("got: {}, minimum: {}", value, minimum),
-        )
-    }
-
-    pub fn strike_above_maximum(value: u16, maximum: u16) -> Self {
-        Self::from_def_with_reason(
-            &error_codes::STRIKE_ABOVE_MAXIMUM,
-            &format!("got: {}, maximum: {}", value, maximum),
-        )
-    }
-
-    pub fn premium_below_minimum(value: u16, minimum: u16) -> Self {
-        Self::from_def_with_reason(
-            &error_codes::PREMIUM_BELOW_MINIMUM,
-            &format!("got: {}, minimum: {}", value, minimum),
-        )
-    }
-
-    pub fn premium_above_maximum(value: u16, maximum: u16) -> Self {
-        Self::from_def_with_reason(
-            &error_codes::PREMIUM_ABOVE_MAXIMUM,
-            &format!("got: {}, maximum: {}", value, maximum),
-        )
-    }
-
-    pub fn duration_below_minimum(value: u64, minimum: u64) -> Self {
-        Self::from_def_with_reason(
-            &error_codes::DURATION_BELOW_MINIMUM,
-            &format!("got: {} seconds, minimum: {} seconds", value, minimum),
-        )
-    }
-
-    pub fn duration_above_maximum(value: u64, maximum: u64) -> Self {
-        Self::from_def_with_reason(
-            &error_codes::DURATION_ABOVE_MAXIMUM,
-            &format!("got: {} seconds, maximum: {} seconds", value, maximum),
-        )
-    }
-
-    pub fn accept_in_progress() -> Self {
-        Self::from_def(&error_codes::ACCEPT_IN_PROGRESS)
-    }
-
-    pub fn withdrawal_in_progress() -> Self {
-        Self::from_def(&error_codes::WITHDRAWAL_IN_PROGRESS)
-    }
-
-    pub fn offer_limit_exceeded(current: usize, max: usize) -> Self {
-        Self::from_def_with_reason(
-            &error_codes::OFFER_LIMIT_EXCEEDED,
-            &format!("you have {} active offers (max {})", current, max),
-        )
     }
 }
 
@@ -425,12 +242,99 @@ impl std::error::Error for VolumetricError {}
 
 impl From<String> for VolumetricError {
     fn from(value: String) -> Self {
-        VolumetricError::internal(&value)
+        VolumetricError::from_def(error_codes::INTERNAL_ERROR, Some(&value), None)
     }
 }
 
 impl From<&'static str> for VolumetricError {
     fn from(value: &'static str) -> Self {
-        VolumetricError::internal(value)
+        VolumetricError::from_def(error_codes::INTERNAL_ERROR, Some(value), None)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{error_codes, VolumetricError};
+
+    /// Given: an authorization error with the caller principal
+    /// When: building the API error payload with caller details
+    /// Then: the payload preserves code, message, and caller details
+    #[test]
+    fn test_with_caller_preserves_caller_details() {
+        // given
+        let caller = "aaaaa-aa";
+
+        // when
+        let error =
+            VolumetricError::from_def(error_codes::UNAUTHORIZED_CONTROLLER, None, Some(caller));
+
+        // then
+        assert_eq!(error.code, error_codes::UNAUTHORIZED_CONTROLLER.code);
+        assert_eq!(error.name, error_codes::UNAUTHORIZED_CONTROLLER.name);
+        assert_eq!(
+            error.message,
+            "Caller is not authorized as a controller: aaaaa-aa"
+        );
+        assert_eq!(error.details.unwrap().caller.as_deref(), Some(caller));
+    }
+
+    /// Given: an invalid-offer-state error with a specific reason
+    /// When: building it with the generic reason helper
+    /// Then: the payload keeps the existing message format
+    #[test]
+    fn test_with_reason_preserves_reason_format() {
+        // given
+        let reason = "cannot cancel offer with status: Processing";
+
+        // when
+        let error = VolumetricError::from_def(error_codes::INVALID_OFFER_STATE, Some(reason), None);
+
+        // then
+        assert_eq!(error.code, error_codes::INVALID_OFFER_STATE.code);
+        assert_eq!(
+            error.message,
+            "Invalid offer state: cannot cancel offer with status: Processing"
+        );
+        assert!(error.details.is_none());
+    }
+
+    /// Given: a generic string failure
+    /// When: converting it into VolumetricError
+    /// Then: it becomes the internal error payload
+    #[test]
+    fn test_string_conversion_maps_to_internal_error() {
+        // given
+        let reason = String::from("unexpected failure");
+
+        // when
+        let error = VolumetricError::from(reason);
+
+        // then
+        assert_eq!(error.code, error_codes::INTERNAL_ERROR.code);
+        assert_eq!(error.message, "Internal error: unexpected failure");
+    }
+
+    /// Given: an error payload with both message context and caller
+    /// When: building it from a definition
+    /// Then: the message includes both values and the caller remains structured
+    #[test]
+    fn test_from_def_supports_context_and_caller() {
+        // given
+        let context = "canister rejected request";
+        let caller = "aaaaa-aa";
+
+        // when
+        let error = VolumetricError::from_def(
+            error_codes::UNAUTHORIZED_CONTROLLER,
+            Some(context),
+            Some(caller),
+        );
+
+        // then
+        assert_eq!(
+            error.message,
+            "Caller is not authorized as a controller: canister rejected request: aaaaa-aa"
+        );
+        assert_eq!(error.details.unwrap().caller.as_deref(), Some(caller));
     }
 }

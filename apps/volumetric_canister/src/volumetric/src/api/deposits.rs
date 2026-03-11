@@ -3,7 +3,7 @@ use icrc_ledger_types::icrc1::account::Account;
 use serde::{Deserialize, Serialize};
 
 use crate::auth::types::WalletKey;
-use crate::errors::VolumetricError;
+use crate::errors::{error_codes, VolumetricError};
 use crate::generated::ckbtc::UtxoStatus;
 use crate::guards::is_whitelisted;
 use crate::storage::get_principal_for_wallet;
@@ -29,8 +29,8 @@ pub async fn get_deposit_address(address: String) -> Result<DepositInfo, Volumet
     is_whitelisted().await?;
 
     let wallet_key = WalletKey::from_address(&address);
-    let principal =
-        get_principal_for_wallet(&wallet_key).ok_or_else(VolumetricError::profile_not_found)?;
+    let principal = get_principal_for_wallet(&wallet_key)
+        .ok_or_else(|| VolumetricError::from_def(error_codes::PROFILE_NOT_FOUND, None, None))?;
 
     let info = usecases::get_deposit_address(principal).await?;
     Ok(info.into())
@@ -41,8 +41,8 @@ pub async fn update_ckbtc_balance(address: String) -> Result<Vec<UtxoStatus>, Vo
     is_whitelisted().await?;
 
     let wallet_key = WalletKey::from_address(&address);
-    let principal =
-        get_principal_for_wallet(&wallet_key).ok_or_else(VolumetricError::profile_not_found)?;
+    let principal = get_principal_for_wallet(&wallet_key)
+        .ok_or_else(|| VolumetricError::from_def(error_codes::PROFILE_NOT_FOUND, None, None))?;
 
     usecases::mint_ckbtc_from_utxos(principal).await
 }
@@ -52,8 +52,8 @@ pub async fn get_ckbtc_balance(address: String) -> Result<Nat, VolumetricError> 
     is_whitelisted().await?;
 
     let wallet_key = WalletKey::from_address(&address);
-    let principal =
-        get_principal_for_wallet(&wallet_key).ok_or_else(VolumetricError::profile_not_found)?;
+    let principal = get_principal_for_wallet(&wallet_key)
+        .ok_or_else(|| VolumetricError::from_def(error_codes::PROFILE_NOT_FOUND, None, None))?;
 
     usecases::get_ledger_balance(principal).await
 }
@@ -63,8 +63,8 @@ pub async fn testing_sync_balance_from_ledger(address: String) -> Result<u64, Vo
     is_whitelisted().await?;
 
     let wallet_key = WalletKey::from_address(&address);
-    let principal =
-        get_principal_for_wallet(&wallet_key).ok_or_else(VolumetricError::profile_not_found)?;
+    let principal = get_principal_for_wallet(&wallet_key)
+        .ok_or_else(|| VolumetricError::from_def(error_codes::PROFILE_NOT_FOUND, None, None))?;
 
     usecases::sync_balance_from_ledger(principal).await
 }
@@ -89,8 +89,8 @@ impl From<usecases::UserBalanceResult> for UserBalanceInfo {
 #[ic_cdk::query]
 pub fn get_user_balance(address: String) -> Result<UserBalanceInfo, VolumetricError> {
     let wallet_key = WalletKey::from_address(&address);
-    let principal =
-        get_principal_for_wallet(&wallet_key).ok_or_else(VolumetricError::profile_not_found)?;
+    let principal = get_principal_for_wallet(&wallet_key)
+        .ok_or_else(|| VolumetricError::from_def(error_codes::PROFILE_NOT_FOUND, None, None))?;
 
     let result = usecases::get_user_balance_use_case(principal);
     Ok(result.into())

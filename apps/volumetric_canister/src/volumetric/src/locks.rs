@@ -3,7 +3,7 @@ use std::collections::BTreeSet;
 
 use candid::Principal;
 
-use crate::errors::VolumetricError;
+use crate::errors::{error_codes, VolumetricError};
 
 thread_local! {
     static PENDING_ACCEPTS: RefCell<BTreeSet<Principal>> = const { RefCell::new(BTreeSet::new()) };
@@ -21,7 +21,11 @@ impl AcceptLock {
         PENDING_ACCEPTS.with(|pending| {
             let mut pending = pending.borrow_mut();
             if pending.contains(&principal) {
-                return Err(VolumetricError::accept_in_progress());
+                return Err(VolumetricError::from_def(
+                    error_codes::ACCEPT_IN_PROGRESS,
+                    None,
+                    None,
+                ));
             }
             pending.insert(principal);
             Ok(Self { principal })
@@ -47,7 +51,11 @@ impl WithdrawalLock {
         PENDING_WITHDRAWALS.with(|pending| {
             let mut pending = pending.borrow_mut();
             if pending.contains(&principal) {
-                return Err(VolumetricError::withdrawal_in_progress());
+                return Err(VolumetricError::from_def(
+                    error_codes::WITHDRAWAL_IN_PROGRESS,
+                    None,
+                    None,
+                ));
             }
             pending.insert(principal);
             Ok(Self { principal })
@@ -73,7 +81,11 @@ impl SettlementLock {
         SETTLING_OPTIONS.with(|settling| {
             let mut settling = settling.borrow_mut();
             if settling.contains(&option_id) {
-                return Err(VolumetricError::option_settling());
+                return Err(VolumetricError::from_def(
+                    error_codes::OPTION_SETTLING,
+                    None,
+                    None,
+                ));
             }
             settling.insert(option_id);
             Ok(Self { option_id })

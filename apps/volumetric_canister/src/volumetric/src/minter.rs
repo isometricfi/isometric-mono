@@ -8,7 +8,7 @@ use std::rc::Rc;
 
 use async_trait::async_trait;
 
-use crate::errors::VolumetricError;
+use crate::errors::{error_codes, VolumetricError};
 use crate::generated::ckbtc::{
     GetBtcAddressArg, RetrieveBtcOk, RetrieveBtcWithApprovalArgs, RetrieveBtcWithApprovalError,
     UpdateBalanceArg, UpdateBalanceError, UtxoStatus,
@@ -67,11 +67,19 @@ impl MinterClient for IcMinter {
             .with_arg(&args)
             .await
             .map_err(|e| {
-                VolumetricError::inter_canister_call_failed(&format!("get_btc_address: {:?}", e))
+                VolumetricError::from_def(
+                    error_codes::INTER_CANISTER_CALL_FAILED,
+                    Some(&format!("get_btc_address: {:?}", e)),
+                    None,
+                )
             })?;
 
         let btc_address: String = response.candid().map_err(|e| {
-            VolumetricError::inter_canister_call_failed(&format!("get_btc_address decode: {:?}", e))
+            VolumetricError::from_def(
+                error_codes::INTER_CANISTER_CALL_FAILED,
+                Some(&format!("get_btc_address decode: {:?}", e)),
+                None,
+            )
         })?;
 
         Ok(btc_address)
@@ -87,15 +95,20 @@ impl MinterClient for IcMinter {
             .with_arg(&args)
             .await
             .map_err(|e| {
-                VolumetricError::inter_canister_call_failed(&format!("update_balance: {:?}", e))
+                VolumetricError::from_def(
+                    error_codes::INTER_CANISTER_CALL_FAILED,
+                    Some(&format!("update_balance: {:?}", e)),
+                    None,
+                )
             })?;
 
         let result: Result<Vec<UtxoStatus>, UpdateBalanceError> =
             response.candid().map_err(|e| {
-                VolumetricError::inter_canister_call_failed(&format!(
-                    "update_balance decode: {:?}",
-                    e
-                ))
+                VolumetricError::from_def(
+                    error_codes::INTER_CANISTER_CALL_FAILED,
+                    Some(&format!("update_balance decode: {:?}", e)),
+                    None,
+                )
             })?;
 
         match result {
@@ -108,10 +121,11 @@ impl MinterClient for IcMinter {
                     UpdateBalanceError::AlreadyProcessing => "Already processing".to_string(),
                     UpdateBalanceError::NoNewUtxos { .. } => unreachable!(),
                 };
-                Err(VolumetricError::inter_canister_call_failed(&format!(
-                    "update_balance: {}",
-                    msg
-                )))
+                Err(VolumetricError::from_def(
+                    error_codes::INTER_CANISTER_CALL_FAILED,
+                    Some(&format!("update_balance: {}", msg)),
+                    None,
+                ))
             }
         }
     }
@@ -126,25 +140,31 @@ impl MinterClient for IcMinter {
             .with_arg(&args)
             .await
             .map_err(|e| {
-                VolumetricError::inter_canister_call_failed(&format!(
-                    "retrieve_btc_with_approval: {:?}",
-                    e
-                ))
+                VolumetricError::from_def(
+                    error_codes::INTER_CANISTER_CALL_FAILED,
+                    Some(&format!("retrieve_btc_with_approval: {:?}", e)),
+                    None,
+                )
             })?;
 
         let result: Result<RetrieveBtcOk, RetrieveBtcWithApprovalError> =
             response.candid().map_err(|e| {
-                VolumetricError::inter_canister_call_failed(&format!(
-                    "retrieve_btc_with_approval decode: {:?}",
-                    e
-                ))
+                VolumetricError::from_def(
+                    error_codes::INTER_CANISTER_CALL_FAILED,
+                    Some(&format!("retrieve_btc_with_approval decode: {:?}", e)),
+                    None,
+                )
             })?;
 
         result.map_err(|e| {
-            VolumetricError::inter_canister_call_failed(&format!(
-                "retrieve_btc_with_approval rejected: {}",
-                format_retrieve_error(e)
-            ))
+            VolumetricError::from_def(
+                error_codes::INTER_CANISTER_CALL_FAILED,
+                Some(&format!(
+                    "retrieve_btc_with_approval rejected: {}",
+                    format_retrieve_error(e)
+                )),
+                None,
+            )
         })
     }
 }

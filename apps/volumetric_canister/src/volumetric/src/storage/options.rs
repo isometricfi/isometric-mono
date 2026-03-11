@@ -9,6 +9,7 @@ use super::cbor::Cbor;
 use super::state::{Memory, MemoryIndex, MEMORY_MANAGER};
 
 pub const MINIMUM_QUANTITY_SATS: u64 = 50_000;
+const BASIS_POINTS_DENOMINATOR: u128 = 10_000;
 
 thread_local! {
     pub static OFFERS: RefCell<StableBTreeMap<u64, Cbor<Offer>, Memory>> = RefCell::new(
@@ -259,13 +260,16 @@ pub fn list_expired_active_options(current_time: u64) -> Vec<ActiveOption> {
     })
 }
 
-pub fn calculate_premium(quantity: u64, premium_basis_points: u16) -> u64 {
-    (quantity as u128 * premium_basis_points as u128 / 10_000) as u64
+pub fn calculate_premium_in_sats(quantity_sats: u64, premium_basis_points: u16) -> u64 {
+    let premium_amount_sats =
+        (quantity_sats as u128 * premium_basis_points as u128) / BASIS_POINTS_DENOMINATOR;
+    premium_amount_sats as u64
 }
 
-pub fn calculate_strike_price(entry_price_cents: u64, strike_basis_points: u16) -> u64 {
-    let increase = (entry_price_cents as u128 * strike_basis_points as u128) / 10_000;
-    entry_price_cents.saturating_add(increase as u64)
+pub fn calculate_strike_price_in_cents(entry_price_cents: u64, strike_basis_points: u16) -> u64 {
+    let strike_price_increase_cents =
+        (entry_price_cents as u128 * strike_basis_points as u128) / BASIS_POINTS_DENOMINATOR;
+    entry_price_cents.saturating_add(strike_price_increase_cents as u64)
 }
 
 pub fn calculate_call_option_payout(
@@ -317,7 +321,7 @@ mod tests {
         let strike_basis_points: u16 = 500;
 
         // when
-        let strike = calculate_strike_price(entry_price_cents, strike_basis_points);
+        let strike = calculate_strike_price_in_cents(entry_price_cents, strike_basis_points);
 
         // then
         let expected = 10_500_000;
@@ -331,7 +335,7 @@ mod tests {
         let strike_basis_points: u16 = 1000;
 
         // when
-        let strike = calculate_strike_price(entry_price_cents, strike_basis_points);
+        let strike = calculate_strike_price_in_cents(entry_price_cents, strike_basis_points);
 
         // then
         let expected = 11_000_000;
@@ -345,7 +349,7 @@ mod tests {
         let strike_basis_points: u16 = 0;
 
         // when
-        let strike = calculate_strike_price(entry_price_cents, strike_basis_points);
+        let strike = calculate_strike_price_in_cents(entry_price_cents, strike_basis_points);
 
         // then
         assert_eq!(strike, entry_price_cents);

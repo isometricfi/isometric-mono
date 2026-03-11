@@ -74,7 +74,7 @@ thread_local! {
     static ACCEPT_ID_COUNTER: RefCell<u64> = const { RefCell::new(0) };
 }
 
-pub fn create_accept(
+pub fn create_accept_journal_entry(
     buyer: Principal,
     total_premium: u64,
     offers: Vec<AcceptedOffer>,
