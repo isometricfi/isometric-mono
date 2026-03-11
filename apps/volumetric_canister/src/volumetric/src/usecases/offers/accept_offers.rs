@@ -9,7 +9,7 @@ use crate::locks::AcceptLock;
 use crate::oracle::get_btc_usd_price_cents;
 use crate::storage::{
     add_available, add_platform_fee, calculate_premium, calculate_premium_fee,
-    calculate_strike_price, complete_accept, create_accept, emit_event, fail_accept, get_balance,
+    calculate_strike_price, complete_accept, create_accept_journal_entry, emit_event, fail_accept, get_balance,
     get_fee_recipient, get_offer, insert_active_option, lock_collateral, next_id, remove_accept,
     subtract_available, unlock_collateral, update_accept_phase, update_offer, AcceptPhase,
     AcceptedOffer, ActiveOption, ActiveOptionStatus, Asset, Config, CounterKey, EventData,
@@ -99,7 +99,7 @@ pub async fn accept_offers_use_case(
 
     let accepted_offers = create_accepted_offers(&prepared_accept_batch.prepared_accepts);
 
-    let accept_journal_entry = create_accept(
+    let accept_journal_entry = create_accept_journal_entry(
         buyer_principal,
         prepared_accept_batch.total_premium_required,
         accepted_offers,

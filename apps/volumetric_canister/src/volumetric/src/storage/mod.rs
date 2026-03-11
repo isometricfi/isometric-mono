@@ -10,7 +10,7 @@ pub mod state;
 pub mod withdrawals;
 
 pub use accepts::{
-    complete_accept, create_accept, fail_accept, get_accept, list_failed_accepts,
+    complete_accept, create_accept_journal_entry, fail_accept, get_accept, list_failed_accepts,
     list_pending_accepts, remove_accept, update_accept_phase, AcceptPhase, AcceptedOffer,
     PendingAccept,
 };
