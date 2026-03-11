@@ -8,12 +8,12 @@ use crate::ic;
 use crate::locks::AcceptLock;
 use crate::oracle::get_btc_usd_price_cents;
 use crate::storage::{
-    add_available, add_platform_fee, calculate_premium, calculate_premium_fee,
-    calculate_strike_price, complete_accept, create_accept_journal_entry, emit_event, fail_accept,
-    get_balance, get_fee_recipient, get_offer, insert_active_option, lock_collateral, next_id,
-    remove_accept, subtract_available, unlock_collateral, update_accept_phase, update_offer,
-    AcceptPhase, AcceptedOffer, ActiveOption, ActiveOptionStatus, Asset, Config, CounterKey,
-    EventData, EventType, OfferStatus, OptionType, TradeRole, CKBTC_TRANSFER_FEE,
+    add_available, add_platform_fee, calculate_premium_fee, calculate_premium_in_sats,
+    calculate_strike_price_in_cents, complete_accept, create_accept_journal_entry, emit_event,
+    fail_accept, get_balance, get_fee_recipient, get_offer, insert_active_option, lock_collateral,
+    next_id, remove_accept, subtract_available, unlock_collateral, update_accept_phase,
+    update_offer, AcceptPhase, AcceptedOffer, ActiveOption, ActiveOptionStatus, Asset, Config,
+    CounterKey, EventData, EventType, OfferStatus, OptionType, TradeRole, CKBTC_TRANSFER_FEE,
 };
 use crate::time::calculate_expiry_ns;
 
@@ -31,7 +31,7 @@ pub struct AcceptOffersResult {
 
 struct PreparedAcceptBatch {
     prepared_accepts: Vec<PreparedAccept>,
-    total_premium_required: u64,
+    total_premium_required_sats: u64,
     writer_and_fee_transfers: Vec<PendingPremiumTransfer>,
 }
 
@@ -41,13 +41,13 @@ struct PreparedAccept {
     asset: Asset,
     option_type: OptionType,
     strike_basis_points: u16,
-    quantity: u64,
-    premium: u64,
-    premium_to_writer: u64,
-    premium_fee: u64,
+    quantity_sats: u64,
+    premium_sats: u64,
+    premium_to_writer_sats: u64,
+    premium_fee_sats: u64,
     option_id: u64,
-    expiry: u64,
-    original_remaining_quantity: u64,
+    expiry_ns: u64,
+    original_remaining_quantity_sats: u64,
     original_status: OfferStatus,
     profit_fee_basis_points: u64,
 }
@@ -55,14 +55,14 @@ struct PreparedAccept {
 struct PendingPremiumTransfer {
     from_subaccount: Option<[u8; 32]>,
     to: Account,
-    amount: u64,
+    amount_sats: u64,
 }
 
 struct LockedCollateralState {
     writer: Principal,
-    collateral_locked: u64,
+    collateral_locked_sats: u64,
     offer_id: u64,
-    original_remaining_quantity: u64,
+    original_remaining_quantity_sats: u64,
     original_status: OfferStatus,
 }
 
@@ -72,7 +72,7 @@ pub async fn accept_offers_use_case(
 ) -> Result<AcceptOffersResult, VolumetricError> {
     // bind to _lock, not `let _ =` which drops immediately
     let _buyer_accept_lock = AcceptLock::new(buyer_principal)?;
-    let transfer_created_at_time_ns = ic::time();
+    let ledger_transfer_created_at_time_ns = ic::time();
 
     if accept_offer_items.is_empty() {
         return Err(VolumetricError::internal("No items to accept"));
@@ -89,11 +89,11 @@ pub async fn accept_offers_use_case(
     let prepared_accept_batch =
         prepare_offer_acceptances(buyer_principal, &accept_offer_items, current_time_ns)?;
 
-    let buyer_balance = get_balance(&buyer_principal);
-    if buyer_balance.available < prepared_accept_batch.total_premium_required {
+    let buyer_balance_sats = get_balance(&buyer_principal);
+    if buyer_balance_sats.available < prepared_accept_batch.total_premium_required_sats {
         return Err(VolumetricError::insufficient_balance(
-            buyer_balance.available,
-            prepared_accept_batch.total_premium_required,
+            buyer_balance_sats.available,
+            prepared_accept_batch.total_premium_required_sats,
         ));
     }
 
@@ -102,7 +102,7 @@ pub async fn accept_offers_use_case(
 
     let accept_journal_entry = create_accept_journal_entry(
         buyer_principal,
-        prepared_accept_batch.total_premium_required,
+        prepared_accept_batch.total_premium_required_sats,
         accepted_offers,
         fill_group_id,
     );
@@ -117,9 +117,9 @@ pub async fn accept_offers_use_case(
 
     if let Err(e) = subtract_available(
         buyer_principal,
-        prepared_accept_batch.total_premium_required,
+        prepared_accept_batch.total_premium_required_sats,
     ) {
-        rollback_locked_collateral_states(&locked_collateral_states);
+        rollback_locked_collateral_states_and_offers(&locked_collateral_states);
         fail_accept(
             accept_journal_entry_id,
             format!("subtract_available failed: {:?}", e),
@@ -136,9 +136,9 @@ pub async fn accept_offers_use_case(
         buyer_principal,
         prepared_accept_batch.writer_and_fee_transfers,
         &locked_collateral_states,
-        prepared_accept_batch.total_premium_required,
+        prepared_accept_batch.total_premium_required_sats,
         accept_journal_entry_id,
-        transfer_created_at_time_ns,
+        ledger_transfer_created_at_time_ns,
     )
     .await?;
 
@@ -161,16 +161,18 @@ pub async fn accept_offers_use_case(
     })
 }
 
-fn rollback_locked_collateral_states(locked_collateral_states: &[LockedCollateralState]) {
+fn rollback_locked_collateral_states_and_offers(
+    locked_collateral_states: &[LockedCollateralState],
+) {
     for locked_collateral_state in locked_collateral_states {
         let _ = unlock_collateral(
             locked_collateral_state.writer,
-            locked_collateral_state.collateral_locked,
+            locked_collateral_state.collateral_locked_sats,
         );
 
         if let Some(mut offer_to_restore) = get_offer(locked_collateral_state.offer_id) {
             offer_to_restore.remaining_quantity =
-                locked_collateral_state.original_remaining_quantity;
+                locked_collateral_state.original_remaining_quantity_sats;
             offer_to_restore.status = locked_collateral_state.original_status;
             update_offer(offer_to_restore);
         }
@@ -183,7 +185,7 @@ fn prepare_offer_acceptances(
     current_time_ns: u64,
 ) -> Result<PreparedAcceptBatch, VolumetricError> {
     let mut prepared_accepts: Vec<PreparedAccept> = Vec::with_capacity(accept_offer_items.len());
-    let mut total_premium_required: u64 = 0;
+    let mut total_premium_required_sats: u64 = 0;
     let mut writer_and_fee_transfers: Vec<PendingPremiumTransfer> = Vec::new();
 
     for accept_offer_item in accept_offer_items {
@@ -192,27 +194,29 @@ fn prepare_offer_acceptances(
 
         validate_offer_acceptance(buyer_principal, accept_offer_item, &offer, current_time_ns)?;
 
-        let writer_available_balance = get_balance(&offer.writer);
-        if writer_available_balance.available < accept_offer_item.quantity {
+        let writer_available_balance_sats = get_balance(&offer.writer);
+        if writer_available_balance_sats.available < accept_offer_item.quantity {
             let mut updated_offer = offer.clone();
             updated_offer.status = OfferStatus::Cancelled;
             update_offer(updated_offer);
             return Err(VolumetricError::insufficient_balance(
-                writer_available_balance.available,
+                writer_available_balance_sats.available,
                 accept_offer_item.quantity,
             ));
         }
 
         let platform_fee_config = Config::fee_config();
-        let premium = calculate_premium(accept_offer_item.quantity, offer.premium_basis_points);
-        let premium_fee = calculate_premium_fee(premium);
-        let premium_to_writer = premium.saturating_sub(premium_fee);
+        let premium_sats =
+            calculate_premium_in_sats(accept_offer_item.quantity, offer.premium_basis_points);
+        let premium_fee_sats = calculate_premium_fee(premium_sats);
+        let premium_to_writer_sats = premium_sats.saturating_sub(premium_fee_sats);
 
-        let premium_transfer_count: u64 = if premium_fee > 0 { 2 } else { 1 };
-        let total_transfer_fees = premium_transfer_count * CKBTC_TRANSFER_FEE;
-        let total_premium_and_transfer_fees = premium.saturating_add(total_transfer_fees);
-        total_premium_required =
-            total_premium_required.saturating_add(total_premium_and_transfer_fees);
+        let premium_transfer_count: u64 = if premium_fee_sats > 0 { 2 } else { 1 };
+        let total_transfer_fees_sats = premium_transfer_count * CKBTC_TRANSFER_FEE;
+        let total_premium_and_transfer_fees_sats =
+            premium_sats.saturating_add(total_transfer_fees_sats);
+        total_premium_required_sats =
+            total_premium_required_sats.saturating_add(total_premium_and_transfer_fees_sats);
 
         let active_option_id = next_id(CounterKey::ActiveOptionId);
 
@@ -222,11 +226,11 @@ fn prepare_offer_acceptances(
         let option_expiry_ns = calculate_expiry_ns(current_time_ns, offer.option_duration_seconds)
             .ok_or_else(|| VolumetricError::internal("Expiry timestamp overflow"))?;
 
-        writer_and_fee_transfers.extend(create_writer_and_fee_transfers(
+        writer_and_fee_transfers.extend(build_writer_and_fee_transfers(
             buyer_principal,
             offer.writer,
-            premium_to_writer,
-            premium_fee,
+            premium_to_writer_sats,
+            premium_fee_sats,
         ));
 
         prepared_accepts.push(PreparedAccept {
@@ -235,13 +239,13 @@ fn prepare_offer_acceptances(
             asset: offer.asset,
             option_type: offer.option_type,
             strike_basis_points: offer.strike_basis_points,
-            quantity: accept_offer_item.quantity,
-            premium,
-            premium_to_writer,
-            premium_fee,
+            quantity_sats: accept_offer_item.quantity,
+            premium_sats,
+            premium_to_writer_sats,
+            premium_fee_sats,
             option_id: active_option_id,
-            expiry: option_expiry_ns,
-            original_remaining_quantity: offer.remaining_quantity,
+            expiry_ns: option_expiry_ns,
+            original_remaining_quantity_sats: offer.remaining_quantity,
             original_status: offer.status,
             profit_fee_basis_points: platform_fee_config.profit_fee_basis_points,
         });
@@ -249,7 +253,7 @@ fn prepare_offer_acceptances(
 
     Ok(PreparedAcceptBatch {
         prepared_accepts,
-        total_premium_required,
+        total_premium_required_sats,
         writer_and_fee_transfers,
     })
 }
@@ -303,15 +307,15 @@ fn validate_offer_acceptance(
     Ok(())
 }
 
-fn create_writer_and_fee_transfers(
+fn build_writer_and_fee_transfers(
     buyer_principal: Principal,
     writer_principal: Principal,
-    premium_to_writer: u64,
-    premium_fee: u64,
+    premium_to_writer_sats: u64,
+    premium_fee_sats: u64,
 ) -> Vec<PendingPremiumTransfer> {
     let buyer_subaccount = derive_subaccount(buyer_principal);
     let writer_subaccount = derive_subaccount(writer_principal);
-    let mut writer_and_fee_transfers = Vec::with_capacity(if premium_fee > 0 { 2 } else { 1 });
+    let mut writer_and_fee_transfers = Vec::with_capacity(if premium_fee_sats > 0 { 2 } else { 1 });
 
     writer_and_fee_transfers.push(PendingPremiumTransfer {
         from_subaccount: Some(buyer_subaccount),
@@ -319,17 +323,17 @@ fn create_writer_and_fee_transfers(
             owner: ic::canister_self(),
             subaccount: Some(writer_subaccount),
         },
-        amount: premium_to_writer,
+        amount_sats: premium_to_writer_sats,
     });
 
-    if premium_fee > 0 {
+    if premium_fee_sats > 0 {
         writer_and_fee_transfers.push(PendingPremiumTransfer {
             from_subaccount: Some(buyer_subaccount),
             to: Account {
                 owner: get_fee_recipient(),
                 subaccount: None,
             },
-            amount: premium_fee,
+            amount_sats: premium_fee_sats,
         });
     }
 
@@ -342,10 +346,10 @@ fn build_accepted_offers_for_journal(prepared_accepts: &[PreparedAccept]) -> Vec
         .map(|offer_acceptance| AcceptedOffer {
             offer_id: offer_acceptance.offer_id,
             writer: offer_acceptance.writer,
-            quantity: offer_acceptance.quantity,
-            collateral_locked: offer_acceptance.quantity,
-            premium_to_writer: offer_acceptance.premium_to_writer,
-            platform_fee: offer_acceptance.premium_fee,
+            quantity: offer_acceptance.quantity_sats,
+            collateral_locked: offer_acceptance.quantity_sats,
+            premium_to_writer: offer_acceptance.premium_to_writer_sats,
+            platform_fee: offer_acceptance.premium_fee_sats,
             option_id: offer_acceptance.option_id,
         })
         .collect()
@@ -359,10 +363,10 @@ fn lock_collateral_for_offer_acceptances(
         Vec::with_capacity(prepared_accepts.len());
 
     for offer_acceptance in prepared_accepts {
-        let collateral_to_lock = offer_acceptance.quantity;
+        let collateral_to_lock_sats = offer_acceptance.quantity_sats;
 
-        if let Err(e) = lock_collateral(offer_acceptance.writer, collateral_to_lock) {
-            rollback_locked_collateral_states(&locked_collateral_states);
+        if let Err(e) = lock_collateral(offer_acceptance.writer, collateral_to_lock_sats) {
+            rollback_locked_collateral_states_and_offers(&locked_collateral_states);
             fail_accept(
                 accept_journal_entry_id,
                 format!("lock_collateral failed: {:?}", e),
@@ -376,15 +380,15 @@ fn lock_collateral_for_offer_acceptances(
         let mut offer_to_update = get_offer(offer_acceptance.offer_id).unwrap();
         offer_to_update.remaining_quantity = offer_to_update
             .remaining_quantity
-            .saturating_sub(offer_acceptance.quantity);
+            .saturating_sub(offer_acceptance.quantity_sats);
         offer_to_update.status = OfferStatus::Processing;
         update_offer(offer_to_update);
 
         locked_collateral_states.push(LockedCollateralState {
             writer: offer_acceptance.writer,
-            collateral_locked: collateral_to_lock,
+            collateral_locked_sats: collateral_to_lock_sats,
             offer_id: offer_acceptance.offer_id,
-            original_remaining_quantity: offer_acceptance.original_remaining_quantity,
+            original_remaining_quantity_sats: offer_acceptance.original_remaining_quantity_sats,
             original_status: offer_acceptance.original_status,
         });
     }
@@ -396,21 +400,21 @@ async fn await_writer_and_fee_transfers(
     buyer_principal: Principal,
     writer_and_fee_transfers: Vec<PendingPremiumTransfer>,
     locked_collateral_states: &[LockedCollateralState],
-    total_premium_required: u64,
+    total_premium_required_sats: u64,
     accept_journal_entry_id: u64,
-    transfer_created_at_time_ns: u64,
+    ledger_transfer_created_at_time_ns: u64,
 ) -> Result<(), VolumetricError> {
     for writer_or_fee_transfer in writer_and_fee_transfers {
         if let Err(e) = transfer_ckbtc(
             writer_or_fee_transfer.from_subaccount,
             writer_or_fee_transfer.to,
-            writer_or_fee_transfer.amount,
-            transfer_created_at_time_ns,
+            writer_or_fee_transfer.amount_sats,
+            ledger_transfer_created_at_time_ns,
         )
         .await
         {
-            rollback_locked_collateral_states(locked_collateral_states);
-            add_available(buyer_principal, total_premium_required);
+            rollback_locked_collateral_states_and_offers(locked_collateral_states);
+            add_available(buyer_principal, total_premium_required_sats);
             fail_accept(
                 accept_journal_entry_id,
                 format!("transfer_ckbtc failed: {:?}", e),
@@ -432,8 +436,10 @@ fn create_active_options_from_acceptances(
     let mut created_active_options: Vec<ActiveOption> = Vec::with_capacity(prepared_accepts.len());
 
     for offer_acceptance in prepared_accepts {
-        let strike_price_cents =
-            calculate_strike_price(entry_price_cents, offer_acceptance.strike_basis_points);
+        let strike_price_cents = calculate_strike_price_in_cents(
+            entry_price_cents,
+            offer_acceptance.strike_basis_points,
+        );
         let created_active_option = ActiveOption {
             id: offer_acceptance.option_id,
             offer_id: offer_acceptance.offer_id,
@@ -441,19 +447,22 @@ fn create_active_options_from_acceptances(
             writer: offer_acceptance.writer,
             asset: offer_acceptance.asset,
             option_type: offer_acceptance.option_type,
-            quantity: offer_acceptance.quantity,
+            quantity: offer_acceptance.quantity_sats,
             entry_price_cents,
             strike_price_cents,
-            premium_paid: offer_acceptance.premium,
+            premium_paid: offer_acceptance.premium_sats,
             accepted_at: current_time_ns,
-            expiry: offer_acceptance.expiry,
+            expiry: offer_acceptance.expiry_ns,
             status: ActiveOptionStatus::Active,
             fill_group_id: Some(fill_group_id),
             profit_fee_basis_points: offer_acceptance.profit_fee_basis_points,
         };
 
-        add_available(offer_acceptance.writer, offer_acceptance.premium_to_writer);
-        add_platform_fee(offer_acceptance.premium_fee);
+        add_available(
+            offer_acceptance.writer,
+            offer_acceptance.premium_to_writer_sats,
+        );
+        add_platform_fee(offer_acceptance.premium_fee_sats);
         insert_active_option(created_active_option.clone());
 
         let mut offer_to_update = get_offer(offer_acceptance.offer_id).unwrap();
@@ -493,11 +502,11 @@ fn emit_offer_accepted_events(
             option_id: offer_acceptance.option_id,
             fill_group_id,
             counterparty: offer_acceptance.writer,
-            quantity_sats: offer_acceptance.quantity,
-            premium_sats: offer_acceptance.premium,
+            quantity_sats: offer_acceptance.quantity_sats,
+            premium_sats: offer_acceptance.premium_sats,
             entry_price_cents,
             strike_price_cents,
-            expiry_ns: offer_acceptance.expiry,
+            expiry_ns: offer_acceptance.expiry_ns,
             role: TradeRole::Buyer,
         },
     );
@@ -510,11 +519,11 @@ fn emit_offer_accepted_events(
             option_id: offer_acceptance.option_id,
             fill_group_id,
             counterparty: buyer_principal,
-            quantity_sats: offer_acceptance.quantity,
-            premium_sats: offer_acceptance.premium,
+            quantity_sats: offer_acceptance.quantity_sats,
+            premium_sats: offer_acceptance.premium_sats,
             entry_price_cents,
             strike_price_cents,
-            expiry_ns: offer_acceptance.expiry,
+            expiry_ns: offer_acceptance.expiry_ns,
             role: TradeRole::Writer,
         },
     );
