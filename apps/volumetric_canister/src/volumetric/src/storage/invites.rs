@@ -31,6 +31,12 @@ thread_local! {
             MEMORY_MANAGER.with_borrow(|m| m.get(MemoryId::new(MemoryIndex::ReferralLinksMemory as u8))),
         )
     );
+
+    pub static REFERRAL_COUNTS: RefCell<StableBTreeMap<Principal, u64, Memory>> = RefCell::new(
+        StableBTreeMap::init(
+            MEMORY_MANAGER.with_borrow(|m| m.get(MemoryId::new(MemoryIndex::ReferralCountsMemory as u8))),
+        )
+    );
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -99,22 +105,9 @@ pub fn resolve_invite_code(code: &str) -> Option<Principal> {
 }
 
 pub fn get_invite_code_for_principal(principal: &Principal) -> Option<String> {
-    if let Some(key) = PRINCIPAL_INVITE_CODES.with_borrow(|codes| codes.get(principal)) {
-        return Some(key.to_code());
-    }
-
-    let recovered_key = INVITE_CODE_REGISTRY.with_borrow(|registry| {
-        registry
-            .iter()
-            .find(|entry| entry.value() == *principal)
-            .map(|entry| *entry.key())
-    })?;
-
-    PRINCIPAL_INVITE_CODES.with_borrow_mut(|codes| {
-        codes.insert(*principal, recovered_key);
-    });
-
-    Some(recovered_key.to_code())
+    PRINCIPAL_INVITE_CODES
+        .with_borrow(|codes| codes.get(principal))
+        .map(|key| key.to_code())
 }
 
 pub fn link_referrer_once(
@@ -141,16 +134,16 @@ pub fn link_referrer_once(
         links.insert(referred_principal, referrer_principal);
     });
 
+    REFERRAL_COUNTS.with_borrow_mut(|counts| {
+        let current = counts.get(&referrer_principal).unwrap_or(0);
+        counts.insert(referrer_principal, current.saturating_add(1));
+    });
+
     Some(referrer_principal)
 }
 
 pub fn get_referral_count(principal: &Principal) -> u64 {
-    REFERRAL_LINKS.with_borrow(|links| {
-        links
-            .iter()
-            .filter(|entry| entry.value() == *principal)
-            .count() as u64
-    })
+    REFERRAL_COUNTS.with_borrow(|counts| counts.get(principal).unwrap_or(0))
 }
 
 fn get_referrer_for_principal(principal: &Principal) -> Option<Principal> {
