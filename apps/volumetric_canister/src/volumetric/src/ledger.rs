@@ -12,7 +12,7 @@ use icrc_ledger_types::icrc1::account::Account;
 use icrc_ledger_types::icrc1::transfer::TransferError;
 use icrc_ledger_types::icrc2::approve::{ApproveArgs, ApproveError};
 
-use crate::errors::VolumetricError;
+use crate::errors::{error_codes, VolumetricError};
 use crate::storage::Config;
 
 #[async_trait(?Send)]
@@ -57,11 +57,19 @@ impl LedgerClient for IcLedger {
             .with_arg(&args)
             .await
             .map_err(|e| {
-                VolumetricError::inter_canister_call_failed(&format!("icrc1_transfer: {:?}", e))
+                VolumetricError::from_def(
+                    error_codes::INTER_CANISTER_CALL_FAILED,
+                    Some(&format!("icrc1_transfer: {:?}", e)),
+                    None,
+                )
             })?;
 
         let result: Result<Nat, TransferError> = response.candid().map_err(|e| {
-            VolumetricError::inter_canister_call_failed(&format!("icrc1_transfer decode: {:?}", e))
+            VolumetricError::from_def(
+                error_codes::INTER_CANISTER_CALL_FAILED,
+                Some(&format!("icrc1_transfer decode: {:?}", e)),
+                None,
+            )
         })?;
 
         match result {
@@ -73,10 +81,11 @@ impl LedgerClient for IcLedger {
                 .0
                 .try_into()
                 .expect("block index should fit into u64")),
-            Err(e) => Err(VolumetricError::inter_canister_call_failed(&format!(
-                "icrc1_transfer rejected: {:?}",
-                e
-            ))),
+            Err(e) => Err(VolumetricError::from_def(
+                error_codes::INTER_CANISTER_CALL_FAILED,
+                Some(&format!("icrc1_transfer rejected: {:?}", e)),
+                None,
+            )),
         }
     }
 
@@ -87,14 +96,19 @@ impl LedgerClient for IcLedger {
             .with_arg(account)
             .await
             .map_err(|e| {
-                VolumetricError::inter_canister_call_failed(&format!("icrc1_balance_of: {:?}", e))
+                VolumetricError::from_def(
+                    error_codes::INTER_CANISTER_CALL_FAILED,
+                    Some(&format!("icrc1_balance_of: {:?}", e)),
+                    None,
+                )
             })?;
 
         let balance: Nat = response.candid().map_err(|e| {
-            VolumetricError::inter_canister_call_failed(&format!(
-                "icrc1_balance_of decode: {:?}",
-                e
-            ))
+            VolumetricError::from_def(
+                error_codes::INTER_CANISTER_CALL_FAILED,
+                Some(&format!("icrc1_balance_of decode: {:?}", e)),
+                None,
+            )
         })?;
 
         Ok(balance)
@@ -107,20 +121,29 @@ impl LedgerClient for IcLedger {
             .with_arg(&args)
             .await
             .map_err(|e| {
-                VolumetricError::inter_canister_call_failed(&format!("icrc2_approve: {:?}", e))
+                VolumetricError::from_def(
+                    error_codes::INTER_CANISTER_CALL_FAILED,
+                    Some(&format!("icrc2_approve: {:?}", e)),
+                    None,
+                )
             })?;
 
         let result: Result<Nat, ApproveError> = response.candid().map_err(|e| {
-            VolumetricError::inter_canister_call_failed(&format!("icrc2_approve decode: {:?}", e))
+            VolumetricError::from_def(
+                error_codes::INTER_CANISTER_CALL_FAILED,
+                Some(&format!("icrc2_approve decode: {:?}", e)),
+                None,
+            )
         })?;
 
         match result {
             Ok(block_index) => Ok(block_index),
             Err(ApproveError::Duplicate { duplicate_of: _ }) => Ok(Nat::from(0u64)),
-            Err(e) => Err(VolumetricError::inter_canister_call_failed(&format!(
-                "icrc2_approve rejected: {:?}",
-                e
-            ))),
+            Err(e) => Err(VolumetricError::from_def(
+                error_codes::INTER_CANISTER_CALL_FAILED,
+                Some(&format!("icrc2_approve rejected: {:?}", e)),
+                None,
+            )),
         }
     }
 }

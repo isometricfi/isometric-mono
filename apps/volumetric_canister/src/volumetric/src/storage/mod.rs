@@ -10,7 +10,7 @@ pub mod state;
 pub mod withdrawals;
 
 pub use accepts::{
-    complete_accept, create_accept, fail_accept, get_accept, list_failed_accepts,
+    complete_accept, create_accept_journal_entry, fail_accept, get_accept, list_failed_accepts,
     list_pending_accepts, remove_accept, update_accept_phase, AcceptPhase, AcceptedOffer,
     PendingAccept,
 };
@@ -32,12 +32,12 @@ pub use events::{
     get_events_by_principal, get_events_since, Event, EventData, EventType, TradeRole,
 };
 pub use options::{
-    calculate_call_option_payout, calculate_premium, calculate_strike_price, clear_active_options,
-    clear_offers, get_active_option, get_offer, insert_active_option, insert_offer,
-    list_active_options_by_buyer, list_active_options_by_writer, list_expired_active_options,
-    list_offers_by_writer, list_open_offers, next_id, update_active_option, update_offer,
-    ActiveOption, ActiveOptionStatus, Asset, CounterKey, Offer, OfferStatus, OptionType,
-    MINIMUM_QUANTITY_SATS,
+    calculate_call_option_payout, calculate_premium_in_sats, calculate_strike_price_in_cents,
+    clear_active_options, clear_offers, get_active_option, get_offer, insert_active_option,
+    insert_offer, list_active_options_by_buyer, list_active_options_by_writer,
+    list_expired_active_options, list_offers_by_writer, list_open_offers, next_id,
+    update_active_option, update_offer, ActiveOption, ActiveOptionStatus, Asset, CounterKey, Offer,
+    OfferStatus, OptionType, MINIMUM_QUANTITY_SATS,
 };
 pub use settlements::{
     complete_settlement, create_settlement, fail_settlement, get_settlement,

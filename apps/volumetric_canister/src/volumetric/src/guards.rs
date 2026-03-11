@@ -1,14 +1,16 @@
 use ic_cdk::api::{in_replicated_execution, is_controller as api_is_controller, msg_caller};
 
-use crate::errors::VolumetricError;
+use crate::errors::{error_codes, VolumetricError};
 use crate::storage::{Config, TradingLimits, WHITELIST};
 
 pub async fn is_controller() -> Result<(), VolumetricError> {
     let caller_id = msg_caller();
 
     if !api_is_controller(&caller_id) {
-        return Err(VolumetricError::unauthorized_controller(
-            &caller_id.to_string(),
+        return Err(VolumetricError::from_def(
+            error_codes::UNAUTHORIZED_CONTROLLER,
+            None,
+            Some(&caller_id.to_string()),
         ));
     }
 
@@ -20,8 +22,10 @@ pub async fn is_whitelisted() -> Result<(), VolumetricError> {
 
     WHITELIST.with_borrow(|whitelist| {
         if !whitelist.contains_key(&caller_id) {
-            return Err(VolumetricError::unauthorized_whitelisted(
-                &caller_id.to_string(),
+            return Err(VolumetricError::from_def(
+                error_codes::UNAUTHORIZED_WHITELISTED,
+                None,
+                Some(&caller_id.to_string()),
             ));
         }
 
@@ -67,16 +71,24 @@ pub fn validate_quantity_only(quantity: u64) -> Result<TradingLimits, Volumetric
 
 fn validate_quantity(quantity: u64, limits: &TradingLimits) -> Result<(), VolumetricError> {
     if quantity < limits.quantity_sats.min {
-        return Err(VolumetricError::quantity_below_minimum(
-            quantity,
-            limits.quantity_sats.min,
+        return Err(VolumetricError::from_def(
+            error_codes::QUANTITY_BELOW_MINIMUM,
+            Some(&format!(
+                "got: {}, minimum: {}",
+                quantity, limits.quantity_sats.min
+            )),
+            None,
         ));
     }
 
     if quantity > limits.quantity_sats.max {
-        return Err(VolumetricError::quantity_above_maximum(
-            quantity,
-            limits.quantity_sats.max,
+        return Err(VolumetricError::from_def(
+            error_codes::QUANTITY_ABOVE_MAXIMUM,
+            Some(&format!(
+                "got: {}, maximum: {}",
+                quantity, limits.quantity_sats.max
+            )),
+            None,
         ));
     }
 
@@ -88,16 +100,24 @@ fn validate_strike_basis_points(
     limits: &TradingLimits,
 ) -> Result<(), VolumetricError> {
     if strike_basis_points < limits.strike_basis_points.min {
-        return Err(VolumetricError::strike_below_minimum(
-            strike_basis_points,
-            limits.strike_basis_points.min,
+        return Err(VolumetricError::from_def(
+            error_codes::STRIKE_BELOW_MINIMUM,
+            Some(&format!(
+                "got: {}, minimum: {}",
+                strike_basis_points, limits.strike_basis_points.min
+            )),
+            None,
         ));
     }
 
     if strike_basis_points > limits.strike_basis_points.max {
-        return Err(VolumetricError::strike_above_maximum(
-            strike_basis_points,
-            limits.strike_basis_points.max,
+        return Err(VolumetricError::from_def(
+            error_codes::STRIKE_ABOVE_MAXIMUM,
+            Some(&format!(
+                "got: {}, maximum: {}",
+                strike_basis_points, limits.strike_basis_points.max
+            )),
+            None,
         ));
     }
 
@@ -109,16 +129,24 @@ fn validate_premium_basis_points(
     limits: &TradingLimits,
 ) -> Result<(), VolumetricError> {
     if premium_basis_points < limits.premium_basis_points.min {
-        return Err(VolumetricError::premium_below_minimum(
-            premium_basis_points,
-            limits.premium_basis_points.min,
+        return Err(VolumetricError::from_def(
+            error_codes::PREMIUM_BELOW_MINIMUM,
+            Some(&format!(
+                "got: {}, minimum: {}",
+                premium_basis_points, limits.premium_basis_points.min
+            )),
+            None,
         ));
     }
 
     if premium_basis_points > limits.premium_basis_points.max {
-        return Err(VolumetricError::premium_above_maximum(
-            premium_basis_points,
-            limits.premium_basis_points.max,
+        return Err(VolumetricError::from_def(
+            error_codes::PREMIUM_ABOVE_MAXIMUM,
+            Some(&format!(
+                "got: {}, maximum: {}",
+                premium_basis_points, limits.premium_basis_points.max
+            )),
+            None,
         ));
     }
 
@@ -130,16 +158,24 @@ fn validate_option_duration(
     limits: &TradingLimits,
 ) -> Result<(), VolumetricError> {
     if option_duration_seconds < limits.option_duration_seconds.min {
-        return Err(VolumetricError::duration_below_minimum(
-            option_duration_seconds,
-            limits.option_duration_seconds.min,
+        return Err(VolumetricError::from_def(
+            error_codes::DURATION_BELOW_MINIMUM,
+            Some(&format!(
+                "got: {} seconds, minimum: {} seconds",
+                option_duration_seconds, limits.option_duration_seconds.min
+            )),
+            None,
         ));
     }
 
     if option_duration_seconds > limits.option_duration_seconds.max {
-        return Err(VolumetricError::duration_above_maximum(
-            option_duration_seconds,
-            limits.option_duration_seconds.max,
+        return Err(VolumetricError::from_def(
+            error_codes::DURATION_ABOVE_MAXIMUM,
+            Some(&format!(
+                "got: {} seconds, maximum: {} seconds",
+                option_duration_seconds, limits.option_duration_seconds.max
+            )),
+            None,
         ));
     }
 

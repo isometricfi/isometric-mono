@@ -47,6 +47,9 @@ Monorepo using pnpm workspaces and Turborepo.
 - Keep functions small and single-purpose
 - Validate all user input at boundaries
 - Never use magic numbers or literals; define named constants or variables for clarity
+- Prefer explicit names over short ambiguous names, even when the explicit name is longer
+- Prefer self-documenting names over explanatory comments when either would work
+- Include role or phase in names when it clarifies workflow intent (e.g., `buyer_balance_sats`, `accept_journal_entry_id`)
 
 ## Security
 
@@ -93,6 +96,9 @@ Monorepo using pnpm workspaces and Turborepo.
 - **Component files**: PascalCase (e.g., `ConnectButton.tsx`, `Navbar.tsx`)
 - **shadcn ui/**: Keep lowercase (shadcn convention)
 - **Time constants**: Include explicit duration and unit in the name (e.g., `BASE_BACKOFF_1_MINUTE_MS`, `MAX_AGE_6_MINUTES_MS`)
+- **Variables and fields**: Include explicit units when the codebase mixes units for the same domain, such as `_sats`, `_cents`, `_ns`, `_seconds`, or `_basis_points`
+- **Functions and methods**: Include units in the name when they compute, convert, or return values whose units are not otherwise obvious (e.g., `calculate_premium_in_sats`, `calculate_strike_price_in_cents`)
+- **Default naming rule**: When choosing between a shorter ambiguous name and a longer explicit name, choose the longer explicit name
 
 ## TypeScript File Organization
 

@@ -4,7 +4,7 @@ use crate::auth::types::{
     AuthenticatedPayload, CreateProfileRequest, SignableAction, UpdateUsernameRequest, WalletKey,
 };
 use crate::auth::{build_challenge_context, verify_btc_signature};
-use crate::errors::VolumetricError;
+use crate::errors::{error_codes, VolumetricError};
 use crate::guards::is_whitelisted;
 use crate::storage::{get_nonce, get_principal_for_wallet, increment_nonce, is_wallet_registered};
 use crate::usecases;
@@ -34,7 +34,11 @@ pub async fn create_account(
     let wallet_key = WalletKey::from_address(address);
 
     if is_wallet_registered(&wallet_key) {
-        return Err(VolumetricError::profile_already_registered());
+        return Err(VolumetricError::from_def(
+            error_codes::PROFILE_ALREADY_REGISTERED,
+            None,
+            None,
+        ));
     }
 
     let context = build_challenge_context(&wallet_key);
@@ -99,8 +103,8 @@ pub async fn update_username(
     let address = &req.wallet_proof.address;
     let wallet_key = WalletKey::from_address(address);
 
-    let principal =
-        get_principal_for_wallet(&wallet_key).ok_or_else(VolumetricError::profile_not_found)?;
+    let principal = get_principal_for_wallet(&wallet_key)
+        .ok_or_else(|| VolumetricError::from_def(error_codes::PROFILE_NOT_FOUND, None, None))?;
 
     let context = build_challenge_context(&wallet_key);
     let reconstructed_message = req.data.signing_message(address, &context);
@@ -110,7 +114,7 @@ pub async fn update_username(
     increment_nonce(&wallet_key);
 
     let result = usecases::update_username_use_case(principal, req.data.username)
-        .ok_or_else(VolumetricError::profile_not_found)?;
+        .ok_or_else(|| VolumetricError::from_def(error_codes::PROFILE_NOT_FOUND, None, None))?;
 
     Ok(ProfileInfo {
         principal: result.principal,

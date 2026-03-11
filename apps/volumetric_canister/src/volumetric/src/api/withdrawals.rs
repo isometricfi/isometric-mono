@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::auth::types::{AuthenticatedPayload, SignableAction, WalletKey, WithdrawCkbtcRequest};
 use crate::auth::{build_challenge_context, verify_btc_signature};
-use crate::errors::VolumetricError;
+use crate::errors::{error_codes, VolumetricError};
 use crate::guards::{is_controller, is_whitelisted};
 use crate::storage::{
     get_pending_withdrawals_by_principal, get_principal_for_wallet, get_withdrawal,
@@ -51,8 +51,8 @@ pub async fn withdraw_ckbtc(
 
     increment_nonce(&wallet_key);
 
-    let principal =
-        get_principal_for_wallet(&wallet_key).ok_or_else(VolumetricError::profile_not_found)?;
+    let principal = get_principal_for_wallet(&wallet_key)
+        .ok_or_else(|| VolumetricError::from_def(error_codes::PROFILE_NOT_FOUND, None, None))?;
 
     let params = usecases::WithdrawParams {
         btc_address: req.data.btc_address,
@@ -90,8 +90,8 @@ pub async fn get_my_pending_withdrawals(
     let address = &req.wallet_proof.address;
     let wallet_key = WalletKey::from_address(address);
 
-    let principal =
-        get_principal_for_wallet(&wallet_key).ok_or_else(VolumetricError::profile_not_found)?;
+    let principal = get_principal_for_wallet(&wallet_key)
+        .ok_or_else(|| VolumetricError::from_def(error_codes::PROFILE_NOT_FOUND, None, None))?;
 
     Ok(get_pending_withdrawals_by_principal(principal))
 }

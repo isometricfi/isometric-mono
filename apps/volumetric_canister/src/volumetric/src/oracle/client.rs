@@ -4,7 +4,7 @@ use std::rc::Rc;
 use async_trait::async_trait;
 use candid::Principal;
 
-use crate::errors::VolumetricError;
+use crate::errors::{error_codes, VolumetricError};
 use crate::generated::xrc::{
     Asset, AssetClass, ExchangeRateError, GetExchangeRateRequest, GetExchangeRateResult,
 };
@@ -28,13 +28,19 @@ fn round_to_hour_secs(time_nanos: u64) -> u64 {
 
 fn rate_to_cents(rate: u64, decimals: u32) -> Result<u64, VolumetricError> {
     if decimals < CENTS_DECIMALS {
-        return Err(VolumetricError::inter_canister_call_failed(
-            "XRC decimals too low to convert to cents",
+        return Err(VolumetricError::from_def(
+            error_codes::INTER_CANISTER_CALL_FAILED,
+            Some("XRC decimals too low to convert to cents"),
+            None,
         ));
     }
     let exponent = decimals - CENTS_DECIMALS;
     let divisor = 10u64.checked_pow(exponent).ok_or_else(|| {
-        VolumetricError::inter_canister_call_failed("XRC decimals too high, divisor overflow")
+        VolumetricError::from_def(
+            error_codes::INTER_CANISTER_CALL_FAILED,
+            Some("XRC decimals too high, divisor overflow"),
+            None,
+        )
     })?;
     Ok(rate / divisor)
 }
@@ -70,8 +76,13 @@ struct IcOracle;
 #[async_trait(?Send)]
 impl PriceOracle for IcOracle {
     async fn get_btc_usd_price_cents(&self) -> Result<u64, VolumetricError> {
-        let xrc = Principal::from_text(XRC_CANISTER_ID)
-            .map_err(|e| VolumetricError::internal(&format!("Invalid XRC canister ID: {}", e)))?;
+        let xrc = Principal::from_text(XRC_CANISTER_ID).map_err(|e| {
+            VolumetricError::from_def(
+                error_codes::INTERNAL_ERROR,
+                Some(&format!("Invalid XRC canister ID: {}", e)),
+                None,
+            )
+        })?;
         let timestamp_secs = round_to_hour_secs(ic::time());
 
         let request = GetExchangeRateRequest {
@@ -91,22 +102,31 @@ impl PriceOracle for IcOracle {
             .with_cycles(XRC_CYCLES)
             .await
             .map_err(|e| {
-                VolumetricError::inter_canister_call_failed(&format!("get_exchange_rate: {:?}", e))
+                VolumetricError::from_def(
+                    error_codes::INTER_CANISTER_CALL_FAILED,
+                    Some(&format!("get_exchange_rate: {:?}", e)),
+                    None,
+                )
             })?;
 
         let result: GetExchangeRateResult = response.candid().map_err(|e| {
-            VolumetricError::inter_canister_call_failed(&format!(
-                "get_exchange_rate decode: {:?}",
-                e
-            ))
+            VolumetricError::from_def(
+                error_codes::INTER_CANISTER_CALL_FAILED,
+                Some(&format!("get_exchange_rate decode: {:?}", e)),
+                None,
+            )
         })?;
 
         match result {
             Ok(exchange_rate) => rate_to_cents(exchange_rate.rate, exchange_rate.metadata.decimals),
-            Err(e) => Err(VolumetricError::inter_canister_call_failed(&format!(
-                "get_exchange_rate rejected: {}",
-                format_xrc_error(&e)
-            ))),
+            Err(e) => Err(VolumetricError::from_def(
+                error_codes::INTER_CANISTER_CALL_FAILED,
+                Some(&format!(
+                    "get_exchange_rate rejected: {}",
+                    format_xrc_error(&e)
+                )),
+                None,
+            )),
         }
     }
 }
