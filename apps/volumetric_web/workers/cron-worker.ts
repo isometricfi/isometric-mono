@@ -33,13 +33,6 @@ const worker: ExportedHandler<Env> = {
             .catch((err) => console.error("Deposit sync failed:", err)),
         );
         break;
-      case FIVE_MINUTES_CRON:
-        ctx.waitUntil(
-          callCronEndpoint(env, "/api/cron/test")
-            .then((data) => console.log("Test cron result:", data))
-            .catch((err) => console.error("Test cron failed:", err)),
-        );
-        break;
     }
   },
 };
