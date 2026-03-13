@@ -183,7 +183,7 @@ fn test_cancel_offer_fails_for_non_owner() {
 
 /// Given: Writer creates and cancels an offer
 /// When: Writer attempts to cancel again
-/// Then: Error OFFER_CANCELLED returned
+/// Then: Error INVALID_OFFER_STATE returned
 #[test]
 fn test_cancel_already_cancelled_offer_fails() {
     // given
@@ -222,12 +222,12 @@ fn test_cancel_already_cancelled_offer_fails() {
     // then
     assert!(result.is_err());
     let error = result.unwrap_err();
-    assert_eq!(error.code, error_codes::OFFER_CANCELLED.code);
+    assert_eq!(error.code, error_codes::INVALID_OFFER_STATE.code);
 }
 
 /// Given: Writer creates offer, buyer fully accepts it
 /// When: Writer attempts to cancel the filled offer
-/// Then: Error OFFER_FILLED returned
+/// Then: Error INVALID_OFFER_STATE returned
 #[test]
 fn test_cancel_filled_offer_fails() {
     // given
@@ -287,7 +287,7 @@ fn test_cancel_filled_offer_fails() {
     // then
     assert!(result.is_err());
     let error = result.unwrap_err();
-    assert_eq!(error.code, error_codes::OFFER_FILLED.code);
+    assert_eq!(error.code, error_codes::INVALID_OFFER_STATE.code);
 }
 
 /// Given: Writer has 0.05 BTC balance

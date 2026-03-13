@@ -275,16 +275,11 @@ fn validate_offer_acceptance(
         return Err(VolumetricError::cannot_accept_own_offer());
     }
 
-    if offer.status == OfferStatus::Cancelled {
-        return Err(VolumetricError::offer_cancelled());
-    }
-
-    if offer.status == OfferStatus::Filled {
-        return Err(VolumetricError::offer_filled());
-    }
-
-    if offer.status == OfferStatus::Processing {
-        return Err(VolumetricError::offer_processing());
+    if !is_offer_status_acceptable_for_acceptance(offer.status) {
+        return Err(VolumetricError::invalid_offer_state(&format!(
+            "cannot accept offer with status: {:?}",
+            offer.status
+        )));
     }
 
     if offer.offer_valid_until <= current_time_ns {
@@ -305,6 +300,10 @@ fn validate_offer_acceptance(
     }
 
     Ok(())
+}
+
+fn is_offer_status_acceptable_for_acceptance(status: OfferStatus) -> bool {
+    matches!(status, OfferStatus::Open | OfferStatus::PartiallyFilled)
 }
 
 fn build_writer_and_fee_transfers(
@@ -672,6 +671,76 @@ mod tests {
         });
     }
 
+    fn build_test_accept_offer_item() -> AcceptOfferItem {
+        AcceptOfferItem {
+            offer_id: TEST_OFFER_ID,
+            quantity: TEST_QUANTITY_SATS,
+        }
+    }
+
+    fn build_test_offer(writer: Principal, status: OfferStatus) -> Offer {
+        Offer {
+            id: TEST_OFFER_ID,
+            writer,
+            asset: Asset::CkBtc,
+            option_type: OptionType::Call,
+            strike_basis_points: TEST_STRIKE_BPS,
+            premium_basis_points: TEST_PREMIUM_BPS,
+            total_quantity: TEST_QUANTITY_SATS,
+            remaining_quantity: TEST_QUANTITY_SATS,
+            offer_valid_until: TEST_NOW_NS + TEST_OFFER_VALID_FOR_NS,
+            option_duration_seconds: TEST_DURATION_SECS,
+            status,
+            created_at: TEST_NOW_NS,
+        }
+    }
+
+    /// Given: an offer is in a state that is not allowed for acceptance
+    /// When: validating the acceptance request
+    /// Then: the request is rejected with the generic invalid-offer-state error
+    #[test]
+    fn test_validate_offer_acceptance_rejects_disallowed_statuses() {
+        // given
+        let writer = test_principal(55);
+        let buyer = test_principal(66);
+        let accept_offer_item = build_test_accept_offer_item();
+        let disallowed_statuses = [
+            OfferStatus::Cancelled,
+            OfferStatus::Filled,
+            OfferStatus::Processing,
+        ];
+
+        for disallowed_status in disallowed_statuses {
+            let offer = build_test_offer(writer, disallowed_status);
+
+            // when
+            let error = validate_offer_acceptance(buyer, &accept_offer_item, &offer, TEST_NOW_NS)
+                .expect_err("disallowed status should be rejected");
+
+            // then
+            assert_eq!(error.code, error_codes::INVALID_OFFER_STATE.code);
+            assert!(error.message.contains(&format!("{:?}", disallowed_status)));
+        }
+    }
+
+    /// Given: an offer has remaining quantity after earlier fills
+    /// When: validating acceptance for a partially filled offer
+    /// Then: the request is allowed
+    #[test]
+    fn test_validate_offer_acceptance_allows_partially_filled_status() {
+        // given
+        let writer = test_principal(77);
+        let buyer = test_principal(88);
+        let accept_offer_item = build_test_accept_offer_item();
+        let offer = build_test_offer(writer, OfferStatus::PartiallyFilled);
+
+        // when
+        let result = validate_offer_acceptance(buyer, &accept_offer_item, &offer, TEST_NOW_NS);
+
+        // then
+        assert!(result.is_ok());
+    }
+
     /// Given: an accept pauses after marking an offer as Processing
     /// When: the writer tries to cancel before the transfer resumes
     /// Then: cancellation is rejected and the accept can finish successfully
@@ -720,7 +789,7 @@ mod tests {
 
                 let cancel_result = crate::usecases::cancel_offer_use_case(writer, TEST_OFFER_ID);
                 let cancel_error = cancel_result.expect_err("processing offer must reject cancel");
-                assert_eq!(cancel_error.code, error_codes::OFFER_PROCESSING.code);
+                assert_eq!(cancel_error.code, error_codes::INVALID_OFFER_STATE.code);
 
                 first_transfer_result_sender
                     .send(Ok(TEST_BLOCK_INDEX))
@@ -789,7 +858,7 @@ mod tests {
 
                 let cancel_result = crate::usecases::cancel_offer_use_case(writer, TEST_OFFER_ID);
                 let cancel_error = cancel_result.expect_err("processing offer must reject cancel");
-                assert_eq!(cancel_error.code, error_codes::OFFER_PROCESSING.code);
+                assert_eq!(cancel_error.code, error_codes::INVALID_OFFER_STATE.code);
 
                 first_transfer_result_sender
                     .send(Err(VolumetricError::inter_canister_call_failed(

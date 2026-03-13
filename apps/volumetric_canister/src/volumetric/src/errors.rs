@@ -75,16 +75,6 @@ pub mod error_codes {
         name: "OFFER_EXPIRED",
         message: "Offer has expired",
     };
-    pub const OFFER_CANCELLED: ErrorDef = ErrorDef {
-        code: 5004,
-        name: "OFFER_CANCELLED",
-        message: "Offer has been cancelled",
-    };
-    pub const OFFER_FILLED: ErrorDef = ErrorDef {
-        code: 5005,
-        name: "OFFER_FILLED",
-        message: "Offer has been fully filled",
-    };
     pub const QUANTITY_BELOW_MINIMUM: ErrorDef = ErrorDef {
         code: 5006,
         name: "QUANTITY_BELOW_MINIMUM",
@@ -119,11 +109,6 @@ pub mod error_codes {
         code: 5012,
         name: "CANNOT_ACCEPT_OWN_OFFER",
         message: "Cannot accept your own offer",
-    };
-    pub const OFFER_PROCESSING: ErrorDef = ErrorDef {
-        code: 5013,
-        name: "OFFER_PROCESSING",
-        message: "Offer is currently being processed by another transaction",
     };
     pub const OPTION_SETTLING: ErrorDef = ErrorDef {
         code: 5014,
@@ -189,6 +174,11 @@ pub mod error_codes {
         code: 5026,
         name: "OFFER_LIMIT_EXCEEDED",
         message: "Maximum offers per term exceeded",
+    };
+    pub const INVALID_OFFER_STATE: ErrorDef = ErrorDef {
+        code: 5027,
+        name: "INVALID_OFFER_STATE",
+        message: "Invalid offer state",
     };
 
     // 9xxx: Internal/generic errors
@@ -289,14 +279,6 @@ impl VolumetricError {
         Self::from_def(&error_codes::OFFER_EXPIRED)
     }
 
-    pub fn offer_cancelled() -> Self {
-        Self::from_def(&error_codes::OFFER_CANCELLED)
-    }
-
-    pub fn offer_filled() -> Self {
-        Self::from_def(&error_codes::OFFER_FILLED)
-    }
-
     pub fn quantity_below_minimum(quantity: u64, minimum: u64) -> Self {
         Self::from_def_with_reason(
             &error_codes::QUANTITY_BELOW_MINIMUM,
@@ -334,8 +316,8 @@ impl VolumetricError {
         Self::from_def(&error_codes::CANNOT_ACCEPT_OWN_OFFER)
     }
 
-    pub fn offer_processing() -> Self {
-        Self::from_def(&error_codes::OFFER_PROCESSING)
+    pub fn invalid_offer_state(reason: &str) -> Self {
+        Self::from_def_with_reason(&error_codes::INVALID_OFFER_STATE, reason)
     }
 
     pub fn option_settling() -> Self {

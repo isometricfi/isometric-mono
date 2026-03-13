@@ -433,7 +433,7 @@ fn test_accept_expired_offer_fails() {
 
 /// Given: Writer creates and cancels offer
 /// When: Buyer attempts to accept
-/// Then: Error OFFER_CANCELLED returned
+/// Then: Error INVALID_OFFER_STATE returned
 #[test]
 fn test_accept_cancelled_offer_fails() {
     // given
@@ -492,7 +492,7 @@ fn test_accept_cancelled_offer_fails() {
     // then
     assert!(result.is_err());
     let error = result.unwrap_err();
-    assert_eq!(error.code, error_codes::OFFER_CANCELLED.code);
+    assert_eq!(error.code, error_codes::INVALID_OFFER_STATE.code);
 }
 
 /// Given: Writer creates offer, buyer has insufficient premium
