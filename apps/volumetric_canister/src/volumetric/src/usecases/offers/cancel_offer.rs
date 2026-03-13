@@ -21,6 +21,10 @@ pub fn cancel_offer_use_case(writer: Principal, offer_id: u64) -> Result<Offer, 
         return Err(VolumetricError::offer_filled());
     }
 
+    if offer.status == OfferStatus::Processing {
+        return Err(VolumetricError::offer_processing());
+    }
+
     offer.status = OfferStatus::Cancelled;
     update_offer(offer.clone());
 

@@ -528,3 +528,298 @@ fn emit_offer_accepted_events(
         },
     );
 }
+
+#[cfg(test)]
+mod tests {
+    use std::cell::{Cell, RefCell};
+    use std::rc::Rc;
+
+    use async_trait::async_trait;
+    use candid::Nat;
+    use icrc_ledger_types::icrc2::approve::ApproveArgs;
+    use tokio::sync::oneshot;
+    use tokio::task;
+
+    use super::*;
+    use crate::errors::{error_codes, VolumetricError};
+    use crate::ic::IcRuntime;
+    use crate::ledger::{self, LedgerClient};
+    use crate::oracle::{set_oracle, StubOracle};
+    use crate::storage::{
+        clear_active_options, clear_events, clear_offers, get_balance, insert_offer, set_balance,
+        Offer, UserBalance,
+    };
+
+    const TEST_NOW_NS: u64 = 1_000_000_000_000;
+    const TEST_PRICE_CENTS: u64 = 10_000_000;
+    const TEST_OFFER_ID: u64 = 1;
+    const TEST_QUANTITY_SATS: u64 = 1_000_000;
+    const TEST_STRIKE_BPS: u16 = 500;
+    const TEST_PREMIUM_BPS: u16 = 100;
+    const TEST_DURATION_SECS: u64 = 3_600;
+    const TEST_OFFER_VALID_FOR_NS: u64 = 60_000_000_000;
+    const TEST_BUYER_AVAILABLE_SATS: u64 = 200_000;
+    const TEST_BLOCK_INDEX: u64 = 42;
+
+    struct MockRuntime {
+        now: u64,
+    }
+
+    impl IcRuntime for MockRuntime {
+        fn time(&self) -> u64 {
+            self.now
+        }
+
+        fn canister_self(&self) -> Principal {
+            Principal::anonymous()
+        }
+
+        fn log(&self, _message: &str) {}
+    }
+
+    struct CoordinatedLedger {
+        first_transfer_started_sender: RefCell<Option<oneshot::Sender<()>>>,
+        first_transfer_result_receiver:
+            RefCell<Option<oneshot::Receiver<Result<u64, VolumetricError>>>>,
+        completed_transfer_count: Cell<u64>,
+    }
+
+    #[async_trait(?Send)]
+    impl LedgerClient for CoordinatedLedger {
+        async fn icrc1_transfer(
+            &self,
+            _from_subaccount: Option<[u8; 32]>,
+            _to: Account,
+            _amount: u64,
+            _created_at_time: u64,
+        ) -> Result<u64, VolumetricError> {
+            let completed_transfer_count = self.completed_transfer_count.get();
+            self.completed_transfer_count
+                .set(completed_transfer_count + 1);
+
+            if completed_transfer_count == 0 {
+                // Stop on the first ledger transfer and tell the test we have reached the
+                // point where accept is waiting. This gives the test a chance to call cancel
+                // while the accept flow is still in progress.
+                if let Some(first_transfer_started_sender) =
+                    self.first_transfer_started_sender.borrow_mut().take()
+                {
+                    let _ = first_transfer_started_sender.send(());
+                }
+
+                let first_transfer_result_receiver = self
+                    .first_transfer_result_receiver
+                    .borrow_mut()
+                    .take()
+                    .expect("first transfer result receiver should exist");
+
+                return first_transfer_result_receiver
+                    .await
+                    .expect("test should provide the first transfer result");
+            }
+
+            Ok(TEST_BLOCK_INDEX + completed_transfer_count)
+        }
+
+        async fn icrc1_balance_of(&self, _account: Account) -> Result<Nat, VolumetricError> {
+            Ok(Nat::from(0u64))
+        }
+
+        async fn icrc2_approve(&self, _args: ApproveArgs) -> Result<Nat, VolumetricError> {
+            Ok(Nat::from(0u64))
+        }
+    }
+
+    fn test_principal(seed: u8) -> Principal {
+        Principal::from_slice(&[seed; 29])
+    }
+
+    fn setup_test_state(writer: Principal, buyer: Principal) {
+        clear_offers();
+        clear_active_options();
+        clear_events();
+        ic::set_runtime(Box::new(MockRuntime { now: TEST_NOW_NS }));
+        set_oracle(Rc::new(StubOracle::new(TEST_PRICE_CENTS)));
+
+        set_balance(
+            writer,
+            UserBalance {
+                available: TEST_QUANTITY_SATS,
+                locked_as_writer: 0,
+            },
+        );
+        set_balance(
+            buyer,
+            UserBalance {
+                available: TEST_BUYER_AVAILABLE_SATS,
+                locked_as_writer: 0,
+            },
+        );
+
+        insert_offer(Offer {
+            id: TEST_OFFER_ID,
+            writer,
+            asset: Asset::CkBtc,
+            option_type: OptionType::Call,
+            strike_basis_points: TEST_STRIKE_BPS,
+            premium_basis_points: TEST_PREMIUM_BPS,
+            total_quantity: TEST_QUANTITY_SATS,
+            remaining_quantity: TEST_QUANTITY_SATS,
+            offer_valid_until: TEST_NOW_NS + TEST_OFFER_VALID_FOR_NS,
+            option_duration_seconds: TEST_DURATION_SECS,
+            status: OfferStatus::Open,
+            created_at: TEST_NOW_NS,
+        });
+    }
+
+    /// Given: an accept pauses after marking an offer as Processing
+    /// When: the writer tries to cancel before the transfer resumes
+    /// Then: cancellation is rejected and the accept can finish successfully
+    #[tokio::test(flavor = "current_thread")]
+    async fn test_processing_offer_cannot_be_cancelled_during_accept_success() {
+        // given
+        let writer = test_principal(11);
+        let buyer = test_principal(22);
+        setup_test_state(writer, buyer);
+
+        let (first_transfer_started_sender, first_transfer_started_receiver) = oneshot::channel();
+        let (first_transfer_result_sender, first_transfer_result_receiver) = oneshot::channel();
+        ledger::set_ledger(Rc::new(CoordinatedLedger {
+            first_transfer_started_sender: RefCell::new(Some(first_transfer_started_sender)),
+            first_transfer_result_receiver: RefCell::new(Some(first_transfer_result_receiver)),
+            completed_transfer_count: Cell::new(0),
+        }));
+
+        // Run the accept flow in a separate async task on this same thread. That lets the test
+        // start the accept call, wait until it pauses on the mocked ledger transfer, and then
+        // try cancellation before allowing the accept call to continue.
+        let local_task_set = task::LocalSet::new();
+
+        // when
+        let accept_result = local_task_set
+            .run_until(async move {
+                let accept_offers_task = task::spawn_local(async move {
+                    accept_offers_use_case(
+                        buyer,
+                        vec![AcceptOfferItem {
+                            offer_id: TEST_OFFER_ID,
+                            quantity: TEST_QUANTITY_SATS,
+                        }],
+                    )
+                    .await
+                });
+
+                first_transfer_started_receiver
+                    .await
+                    .expect("accept should reach the first transfer");
+
+                let processing_offer =
+                    get_offer(TEST_OFFER_ID).expect("offer should exist while processing");
+                assert_eq!(processing_offer.status, OfferStatus::Processing);
+                assert_eq!(processing_offer.remaining_quantity, 0);
+
+                let cancel_result = crate::usecases::cancel_offer_use_case(writer, TEST_OFFER_ID);
+                let cancel_error = cancel_result.expect_err("processing offer must reject cancel");
+                assert_eq!(cancel_error.code, error_codes::OFFER_PROCESSING.code);
+
+                first_transfer_result_sender
+                    .send(Ok(TEST_BLOCK_INDEX))
+                    .expect("first transfer should still be waiting");
+
+                accept_offers_task
+                    .await
+                    .expect("accept task should complete")
+                    .expect("accept should succeed after transfer resumes")
+            })
+            .await;
+
+        // then
+        assert_eq!(accept_result.active_options.len(), 1);
+
+        let final_offer = get_offer(TEST_OFFER_ID).expect("offer should still exist");
+        assert_eq!(final_offer.status, OfferStatus::Filled);
+        assert_eq!(final_offer.remaining_quantity, 0);
+    }
+
+    /// Given: an accept pauses after marking an offer as Processing
+    /// When: the writer tries to cancel and the transfer later fails
+    /// Then: cancellation is rejected and rollback restores the original offer state
+    #[tokio::test(flavor = "current_thread")]
+    async fn test_processing_offer_rollback_preserves_original_state_after_failed_accept() {
+        // given
+        let writer = test_principal(33);
+        let buyer = test_principal(44);
+        setup_test_state(writer, buyer);
+
+        let (first_transfer_started_sender, first_transfer_started_receiver) = oneshot::channel();
+        let (first_transfer_result_sender, first_transfer_result_receiver) = oneshot::channel();
+        ledger::set_ledger(Rc::new(CoordinatedLedger {
+            first_transfer_started_sender: RefCell::new(Some(first_transfer_started_sender)),
+            first_transfer_result_receiver: RefCell::new(Some(first_transfer_result_receiver)),
+            completed_transfer_count: Cell::new(0),
+        }));
+
+        // Run the accept flow in a separate async task on this same thread. That lets the test
+        // start the accept call, wait until it pauses on the mocked ledger transfer, and then
+        // try cancellation before allowing the accept call to continue.
+        let local_task_set = task::LocalSet::new();
+
+        // when
+        let accept_error = local_task_set
+            .run_until(async move {
+                let accept_offers_task = task::spawn_local(async move {
+                    accept_offers_use_case(
+                        buyer,
+                        vec![AcceptOfferItem {
+                            offer_id: TEST_OFFER_ID,
+                            quantity: TEST_QUANTITY_SATS,
+                        }],
+                    )
+                    .await
+                });
+
+                first_transfer_started_receiver
+                    .await
+                    .expect("accept should reach the first transfer");
+
+                let processing_offer =
+                    get_offer(TEST_OFFER_ID).expect("offer should exist while processing");
+                assert_eq!(processing_offer.status, OfferStatus::Processing);
+                assert_eq!(processing_offer.remaining_quantity, 0);
+
+                let cancel_result = crate::usecases::cancel_offer_use_case(writer, TEST_OFFER_ID);
+                let cancel_error = cancel_result.expect_err("processing offer must reject cancel");
+                assert_eq!(cancel_error.code, error_codes::OFFER_PROCESSING.code);
+
+                first_transfer_result_sender
+                    .send(Err(VolumetricError::inter_canister_call_failed(
+                        "transfer failed",
+                    )))
+                    .expect("first transfer should still be waiting");
+
+                accept_offers_task
+                    .await
+                    .expect("accept task should complete")
+                    .err()
+                    .expect("accept should fail after transfer error")
+            })
+            .await;
+
+        // then
+        assert_eq!(
+            accept_error.code,
+            error_codes::INTER_CANISTER_CALL_FAILED.code
+        );
+
+        let final_offer = get_offer(TEST_OFFER_ID).expect("offer should still exist");
+        assert_eq!(final_offer.status, OfferStatus::Open);
+        assert_eq!(final_offer.remaining_quantity, TEST_QUANTITY_SATS);
+
+        let writer_balance = get_balance(&writer);
+        assert_eq!(writer_balance.available, TEST_QUANTITY_SATS);
+        assert_eq!(writer_balance.locked_as_writer, 0);
+
+        let buyer_balance = get_balance(&buyer);
+        assert_eq!(buyer_balance.available, TEST_BUYER_AVAILABLE_SATS);
+    }
+}

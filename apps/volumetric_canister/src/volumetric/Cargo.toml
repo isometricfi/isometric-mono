@@ -30,4 +30,4 @@ testing = []
 pocket-ic = "11.0"
 hex = "0.4"
 flate2 = "1.0"
-tokio = { version = "1.49.0", features = ["macros", "rt"] }
+tokio = { version = "1.49.0", features = ["macros", "rt", "sync"] }
