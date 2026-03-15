@@ -25,10 +25,10 @@ pub struct UserInfo {
 }
 
 #[ic_cdk::update]
-pub async fn create_account(
+pub fn create_account(
     req: AuthenticatedPayload<CreateProfileRequest>,
 ) -> Result<ProfileInfo, VolumetricError> {
-    is_whitelisted().await?;
+    is_whitelisted()?;
 
     let address = &req.wallet_proof.address;
     let wallet_key = WalletKey::from_address(address);
@@ -95,10 +95,10 @@ pub fn get_username_update_message(address: String, username: String) -> String 
 }
 
 #[ic_cdk::update]
-pub async fn update_username(
+pub fn update_username(
     req: AuthenticatedPayload<UpdateUsernameRequest>,
 ) -> Result<ProfileInfo, VolumetricError> {
-    is_whitelisted().await?;
+    is_whitelisted()?;
 
     let address = &req.wallet_proof.address;
     let wallet_key = WalletKey::from_address(address);

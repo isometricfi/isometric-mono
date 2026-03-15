@@ -1,5 +1,3 @@
-use std::time::Duration;
-
 use candid::{Nat, Principal};
 use ic_cdk::export_candid;
 use ic_cdk::{init, post_upgrade};
@@ -60,17 +58,13 @@ pub use storage::{
 
 use crate::storage::{Cbor, Config, CONFIG};
 
-const INIT_DELAY_SECS: u64 = 0;
-
 #[init]
 fn init(btc_network: Option<BtcNetwork>) {
     let network = btc_network.unwrap_or_default();
-    ic_cdk_timers::set_timer(Duration::from_secs(INIT_DELAY_SECS), async move {
-        let new_config = Config::new(network);
+    let new_config = Config::new(network);
 
-        CONFIG.with_borrow_mut(|config| {
-            let _ = config.set(Cbor(new_config));
-        });
+    CONFIG.with_borrow_mut(|config| {
+        let _ = config.set(Cbor(new_config));
     });
 
     timers::setup_timers();

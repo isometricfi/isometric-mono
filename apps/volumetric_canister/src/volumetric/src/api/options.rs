@@ -59,7 +59,7 @@ pub fn get_accept_offers_message(wallet_address: String, items: Vec<AcceptOfferI
 pub async fn accept_offers(
     req: AuthenticatedPayload<AcceptOffersRequest>,
 ) -> Result<AcceptOffersResponse, VolumetricError> {
-    is_whitelisted().await?;
+    is_whitelisted()?;
 
     let address = &req.wallet_proof.address;
     let wallet_key = WalletKey::from_address(address);
@@ -126,8 +126,8 @@ pub struct ClearStorageResponse {
 /// Testing endpoint to clear all offers and active options from storage.
 /// Use this for storage migration when schema changes break deserialization.
 #[ic_cdk::update]
-pub async fn testing_clear_offers_and_options() -> Result<ClearStorageResponse, VolumetricError> {
-    is_whitelisted().await?;
+pub fn testing_clear_offers_and_options() -> Result<ClearStorageResponse, VolumetricError> {
+    is_whitelisted()?;
 
     let offers_cleared = crate::storage::clear_offers();
     let options_cleared = crate::storage::clear_active_options();
@@ -139,39 +139,37 @@ pub async fn testing_clear_offers_and_options() -> Result<ClearStorageResponse, 
 }
 
 #[ic_cdk::query]
-pub async fn get_pending_accepts() -> Result<Vec<PendingAccept>, VolumetricError> {
-    is_controller().await?;
+pub fn get_pending_accepts() -> Result<Vec<PendingAccept>, VolumetricError> {
+    is_controller()?;
     Ok(list_pending_accepts())
 }
 
 #[ic_cdk::query]
-pub async fn get_failed_accepts() -> Result<Vec<PendingAccept>, VolumetricError> {
-    is_controller().await?;
+pub fn get_failed_accepts() -> Result<Vec<PendingAccept>, VolumetricError> {
+    is_controller()?;
     Ok(list_failed_accepts())
 }
 
 #[ic_cdk::query]
-pub async fn get_accept_by_id(id: u64) -> Result<Option<PendingAccept>, VolumetricError> {
-    is_controller().await?;
+pub fn get_accept_by_id(id: u64) -> Result<Option<PendingAccept>, VolumetricError> {
+    is_controller()?;
     Ok(get_accept(id))
 }
 
 #[ic_cdk::query]
-pub async fn get_pending_settlements_journal() -> Result<Vec<PendingSettlement>, VolumetricError> {
-    is_controller().await?;
+pub fn get_pending_settlements_journal() -> Result<Vec<PendingSettlement>, VolumetricError> {
+    is_controller()?;
     Ok(list_pending_settlements_journal())
 }
 
 #[ic_cdk::query]
-pub async fn get_failed_settlements() -> Result<Vec<PendingSettlement>, VolumetricError> {
-    is_controller().await?;
+pub fn get_failed_settlements() -> Result<Vec<PendingSettlement>, VolumetricError> {
+    is_controller()?;
     Ok(list_failed_settlements())
 }
 
 #[ic_cdk::query]
-pub async fn get_settlement_by_id(
-    option_id: u64,
-) -> Result<Option<PendingSettlement>, VolumetricError> {
-    is_controller().await?;
+pub fn get_settlement_by_id(option_id: u64) -> Result<Option<PendingSettlement>, VolumetricError> {
+    is_controller()?;
     Ok(get_settlement(option_id))
 }

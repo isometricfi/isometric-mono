@@ -41,14 +41,14 @@ pub fn get_all_events(after_id: Option<u64>, limit: Option<u32>) -> Vec<Event> {
 }
 
 #[ic_cdk::update]
-pub async fn cleanup_old_events() -> Result<u64, VolumetricError> {
-    is_controller().await?;
+pub fn cleanup_old_events() -> Result<u64, VolumetricError> {
+    is_controller()?;
     let result = cleanup_old_events_use_case();
     Ok(result.deleted_count)
 }
 
 #[ic_cdk::update]
-pub async fn clear_all_events() -> Result<u64, VolumetricError> {
-    is_controller().await?;
+pub fn clear_all_events() -> Result<u64, VolumetricError> {
+    is_controller()?;
     Ok(storage_clear_events())
 }
