@@ -1,6 +1,7 @@
 use candid::{Nat, Principal};
 use ic_cdk::export_candid;
 use ic_cdk::{init, post_upgrade};
+use ic_http_types::{HttpRequest, HttpResponse};
 
 pub mod api;
 pub mod auth;
@@ -11,6 +12,7 @@ pub mod ic;
 pub mod ledger;
 pub mod locks;
 pub mod minter;
+pub mod observability;
 pub mod oracle;
 pub mod storage;
 pub mod time;
@@ -49,6 +51,7 @@ pub use auth::types::{
 };
 pub use errors::VolumetricError;
 pub use generated::ckbtc::{Utxo, UtxoOutpoint, UtxoStatus};
+pub use observability::{http_request, observability_get_metrics, ObservabilityMetrics};
 pub use storage::{
     AcceptPhase, ActiveOption, ActiveOptionStatus, Asset, BtcNetwork, Event, EventData, EventType,
     FeatureFlags, FeeConfig, Offer, OfferStatus, OptionType, PendingAccept, PendingSettlement,

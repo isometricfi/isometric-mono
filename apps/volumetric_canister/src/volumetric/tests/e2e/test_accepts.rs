@@ -685,6 +685,221 @@ fn test_partial_fill_disabled_rejects_partial_quantity() {
     assert_eq!(error.code, error_codes::PARTIAL_FILLING_DISABLED.code);
 }
 
+/// Given: Writer creates two 0.1 BTC offers and stitching is disabled
+/// When: Buyer attempts to accept both offers in one request
+/// Then: Error STITCHING_DISABLED is returned and both offers remain open
+#[test]
+fn test_stitching_disabled_rejects_multi_item_accept_request() {
+    // given
+    let env = create_test_env();
+    whitelist_controller(&env);
+    configure_test_ledger(&env);
+    set_oracle_price(&env, ORACLE_PRICE_CENTS);
+    set_feature_flags(
+        &env,
+        FeatureFlags {
+            is_partial_filling_enabled: false,
+            is_stitching_enabled: false,
+        },
+    );
+
+    const WRITER_SEED: u64 = 1;
+    const BUYER_SEED: u64 = 2;
+    let writer_wallet = generate_wallet(WRITER_SEED);
+    let buyer_wallet = generate_wallet(BUYER_SEED);
+
+    let writer_profile = create_account(&env, &writer_wallet).expect("Writer account failed");
+    let buyer_profile = create_account(&env, &buyer_wallet).expect("Buyer account failed");
+
+    const TEN_MILLION_SATS: u64 = 10_000_000; // 0.1 BTC
+    const TWENTY_MILLION_SATS: u64 = 20_000_000; // 0.2 BTC
+    const STRIKE_BPS: u16 = 500;
+    const PREMIUM_BPS: u16 = 100;
+    const ONE_DAY_SECS: u64 = 86_400;
+    const BASIS_POINTS: u64 = 10_000;
+    const CKBTC_TRANSFER_FEE: u64 = 10;
+    const FIRST_OFFER_ID: u64 = 1;
+    const SECOND_OFFER_ID: u64 = 2;
+
+    const OFFER_QUANTITY_SATS: u64 = TEN_MILLION_SATS;
+    const WRITER_TOTAL_BALANCE_SATS: u64 = TWENTY_MILLION_SATS;
+    const PREMIUM_PER_OFFER_SATS: u64 = OFFER_QUANTITY_SATS * PREMIUM_BPS as u64 / BASIS_POINTS;
+    const ACCEPT_TRANSFER_COUNT: u64 = 2;
+    const ACCEPT_TRANSFER_FEES: u64 = ACCEPT_TRANSFER_COUNT * CKBTC_TRANSFER_FEE;
+    const BUYER_TOTAL_BALANCE_SATS: u64 = PREMIUM_PER_OFFER_SATS * 2 + ACCEPT_TRANSFER_FEES;
+
+    mint_and_sync_balance(&env, &writer_profile, WRITER_TOTAL_BALANCE_SATS)
+        .expect("Writer balance failed");
+    mint_and_sync_balance(&env, &buyer_profile, BUYER_TOTAL_BALANCE_SATS)
+        .expect("Buyer balance failed");
+
+    create_offer(
+        &env,
+        &writer_wallet,
+        OFFER_QUANTITY_SATS,
+        STRIKE_BPS,
+        PREMIUM_BPS,
+        ONE_DAY_SECS,
+    )
+    .expect("First offer failed");
+
+    create_offer(
+        &env,
+        &writer_wallet,
+        OFFER_QUANTITY_SATS,
+        STRIKE_BPS,
+        PREMIUM_BPS,
+        ONE_DAY_SECS,
+    )
+    .expect("Second offer failed");
+
+    // when
+    let result = accept_offers(
+        &env,
+        &buyer_wallet,
+        vec![
+            AcceptOfferItem {
+                offer_id: FIRST_OFFER_ID,
+                quantity: OFFER_QUANTITY_SATS,
+            },
+            AcceptOfferItem {
+                offer_id: SECOND_OFFER_ID,
+                quantity: OFFER_QUANTITY_SATS,
+            },
+        ],
+    );
+
+    // then
+    const EXPECTED_OPEN_OFFERS_COUNT: usize = 2;
+
+    assert!(result.is_err());
+    let error = result.unwrap_err();
+    assert_eq!(error.code, error_codes::STITCHING_DISABLED.code);
+
+    let offers = get_open_offers(&env);
+    assert_eq!(offers.len(), EXPECTED_OPEN_OFFERS_COUNT);
+}
+
+/// Given: Writer creates two 0.1 BTC offers and stitching is enabled
+/// When: Buyer accepts both offers in one request
+/// Then: Two options are created with the same fill_group_id and both offers are removed
+#[test]
+fn test_stitching_enabled_accepts_multiple_offers_in_one_request() {
+    // given
+    let env = create_test_env();
+    whitelist_controller(&env);
+    configure_test_ledger(&env);
+    set_oracle_price(&env, ORACLE_PRICE_CENTS);
+    set_feature_flags(
+        &env,
+        FeatureFlags {
+            is_partial_filling_enabled: false,
+            is_stitching_enabled: true,
+        },
+    );
+
+    const WRITER_SEED: u64 = 1;
+    const BUYER_SEED: u64 = 2;
+    let writer_wallet = generate_wallet(WRITER_SEED);
+    let buyer_wallet = generate_wallet(BUYER_SEED);
+
+    let writer_profile = create_account(&env, &writer_wallet).expect("Writer account failed");
+    let buyer_profile = create_account(&env, &buyer_wallet).expect("Buyer account failed");
+
+    const TEN_MILLION_SATS: u64 = 10_000_000; // 0.1 BTC
+    const TWENTY_MILLION_SATS: u64 = 20_000_000; // 0.2 BTC
+    const STRIKE_BPS: u16 = 500;
+    const PREMIUM_BPS: u16 = 100;
+    const ONE_DAY_SECS: u64 = 86_400;
+    const BASIS_POINTS: u64 = 10_000;
+    const CKBTC_TRANSFER_FEE: u64 = 10;
+    const FIRST_OFFER_ID: u64 = 1;
+    const SECOND_OFFER_ID: u64 = 2;
+
+    const OFFER_QUANTITY_SATS: u64 = TEN_MILLION_SATS;
+    const WRITER_TOTAL_BALANCE_SATS: u64 = TWENTY_MILLION_SATS;
+    const PREMIUM_PER_OFFER_SATS: u64 = OFFER_QUANTITY_SATS * PREMIUM_BPS as u64 / BASIS_POINTS;
+    const ACCEPT_TRANSFER_COUNT: u64 = 2;
+    const ACCEPT_TRANSFER_FEES: u64 = ACCEPT_TRANSFER_COUNT * CKBTC_TRANSFER_FEE;
+    const BUYER_TOTAL_BALANCE_SATS: u64 = PREMIUM_PER_OFFER_SATS * 2 + ACCEPT_TRANSFER_FEES;
+    const EXPECTED_OPTIONS_COUNT: usize = 2;
+    const EXPECTED_OPEN_OFFERS_COUNT: usize = 0;
+
+    mint_and_sync_balance(&env, &writer_profile, WRITER_TOTAL_BALANCE_SATS)
+        .expect("Writer balance failed");
+    mint_and_sync_balance(&env, &buyer_profile, BUYER_TOTAL_BALANCE_SATS)
+        .expect("Buyer balance failed");
+
+    create_offer(
+        &env,
+        &writer_wallet,
+        OFFER_QUANTITY_SATS,
+        STRIKE_BPS,
+        PREMIUM_BPS,
+        ONE_DAY_SECS,
+    )
+    .expect("First offer failed");
+
+    create_offer(
+        &env,
+        &writer_wallet,
+        OFFER_QUANTITY_SATS,
+        STRIKE_BPS,
+        PREMIUM_BPS,
+        ONE_DAY_SECS,
+    )
+    .expect("Second offer failed");
+
+    // when
+    let accept_response = accept_offers(
+        &env,
+        &buyer_wallet,
+        vec![
+            AcceptOfferItem {
+                offer_id: FIRST_OFFER_ID,
+                quantity: OFFER_QUANTITY_SATS,
+            },
+            AcceptOfferItem {
+                offer_id: SECOND_OFFER_ID,
+                quantity: OFFER_QUANTITY_SATS,
+            },
+        ],
+    )
+    .expect("Stitched accept failed");
+
+    // then
+    assert_eq!(accept_response.active_options.len(), EXPECTED_OPTIONS_COUNT);
+    assert_eq!(
+        accept_response.active_options[0].buyer,
+        buyer_profile.principal
+    );
+    assert_eq!(
+        accept_response.active_options[0].writer,
+        writer_profile.principal
+    );
+    assert_eq!(accept_response.active_options[0].offer_id, FIRST_OFFER_ID);
+    assert_eq!(
+        accept_response.active_options[0].quantity,
+        OFFER_QUANTITY_SATS
+    );
+    assert_eq!(
+        accept_response.active_options[0].fill_group_id,
+        Some(accept_response.fill_group_id)
+    );
+    assert_eq!(accept_response.active_options[1].offer_id, SECOND_OFFER_ID);
+    assert_eq!(
+        accept_response.active_options[1].quantity,
+        OFFER_QUANTITY_SATS
+    );
+    assert_eq!(
+        accept_response.active_options[1].fill_group_id,
+        Some(accept_response.fill_group_id)
+    );
+
+    let offers = get_open_offers(&env);
+    assert_eq!(offers.len(), EXPECTED_OPEN_OFFERS_COUNT);
+}
+
 /// Given: Writer creates 0.3 BTC offer, partial filling enabled
 /// When: Buyer 1 accepts 10M, Buyer 2 accepts 10M, Buyer 3 accepts 10M
 /// Then: Three options created, offer status is Filled
