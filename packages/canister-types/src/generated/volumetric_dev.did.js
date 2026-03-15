@@ -345,10 +345,40 @@ export const idlFactory = ({ IDL }) => {
     'Ok' : IDL.Opt(PendingWithdrawal),
     'Err' : VolumetricError,
   });
+  const HttpRequest = IDL.Record({
+    'url' : IDL.Text,
+    'method' : IDL.Text,
+    'body' : IDL.Vec(IDL.Nat8),
+    'headers' : IDL.Vec(IDL.Tuple(IDL.Text, IDL.Text)),
+  });
+  const HttpResponse = IDL.Record({
+    'body' : IDL.Vec(IDL.Nat8),
+    'headers' : IDL.Vec(IDL.Tuple(IDL.Text, IDL.Text)),
+    'status_code' : IDL.Nat16,
+  });
   const UserInfo = IDL.Record({
     'principal' : IDL.Principal,
     'username' : IDL.Opt(IDL.Text),
     'address' : IDL.Text,
+  });
+  const ObservabilityMetrics = IDL.Record({
+    'failed_accepts_total' : IDL.Nat64,
+    'balances_total' : IDL.Nat64,
+    'stable_memory_pages' : IDL.Nat64,
+    'stable_memory_bytes' : IDL.Nat64,
+    'failed_withdrawals_total' : IDL.Nat64,
+    'open_offers_total' : IDL.Nat64,
+    'profiles_total' : IDL.Nat64,
+    'whitelist_entries_total' : IDL.Nat64,
+    'pending_settlements_total' : IDL.Nat64,
+    'signature_nonces_total' : IDL.Nat64,
+    'pending_accepts_total' : IDL.Nat64,
+    'events_total' : IDL.Nat64,
+    'wallet_registrations_total' : IDL.Nat64,
+    'pending_withdrawals_total' : IDL.Nat64,
+    'active_options_total' : IDL.Nat64,
+    'failed_settlements_total' : IDL.Nat64,
+    'offers_total' : IDL.Nat64,
   });
   const SettlementResult = IDL.Record({
     'status' : ActiveOptionStatus,
@@ -520,8 +550,14 @@ export const idlFactory = ({ IDL }) => {
       ),
     'get_withdrawal_by_id' : IDL.Func([IDL.Nat64], [Result_16], ['query']),
     'greet' : IDL.Func([IDL.Text], [IDL.Text], ['query']),
+    'http_request' : IDL.Func([HttpRequest], [HttpResponse], ['query']),
     'list_users' : IDL.Func([], [IDL.Vec(UserInfo)], ['query']),
     'list_whitelisted' : IDL.Func([], [IDL.Vec(IDL.Principal)], ['query']),
+    'observability_get_metrics' : IDL.Func(
+        [],
+        [ObservabilityMetrics],
+        ['query'],
+      ),
     'remove_whitelisted' : IDL.Func([IDL.Principal], [Result_1], []),
     'reset_oracle_config' : IDL.Func([], [Result_1], []),
     'set_deposit_amount_sats_config' : IDL.Func([IDL.Nat64], [Result_1], []),

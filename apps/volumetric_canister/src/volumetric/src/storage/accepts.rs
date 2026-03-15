@@ -65,7 +65,7 @@ impl Storable for PendingAccept {
 }
 
 thread_local! {
-    static ACCEPT_JOURNAL: RefCell<StableBTreeMap<u64, PendingAccept, Memory>> = RefCell::new(
+    pub(crate) static ACCEPT_JOURNAL: RefCell<StableBTreeMap<u64, PendingAccept, Memory>> = RefCell::new(
         StableBTreeMap::init(
             MEMORY_MANAGER.with_borrow(|m| m.get(MemoryId::new(MemoryIndex::AcceptJournalMemory as u8))),
         )

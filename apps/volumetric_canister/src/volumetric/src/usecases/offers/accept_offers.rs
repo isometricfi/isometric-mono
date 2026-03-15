@@ -85,7 +85,7 @@ pub async fn accept_offers_use_case(
         ));
     }
 
-    if accept_offer_items.len() > 1 && !Config::is_stitching_enabled() {
+    if is_stitched_accept_request(&accept_offer_items) && !Config::is_stitching_enabled() {
         return Err(VolumetricError::from_def(
             error_codes::STITCHING_DISABLED,
             None,
@@ -180,6 +180,10 @@ pub async fn accept_offers_use_case(
         active_options: created_active_options,
         fill_group_id,
     })
+}
+
+fn is_stitched_accept_request(accept_offer_items: &[AcceptOfferItem]) -> bool {
+    accept_offer_items.len() > 1
 }
 
 fn rollback_locked_collateral_states_and_offers(

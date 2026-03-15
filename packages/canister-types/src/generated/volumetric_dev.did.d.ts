@@ -194,6 +194,36 @@ export interface FeeConfig {
   'fee_recipient' : Principal,
   'profit_fee_basis_points' : bigint,
 }
+export interface HttpRequest {
+  'url' : string,
+  'method' : string,
+  'body' : Uint8Array | number[],
+  'headers' : Array<[string, string]>,
+}
+export interface HttpResponse {
+  'body' : Uint8Array | number[],
+  'headers' : Array<[string, string]>,
+  'status_code' : number,
+}
+export interface ObservabilityMetrics {
+  'failed_accepts_total' : bigint,
+  'balances_total' : bigint,
+  'stable_memory_pages' : bigint,
+  'stable_memory_bytes' : bigint,
+  'failed_withdrawals_total' : bigint,
+  'open_offers_total' : bigint,
+  'profiles_total' : bigint,
+  'whitelist_entries_total' : bigint,
+  'pending_settlements_total' : bigint,
+  'signature_nonces_total' : bigint,
+  'pending_accepts_total' : bigint,
+  'events_total' : bigint,
+  'wallet_registrations_total' : bigint,
+  'pending_withdrawals_total' : bigint,
+  'active_options_total' : bigint,
+  'failed_settlements_total' : bigint,
+  'offers_total' : bigint,
+}
 export interface Offer {
   'id' : bigint,
   'status' : OfferStatus,
@@ -432,8 +462,10 @@ export interface _SERVICE {
   'get_withdraw_message' : ActorMethod<[string, string, bigint], string>,
   'get_withdrawal_by_id' : ActorMethod<[bigint], Result_16>,
   'greet' : ActorMethod<[string], string>,
+  'http_request' : ActorMethod<[HttpRequest], HttpResponse>,
   'list_users' : ActorMethod<[], Array<UserInfo>>,
   'list_whitelisted' : ActorMethod<[], Array<Principal>>,
+  'observability_get_metrics' : ActorMethod<[], ObservabilityMetrics>,
   'remove_whitelisted' : ActorMethod<[Principal], Result_1>,
   'reset_oracle_config' : ActorMethod<[], Result_1>,
   'set_deposit_amount_sats_config' : ActorMethod<[bigint], Result_1>,
