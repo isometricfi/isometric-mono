@@ -18,40 +18,6 @@ pub struct CreateOfferParams {
     pub option_duration_seconds: u64,
 }
 
-fn validate_offer_limit_per_term(
-    writer: Principal,
-    strike_basis_points: u16,
-    option_duration_seconds: u64,
-) -> Result<(), VolumetricError> {
-    let existing_offers = list_offers_by_writer(writer);
-    let max_offers_per_term = Config::trading_limits().max_offers_per_term;
-
-    let count = existing_offers
-        .iter()
-        .filter(|offer| {
-            // Count both open and partially filled offers (still active from writer's perspective)
-            matches!(
-                offer.status,
-                OfferStatus::Open | OfferStatus::PartiallyFilled
-            ) && offer.strike_basis_points == strike_basis_points
-                && offer.option_duration_seconds == option_duration_seconds
-        })
-        .count();
-
-    if count >= max_offers_per_term {
-        return Err(VolumetricError::from_def(
-            error_codes::OFFER_LIMIT_EXCEEDED,
-            Some(&format!(
-                "you have {} active offers (max {})",
-                count, max_offers_per_term
-            )),
-            None,
-        ));
-    }
-
-    Ok(())
-}
-
 pub fn create_offer_use_case(
     writer: Principal,
     params: CreateOfferParams,
@@ -124,6 +90,40 @@ pub fn create_offer_use_case(
     );
 
     Ok(offer)
+}
+
+fn validate_offer_limit_per_term(
+    writer: Principal,
+    strike_basis_points: u16,
+    option_duration_seconds: u64,
+) -> Result<(), VolumetricError> {
+    let existing_offers = list_offers_by_writer(writer);
+    let max_offers_per_term = Config::trading_limits().max_offers_per_term;
+
+    let count = existing_offers
+        .iter()
+        .filter(|offer| {
+            // Count both open and partially filled offers (still active from writer's perspective)
+            matches!(
+                offer.status,
+                OfferStatus::Open | OfferStatus::PartiallyFilled
+            ) && offer.strike_basis_points == strike_basis_points
+                && offer.option_duration_seconds == option_duration_seconds
+        })
+        .count();
+
+    if count >= max_offers_per_term {
+        return Err(VolumetricError::from_def(
+            error_codes::OFFER_LIMIT_EXCEEDED,
+            Some(&format!(
+                "you have {} active offers (max {})",
+                count, max_offers_per_term
+            )),
+            None,
+        ));
+    }
+
+    Ok(())
 }
 
 #[cfg(test)]

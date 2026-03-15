@@ -4,7 +4,9 @@ use icrc_ledger_types::icrc1::account::Account;
 use crate::auth::derive_subaccount;
 use crate::errors::{error_codes, VolumetricError};
 use crate::generated::ckbtc::{GetBtcAddressArg, UpdateBalanceArg, UtxoStatus};
-use crate::storage::{add_available, emit_event, set_balance, EventData, EventType, UserBalance};
+use crate::storage::{
+    add_available, emit_event, get_balance, set_balance, EventData, EventType, UserBalance,
+};
 use crate::{ic, ledger, minter};
 
 pub struct DepositAddressResult {
@@ -83,6 +85,15 @@ pub async fn get_ledger_balance(principal: Principal) -> Result<Nat, VolumetricE
 }
 
 pub async fn sync_balance_from_ledger(principal: Principal) -> Result<u64, VolumetricError> {
+    let balance_before_sync = get_balance(&principal);
+    if balance_before_sync.locked_as_writer > 0 {
+        return Err(VolumetricError::from_def(
+            error_codes::INTERNAL_ERROR,
+            Some("Cannot sync balance while locked collateral exists"),
+            None,
+        ));
+    }
+
     let account = get_user_account(principal);
     let balance = ledger::icrc1_balance_of(account).await?;
 
@@ -94,11 +105,20 @@ pub async fn sync_balance_from_ledger(principal: Principal) -> Result<u64, Volum
         )
     })?;
 
+    let balance_after_sync = get_balance(&principal);
+    if balance_after_sync.locked_as_writer > 0 {
+        return Err(VolumetricError::from_def(
+            error_codes::INTERNAL_ERROR,
+            Some("Cannot sync balance while locked collateral exists"),
+            None,
+        ));
+    }
+
     set_balance(
         principal,
         UserBalance {
             available: balance_u64,
-            locked_as_writer: 0,
+            locked_as_writer: balance_after_sync.locked_as_writer,
         },
     );
 
@@ -312,5 +332,32 @@ mod tests {
         let balance = get_balance(&principal);
         assert_eq!(balance.available, LEDGER_BALANCE_SATS);
         assert_eq!(balance.locked_as_writer, 0);
+    }
+
+    /// Given: a user still has locked collateral
+    /// When: sync_balance_from_ledger is called
+    /// Then: the sync is rejected and the existing balance is preserved
+    #[tokio::test]
+    async fn test_sync_balance_from_ledger_rejects_nonzero_locked_balance() {
+        // given
+        setup(LEDGER_BALANCE_SATS, vec![]);
+        let principal = test_principal();
+        let existing_balance = UserBalance {
+            available: 123_456,
+            locked_as_writer: 654_321,
+        };
+        set_balance(principal, existing_balance.clone());
+
+        // when
+        let error = sync_balance_from_ledger(principal)
+            .await
+            .expect_err("sync should reject active locked collateral");
+
+        // then
+        assert_eq!(error.code, error_codes::INTERNAL_ERROR.code);
+
+        let balance = get_balance(&principal);
+        assert_eq!(balance.available, existing_balance.available);
+        assert_eq!(balance.locked_as_writer, existing_balance.locked_as_writer);
     }
 }

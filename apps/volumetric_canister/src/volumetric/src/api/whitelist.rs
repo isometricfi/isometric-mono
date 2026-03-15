@@ -6,15 +6,15 @@ use crate::guards::is_controller;
 use crate::usecases;
 
 #[update]
-pub async fn add_whitelisted(principal: Principal) -> Result<(), VolumetricError> {
-    is_controller().await?;
+pub fn add_whitelisted(principal: Principal) -> Result<(), VolumetricError> {
+    is_controller()?;
     usecases::add_whitelisted_use_case(principal);
     Ok(())
 }
 
 #[update]
-pub async fn remove_whitelisted(principal: Principal) -> Result<(), VolumetricError> {
-    is_controller().await?;
+pub fn remove_whitelisted(principal: Principal) -> Result<(), VolumetricError> {
+    is_controller()?;
     usecases::remove_whitelisted_use_case(principal);
     Ok(())
 }

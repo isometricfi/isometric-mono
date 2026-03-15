@@ -59,10 +59,10 @@ pub fn get_create_offer_message(
 }
 
 #[ic_cdk::update]
-pub async fn create_offer(
+pub fn create_offer(
     req: AuthenticatedPayload<CreateOfferRequest>,
 ) -> Result<CreateOfferResponse, VolumetricError> {
-    is_whitelisted().await?;
+    is_whitelisted()?;
 
     let address = &req.wallet_proof.address;
     let wallet_key = WalletKey::from_address(address);
@@ -115,10 +115,10 @@ pub fn get_cancel_offer_message(wallet_address: String, offer_id: u64) -> String
 }
 
 #[ic_cdk::update]
-pub async fn cancel_offer(
+pub fn cancel_offer(
     req: AuthenticatedPayload<CancelOfferRequest>,
 ) -> Result<Offer, VolumetricError> {
-    is_whitelisted().await?;
+    is_whitelisted()?;
 
     let address = &req.wallet_proof.address;
     let wallet_key = WalletKey::from_address(address);
