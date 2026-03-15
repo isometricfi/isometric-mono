@@ -3,7 +3,7 @@ use ic_cdk::api::{in_replicated_execution, is_controller as api_is_controller, m
 use crate::errors::{error_codes, VolumetricError};
 use crate::storage::{Config, TradingLimits, WHITELIST};
 
-pub async fn is_controller() -> Result<(), VolumetricError> {
+pub fn is_controller() -> Result<(), VolumetricError> {
     let caller_id = msg_caller();
 
     if !api_is_controller(&caller_id) {
@@ -17,7 +17,7 @@ pub async fn is_controller() -> Result<(), VolumetricError> {
     Ok(())
 }
 
-pub async fn is_whitelisted() -> Result<(), VolumetricError> {
+pub fn is_whitelisted() -> Result<(), VolumetricError> {
     let caller_id = msg_caller();
 
     WHITELIST.with_borrow(|whitelist| {

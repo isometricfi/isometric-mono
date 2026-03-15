@@ -45,14 +45,14 @@ impl From<usecases::SettleExpiredOptionsResult> for SettleExpiredOptionsResponse
 
 #[ic_cdk::update]
 pub async fn settle_expired_options() -> Result<SettleExpiredOptionsResponse, VolumetricError> {
-    is_whitelisted().await?;
+    is_whitelisted()?;
     let result = usecases::settle_expired_options_use_case().await;
     Ok(result.into())
 }
 
 #[ic_cdk::update]
 pub async fn settle_option_by_id(option_id: u64) -> Result<SettlementResult, VolumetricError> {
-    is_whitelisted().await?;
+    is_whitelisted()?;
     let result = usecases::settle_option_by_id_use_case(option_id).await?;
     Ok(result.into())
 }
@@ -64,23 +64,23 @@ pub fn get_pending_settlements() -> Vec<ActiveOption> {
 }
 
 #[ic_cdk::update]
-pub async fn testing_expire_option(option_id: u64) -> Result<ActiveOption, VolumetricError> {
-    is_whitelisted().await?;
+pub fn testing_expire_option(option_id: u64) -> Result<ActiveOption, VolumetricError> {
+    is_whitelisted()?;
     usecases::testing_expire_option_use_case(option_id)
 }
 
 #[ic_cdk::update]
-pub async fn testing_set_option_expiry(
+pub fn testing_set_option_expiry(
     option_id: u64,
     expiry_ns: u64,
 ) -> Result<ActiveOption, VolumetricError> {
-    is_whitelisted().await?;
+    is_whitelisted()?;
     usecases::testing_set_option_expiry_use_case(option_id, expiry_ns)
 }
 
 #[ic_cdk::update]
 pub async fn testing_force_settle(option_id: u64) -> Result<SettlementResult, VolumetricError> {
-    is_whitelisted().await?;
+    is_whitelisted()?;
     let result = usecases::testing_force_settle_option_use_case(option_id).await?;
     Ok(result.into())
 }

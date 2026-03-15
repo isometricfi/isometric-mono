@@ -39,7 +39,7 @@ pub fn get_withdraw_message(address: String, btc_address: String, amount: u64) -
 pub async fn withdraw_ckbtc(
     req: AuthenticatedPayload<WithdrawCkbtcRequest>,
 ) -> Result<WithdrawResult, VolumetricError> {
-    is_whitelisted().await?;
+    is_whitelisted()?;
 
     let address = &req.wallet_proof.address;
     let wallet_key = WalletKey::from_address(address);
@@ -64,28 +64,28 @@ pub async fn withdraw_ckbtc(
 }
 
 #[ic_cdk::query]
-pub async fn get_pending_withdrawals() -> Result<Vec<PendingWithdrawal>, VolumetricError> {
-    is_controller().await?;
+pub fn get_pending_withdrawals() -> Result<Vec<PendingWithdrawal>, VolumetricError> {
+    is_controller()?;
     Ok(list_pending_withdrawals())
 }
 
 #[ic_cdk::query]
-pub async fn get_failed_withdrawals() -> Result<Vec<PendingWithdrawal>, VolumetricError> {
-    is_controller().await?;
+pub fn get_failed_withdrawals() -> Result<Vec<PendingWithdrawal>, VolumetricError> {
+    is_controller()?;
     Ok(list_failed_withdrawals())
 }
 
 #[ic_cdk::query]
-pub async fn get_withdrawal_by_id(id: u64) -> Result<Option<PendingWithdrawal>, VolumetricError> {
-    is_controller().await?;
+pub fn get_withdrawal_by_id(id: u64) -> Result<Option<PendingWithdrawal>, VolumetricError> {
+    is_controller()?;
     Ok(get_withdrawal(id))
 }
 
 #[ic_cdk::query]
-pub async fn get_my_pending_withdrawals(
+pub fn get_my_pending_withdrawals(
     req: AuthenticatedPayload<()>,
 ) -> Result<Vec<PendingWithdrawal>, VolumetricError> {
-    is_whitelisted().await?;
+    is_whitelisted()?;
 
     let address = &req.wallet_proof.address;
     let wallet_key = WalletKey::from_address(address);

@@ -26,7 +26,7 @@ impl From<usecases::DepositAddressResult> for DepositInfo {
 
 #[ic_cdk::update]
 pub async fn get_deposit_address(address: String) -> Result<DepositInfo, VolumetricError> {
-    is_whitelisted().await?;
+    is_whitelisted()?;
 
     let wallet_key = WalletKey::from_address(&address);
     let principal = get_principal_for_wallet(&wallet_key)
@@ -38,7 +38,7 @@ pub async fn get_deposit_address(address: String) -> Result<DepositInfo, Volumet
 
 #[ic_cdk::update]
 pub async fn update_ckbtc_balance(address: String) -> Result<Vec<UtxoStatus>, VolumetricError> {
-    is_whitelisted().await?;
+    is_whitelisted()?;
 
     let wallet_key = WalletKey::from_address(&address);
     let principal = get_principal_for_wallet(&wallet_key)
@@ -49,7 +49,7 @@ pub async fn update_ckbtc_balance(address: String) -> Result<Vec<UtxoStatus>, Vo
 
 #[ic_cdk::update]
 pub async fn get_ckbtc_balance(address: String) -> Result<Nat, VolumetricError> {
-    is_whitelisted().await?;
+    is_whitelisted()?;
 
     let wallet_key = WalletKey::from_address(&address);
     let principal = get_principal_for_wallet(&wallet_key)
@@ -60,7 +60,7 @@ pub async fn get_ckbtc_balance(address: String) -> Result<Nat, VolumetricError> 
 
 #[ic_cdk::update]
 pub async fn testing_sync_balance_from_ledger(address: String) -> Result<u64, VolumetricError> {
-    is_whitelisted().await?;
+    is_whitelisted()?;
 
     let wallet_key = WalletKey::from_address(&address);
     let principal = get_principal_for_wallet(&wallet_key)
