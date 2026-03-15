@@ -54,7 +54,7 @@ impl Storable for PendingSettlement {
 }
 
 thread_local! {
-    static SETTLEMENT_JOURNAL: RefCell<StableBTreeMap<u64, PendingSettlement, Memory>> = RefCell::new(
+    pub(crate) static SETTLEMENT_JOURNAL: RefCell<StableBTreeMap<u64, PendingSettlement, Memory>> = RefCell::new(
         StableBTreeMap::init(
             MEMORY_MANAGER.with_borrow(|m| m.get(MemoryId::new(MemoryIndex::SettlementJournalMemory as u8))),
         )

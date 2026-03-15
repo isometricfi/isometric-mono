@@ -168,6 +168,36 @@ type FeeConfig = record {
   fee_recipient : principal;
   profit_fee_basis_points : nat64;
 };
+type HttpRequest = record {
+  url : text;
+  method : text;
+  body : blob;
+  headers : vec record { text; text };
+};
+type HttpResponse = record {
+  body : blob;
+  headers : vec record { text; text };
+  status_code : nat16;
+};
+type ObservabilityMetrics = record {
+  failed_accepts_total : nat64;
+  balances_total : nat64;
+  stable_memory_pages : nat64;
+  stable_memory_bytes : nat64;
+  failed_withdrawals_total : nat64;
+  open_offers_total : nat64;
+  profiles_total : nat64;
+  whitelist_entries_total : nat64;
+  pending_settlements_total : nat64;
+  signature_nonces_total : nat64;
+  pending_accepts_total : nat64;
+  events_total : nat64;
+  wallet_registrations_total : nat64;
+  pending_withdrawals_total : nat64;
+  active_options_total : nat64;
+  failed_settlements_total : nat64;
+  offers_total : nat64;
+};
 type Offer = record {
   id : nat64;
   status : OfferStatus;
@@ -367,8 +397,10 @@ service : (opt BtcNetwork) -> {
   get_withdraw_message : (text, text, nat64) -> (text) query;
   get_withdrawal_by_id : (nat64) -> (Result_16) query;
   greet : (text) -> (text) query;
+  http_request : (HttpRequest) -> (HttpResponse) query;
   list_users : () -> (vec UserInfo) query;
   list_whitelisted : () -> (vec principal) query;
+  observability_get_metrics : () -> (ObservabilityMetrics) query;
   remove_whitelisted : (principal) -> (Result_1);
   reset_oracle_config : () -> (Result_1);
   set_deposit_amount_sats_config : (nat64) -> (Result_1);

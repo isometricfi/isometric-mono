@@ -31,7 +31,7 @@ fn test_buyer_accepts_offer_creates_option_and_locks_writer_collateral() {
     let buyer_profile = create_account(&env, &buyer_wallet).expect("Buyer account failed");
 
     const TEN_MILLION_SATS: u64 = 10_000_000; // 0.1 BTC
-const STRIKE_BPS: u16 = 500;
+    const STRIKE_BPS: u16 = 500;
     const PREMIUM_BPS: u16 = 100;
     const ONE_DAY_SECS: u64 = 86_400;
     const BASIS_POINTS: u64 = 10_000;

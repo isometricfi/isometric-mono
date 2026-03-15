@@ -52,7 +52,7 @@ impl Storable for PendingWithdrawal {
 }
 
 thread_local! {
-    static WITHDRAWAL_JOURNAL: RefCell<StableBTreeMap<u64, PendingWithdrawal, Memory>> = RefCell::new(
+    pub(crate) static WITHDRAWAL_JOURNAL: RefCell<StableBTreeMap<u64, PendingWithdrawal, Memory>> = RefCell::new(
         StableBTreeMap::init(
             MEMORY_MANAGER.with_borrow(|m| m.get(ic_stable_structures::memory_manager::MemoryId::new(MemoryIndex::WithdrawalJournalMemory as u8))),
         )
