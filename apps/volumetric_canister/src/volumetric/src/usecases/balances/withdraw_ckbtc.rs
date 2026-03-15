@@ -2,7 +2,7 @@ use candid::{Nat, Principal};
 use icrc_ledger_types::icrc1::account::Account;
 
 use crate::auth::derive_subaccount;
-use crate::errors::VolumetricError;
+use crate::errors::{error_codes, VolumetricError};
 use crate::generated::ckbtc::RetrieveBtcWithApprovalArgs;
 use crate::locks::WithdrawalLock;
 use crate::storage::{
@@ -29,8 +29,16 @@ pub async fn withdraw_ckbtc_use_case(
     // bind to _lock, not `let _ =` which drops immediately
     let _lock = WithdrawalLock::new(principal)?;
 
-    subtract_available(principal, params.amount)
-        .map_err(|e| VolumetricError::insufficient_balance(e.available, e.required))?;
+    subtract_available(principal, params.amount).map_err(|e| {
+        VolumetricError::from_def(
+            error_codes::INSUFFICIENT_BALANCE,
+            Some(&format!(
+                "available: {}, required: {}",
+                e.available, e.required
+            )),
+            None,
+        )
+    })?;
 
     let subaccount = derive_subaccount(principal);
     let minter = Config::ckbtc_minter();
@@ -288,8 +296,10 @@ mod tests {
         // given
         ic::set_runtime(Box::new(MockRuntime));
         ledger::set_ledger(Rc::new(MockLedger {
-            approve_result: Err(VolumetricError::inter_canister_call_failed(
-                "approve denied",
+            approve_result: Err(VolumetricError::from_def(
+                error_codes::INTER_CANISTER_CALL_FAILED,
+                Some("approve denied"),
+                None,
             )),
         }));
         minter::set_minter(Rc::new(MockMinter {
@@ -320,8 +330,10 @@ mod tests {
         }));
         minter::set_minter(Rc::new(MockMinter {
             retrieve_block_index: None,
-            retrieve_error: Some(VolumetricError::inter_canister_call_failed(
-                "retrieve failed",
+            retrieve_error: Some(VolumetricError::from_def(
+                error_codes::INTER_CANISTER_CALL_FAILED,
+                Some("retrieve failed"),
+                None,
             )),
         }));
         let principal = test_principal();

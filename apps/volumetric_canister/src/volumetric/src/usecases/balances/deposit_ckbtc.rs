@@ -2,7 +2,7 @@ use candid::{Nat, Principal};
 use icrc_ledger_types::icrc1::account::Account;
 
 use crate::auth::derive_subaccount;
-use crate::errors::VolumetricError;
+use crate::errors::{error_codes, VolumetricError};
 use crate::generated::ckbtc::{GetBtcAddressArg, UpdateBalanceArg, UtxoStatus};
 use crate::storage::{add_available, emit_event, set_balance, EventData, EventType, UserBalance};
 use crate::{ic, ledger, minter};
@@ -86,10 +86,13 @@ pub async fn sync_balance_from_ledger(principal: Principal) -> Result<u64, Volum
     let account = get_user_account(principal);
     let balance = ledger::icrc1_balance_of(account).await?;
 
-    let balance_u64: u64 = balance
-        .0
-        .try_into()
-        .map_err(|_| VolumetricError::internal("Balance too large to fit in u64"))?;
+    let balance_u64: u64 = balance.0.try_into().map_err(|_| {
+        VolumetricError::from_def(
+            error_codes::INTERNAL_ERROR,
+            Some("Balance too large to fit in u64"),
+            None,
+        )
+    })?;
 
     set_balance(
         principal,

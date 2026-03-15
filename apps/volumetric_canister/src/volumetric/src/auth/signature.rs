@@ -5,7 +5,7 @@ use bitcoin::secp256k1::ecdsa::{RecoverableSignature, RecoveryId};
 use bitcoin::secp256k1::{Message, Secp256k1};
 use bitcoin::{Address, CompressedPublicKey, Network, Witness};
 
-use crate::errors::VolumetricError;
+use crate::errors::{error_codes, VolumetricError};
 use crate::storage::{BtcNetwork, Config};
 
 const LEGACY_SIGNATURE_LENGTH: usize = 65;
@@ -23,18 +23,30 @@ pub fn verify_btc_signature(
     message: &str,
     signature_base64: &str,
 ) -> Result<(), VolumetricError> {
-    let unchecked_address: Address<NetworkUnchecked> = address
-        .parse()
-        .map_err(|e| VolumetricError::invalid_signature(&format!("Invalid address: {}", e)))?;
+    let unchecked_address: Address<NetworkUnchecked> = address.parse().map_err(|e| {
+        VolumetricError::from_def(
+            error_codes::INVALID_SIGNATURE,
+            Some(&format!("Invalid address: {}", e)),
+            None,
+        )
+    })?;
 
     let network = get_bitcoin_network();
-    let btc_address = unchecked_address
-        .require_network(network)
-        .map_err(|e| VolumetricError::invalid_signature(&format!("Invalid network: {}", e)))?;
+    let btc_address = unchecked_address.require_network(network).map_err(|e| {
+        VolumetricError::from_def(
+            error_codes::INVALID_SIGNATURE,
+            Some(&format!("Invalid network: {}", e)),
+            None,
+        )
+    })?;
 
-    let signature_bytes = BASE64_STANDARD
-        .decode(signature_base64)
-        .map_err(|e| VolumetricError::invalid_signature(&format!("Invalid base64: {}", e)))?;
+    let signature_bytes = BASE64_STANDARD.decode(signature_base64).map_err(|e| {
+        VolumetricError::from_def(
+            error_codes::INVALID_SIGNATURE,
+            Some(&format!("Invalid base64: {}", e)),
+            None,
+        )
+    })?;
 
     if signature_bytes.len() == LEGACY_SIGNATURE_LENGTH {
         verify_legacy_signature(&btc_address, message, &signature_bytes, network)
@@ -63,8 +75,10 @@ fn verify_legacy_signature(
         35..=38 => header - RECOVERY_BASE_SEGWIT,
         39..=42 => header - RECOVERY_BASE_SEGWIT_ALT,
         _ => {
-            return Err(VolumetricError::invalid_signature(
-                "Invalid recovery header",
+            return Err(VolumetricError::from_def(
+                error_codes::INVALID_SIGNATURE,
+                Some("Invalid recovery header"),
+                None,
             ))
         }
     };
@@ -72,26 +86,44 @@ fn verify_legacy_signature(
     let message_hash = legacy_message_hash(message.as_bytes());
     let secp = Secp256k1::verification_only();
 
-    let rec_id = RecoveryId::from_i32(recovery_id as i32)
-        .map_err(|e| VolumetricError::invalid_signature(&format!("Invalid recovery id: {}", e)))?;
+    let rec_id = RecoveryId::from_i32(recovery_id as i32).map_err(|e| {
+        VolumetricError::from_def(
+            error_codes::INVALID_SIGNATURE,
+            Some(&format!("Invalid recovery id: {}", e)),
+            None,
+        )
+    })?;
 
-    let recoverable_sig = RecoverableSignature::from_compact(r_s, rec_id)
-        .map_err(|e| VolumetricError::invalid_signature(&format!("Invalid signature: {}", e)))?;
+    let recoverable_sig = RecoverableSignature::from_compact(r_s, rec_id).map_err(|e| {
+        VolumetricError::from_def(
+            error_codes::INVALID_SIGNATURE,
+            Some(&format!("Invalid signature: {}", e)),
+            None,
+        )
+    })?;
 
     let msg = Message::from_digest(message_hash);
 
-    let pubkey = secp
-        .recover_ecdsa(&msg, &recoverable_sig)
-        .map_err(|e| VolumetricError::invalid_signature(&format!("Recovery failed: {}", e)))?;
+    let pubkey = secp.recover_ecdsa(&msg, &recoverable_sig).map_err(|e| {
+        VolumetricError::from_def(
+            error_codes::INVALID_SIGNATURE,
+            Some(&format!("Recovery failed: {}", e)),
+            None,
+        )
+    })?;
 
     let compressed_pubkey = CompressedPublicKey(pubkey);
     let recovered_address = Address::p2wpkh(&compressed_pubkey, network);
 
     if recovered_address != *btc_address {
-        return Err(VolumetricError::invalid_signature(&format!(
-            "Signature does not match address. Expected {}, got {}",
-            btc_address, recovered_address
-        )));
+        return Err(VolumetricError::from_def(
+            error_codes::INVALID_SIGNATURE,
+            Some(&format!(
+                "Signature does not match address. Expected {}, got {}",
+                btc_address, recovered_address
+            )),
+            None,
+        ));
     }
 
     Ok(())
@@ -105,7 +137,11 @@ fn verify_bip322_signature(
     let witness = Witness::from_slice(&[signature_bytes]);
 
     bip322::verify_simple(btc_address, message, witness).map_err(|e| {
-        VolumetricError::invalid_signature(&format!("BIP-322 verification failed: {}", e))
+        VolumetricError::from_def(
+            error_codes::INVALID_SIGNATURE,
+            Some(&format!("BIP-322 verification failed: {}", e)),
+            None,
+        )
     })
 }
 

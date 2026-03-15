@@ -2,7 +2,7 @@ use candid::Principal;
 use icrc_ledger_types::icrc1::account::Account;
 
 use crate::auth::derive_subaccount;
-use crate::errors::VolumetricError;
+use crate::errors::{error_codes, VolumetricError};
 use crate::guards::{validate_offer_params, OfferParams};
 use crate::ic;
 use crate::locks::AcceptLock;
@@ -75,11 +75,19 @@ pub async fn accept_offers_use_case(
     let ledger_transfer_created_at_time_ns = ic::time();
 
     if accept_offer_items.is_empty() {
-        return Err(VolumetricError::internal("No items to accept"));
+        return Err(VolumetricError::from_def(
+            error_codes::INTERNAL_ERROR,
+            Some("No items to accept"),
+            None,
+        ));
     }
 
     if accept_offer_items.len() > 1 && !Config::is_stitching_enabled() {
-        return Err(VolumetricError::stitching_disabled());
+        return Err(VolumetricError::from_def(
+            error_codes::STITCHING_DISABLED,
+            None,
+            None,
+        ));
     }
 
     let current_time_ns = ic::time();
@@ -91,9 +99,13 @@ pub async fn accept_offers_use_case(
 
     let buyer_balance_sats = get_balance(&buyer_principal);
     if buyer_balance_sats.available < prepared_accept_batch.total_premium_required_sats {
-        return Err(VolumetricError::insufficient_balance(
-            buyer_balance_sats.available,
-            prepared_accept_batch.total_premium_required_sats,
+        return Err(VolumetricError::from_def(
+            error_codes::INSUFFICIENT_BALANCE,
+            Some(&format!(
+                "available: {}, required: {}",
+                buyer_balance_sats.available, prepared_accept_batch.total_premium_required_sats
+            )),
+            None,
         ));
     }
 
@@ -124,9 +136,13 @@ pub async fn accept_offers_use_case(
             accept_journal_entry_id,
             format!("subtract_available failed: {:?}", e),
         );
-        return Err(VolumetricError::insufficient_balance(
-            e.available,
-            e.required,
+        return Err(VolumetricError::from_def(
+            error_codes::INSUFFICIENT_BALANCE,
+            Some(&format!(
+                "available: {}, required: {}",
+                e.available, e.required
+            )),
+            None,
         ));
     }
 
@@ -189,8 +205,13 @@ fn prepare_offer_acceptances(
     let mut writer_and_fee_transfers: Vec<PendingPremiumTransfer> = Vec::new();
 
     for accept_offer_item in accept_offer_items {
-        let offer = get_offer(accept_offer_item.offer_id)
-            .ok_or_else(|| VolumetricError::offer_not_found(accept_offer_item.offer_id))?;
+        let offer = get_offer(accept_offer_item.offer_id).ok_or_else(|| {
+            VolumetricError::from_def(
+                error_codes::OFFER_NOT_FOUND,
+                Some(&format!("id: {}", accept_offer_item.offer_id)),
+                None,
+            )
+        })?;
 
         validate_offer_acceptance(buyer_principal, accept_offer_item, &offer, current_time_ns)?;
 
@@ -199,9 +220,13 @@ fn prepare_offer_acceptances(
             let mut updated_offer = offer.clone();
             updated_offer.status = OfferStatus::Cancelled;
             update_offer(updated_offer);
-            return Err(VolumetricError::insufficient_balance(
-                writer_available_balance_sats.available,
-                accept_offer_item.quantity,
+            return Err(VolumetricError::from_def(
+                error_codes::INSUFFICIENT_BALANCE,
+                Some(&format!(
+                    "available: {}, required: {}",
+                    writer_available_balance_sats.available, accept_offer_item.quantity
+                )),
+                None,
             ));
         }
 
@@ -224,7 +249,13 @@ fn prepare_offer_acceptances(
         // This ensures users get at least their full duration and all expiries
         // land on hour boundaries for efficient batch settlement.
         let option_expiry_ns = calculate_expiry_ns(current_time_ns, offer.option_duration_seconds)
-            .ok_or_else(|| VolumetricError::internal("Expiry timestamp overflow"))?;
+            .ok_or_else(|| {
+                VolumetricError::from_def(
+                    error_codes::INTERNAL_ERROR,
+                    Some("Expiry timestamp overflow"),
+                    None,
+                )
+            })?;
 
         writer_and_fee_transfers.extend(build_writer_and_fee_transfers(
             buyer_principal,
@@ -272,31 +303,51 @@ fn validate_offer_acceptance(
     })?;
 
     if offer.writer == buyer_principal {
-        return Err(VolumetricError::cannot_accept_own_offer());
+        return Err(VolumetricError::from_def(
+            error_codes::CANNOT_ACCEPT_OWN_OFFER,
+            None,
+            None,
+        ));
     }
 
     if !is_offer_status_acceptable_for_acceptance(offer.status) {
-        return Err(VolumetricError::invalid_offer_state(&format!(
-            "cannot accept offer with status: {:?}",
-            offer.status
-        )));
+        return Err(VolumetricError::from_def(
+            error_codes::INVALID_OFFER_STATE,
+            Some(&format!(
+                "cannot accept offer with status: {:?}",
+                offer.status
+            )),
+            None,
+        ));
     }
 
     if offer.offer_valid_until <= current_time_ns {
-        return Err(VolumetricError::offer_expired());
+        return Err(VolumetricError::from_def(
+            error_codes::OFFER_EXPIRED,
+            None,
+            None,
+        ));
     }
 
     if accept_offer_item.quantity > offer.remaining_quantity {
-        return Err(VolumetricError::quantity_exceeds_available(
-            accept_offer_item.quantity,
-            offer.remaining_quantity,
+        return Err(VolumetricError::from_def(
+            error_codes::QUANTITY_EXCEEDS_AVAILABLE,
+            Some(&format!(
+                "requested: {}, available: {}",
+                accept_offer_item.quantity, offer.remaining_quantity
+            )),
+            None,
         ));
     }
 
     if accept_offer_item.quantity < offer.remaining_quantity
         && !Config::is_partial_filling_enabled()
     {
-        return Err(VolumetricError::partial_filling_disabled());
+        return Err(VolumetricError::from_def(
+            error_codes::PARTIAL_FILLING_DISABLED,
+            None,
+            None,
+        ));
     }
 
     Ok(())
@@ -370,9 +421,13 @@ fn lock_collateral_for_offer_acceptances(
                 accept_journal_entry_id,
                 format!("lock_collateral failed: {:?}", e),
             );
-            return Err(VolumetricError::insufficient_balance(
-                e.available,
-                e.required,
+            return Err(VolumetricError::from_def(
+                error_codes::INSUFFICIENT_BALANCE,
+                Some(&format!(
+                    "available: {}, required: {}",
+                    e.available, e.required
+                )),
+                None,
             ));
         }
 
@@ -861,8 +916,10 @@ mod tests {
                 assert_eq!(cancel_error.code, error_codes::INVALID_OFFER_STATE.code);
 
                 first_transfer_result_sender
-                    .send(Err(VolumetricError::inter_canister_call_failed(
-                        "transfer failed",
+                    .send(Err(VolumetricError::from_def(
+                        error_codes::INTER_CANISTER_CALL_FAILED,
+                        Some("transfer failed"),
+                        None,
                     )))
                     .expect("first transfer should still be waiting");
 

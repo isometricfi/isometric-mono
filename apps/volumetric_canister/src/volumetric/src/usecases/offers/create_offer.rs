@@ -1,6 +1,6 @@
 use candid::Principal;
 
-use crate::errors::VolumetricError;
+use crate::errors::{error_codes, VolumetricError};
 use crate::guards::{validate_offer_params, OfferParams};
 use crate::ic;
 use crate::storage::{
@@ -39,9 +39,13 @@ fn validate_offer_limit_per_term(
         .count();
 
     if count >= max_offers_per_term {
-        return Err(VolumetricError::offer_limit_exceeded(
-            count,
-            max_offers_per_term,
+        return Err(VolumetricError::from_def(
+            error_codes::OFFER_LIMIT_EXCEEDED,
+            Some(&format!(
+                "you have {} active offers (max {})",
+                count, max_offers_per_term
+            )),
+            None,
         ));
     }
 
@@ -68,16 +72,22 @@ pub fn create_offer_use_case(
     let now = ic::time();
 
     if params.offer_valid_until <= now {
-        return Err(VolumetricError::internal(
-            "Offer valid_until must be in the future",
+        return Err(VolumetricError::from_def(
+            error_codes::INTERNAL_ERROR,
+            Some("Offer valid_until must be in the future"),
+            None,
         ));
     }
 
     let balance = get_balance(&writer);
     if balance.available < params.quantity {
-        return Err(VolumetricError::insufficient_balance(
-            balance.available,
-            params.quantity,
+        return Err(VolumetricError::from_def(
+            error_codes::INSUFFICIENT_BALANCE,
+            Some(&format!(
+                "available: {}, required: {}",
+                balance.available, params.quantity
+            )),
+            None,
         ));
     }
 

@@ -1,23 +1,36 @@
 use candid::Principal;
 
-use crate::errors::VolumetricError;
+use crate::errors::{error_codes, VolumetricError};
 use crate::storage::{
     emit_event, get_offer, update_offer, EventData, EventType, Offer, OfferStatus,
 };
 
 pub fn cancel_offer_use_case(writer: Principal, offer_id: u64) -> Result<Offer, VolumetricError> {
-    let mut offer =
-        get_offer(offer_id).ok_or_else(|| VolumetricError::offer_not_found(offer_id))?;
+    let mut offer = get_offer(offer_id).ok_or_else(|| {
+        VolumetricError::from_def(
+            error_codes::OFFER_NOT_FOUND,
+            Some(&format!("id: {}", offer_id)),
+            None,
+        )
+    })?;
 
     if offer.writer != writer {
-        return Err(VolumetricError::not_offer_owner());
+        return Err(VolumetricError::from_def(
+            error_codes::NOT_OFFER_OWNER,
+            None,
+            None,
+        ));
     }
 
     if !is_offer_status_cancellable(offer.status) {
-        return Err(VolumetricError::invalid_offer_state(&format!(
-            "cannot cancel offer with status: {:?}",
-            offer.status
-        )));
+        return Err(VolumetricError::from_def(
+            error_codes::INVALID_OFFER_STATE,
+            Some(&format!(
+                "cannot cancel offer with status: {:?}",
+                offer.status
+            )),
+            None,
+        ));
     }
 
     offer.status = OfferStatus::Cancelled;

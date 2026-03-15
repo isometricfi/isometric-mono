@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::auth::types::{AuthenticatedPayload, ChallengeContext, SignableAction, WalletKey};
 use crate::auth::{build_challenge_context, verify_btc_signature};
-use crate::errors::VolumetricError;
+use crate::errors::{error_codes, VolumetricError};
 use crate::guards::is_whitelisted;
 use crate::storage::{
     get_offer, get_principal_for_wallet, increment_nonce, list_offers_by_writer, Asset, Offer,
@@ -74,8 +74,8 @@ pub async fn create_offer(
 
     increment_nonce(&wallet_key);
 
-    let principal =
-        get_principal_for_wallet(&wallet_key).ok_or_else(VolumetricError::profile_not_found)?;
+    let principal = get_principal_for_wallet(&wallet_key)
+        .ok_or_else(|| VolumetricError::from_def(error_codes::PROFILE_NOT_FOUND, None, None))?;
 
     let params = usecases::CreateOfferParams {
         asset: req.data.asset,
@@ -130,8 +130,8 @@ pub async fn cancel_offer(
 
     increment_nonce(&wallet_key);
 
-    let principal =
-        get_principal_for_wallet(&wallet_key).ok_or_else(VolumetricError::profile_not_found)?;
+    let principal = get_principal_for_wallet(&wallet_key)
+        .ok_or_else(|| VolumetricError::from_def(error_codes::PROFILE_NOT_FOUND, None, None))?;
 
     usecases::cancel_offer_use_case(principal, req.data.offer_id)
 }
@@ -139,8 +139,8 @@ pub async fn cancel_offer(
 #[ic_cdk::query]
 pub fn get_my_offers(wallet_address: String) -> Result<Vec<Offer>, VolumetricError> {
     let wallet_key = WalletKey::from_address(&wallet_address);
-    let principal =
-        get_principal_for_wallet(&wallet_key).ok_or_else(VolumetricError::profile_not_found)?;
+    let principal = get_principal_for_wallet(&wallet_key)
+        .ok_or_else(|| VolumetricError::from_def(error_codes::PROFILE_NOT_FOUND, None, None))?;
 
     Ok(list_offers_by_writer(principal))
 }
