@@ -4,6 +4,7 @@ use icrc_ledger_types::icrc1::account::Account;
 use crate::auth::derive_subaccount;
 use crate::errors::{error_codes, VolumetricError};
 use crate::generated::ckbtc::{GetBtcAddressArg, UpdateBalanceArg, UtxoStatus};
+use crate::locks::BalanceMutationLock;
 use crate::storage::{
     add_available, emit_event, get_balance, set_balance, EventData, EventType, UserBalance,
 };
@@ -94,6 +95,8 @@ pub async fn sync_balance_from_ledger(principal: Principal) -> Result<u64, Volum
         ));
     }
 
+    let _sync_balance_lock = BalanceMutationLock::new(principal)?;
+
     let account = get_user_account(principal);
     let balance = ledger::icrc1_balance_of(account).await?;
 
@@ -128,6 +131,7 @@ pub async fn sync_balance_from_ledger(principal: Principal) -> Result<u64, Volum
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::cell::Cell;
     use std::rc::Rc;
 
     use async_trait::async_trait;
@@ -136,6 +140,7 @@ mod tests {
     use crate::generated::ckbtc::{Utxo, UtxoOutpoint, UtxoStatus};
     use crate::ic::IcRuntime;
     use crate::ledger::LedgerClient;
+    use crate::locks::BalanceMutationLock;
     use crate::minter::MinterClient;
     use crate::storage::get_balance;
 
@@ -177,6 +182,35 @@ mod tests {
             Ok(1)
         }
         async fn icrc1_balance_of(&self, _account: Account) -> Result<Nat, VolumetricError> {
+            Ok(self.balance.clone())
+        }
+        async fn icrc2_approve(&self, _args: ApproveArgs) -> Result<Nat, VolumetricError> {
+            Ok(Nat::from(0u64))
+        }
+    }
+
+    struct BalanceMutationLockProbeLedger {
+        balance: Nat,
+        principal: Principal,
+        lock_was_acquired_during_sync: Rc<Cell<bool>>,
+    }
+
+    #[async_trait(?Send)]
+    impl LedgerClient for BalanceMutationLockProbeLedger {
+        async fn icrc1_transfer(
+            &self,
+            _from_subaccount: Option<[u8; 32]>,
+            _to: Account,
+            _amount: u64,
+            _created_at_time: u64,
+        ) -> Result<u64, VolumetricError> {
+            Ok(1)
+        }
+        async fn icrc1_balance_of(&self, _account: Account) -> Result<Nat, VolumetricError> {
+            if let Ok(balance_mutation_lock) = BalanceMutationLock::new(self.principal) {
+                self.lock_was_acquired_during_sync.set(true);
+                drop(balance_mutation_lock);
+            }
             Ok(self.balance.clone())
         }
         async fn icrc2_approve(&self, _args: ApproveArgs) -> Result<Nat, VolumetricError> {
@@ -359,5 +393,57 @@ mod tests {
         let balance = get_balance(&principal);
         assert_eq!(balance.available, existing_balance.available);
         assert_eq!(balance.locked_as_writer, existing_balance.locked_as_writer);
+    }
+
+    /// Given: sync_balance_from_ledger is in progress
+    /// When: a ledger callback attempts to acquire the lock used by accept path
+    /// Then: the lock is not acquired during the sync window
+    #[tokio::test]
+    async fn test_sync_balance_from_ledger_blocks_accept_path_lock_during_await_window() {
+        // given
+        setup(LEDGER_BALANCE_SATS, vec![]);
+        let principal = test_principal();
+        let lock_was_acquired_during_sync = Rc::new(Cell::new(false));
+        ledger::set_ledger(Rc::new(BalanceMutationLockProbeLedger {
+            balance: Nat::from(LEDGER_BALANCE_SATS),
+            principal,
+            lock_was_acquired_during_sync: Rc::clone(&lock_was_acquired_during_sync),
+        }));
+
+        // when
+        let result = sync_balance_from_ledger(principal).await;
+
+        // then
+        assert!(result.is_ok());
+        assert!(
+            !lock_was_acquired_during_sync.get(),
+            "accept path lock should not be acquirable while sync is in progress"
+        );
+    }
+
+    /// Given: sync_balance_from_ledger is in progress
+    /// When: a ledger callback attempts to acquire the lock used by withdrawal path
+    /// Then: the lock is not acquired during the sync window
+    #[tokio::test]
+    async fn test_sync_balance_from_ledger_blocks_withdraw_path_lock_during_await_window() {
+        // given
+        setup(LEDGER_BALANCE_SATS, vec![]);
+        let principal = test_principal();
+        let lock_was_acquired_during_sync = Rc::new(Cell::new(false));
+        ledger::set_ledger(Rc::new(BalanceMutationLockProbeLedger {
+            balance: Nat::from(LEDGER_BALANCE_SATS),
+            principal,
+            lock_was_acquired_during_sync: Rc::clone(&lock_was_acquired_during_sync),
+        }));
+
+        // when
+        let result = sync_balance_from_ledger(principal).await;
+
+        // then
+        assert!(result.is_ok());
+        assert!(
+            !lock_was_acquired_during_sync.get(),
+            "withdraw path lock should not be acquirable while sync is in progress"
+        );
     }
 }

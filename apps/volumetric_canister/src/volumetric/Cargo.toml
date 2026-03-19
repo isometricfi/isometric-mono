@@ -24,6 +24,7 @@ getrandom = { version = "0.2", features = ["custom"] }
 async-trait = "0.1.89"
 ic-metrics-encoder = "1.1.2"
 ic-http-types = "0.1.0"
+scopeguard = "1.2.0"
 
 [features]
 testing = []

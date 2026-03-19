@@ -159,18 +159,7 @@ export function Settlement() {
             <div className="text-sm text-green-400 mb-2">Option Settled!</div>
             <div className="text-xs text-zinc-300 space-y-1">
               <div>Option ID: {forceSettleMutation.data.optionId}</div>
-              <div>
-                Settlement Price: $
-                {(Number(forceSettleMutation.data.settlementPriceCents) / 100).toLocaleString()}
-              </div>
-              <div>
-                Payout to Buyer: {Number(forceSettleMutation.data.payoutToBuyer).toLocaleString()}{" "}
-                sats
-              </div>
-              <div>
-                Payout to Writer: {Number(forceSettleMutation.data.payoutToWriter).toLocaleString()}{" "}
-                sats
-              </div>
+              <div>Status: {forceSettleMutation.data.status}</div>
             </div>
           </div>
         )}

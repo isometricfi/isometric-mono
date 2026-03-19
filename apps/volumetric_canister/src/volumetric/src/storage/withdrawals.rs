@@ -57,8 +57,6 @@ thread_local! {
             MEMORY_MANAGER.with_borrow(|m| m.get(ic_stable_structures::memory_manager::MemoryId::new(MemoryIndex::WithdrawalJournalMemory as u8))),
         )
     );
-
-    static WITHDRAWAL_ID_COUNTER: RefCell<u64> = const { RefCell::new(0) };
 }
 
 pub fn create_withdrawal(
@@ -68,11 +66,7 @@ pub fn create_withdrawal(
     created_at_time: u64,
 ) -> PendingWithdrawal {
     let now = ic::time();
-    let id = WITHDRAWAL_ID_COUNTER.with(|c| {
-        let mut counter = c.borrow_mut();
-        *counter += 1;
-        *counter
-    });
+    let id = super::next_id(super::CounterKey::WithdrawalJournalId);
 
     let withdrawal = PendingWithdrawal {
         id,
@@ -127,14 +121,14 @@ pub fn get_pending_withdrawals_by_principal(principal: Principal) -> Vec<Pending
             .borrow()
             .iter()
             .filter_map(|entry| {
-                let w = entry.value();
-                if w.principal == principal
+                let pending_withdraw = entry.value();
+                if pending_withdraw.principal == principal
                     && !matches!(
-                        w.phase,
+                        pending_withdraw.phase,
                         WithdrawalPhase::Completed { .. } | WithdrawalPhase::Failed { .. }
                     )
                 {
-                    Some(w)
+                    Some(pending_withdraw)
                 } else {
                     None
                 }

@@ -1,12 +1,15 @@
 use std::time::Duration;
 
+use crate::journaling::{cleanup_succeeded, retry_all_due};
 use crate::usecases::{cleanup_old_events_use_case, settle_expired_options_use_case};
 
+const WAL_RETRY_INTERVAL_SECS: u64 = 10;
 const ONE_HOUR_SECS: u64 = 60 * 60;
 const ONE_DAY_SECS: u64 = 24 * ONE_HOUR_SECS;
 
 pub fn setup_timers() {
     setup_event_cleanup_timer();
+    setup_wal_retry_timer();
     setup_settlement_timer();
 }
 
@@ -17,6 +20,19 @@ fn setup_event_cleanup_timer() {
         if result.deleted_count > 0 {
             ic_cdk::println!("Event cleanup: deleted {} old events", result.deleted_count);
         }
+        let removed_wal_entries = cleanup_succeeded();
+        if removed_wal_entries > 0 {
+            ic_cdk::println!(
+                "WAL cleanup: removed {} completed entries",
+                removed_wal_entries
+            );
+        }
+    });
+}
+
+fn setup_wal_retry_timer() {
+    ic_cdk_timers::set_timer_interval(Duration::from_secs(WAL_RETRY_INTERVAL_SECS), || async {
+        retry_all_due().await;
     });
 }
 

@@ -24,19 +24,26 @@ pub use admin::{
     set_term_days_range_use_case, set_trading_limits_use_case, set_withdraw_amount_sats_use_case,
     testing_set_ckbtc_ledger_use_case,
 };
+pub(crate) use balances::finalize_failed_withdrawal_wal;
 pub use balances::{
-    get_deposit_address, get_ledger_balance, get_user_balance_use_case, mint_ckbtc_from_utxos,
+    get_deposit_address, get_ledger_balance, get_user_balance_use_case,
+    get_withdraw_status_use_case, mint_ckbtc_from_utxos, run_withdrawal_wal,
     sync_balance_from_ledger, transfer_ckbtc, withdraw_ckbtc_use_case, DepositAddressResult,
-    UserBalanceResult, WithdrawParams, WithdrawResult,
+    UserBalanceResult, WithdrawParams, WithdrawReceipt, WithdrawResult, WithdrawStatus,
+    WithdrawalWalResult,
 };
 pub use events::cleanup_old_events_use_case;
+pub(crate) use offers::finalize_failed_accept_wal;
 pub use offers::{
-    accept_offers_use_case, cancel_offer_use_case, create_offer_use_case, get_open_offers_use_case,
-    AcceptOfferItem, AcceptOffersResult, CreateOfferParams,
+    accept_offers_use_case, cancel_offer_use_case, create_offer_use_case,
+    get_accept_status_use_case, get_open_offers_use_case, run_accept_wal, AcceptOfferItem,
+    AcceptOffersReceipt, AcceptOffersResult, AcceptOffersStatus, AcceptWalResult,
+    CreateOfferParams,
 };
 pub use options::{
-    get_my_options_use_case, get_my_written_options_use_case, settle_expired_options_use_case,
-    settle_option_by_id_use_case, testing_expire_option_use_case,
-    testing_force_settle_option_use_case, testing_set_option_expiry_use_case,
-    SettleExpiredOptionsResult, SettlementResult,
+    get_my_options_use_case, get_my_written_options_use_case, get_settlement_status_use_case,
+    run_settlement_wal, settle_expired_options_use_case, settle_option_by_id_use_case,
+    testing_expire_option_use_case, testing_force_settle_option_use_case,
+    testing_set_option_expiry_use_case, SettleExpiredOptionsResult, SettlementReceipt,
+    SettlementResult, SettlementStatus, SettlementWalResult,
 };

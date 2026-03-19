@@ -36,19 +36,19 @@ pub use offers::{
     get_offer_by_id, get_open_offers, CancelOfferRequest, CreateOfferRequest, CreateOfferResponse,
 };
 pub use options::{
-    accept_offers, get_accept_by_id, get_accept_offers_message, get_active_option_by_id,
-    get_failed_accepts, get_failed_settlements, get_my_options, get_my_written_options,
-    get_pending_accepts, get_pending_settlements_journal, get_settlement_by_id,
-    testing_clear_offers_and_options, AcceptOfferItem, AcceptOffersRequest, AcceptOffersResponse,
+    accept_offers, get_accept_by_id, get_accept_offers_message, get_accept_status,
+    get_active_option_by_id, get_failed_accepts, get_failed_settlements, get_my_options,
+    get_my_written_options, get_pending_accepts, get_pending_settlements_journal,
+    get_settlement_by_id, testing_clear_offers_and_options, AcceptOfferItem, AcceptOffersRequest,
     ClearStorageResponse,
 };
 pub use settlement::{
-    get_pending_settlements, settle_expired_options, settle_option_by_id, testing_expire_option,
-    testing_force_settle, testing_set_option_expiry, SettleExpiredOptionsResponse,
-    SettlementResult,
+    get_pending_settlements, get_settlement_status, settle_expired_options, settle_option_by_id,
+    testing_expire_option, testing_force_settle, testing_set_option_expiry,
+    SettleExpiredOptionsResponse, SettlementResult,
 };
 pub use whitelist::{add_whitelisted, list_whitelisted, remove_whitelisted};
 pub use withdrawals::{
     get_failed_withdrawals, get_my_pending_withdrawals, get_pending_withdrawals,
-    get_withdraw_message, get_withdrawal_by_id, withdraw_ckbtc,
+    get_withdraw_message, get_withdraw_status, get_withdrawal_by_id, withdraw_ckbtc,
 };

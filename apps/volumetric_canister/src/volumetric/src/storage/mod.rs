@@ -11,8 +11,8 @@ pub mod withdrawals;
 
 pub use accepts::{
     complete_accept, create_accept_journal_entry, fail_accept, get_accept, list_failed_accepts,
-    list_pending_accepts, remove_accept, update_accept_phase, AcceptPhase, AcceptedOffer,
-    PendingAccept,
+    list_pending_accepts, remove_accept, update_accept_execution_snapshot, update_accept_phase,
+    AcceptPhase, AcceptedOffer, PendingAccept,
 };
 pub use accounts::{
     create_profile, get_nonce, get_principal_for_wallet, get_profile, increment_nonce,
@@ -44,7 +44,7 @@ pub use settlements::{
     list_failed_settlements, list_pending_settlements_journal, remove_settlement,
     update_settlement_phase, PendingSettlement, SettlementPhase,
 };
-pub use state::{ConfigCell, MemoryIndex, CONFIG, MEMORY_MANAGER, WHITELIST};
+pub use state::{ConfigCell, Memory, MemoryIndex, CONFIG, MEMORY_MANAGER, WHITELIST};
 pub use withdrawals::{
     complete_withdrawal, create_withdrawal, fail_withdrawal, get_pending_withdrawals_by_principal,
     get_withdrawal, list_failed_withdrawals, list_pending_withdrawals, remove_withdrawal,
