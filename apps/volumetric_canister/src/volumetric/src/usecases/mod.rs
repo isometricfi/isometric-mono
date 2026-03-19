@@ -26,17 +26,17 @@ pub use admin::{
 };
 pub use balances::{
     get_deposit_address, get_ledger_balance, get_user_balance_use_case, mint_ckbtc_from_utxos,
-    sync_balance_from_ledger, transfer_ckbtc, withdraw_ckbtc_use_case, DepositAddressResult,
-    UserBalanceResult, WithdrawParams, WithdrawResult,
+    run_withdrawal_wal, sync_balance_from_ledger, transfer_ckbtc, withdraw_ckbtc_use_case,
+    DepositAddressResult, UserBalanceResult, WithdrawParams, WithdrawResult, WithdrawalWalResult,
 };
 pub use events::cleanup_old_events_use_case;
 pub use offers::{
     accept_offers_use_case, cancel_offer_use_case, create_offer_use_case, get_open_offers_use_case,
-    AcceptOfferItem, AcceptOffersResult, CreateOfferParams,
+    run_accept_wal, AcceptOfferItem, AcceptOffersResult, AcceptWalResult, CreateOfferParams,
 };
 pub use options::{
-    get_my_options_use_case, get_my_written_options_use_case, settle_expired_options_use_case,
-    settle_option_by_id_use_case, testing_expire_option_use_case,
+    get_my_options_use_case, get_my_written_options_use_case, run_settlement_wal,
+    settle_expired_options_use_case, settle_option_by_id_use_case, testing_expire_option_use_case,
     testing_force_settle_option_use_case, testing_set_option_expiry_use_case,
-    SettleExpiredOptionsResult, SettlementResult,
+    SettleExpiredOptionsResult, SettlementResult, SettlementWalResult,
 };

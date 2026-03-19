@@ -34,6 +34,8 @@ pub enum MemoryIndex {
     SettlementJournalMemory = 11,
     /// User activity events for history tracking
     EventsMemory = 12,
+    /// Durable WAL entries for async side effects
+    WalMemory = 13,
 }
 
 pub type Memory = VirtualMemory<DefaultMemoryImpl>;

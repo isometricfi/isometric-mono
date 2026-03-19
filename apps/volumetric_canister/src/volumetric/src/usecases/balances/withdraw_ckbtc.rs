@@ -1,14 +1,19 @@
-use candid::{Nat, Principal};
+use candid::{CandidType, Nat, Principal};
 use icrc_ledger_types::icrc1::account::Account;
+use serde::{Deserialize, Serialize};
 
 use crate::auth::derive_subaccount;
 use crate::errors::{error_codes, VolumetricError};
 use crate::generated::ckbtc::RetrieveBtcWithApprovalArgs;
+use crate::journaling::{
+    default_policy, enqueue_if_absent, execute_wal_entry_now, get_entry, register_retryable_error,
+    DispatchError, OperationId, RunOutcome, WalKind, WalPayload, WalResult, WithdrawalWalPayload,
+};
 use crate::locks::WithdrawalLock;
 use crate::storage::{
-    add_available, complete_withdrawal, create_withdrawal, emit_event, fail_withdrawal,
-    remove_withdrawal, subtract_available, update_withdrawal_phase, Config, EventData, EventType,
-    WithdrawalPhase,
+    add_available, complete_withdrawal, create_withdrawal, emit_event,
+    get_pending_withdrawals_by_principal, get_withdrawal, remove_withdrawal, subtract_available,
+    update_withdrawal_phase, Config, EventData, EventType, WithdrawalPhase,
 };
 use crate::{ic, ledger, minter};
 
@@ -22,12 +27,41 @@ pub struct WithdrawResult {
     pub block_index: u64,
 }
 
+#[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct WithdrawalWalResult {
+    pub block_index: u64,
+}
+
 pub async fn withdraw_ckbtc_use_case(
     principal: Principal,
     params: WithdrawParams,
+    request_nonce: u64,
 ) -> Result<WithdrawResult, VolumetricError> {
     // bind to _lock, not `let _ =` which drops immediately
     let _lock = WithdrawalLock::new(principal)?;
+
+    if !get_pending_withdrawals_by_principal(principal).is_empty() {
+        return Err(VolumetricError::from_def(
+            error_codes::WITHDRAWAL_IN_PROGRESS,
+            None,
+            None,
+        ));
+    }
+
+    let operation_id =
+        withdrawal_operation_id(principal, &params.btc_address, params.amount, request_nonce);
+    if let Some(existing_entry) = get_entry(operation_id) {
+        return match existing_entry.result {
+            Some(WalResult::Withdrawal(result)) => Ok(WithdrawResult {
+                block_index: result.block_index,
+            }),
+            _ => Err(VolumetricError::from_def(
+                error_codes::WITHDRAWAL_IN_PROGRESS,
+                Some("withdrawal already scheduled"),
+                None,
+            )),
+        };
+    }
 
     subtract_available(principal, params.amount).map_err(|e| {
         VolumetricError::from_def(
@@ -40,8 +74,6 @@ pub async fn withdraw_ckbtc_use_case(
         )
     })?;
 
-    let subaccount = derive_subaccount(principal);
-    let minter = Config::ckbtc_minter();
     let created_at_time = ic::time();
 
     let withdrawal = create_withdrawal(
@@ -52,76 +84,196 @@ pub async fn withdraw_ckbtc_use_case(
     );
     let withdrawal_id = withdrawal.id;
 
-    let approve_args = icrc_ledger_types::icrc2::approve::ApproveArgs {
-        from_subaccount: Some(subaccount),
-        spender: Account {
-            owner: minter,
-            subaccount: None,
-        },
-        amount: Nat::from(params.amount),
-        expected_allowance: None,
-        expires_at: None,
-        fee: None,
-        memo: None,
-        created_at_time: Some(created_at_time),
-    };
+    enqueue_if_absent(
+        operation_id,
+        WalKind::Withdrawal,
+        WalPayload::Withdrawal(WithdrawalWalPayload {
+            withdrawal_id,
+            principal,
+            amount_sats: params.amount,
+            btc_address: params.btc_address,
+            created_at_time_ns: created_at_time,
+        }),
+        default_policy(),
+    );
 
-    if let Err(e) = ledger::icrc2_approve(approve_args).await {
-        add_available(principal, params.amount);
-        fail_withdrawal(withdrawal_id, format!("icrc2_approve failed: {:?}", e));
-        return Err(e);
-    }
+    match execute_wal_entry_now(operation_id).await {
+        RunOutcome::Succeeded | RunOutcome::SucceededAlready => {
+            let wal_entry = get_entry(operation_id).ok_or_else(|| {
+                VolumetricError::from_def(
+                    error_codes::INTERNAL_ERROR,
+                    Some("withdrawal completed without wal entry"),
+                    None,
+                )
+            })?;
 
-    update_withdrawal_phase(withdrawal_id, WithdrawalPhase::Approved);
+            let wal_result = wal_entry.result.ok_or_else(|| {
+                VolumetricError::from_def(
+                    error_codes::INTERNAL_ERROR,
+                    Some("withdrawal completed without result"),
+                    None,
+                )
+            })?;
 
-    let btc_address = params.btc_address.clone();
-    let retrieve_args = RetrieveBtcWithApprovalArgs {
-        address: params.btc_address,
-        amount: params.amount,
-        from_subaccount: Some(serde_bytes::ByteBuf::from(subaccount.to_vec())),
-    };
-
-    match minter::retrieve_btc_with_approval(retrieve_args).await {
-        Ok(ok) => {
-            update_withdrawal_phase(
-                withdrawal_id,
-                WithdrawalPhase::RetrieveRequested {
-                    block_index: ok.block_index,
-                },
-            );
-            complete_withdrawal(withdrawal_id, ok.block_index);
-            remove_withdrawal(withdrawal_id);
-
-            emit_event(
-                principal,
-                EventType::Withdrawal,
-                EventData::Withdrawal {
-                    amount_sats: params.amount,
-                    destination: btc_address,
-                },
-            );
+            let withdrawal_wal_result = match wal_result {
+                WalResult::Withdrawal(result) => result,
+                _ => {
+                    return Err(VolumetricError::from_def(
+                        error_codes::INTERNAL_ERROR,
+                        Some("withdrawal completed with unexpected wal result type"),
+                        None,
+                    ));
+                }
+            };
 
             Ok(WithdrawResult {
-                block_index: ok.block_index,
+                block_index: withdrawal_wal_result.block_index,
             })
         }
-        Err(e) => {
+        RunOutcome::SkippedAlreadyInFlight | RunOutcome::FailedRetryable(_) => {
+            Err(VolumetricError::from_def(
+                error_codes::INTER_CANISTER_CALL_FAILED,
+                Some("withdrawal queued for retry"),
+                None,
+            ))
+        }
+        RunOutcome::FailedPermanent(message) => {
             add_available(principal, params.amount);
-            let reason = format!("retrieve_btc_with_approval failed: {:?}", e);
-            fail_withdrawal(withdrawal_id, reason.clone());
-
-            emit_event(
-                principal,
-                EventType::WithdrawalFailed,
-                EventData::WithdrawalFailed {
-                    amount_sats: params.amount,
-                    reason,
-                },
-            );
-
-            Err(e)
+            Err(VolumetricError::from_def(
+                error_codes::INTER_CANISTER_CALL_FAILED,
+                Some(&message),
+                None,
+            ))
         }
     }
+}
+
+pub async fn run_withdrawal_wal(
+    payload: &WithdrawalWalPayload,
+) -> Result<WithdrawalWalResult, DispatchError> {
+    let withdrawal = get_withdrawal(payload.withdrawal_id).ok_or_else(|| {
+        DispatchError::Permanent(format!(
+            "withdrawal journal {} not found",
+            payload.withdrawal_id
+        ))
+    })?;
+
+    let subaccount = derive_subaccount(payload.principal);
+    let minter = Config::ckbtc_minter();
+
+    if withdrawal.phase == WithdrawalPhase::Started {
+        let approve_args = icrc_ledger_types::icrc2::approve::ApproveArgs {
+            from_subaccount: Some(subaccount),
+            spender: Account {
+                owner: minter,
+                subaccount: None,
+            },
+            amount: Nat::from(payload.amount_sats),
+            expected_allowance: None,
+            expires_at: None,
+            fee: None,
+            memo: None,
+            created_at_time: Some(payload.created_at_time_ns),
+        };
+
+        ledger::icrc2_approve(approve_args)
+            .await
+            .map_err(map_withdrawal_approve_error)?;
+
+        update_withdrawal_phase(payload.withdrawal_id, WithdrawalPhase::Approved);
+    }
+
+    let withdrawal = get_withdrawal(payload.withdrawal_id).ok_or_else(|| {
+        DispatchError::Permanent(format!(
+            "withdrawal journal {} missing before retrieve",
+            payload.withdrawal_id
+        ))
+    })?;
+
+    if withdrawal.phase == WithdrawalPhase::Approved {
+        let retrieve_args = RetrieveBtcWithApprovalArgs {
+            address: payload.btc_address.clone(),
+            amount: payload.amount_sats,
+            from_subaccount: Some(serde_bytes::ByteBuf::from(subaccount.to_vec())),
+        };
+
+        let retrieve_result = minter::retrieve_btc_with_approval(retrieve_args).await;
+        let retrieve_ok = match retrieve_result {
+            Ok(ok) => ok,
+            Err(error) => return Err(map_withdrawal_error(error)),
+        };
+
+        update_withdrawal_phase(
+            payload.withdrawal_id,
+            WithdrawalPhase::RetrieveRequested {
+                block_index: retrieve_ok.block_index,
+            },
+        );
+        complete_withdrawal(payload.withdrawal_id, retrieve_ok.block_index);
+        remove_withdrawal(payload.withdrawal_id);
+
+        emit_event(
+            payload.principal,
+            EventType::Withdrawal,
+            EventData::Withdrawal {
+                amount_sats: payload.amount_sats,
+                destination: payload.btc_address.clone(),
+            },
+        );
+
+        return Ok(WithdrawalWalResult {
+            block_index: retrieve_ok.block_index,
+        });
+    }
+
+    match withdrawal.phase {
+        WithdrawalPhase::RetrieveRequested { block_index }
+        | WithdrawalPhase::Completed { block_index } => Ok(WithdrawalWalResult { block_index }),
+        _ => Err(DispatchError::Permanent(format!(
+            "withdrawal {} in unexpected phase {:?}",
+            payload.withdrawal_id, withdrawal.phase
+        ))),
+    }
+}
+
+fn withdrawal_operation_id(
+    principal: Principal,
+    btc_address: &str,
+    amount_sats: u64,
+    request_nonce: u64,
+) -> OperationId {
+    let amount_bytes = amount_sats.to_be_bytes();
+    let nonce_bytes = request_nonce.to_be_bytes();
+    OperationId::from_principal_bytes(
+        "withdrawal",
+        principal,
+        &[btc_address.as_bytes(), &amount_bytes, &nonce_bytes],
+    )
+}
+
+fn map_withdrawal_error(error: VolumetricError) -> DispatchError {
+    let lowercase_message = error.message.to_ascii_lowercase();
+    if lowercase_message.contains("malformed address")
+        || lowercase_message.contains("amount too low")
+        || lowercase_message.contains("insufficient allowance")
+        || lowercase_message.contains("insufficient funds")
+    {
+        return DispatchError::Permanent(error.to_string());
+    }
+
+    register_retryable_error(error)
+}
+
+fn map_withdrawal_approve_error(error: VolumetricError) -> DispatchError {
+    let lowercase_message = error.message.to_ascii_lowercase();
+    if lowercase_message.contains("approve denied")
+        || lowercase_message.contains("insufficient allowance")
+        || lowercase_message.contains("insufficient funds")
+    {
+        return DispatchError::Permanent(error.to_string());
+    }
+
+    register_retryable_error(error)
 }
 
 #[cfg(test)]
@@ -255,7 +407,7 @@ mod tests {
         fund_principal(principal, INITIAL_BALANCE_SATS);
 
         // when
-        let result = withdraw_ckbtc_use_case(principal, withdraw_params()).await;
+        let result = withdraw_ckbtc_use_case(principal, withdraw_params(), 1).await;
 
         // then
         let withdraw_result = result.unwrap();
@@ -278,7 +430,7 @@ mod tests {
         fund_principal(principal, insufficient_amount);
 
         // when
-        let result = withdraw_ckbtc_use_case(principal, withdraw_params()).await;
+        let result = withdraw_ckbtc_use_case(principal, withdraw_params(), 2).await;
 
         // then
         let err = result.unwrap_err();
@@ -290,7 +442,7 @@ mod tests {
 
     /// Given: ledger approve fails
     /// When: withdraw_ckbtc_use_case is called
-    /// Then: returns error and restores balance
+    /// Then: returns error and leaves the withdrawal pending for WAL retry
     #[tokio::test]
     async fn test_withdraw_approve_failure_restores_balance() {
         // given
@@ -310,7 +462,7 @@ mod tests {
         fund_principal(principal, INITIAL_BALANCE_SATS);
 
         // when
-        let result = withdraw_ckbtc_use_case(principal, withdraw_params()).await;
+        let result = withdraw_ckbtc_use_case(principal, withdraw_params(), 3).await;
 
         // then
         assert!(result.is_err());
@@ -340,11 +492,14 @@ mod tests {
         fund_principal(principal, INITIAL_BALANCE_SATS);
 
         // when
-        let result = withdraw_ckbtc_use_case(principal, withdraw_params()).await;
+        let result = withdraw_ckbtc_use_case(principal, withdraw_params(), 4).await;
 
         // then
         assert!(result.is_err());
         let balance = get_balance(&principal);
-        assert_eq!(balance.available, INITIAL_BALANCE_SATS);
+        assert_eq!(
+            balance.available,
+            INITIAL_BALANCE_SATS - WITHDRAW_AMOUNT_SATS
+        );
     }
 }

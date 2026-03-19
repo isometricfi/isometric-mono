@@ -1,13 +1,19 @@
+use candid::CandidType;
 use icrc_ledger_types::icrc1::account::Account;
+use serde::{Deserialize, Serialize};
 
 use crate::auth::derive_subaccount;
 use crate::errors::{error_codes, VolumetricError};
 use crate::ic;
+use crate::journaling::{
+    default_policy, enqueue_if_absent, execute_wal_entry_now, register_retryable_error,
+    DispatchError, OperationId, RunOutcome, SettlementWalPayload, WalKind, WalPayload,
+};
 use crate::locks::SettlementLock;
 use crate::oracle::get_btc_usd_price_cents;
 use crate::storage::{
     add_platform_fee, calculate_call_option_payout, calculate_profit_fee, complete_settlement,
-    create_settlement, emit_event, fail_settlement, get_active_option, get_fee_recipient,
+    create_settlement, emit_event, get_active_option, get_fee_recipient, get_settlement,
     list_expired_active_options, release_locked_to_buyer, remove_settlement, subtract_available,
     unlock_collateral, update_active_option, update_settlement_phase, ActiveOption,
     ActiveOptionStatus, EventData, EventType, OptionType, SettlementPhase, TradeRole,
@@ -22,6 +28,11 @@ pub struct SettlementResult {
     pub payout_to_writer: u64,
     pub profit_fee: u64,
     pub status: ActiveOptionStatus,
+}
+
+#[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct SettlementWalResult {
+    pub option_id: u64,
 }
 
 pub struct SettleExpiredOptionsResult {
@@ -41,7 +52,13 @@ pub async fn settle_single_option(
             None,
         )
     })?;
-    let created_at_time = ic::time();
+    if option.status == ActiveOptionStatus::Settling {
+        return Err(VolumetricError::from_def(
+            error_codes::OPTION_SETTLING,
+            None,
+            None,
+        ));
+    }
 
     ic::log(&format!(
         "settle_single_option: id={}, status={:?}, settlement_price={}",
@@ -75,6 +92,7 @@ pub async fn settle_single_option(
 
     let payout_to_buyer = gross_payout_to_buyer.saturating_sub(profit_fee);
     let payout_to_writer = option.quantity.saturating_sub(gross_payout_to_buyer);
+    let created_at_time_ns = ic::time();
 
     ic::log(&format!(
         "settle_single_option: quantity={}, gross_payout_buyer={}, profit_fee={}, net_payout_buyer={}, payout_writer={}",
@@ -90,158 +108,40 @@ pub async fn settle_single_option(
         settlement_price_cents,
     );
 
-    if gross_payout_to_buyer > 0 {
-        let writer_subaccount = derive_subaccount(option.writer);
-        let buyer_subaccount = derive_subaccount(option.buyer);
+    let operation_id = settlement_operation_id(option.id);
+    enqueue_if_absent(
+        operation_id,
+        WalKind::Settlement,
+        WalPayload::Settlement(SettlementWalPayload {
+            option_id: option.id,
+            settlement_price_cents,
+            created_at_time_ns,
+        }),
+        default_policy(),
+    );
 
-        ic::log(&format!(
-            "settle: transferring {} from writer to buyer",
-            payout_to_buyer
-        ));
-
-        if let Err(e) = transfer_ckbtc(
-            Some(writer_subaccount),
-            Account {
-                owner: ic::canister_self(),
-                subaccount: Some(buyer_subaccount),
-            },
+    match execute_wal_entry_now(operation_id).await {
+        RunOutcome::Succeeded | RunOutcome::SucceededAlready => Ok(SettlementResult {
+            option_id: option.id,
+            settlement_price_cents,
             payout_to_buyer,
-            created_at_time,
-        )
-        .await
-        {
-            ic::log(&format!("settle: buyer transfer failed: {:?}", e));
-            option.status = ActiveOptionStatus::Active;
-            update_active_option(option.clone());
-            fail_settlement(option.id, format!("transfer_ckbtc failed: {:?}", e));
-            return Err(e);
-        }
-
-        release_locked_to_buyer(option.writer, option.buyer, payout_to_buyer).map_err(|e| {
-            VolumetricError::from_def(
-                error_codes::INSUFFICIENT_BALANCE,
-                Some(&format!(
-                    "available: {}, required: {}",
-                    e.available, e.required
-                )),
+            payout_to_writer,
+            profit_fee,
+            status: ActiveOptionStatus::Settled,
+        }),
+        RunOutcome::SkippedAlreadyInFlight | RunOutcome::FailedRetryable(_) => {
+            Err(VolumetricError::from_def(
+                error_codes::INTER_CANISTER_CALL_FAILED,
+                Some("settlement queued for retry"),
                 None,
-            )
-        })?;
-
-        if profit_fee > 0 {
-            unlock_collateral(option.writer, profit_fee).map_err(|e| {
-                VolumetricError::from_def(
-                    error_codes::INSUFFICIENT_BALANCE,
-                    Some(&format!(
-                        "available: {}, required: {}",
-                        e.available, e.required
-                    )),
-                    None,
-                )
-            })?;
+            ))
         }
-
-        update_settlement_phase(option.id, SettlementPhase::BalanceReleased);
-
-        if profit_fee > 0 {
-            ic::log(&format!(
-                "settle: transferring profit fee {} to platform",
-                profit_fee
-            ));
-
-            if let Err(e) = transfer_ckbtc(
-                Some(writer_subaccount),
-                Account {
-                    owner: get_fee_recipient(),
-                    subaccount: None,
-                },
-                profit_fee,
-                created_at_time,
-            )
-            .await
-            {
-                ic::log(&format!(
-                    "settle: profit fee transfer failed: {:?}, continuing anyway",
-                    e
-                ));
-            } else {
-                add_platform_fee(profit_fee);
-                // Deduct profit fee from writer's available balance since it was transferred to platform
-                if let Err(e) = subtract_available(option.writer, profit_fee) {
-                    ic::log(&format!(
-                        "settle: CRITICAL - failed to subtract profit fee from writer balance: {:?}",
-                        e
-                    ));
-                }
-            }
-        }
-
-        update_settlement_phase(option.id, SettlementPhase::TransferComplete);
+        RunOutcome::FailedPermanent(message) => Err(VolumetricError::from_def(
+            error_codes::INTER_CANISTER_CALL_FAILED,
+            Some(&message),
+            None,
+        )),
     }
-
-    if payout_to_writer > 0 {
-        unlock_collateral(option.writer, payout_to_writer).map_err(|e| {
-            VolumetricError::from_def(
-                error_codes::INSUFFICIENT_BALANCE,
-                Some(&format!(
-                    "available: {}, required: {}",
-                    e.available, e.required
-                )),
-                None,
-            )
-        })?;
-    }
-
-    option.status = ActiveOptionStatus::Settled;
-    update_active_option(option.clone());
-
-    complete_settlement(option.id);
-    remove_settlement(option.id);
-
-    let settled_at_ns = ic::time();
-
-    emit_event(
-        option.buyer,
-        EventType::OptionSettled,
-        EventData::OptionSettled {
-            option_id: option.id,
-            quantity_sats: option.quantity,
-            entry_price_cents: option.entry_price_cents,
-            strike_price_cents: option.strike_price_cents,
-            settlement_price_cents,
-            premium_sats: option.premium_paid,
-            payout_sats: payout_to_buyer,
-            accepted_at_ns: option.accepted_at,
-            settled_at_ns,
-            role: TradeRole::Buyer,
-        },
-    );
-
-    emit_event(
-        option.writer,
-        EventType::OptionSettled,
-        EventData::OptionSettled {
-            option_id: option.id,
-            quantity_sats: option.quantity,
-            entry_price_cents: option.entry_price_cents,
-            strike_price_cents: option.strike_price_cents,
-            settlement_price_cents,
-            premium_sats: option.premium_paid,
-            payout_sats: payout_to_writer,
-            accepted_at_ns: option.accepted_at,
-            settled_at_ns,
-            role: TradeRole::Writer,
-        },
-    );
-
-    Ok(SettlementResult {
-        option_id: option.id,
-        settlement_price_cents,
-        payout_to_buyer,
-        payout_to_writer,
-        profit_fee,
-        status: ActiveOptionStatus::Settled,
-    })
 }
 
 pub async fn settle_expired_options_use_case() -> SettleExpiredOptionsResult {
@@ -267,6 +167,161 @@ pub async fn settle_expired_options_use_case() -> SettleExpiredOptionsResult {
     }
 
     SettleExpiredOptionsResult { settled, errors }
+}
+
+pub async fn run_settlement_wal(
+    payload: &SettlementWalPayload,
+) -> Result<SettlementWalResult, DispatchError> {
+    let mut option = get_active_option(payload.option_id).ok_or_else(|| {
+        DispatchError::Permanent(format!("settlement option {} not found", payload.option_id))
+    })?;
+
+    let settlement = get_settlement(payload.option_id).ok_or_else(|| {
+        DispatchError::Permanent(format!(
+            "settlement journal {} not found",
+            payload.option_id
+        ))
+    })?;
+
+    if option.status == ActiveOptionStatus::Settled {
+        return Ok(SettlementWalResult {
+            option_id: option.id,
+        });
+    }
+
+    let writer_subaccount = derive_subaccount(option.writer);
+    let buyer_subaccount = derive_subaccount(option.buyer);
+    let payout_to_buyer = settlement.payout_to_buyer;
+    let payout_to_writer = settlement.payout_to_writer;
+    let gross_payout_to_buyer = option.quantity.saturating_sub(payout_to_writer);
+    let profit_fee = gross_payout_to_buyer.saturating_sub(payout_to_buyer);
+
+    if settlement.phase == SettlementPhase::Started && payout_to_buyer > 0 {
+        transfer_ckbtc(
+            Some(writer_subaccount),
+            Account {
+                owner: ic::canister_self(),
+                subaccount: Some(buyer_subaccount),
+            },
+            payout_to_buyer,
+            payload.created_at_time_ns,
+        )
+        .await
+        .map_err(register_retryable_error)?;
+
+        update_settlement_phase(option.id, SettlementPhase::TransferComplete);
+    }
+
+    let settlement = get_settlement(payload.option_id).ok_or_else(|| {
+        DispatchError::Permanent(format!(
+            "settlement journal {} missing after transfer",
+            option.id
+        ))
+    })?;
+
+    if matches!(
+        settlement.phase,
+        SettlementPhase::Started | SettlementPhase::TransferComplete
+    ) {
+        if payout_to_buyer > 0 {
+            release_locked_to_buyer(option.writer, option.buyer, payout_to_buyer)
+                .map_err(map_balance_error_to_permanent)?;
+
+            if profit_fee > 0 {
+                unlock_collateral(option.writer, profit_fee)
+                    .map_err(map_balance_error_to_permanent)?;
+            }
+        }
+
+        update_settlement_phase(option.id, SettlementPhase::BalanceReleased);
+    }
+
+    let settlement = get_settlement(payload.option_id).ok_or_else(|| {
+        DispatchError::Permanent(format!(
+            "settlement journal {} missing before finalization",
+            option.id
+        ))
+    })?;
+
+    if settlement.phase == SettlementPhase::BalanceReleased && profit_fee > 0 {
+        transfer_ckbtc(
+            Some(writer_subaccount),
+            Account {
+                owner: get_fee_recipient(),
+                subaccount: None,
+            },
+            profit_fee,
+            payload.created_at_time_ns,
+        )
+        .await
+        .map_err(register_retryable_error)?;
+
+        add_platform_fee(profit_fee);
+        subtract_available(option.writer, profit_fee).map_err(map_balance_error_to_permanent)?;
+    }
+
+    if payout_to_writer > 0 {
+        unlock_collateral(option.writer, payout_to_writer)
+            .map_err(map_balance_error_to_permanent)?;
+    }
+
+    option.status = ActiveOptionStatus::Settled;
+    update_active_option(option.clone());
+
+    complete_settlement(option.id);
+    remove_settlement(option.id);
+
+    let settled_at_ns = ic::time();
+
+    emit_event(
+        option.buyer,
+        EventType::OptionSettled,
+        EventData::OptionSettled {
+            option_id: option.id,
+            quantity_sats: option.quantity,
+            entry_price_cents: option.entry_price_cents,
+            strike_price_cents: option.strike_price_cents,
+            settlement_price_cents: payload.settlement_price_cents,
+            premium_sats: option.premium_paid,
+            payout_sats: payout_to_buyer,
+            accepted_at_ns: option.accepted_at,
+            settled_at_ns,
+            role: TradeRole::Buyer,
+        },
+    );
+
+    emit_event(
+        option.writer,
+        EventType::OptionSettled,
+        EventData::OptionSettled {
+            option_id: option.id,
+            quantity_sats: option.quantity,
+            entry_price_cents: option.entry_price_cents,
+            strike_price_cents: option.strike_price_cents,
+            settlement_price_cents: payload.settlement_price_cents,
+            premium_sats: option.premium_paid,
+            payout_sats: payout_to_writer,
+            accepted_at_ns: option.accepted_at,
+            settled_at_ns,
+            role: TradeRole::Writer,
+        },
+    );
+
+    Ok(SettlementWalResult {
+        option_id: option.id,
+    })
+}
+
+fn settlement_operation_id(option_id: u64) -> OperationId {
+    let option_id_bytes = option_id.to_be_bytes();
+    OperationId::from_parts(&[b"settlement", &option_id_bytes])
+}
+
+fn map_balance_error_to_permanent(error: crate::storage::InsufficientBalance) -> DispatchError {
+    DispatchError::Permanent(format!(
+        "insufficient balance during settlement recovery: available={}, required={}",
+        error.available, error.required
+    ))
 }
 
 pub async fn settle_option_by_id_use_case(
@@ -473,7 +528,7 @@ mod tests {
 
     /// Given: settlement needs to pay the buyer and collect a profit fee
     /// When: the first ledger transfer to the buyer fails
-    /// Then: no internal balance changes leak across the await boundary
+    /// Then: no internal balance changes leak across the await boundary and WAL recovery keeps the option pending
     #[tokio::test]
     async fn test_settle_single_option_keeps_balances_atomic_on_buyer_transfer_failure() {
         // given
@@ -501,9 +556,9 @@ mod tests {
         assert_eq!(buyer_balance.locked_as_writer, 0);
 
         let option = get_active_option(TEST_OPTION_ID).expect("option should remain in storage");
-        assert_eq!(option.status, ActiveOptionStatus::Active);
+        assert_eq!(option.status, ActiveOptionStatus::Settling);
 
         let settlement = get_settlement(TEST_OPTION_ID).expect("failed settlement should remain");
-        assert!(matches!(settlement.phase, SettlementPhase::Failed { .. }));
+        assert_eq!(settlement.phase, SettlementPhase::Started);
     }
 }

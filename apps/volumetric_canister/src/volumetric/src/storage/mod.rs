@@ -44,7 +44,7 @@ pub use settlements::{
     list_failed_settlements, list_pending_settlements_journal, remove_settlement,
     update_settlement_phase, PendingSettlement, SettlementPhase,
 };
-pub use state::{ConfigCell, MemoryIndex, CONFIG, MEMORY_MANAGER, WHITELIST};
+pub use state::{ConfigCell, Memory, MemoryIndex, CONFIG, MEMORY_MANAGER, WHITELIST};
 pub use withdrawals::{
     complete_withdrawal, create_withdrawal, fail_withdrawal, get_pending_withdrawals_by_principal,
     get_withdrawal, list_failed_withdrawals, list_pending_withdrawals, remove_withdrawal,

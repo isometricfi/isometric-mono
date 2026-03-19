@@ -9,6 +9,7 @@ pub mod errors;
 pub mod generated;
 pub mod guards;
 pub mod ic;
+pub mod journaling;
 pub mod ledger;
 pub mod locks;
 pub mod minter;

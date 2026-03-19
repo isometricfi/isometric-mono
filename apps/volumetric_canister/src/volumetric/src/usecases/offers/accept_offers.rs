@@ -1,21 +1,28 @@
 use std::collections::BTreeMap;
 
-use candid::Principal;
+use candid::{CandidType, Principal};
 use icrc_ledger_types::icrc1::account::Account;
+use serde::{Deserialize, Serialize};
 
 use crate::auth::derive_subaccount;
 use crate::errors::{error_codes, VolumetricError};
 use crate::guards::{validate_offer_params, OfferParams};
 use crate::ic;
+use crate::journaling::{
+    default_policy, enqueue_if_absent, execute_wal_entry_now, get_entry, register_retryable_error,
+    AcceptWalPayload, AcceptWalPreparedAccept, AcceptWalTransfer, DispatchError, OperationId,
+    RunOutcome, WalKind, WalPayload, WalResult,
+};
 use crate::locks::AcceptLock;
 use crate::oracle::get_btc_usd_price_cents;
 use crate::storage::{
     add_available, add_platform_fee, calculate_premium_fee, calculate_premium_in_sats,
     calculate_strike_price_in_cents, complete_accept, create_accept_journal_entry, emit_event,
-    fail_accept, get_balance, get_fee_recipient, get_offer, insert_active_option, lock_collateral,
-    next_id, remove_accept, subtract_available, unlock_collateral, update_accept_phase,
-    update_offer, AcceptPhase, AcceptedOffer, ActiveOption, ActiveOptionStatus, Asset, Config,
-    CounterKey, EventData, EventType, OfferStatus, OptionType, TradeRole, CKBTC_TRANSFER_FEE,
+    fail_accept, get_active_option, get_balance, get_fee_recipient, get_offer,
+    insert_active_option, list_pending_accepts, lock_collateral, next_id, remove_accept,
+    subtract_available, unlock_collateral, update_accept_phase, update_offer, AcceptPhase,
+    AcceptedOffer, ActiveOption, ActiveOptionStatus, Asset, Config, CounterKey, EventData,
+    EventType, OfferStatus, OptionType, TradeRole, CKBTC_TRANSFER_FEE,
 };
 use crate::time::calculate_expiry_ns;
 
@@ -31,10 +38,15 @@ pub struct AcceptOffersResult {
     pub fill_group_id: u64,
 }
 
+#[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct AcceptWalResult {
+    pub option_ids: Vec<u64>,
+    pub fill_group_id: u64,
+}
+
 struct PreparedAcceptBatch {
     prepared_accepts: Vec<PreparedAccept>,
     total_premium_required_sats: u64,
-    writer_transfers: Vec<PendingPremiumTransfer>,
     total_platform_fee_sats: u64,
 }
 
@@ -55,12 +67,6 @@ struct PreparedAccept {
     profit_fee_basis_points: u64,
 }
 
-struct PendingPremiumTransfer {
-    from_subaccount: Option<[u8; 32]>,
-    to: Account,
-    amount_sats: u64,
-}
-
 struct LockedCollateralState {
     writer: Principal,
     collateral_locked_sats: u64,
@@ -72,10 +78,22 @@ struct LockedCollateralState {
 pub async fn accept_offers_use_case(
     buyer_principal: Principal,
     accept_offer_items: Vec<AcceptOfferItem>,
+    request_nonce: u64,
 ) -> Result<AcceptOffersResult, VolumetricError> {
     // bind to _lock, not `let _ =` which drops immediately
     let _buyer_accept_lock = AcceptLock::new(buyer_principal)?;
     let ledger_transfer_created_at_time_ns = ic::time();
+
+    if list_pending_accepts()
+        .into_iter()
+        .any(|pending_accept| pending_accept.buyer == buyer_principal)
+    {
+        return Err(VolumetricError::from_def(
+            error_codes::ACCEPT_IN_PROGRESS,
+            None,
+            None,
+        ));
+    }
 
     if accept_offer_items.is_empty() {
         return Err(VolumetricError::from_def(
@@ -83,6 +101,25 @@ pub async fn accept_offers_use_case(
             Some("No items to accept"),
             None,
         ));
+    }
+
+    let operation_id = accept_operation_id(buyer_principal, &accept_offer_items, request_nonce);
+    if let Some(existing_wal_entry) = get_entry(operation_id) {
+        match existing_wal_entry.result {
+            Some(WalResult::Accept(existing_accept_result)) => {
+                return Ok(AcceptOffersResult {
+                    active_options: load_active_options_by_ids(&existing_accept_result.option_ids)?,
+                    fill_group_id: existing_accept_result.fill_group_id,
+                });
+            }
+            _ => {
+                return Err(VolumetricError::from_def(
+                    error_codes::ACCEPT_IN_PROGRESS,
+                    Some("accept already scheduled"),
+                    None,
+                ));
+            }
+        }
     }
 
     if is_stitched_accept_request(&accept_offer_items) && !Config::is_stitching_enabled() {
@@ -151,35 +188,79 @@ pub async fn accept_offers_use_case(
 
     update_accept_phase(accept_journal_entry_id, AcceptPhase::BuyerDebited);
 
-    let platform_fee_collected = await_writer_and_fee_transfers(
-        buyer_principal,
-        prepared_accept_batch.writer_transfers,
-        prepared_accept_batch.total_platform_fee_sats,
-        &locked_collateral_states,
-        prepared_accept_batch.total_premium_required_sats,
+    let wal_payload = build_accept_wal_payload(
         accept_journal_entry_id,
-        ledger_transfer_created_at_time_ns,
-    )
-    .await?;
-
-    update_accept_phase(accept_journal_entry_id, AcceptPhase::TransfersComplete);
-
-    let created_active_options = create_active_options_from_acceptances(
         buyer_principal,
+        fill_group_id,
+        prepared_accept_batch.total_platform_fee_sats,
+        ledger_transfer_created_at_time_ns,
         &prepared_accept_batch.prepared_accepts,
-        platform_fee_collected,
         entry_price_cents,
         current_time_ns,
-        fill_group_id,
     );
 
-    complete_accept(accept_journal_entry_id);
-    remove_accept(accept_journal_entry_id);
+    enqueue_if_absent(
+        operation_id,
+        WalKind::Accept,
+        WalPayload::Accept(wal_payload.clone()),
+        default_policy(),
+    );
 
-    Ok(AcceptOffersResult {
-        active_options: created_active_options,
-        fill_group_id,
-    })
+    match execute_wal_entry_now(operation_id).await {
+        RunOutcome::Succeeded | RunOutcome::SucceededAlready => {
+            let wal_entry = get_entry(operation_id).ok_or_else(|| {
+                VolumetricError::from_def(
+                    error_codes::INTERNAL_ERROR,
+                    Some("accept completed without wal entry"),
+                    None,
+                )
+            })?;
+
+            let wal_result = wal_entry.result.ok_or_else(|| {
+                VolumetricError::from_def(
+                    error_codes::INTERNAL_ERROR,
+                    Some("accept completed without result"),
+                    None,
+                )
+            })?;
+
+            let accept_wal_result = match wal_result {
+                WalResult::Accept(result) => result,
+                _ => {
+                    return Err(VolumetricError::from_def(
+                        error_codes::INTERNAL_ERROR,
+                        Some("accept completed with unexpected wal result type"),
+                        None,
+                    ));
+                }
+            };
+
+            Ok(AcceptOffersResult {
+                active_options: load_active_options_by_ids(&accept_wal_result.option_ids)?,
+                fill_group_id: accept_wal_result.fill_group_id,
+            })
+        }
+        RunOutcome::SkippedAlreadyInFlight | RunOutcome::FailedRetryable(_) => {
+            Err(VolumetricError::from_def(
+                error_codes::INTER_CANISTER_CALL_FAILED,
+                Some("accept queued for retry"),
+                None,
+            ))
+        }
+        RunOutcome::FailedPermanent(message) => {
+            rollback_locked_collateral_states_and_offers(&locked_collateral_states);
+            add_available(
+                buyer_principal,
+                prepared_accept_batch.total_premium_required_sats,
+            );
+            fail_accept(accept_journal_entry_id, message.clone());
+            Err(VolumetricError::from_def(
+                error_codes::INTER_CANISTER_CALL_FAILED,
+                Some(&message),
+                None,
+            ))
+        }
+    }
 }
 
 fn is_stitched_accept_request(accept_offer_items: &[AcceptOfferItem]) -> bool {
@@ -287,16 +368,14 @@ fn prepare_offer_acceptances(
         });
     }
 
-    let writer_transfers = build_writer_transfers(buyer_principal, writer_premium_by_principal);
     let total_transfer_count =
-        writer_transfers.len() as u64 + u64::from(total_platform_fee_sats > 0);
+        writer_premium_by_principal.len() as u64 + u64::from(total_platform_fee_sats > 0);
     let total_premium_required_sats =
         total_premium_sats.saturating_add(total_transfer_count * CKBTC_TRANSFER_FEE);
 
     Ok(PreparedAcceptBatch {
         prepared_accepts,
         total_premium_required_sats,
-        writer_transfers,
         total_platform_fee_sats,
     })
 }
@@ -369,26 +448,78 @@ fn is_offer_status_acceptable_for_acceptance(status: OfferStatus) -> bool {
     matches!(status, OfferStatus::Open | OfferStatus::PartiallyFilled)
 }
 
-fn build_writer_transfers(
-    buyer_principal: Principal,
-    writer_premium_by_principal: BTreeMap<Principal, u64>,
-) -> Vec<PendingPremiumTransfer> {
-    let buyer_subaccount = derive_subaccount(buyer_principal);
-    let mut writer_transfers = Vec::with_capacity(writer_premium_by_principal.len());
+fn build_accept_wal_payload(
+    accept_journal_entry_id: u64,
+    buyer: Principal,
+    fill_group_id: u64,
+    total_platform_fee_sats: u64,
+    created_at_time_ns: u64,
+    prepared_accepts: &[PreparedAccept],
+    entry_price_cents: u64,
+    accepted_at_ns: u64,
+) -> AcceptWalPayload {
+    AcceptWalPayload {
+        accept_journal_entry_id,
+        buyer,
+        fill_group_id,
+        total_platform_fee_sats,
+        created_at_time_ns,
+        prepared_accepts: build_accept_wal_prepared_accepts(
+            prepared_accepts,
+            entry_price_cents,
+            accepted_at_ns,
+        ),
+        writer_transfers: build_accept_wal_transfers(prepared_accepts),
+    }
+}
 
-    for (writer_principal, premium_to_writer_sats) in writer_premium_by_principal {
-        let writer_subaccount = derive_subaccount(writer_principal);
-        writer_transfers.push(PendingPremiumTransfer {
-            from_subaccount: Some(buyer_subaccount),
-            to: Account {
-                owner: ic::canister_self(),
-                subaccount: Some(writer_subaccount),
-            },
-            amount_sats: premium_to_writer_sats,
-        });
+fn build_accept_wal_prepared_accepts(
+    prepared_accepts: &[PreparedAccept],
+    entry_price_cents: u64,
+    accepted_at_ns: u64,
+) -> Vec<AcceptWalPreparedAccept> {
+    prepared_accepts
+        .iter()
+        .map(|prepared_accept| AcceptWalPreparedAccept {
+            offer_id: prepared_accept.offer_id,
+            writer: prepared_accept.writer,
+            asset: prepared_accept.asset,
+            option_type: prepared_accept.option_type,
+            quantity_sats: prepared_accept.quantity_sats,
+            premium_sats: prepared_accept.premium_sats,
+            premium_to_writer_sats: prepared_accept.premium_to_writer_sats,
+            premium_fee_sats: prepared_accept.premium_fee_sats,
+            option_id: prepared_accept.option_id,
+            expiry_ns: prepared_accept.expiry_ns,
+            strike_price_cents: calculate_strike_price_in_cents(
+                entry_price_cents,
+                prepared_accept.strike_basis_points,
+            ),
+            entry_price_cents,
+            accepted_at_ns,
+            profit_fee_basis_points: prepared_accept.profit_fee_basis_points,
+        })
+        .collect()
+}
+
+fn build_accept_wal_transfers(prepared_accepts: &[PreparedAccept]) -> Vec<AcceptWalTransfer> {
+    let mut premium_by_writer: BTreeMap<Principal, u64> = BTreeMap::new();
+    for prepared_accept in prepared_accepts {
+        premium_by_writer
+            .entry(prepared_accept.writer)
+            .and_modify(|premium_sats| {
+                *premium_sats = premium_sats.saturating_add(prepared_accept.premium_to_writer_sats);
+            })
+            .or_insert(prepared_accept.premium_to_writer_sats);
     }
 
-    writer_transfers
+    premium_by_writer
+        .into_iter()
+        .map(|(writer, amount_sats)| AcceptWalTransfer {
+            writer,
+            amount_sats,
+        })
+        .collect()
 }
 
 fn build_accepted_offers_for_journal(prepared_accepts: &[PreparedAccept]) -> Vec<AcceptedOffer> {
@@ -451,49 +582,82 @@ fn lock_collateral_for_offer_acceptances(
     Ok(locked_collateral_states)
 }
 
-async fn await_writer_and_fee_transfers(
-    buyer_principal: Principal,
-    writer_transfers: Vec<PendingPremiumTransfer>,
-    total_platform_fee_sats: u64,
-    locked_collateral_states: &[LockedCollateralState],
-    total_premium_required_sats: u64,
-    accept_journal_entry_id: u64,
-    ledger_transfer_created_at_time_ns: u64,
-) -> Result<bool, VolumetricError> {
-    for writer_transfer in writer_transfers {
-        if let Err(e) = transfer_ckbtc(
-            writer_transfer.from_subaccount,
-            writer_transfer.to,
-            writer_transfer.amount_sats,
-            ledger_transfer_created_at_time_ns,
-        )
-        .await
-        {
-            rollback_locked_collateral_states_and_offers(locked_collateral_states);
-            add_available(buyer_principal, total_premium_required_sats);
-            fail_accept(
-                accept_journal_entry_id,
-                format!("transfer_ckbtc failed: {:?}", e),
-            );
-            return Err(e);
-        }
+pub async fn run_accept_wal(payload: &AcceptWalPayload) -> Result<AcceptWalResult, DispatchError> {
+    let accept = crate::storage::get_accept(payload.accept_journal_entry_id).ok_or_else(|| {
+        DispatchError::Permanent(format!(
+            "accept journal {} not found",
+            payload.accept_journal_entry_id
+        ))
+    })?;
+    let mut platform_fee_collected = payload.total_platform_fee_sats == 0;
+
+    if accept.phase == AcceptPhase::BuyerDebited {
+        platform_fee_collected = await_wal_writer_and_fee_transfers(payload).await?;
+        update_accept_phase(
+            payload.accept_journal_entry_id,
+            AcceptPhase::TransfersComplete,
+        );
     }
 
-    if total_platform_fee_sats > 0 {
-        let fee_transfer_amount_sats = total_platform_fee_sats.saturating_add(CKBTC_TRANSFER_FEE);
+    let accept = crate::storage::get_accept(payload.accept_journal_entry_id).ok_or_else(|| {
+        DispatchError::Permanent(format!(
+            "accept journal {} missing before finalization",
+            payload.accept_journal_entry_id
+        ))
+    })?;
+
+    if accept.phase == AcceptPhase::TransfersComplete {
+        create_active_options_from_wal_payload(payload, platform_fee_collected)?;
+        complete_accept(payload.accept_journal_entry_id);
+        remove_accept(payload.accept_journal_entry_id);
+    }
+
+    Ok(AcceptWalResult {
+        option_ids: payload
+            .prepared_accepts
+            .iter()
+            .map(|prepared_accept| prepared_accept.option_id)
+            .collect(),
+        fill_group_id: payload.fill_group_id,
+    })
+}
+
+async fn await_wal_writer_and_fee_transfers(
+    payload: &AcceptWalPayload,
+) -> Result<bool, DispatchError> {
+    for writer_transfer in &payload.writer_transfers {
+        transfer_ckbtc(
+            Some(derive_subaccount(payload.buyer)),
+            Account {
+                owner: ic::canister_self(),
+                subaccount: Some(derive_subaccount(writer_transfer.writer)),
+            },
+            writer_transfer.amount_sats,
+            payload.created_at_time_ns,
+        )
+        .await
+        .map_err(register_retryable_error)?;
+    }
+
+    if payload.total_platform_fee_sats > 0 {
         let fee_transfer_result = transfer_ckbtc(
-            Some(derive_subaccount(buyer_principal)),
+            Some(derive_subaccount(payload.buyer)),
             Account {
                 owner: get_fee_recipient(),
                 subaccount: None,
             },
-            total_platform_fee_sats,
-            ledger_transfer_created_at_time_ns,
+            payload.total_platform_fee_sats,
+            payload.created_at_time_ns,
         )
         .await;
 
         if fee_transfer_result.is_err() {
-            add_available(buyer_principal, fee_transfer_amount_sats);
+            add_available(
+                payload.buyer,
+                payload
+                    .total_platform_fee_sats
+                    .saturating_add(CKBTC_TRANSFER_FEE),
+            );
             ic::log("accept_offers: platform fee transfer failed, waiving platform fee");
             return Ok(false);
         }
@@ -502,53 +666,48 @@ async fn await_writer_and_fee_transfers(
     Ok(true)
 }
 
-fn create_active_options_from_acceptances(
-    buyer_principal: Principal,
-    prepared_accepts: &[PreparedAccept],
+fn create_active_options_from_wal_payload(
+    payload: &AcceptWalPayload,
     platform_fee_collected: bool,
-    entry_price_cents: u64,
-    current_time_ns: u64,
-    fill_group_id: u64,
-) -> Vec<ActiveOption> {
-    let mut created_active_options: Vec<ActiveOption> = Vec::with_capacity(prepared_accepts.len());
-
-    for offer_acceptance in prepared_accepts {
-        let strike_price_cents = calculate_strike_price_in_cents(
-            entry_price_cents,
-            offer_acceptance.strike_basis_points,
-        );
+) -> Result<(), DispatchError> {
+    for prepared_accept in &payload.prepared_accepts {
         let created_active_option = ActiveOption {
-            id: offer_acceptance.option_id,
-            offer_id: offer_acceptance.offer_id,
-            buyer: buyer_principal,
-            writer: offer_acceptance.writer,
-            asset: offer_acceptance.asset,
-            option_type: offer_acceptance.option_type,
-            quantity: offer_acceptance.quantity_sats,
-            entry_price_cents,
-            strike_price_cents,
+            id: prepared_accept.option_id,
+            offer_id: prepared_accept.offer_id,
+            buyer: payload.buyer,
+            writer: prepared_accept.writer,
+            asset: prepared_accept.asset,
+            option_type: prepared_accept.option_type,
+            quantity: prepared_accept.quantity_sats,
+            entry_price_cents: prepared_accept.entry_price_cents,
+            strike_price_cents: prepared_accept.strike_price_cents,
             premium_paid: if platform_fee_collected {
-                offer_acceptance.premium_sats
+                prepared_accept.premium_sats
             } else {
-                offer_acceptance.premium_to_writer_sats
+                prepared_accept.premium_to_writer_sats
             },
-            accepted_at: current_time_ns,
-            expiry: offer_acceptance.expiry_ns,
+            accepted_at: prepared_accept.accepted_at_ns,
+            expiry: prepared_accept.expiry_ns,
             status: ActiveOptionStatus::Active,
-            fill_group_id: Some(fill_group_id),
-            profit_fee_basis_points: offer_acceptance.profit_fee_basis_points,
+            fill_group_id: Some(payload.fill_group_id),
+            profit_fee_basis_points: prepared_accept.profit_fee_basis_points,
         };
 
         add_available(
-            offer_acceptance.writer,
-            offer_acceptance.premium_to_writer_sats,
+            prepared_accept.writer,
+            prepared_accept.premium_to_writer_sats,
         );
         if platform_fee_collected {
-            add_platform_fee(offer_acceptance.premium_fee_sats);
+            add_platform_fee(prepared_accept.premium_fee_sats);
         }
-        insert_active_option(created_active_option.clone());
+        insert_active_option(created_active_option);
 
-        let mut offer_to_update = get_offer(offer_acceptance.offer_id).unwrap();
+        let mut offer_to_update = get_offer(prepared_accept.offer_id).ok_or_else(|| {
+            DispatchError::Permanent(format!(
+                "offer {} not found during accept finalization",
+                prepared_accept.offer_id
+            ))
+        })?;
         if offer_to_update.remaining_quantity == 0 {
             offer_to_update.status = OfferStatus::Filled;
         } else {
@@ -556,68 +715,101 @@ fn create_active_options_from_acceptances(
         }
         update_offer(offer_to_update);
 
-        emit_offer_accepted_events(
-            buyer_principal,
-            offer_acceptance,
+        emit_offer_accepted_events_from_wal(
+            payload.buyer,
+            prepared_accept,
+            payload.fill_group_id,
             platform_fee_collected,
-            entry_price_cents,
-            strike_price_cents,
-            fill_group_id,
         );
-
-        created_active_options.push(created_active_option);
     }
 
-    created_active_options
+    Ok(())
 }
 
-fn emit_offer_accepted_events(
-    buyer_principal: Principal,
-    offer_acceptance: &PreparedAccept,
-    platform_fee_collected: bool,
-    entry_price_cents: u64,
-    strike_price_cents: u64,
+fn emit_offer_accepted_events_from_wal(
+    buyer: Principal,
+    prepared_accept: &AcceptWalPreparedAccept,
     fill_group_id: u64,
+    platform_fee_collected: bool,
 ) {
     let premium_paid_sats = if platform_fee_collected {
-        offer_acceptance.premium_sats
+        prepared_accept.premium_sats
     } else {
-        offer_acceptance.premium_to_writer_sats
+        prepared_accept.premium_to_writer_sats
     };
 
     emit_event(
-        buyer_principal,
+        buyer,
         EventType::OfferAccepted,
         EventData::OfferAccepted {
-            offer_id: offer_acceptance.offer_id,
-            option_id: offer_acceptance.option_id,
+            offer_id: prepared_accept.offer_id,
+            option_id: prepared_accept.option_id,
             fill_group_id,
-            counterparty: offer_acceptance.writer,
-            quantity_sats: offer_acceptance.quantity_sats,
+            counterparty: prepared_accept.writer,
+            quantity_sats: prepared_accept.quantity_sats,
             premium_sats: premium_paid_sats,
-            entry_price_cents,
-            strike_price_cents,
-            expiry_ns: offer_acceptance.expiry_ns,
+            entry_price_cents: prepared_accept.entry_price_cents,
+            strike_price_cents: prepared_accept.strike_price_cents,
+            expiry_ns: prepared_accept.expiry_ns,
             role: TradeRole::Buyer,
         },
     );
 
     emit_event(
-        offer_acceptance.writer,
+        prepared_accept.writer,
         EventType::OfferAccepted,
         EventData::OfferAccepted {
-            offer_id: offer_acceptance.offer_id,
-            option_id: offer_acceptance.option_id,
+            offer_id: prepared_accept.offer_id,
+            option_id: prepared_accept.option_id,
             fill_group_id,
-            counterparty: buyer_principal,
-            quantity_sats: offer_acceptance.quantity_sats,
+            counterparty: buyer,
+            quantity_sats: prepared_accept.quantity_sats,
             premium_sats: premium_paid_sats,
-            entry_price_cents,
-            strike_price_cents,
-            expiry_ns: offer_acceptance.expiry_ns,
+            entry_price_cents: prepared_accept.entry_price_cents,
+            strike_price_cents: prepared_accept.strike_price_cents,
+            expiry_ns: prepared_accept.expiry_ns,
             role: TradeRole::Writer,
         },
     );
+}
+
+fn load_active_options_by_ids(option_ids: &[u64]) -> Result<Vec<ActiveOption>, VolumetricError> {
+    option_ids
+        .iter()
+        .map(|option_id| {
+            get_active_option(*option_id).ok_or_else(|| {
+                VolumetricError::from_def(
+                    error_codes::OPTION_NOT_FOUND,
+                    Some(&format!("id: {}", option_id)),
+                    None,
+                )
+            })
+        })
+        .collect()
+}
+
+fn accept_operation_id(
+    buyer: Principal,
+    accept_offer_items: &[AcceptOfferItem],
+    request_nonce: u64,
+) -> OperationId {
+    let nonce_bytes = request_nonce.to_be_bytes();
+    let item_bytes: Vec<[u8; 16]> = accept_offer_items
+        .iter()
+        .map(|item| {
+            let mut bytes = [0u8; 16];
+            bytes[..8].copy_from_slice(&item.offer_id.to_be_bytes());
+            bytes[8..].copy_from_slice(&item.quantity.to_be_bytes());
+            bytes
+        })
+        .collect();
+    let mut parts: Vec<&[u8]> = Vec::with_capacity(item_bytes.len() + 2);
+    parts.push(&nonce_bytes);
+    for item in &item_bytes {
+        parts.push(item);
+    }
+
+    OperationId::from_principal_bytes("accept", buyer, &parts)
 }
 
 #[cfg(test)]
@@ -903,6 +1095,7 @@ mod tests {
                             offer_id: TEST_OFFER_ID,
                             quantity: TEST_QUANTITY_SATS,
                         }],
+                        1,
                     )
                     .await
                 });
@@ -941,7 +1134,7 @@ mod tests {
 
     /// Given: an accept pauses after marking an offer as Processing
     /// When: the writer tries to cancel and the transfer later fails
-    /// Then: cancellation is rejected and rollback restores the original offer state
+    /// Then: cancellation is rejected and the accept remains pending for WAL retry
     #[tokio::test(flavor = "current_thread")]
     async fn test_processing_offer_rollback_preserves_original_state_after_failed_accept() {
         // given
@@ -972,6 +1165,7 @@ mod tests {
                             offer_id: TEST_OFFER_ID,
                             quantity: TEST_QUANTITY_SATS,
                         }],
+                        2,
                     )
                     .await
                 });
@@ -1012,15 +1206,15 @@ mod tests {
         );
 
         let final_offer = get_offer(TEST_OFFER_ID).expect("offer should still exist");
-        assert_eq!(final_offer.status, OfferStatus::Open);
-        assert_eq!(final_offer.remaining_quantity, TEST_QUANTITY_SATS);
+        assert_eq!(final_offer.status, OfferStatus::Processing);
+        assert_eq!(final_offer.remaining_quantity, 0);
 
         let writer_balance = get_balance(&writer);
-        assert_eq!(writer_balance.available, TEST_QUANTITY_SATS);
-        assert_eq!(writer_balance.locked_as_writer, 0);
+        assert_eq!(writer_balance.available, 0);
+        assert_eq!(writer_balance.locked_as_writer, TEST_QUANTITY_SATS);
 
         let buyer_balance = get_balance(&buyer);
-        assert_eq!(buyer_balance.available, TEST_BUYER_AVAILABLE_SATS);
+        assert!(buyer_balance.available < TEST_BUYER_AVAILABLE_SATS);
     }
 
     /// Given: the writer premium transfer succeeds but the platform fee transfer fails
@@ -1044,7 +1238,7 @@ mod tests {
             .saturating_sub(CKBTC_TRANSFER_FEE);
 
         // when
-        let result = accept_offers_use_case(buyer, vec![build_test_accept_offer_item()]).await;
+        let result = accept_offers_use_case(buyer, vec![build_test_accept_offer_item()], 3).await;
 
         // then
         let accept_result = result.expect("accept should succeed when only the fee transfer fails");

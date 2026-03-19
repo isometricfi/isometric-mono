@@ -59,7 +59,7 @@ pub async fn withdraw_ckbtc(
         amount: req.data.amount,
     };
 
-    let result = usecases::withdraw_ckbtc_use_case(principal, params).await?;
+    let result = usecases::withdraw_ckbtc_use_case(principal, params, context.nonce).await?;
     Ok(result.into())
 }
 
