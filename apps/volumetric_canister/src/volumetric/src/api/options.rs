@@ -4,7 +4,8 @@ use serde::{Deserialize, Serialize};
 use crate::auth::types::{AuthenticatedPayload, ChallengeContext, SignableAction, WalletKey};
 use crate::auth::{build_challenge_context, verify_btc_signature};
 use crate::errors::{error_codes, VolumetricError};
-use crate::guards::{is_controller, is_whitelisted};
+use crate::guards::{is_controller, is_whitelisted, no_replicated_call};
+use crate::journaling::OperationId;
 use crate::storage::{
     get_accept, get_active_option, get_principal_for_wallet, get_settlement, increment_nonce,
     list_failed_accepts, list_failed_settlements, list_pending_accepts,
@@ -41,12 +42,6 @@ impl SignableAction for AcceptOffersRequest {
     }
 }
 
-#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
-pub struct AcceptOffersResponse {
-    pub active_options: Vec<ActiveOption>,
-    pub fill_group_id: u64,
-}
-
 #[ic_cdk::query]
 pub fn get_accept_offers_message(wallet_address: String, items: Vec<AcceptOfferItem>) -> String {
     let wallet_key = WalletKey::from_address(&wallet_address);
@@ -56,9 +51,9 @@ pub fn get_accept_offers_message(wallet_address: String, items: Vec<AcceptOfferI
 }
 
 #[ic_cdk::update]
-pub async fn accept_offers(
+pub fn accept_offers(
     req: AuthenticatedPayload<AcceptOffersRequest>,
-) -> Result<AcceptOffersResponse, VolumetricError> {
+) -> Result<usecases::AcceptOffersReceipt, VolumetricError> {
     is_whitelisted()?;
 
     let address = &req.wallet_proof.address;
@@ -84,12 +79,14 @@ pub async fn accept_offers(
         })
         .collect();
 
-    let result = usecases::accept_offers_use_case(buyer_principal, items).await?;
+    usecases::accept_offers_use_case(buyer_principal, items, context.nonce)
+}
 
-    Ok(AcceptOffersResponse {
-        active_options: result.active_options,
-        fill_group_id: result.fill_group_id,
-    })
+#[ic_cdk::query(guard = "no_replicated_call")]
+pub fn get_accept_status(
+    operation_id: OperationId,
+) -> Result<usecases::AcceptOffersStatus, VolumetricError> {
+    Ok(usecases::get_accept_status_use_case(operation_id)?)
 }
 
 #[ic_cdk::query]

@@ -1,6 +1,8 @@
+import type { WithdrawStatus } from "@volumetric/canister-types";
 import { unwrapResult } from "@volumetric/canister-types";
 import { getCanisterActor } from "@/lib/canister-server";
 import { withSpan } from "@/lib/telemetry/withSpan";
+import { pollOperationStatusUntilTerminal } from "../../_shared/poll-operation-status";
 import { mapResult } from "./mapper";
 import type { Input, Output } from "./schema";
 
@@ -18,7 +20,23 @@ export async function withdraw(input: Input): Promise<Output> {
       wallet_proof: { address: input.address, signature: input.signature },
     });
 
-    const data = unwrapResult(result);
-    return mapResult(data);
+    const receipt = unwrapResult(result);
+    return pollOperationStatusUntilTerminal<WithdrawStatus, Output>({
+      getStatus: async () => {
+        const withdrawStatusResult = await actor.get_withdraw_status(receipt.operation_id);
+        return unwrapResult(withdrawStatusResult);
+      },
+      mapTerminalStatus: (status) => {
+        if ("Succeeded" in status) {
+          return mapResult(status.Succeeded.result);
+        }
+
+        if ("Failed" in status) {
+          throw new Error(status.Failed.message);
+        }
+
+        return null;
+      },
+    });
   });
 }

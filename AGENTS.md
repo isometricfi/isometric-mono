@@ -36,6 +36,9 @@ Monorepo using pnpm workspaces and Turborepo.
 - Run `make generate` to update TypeScript types after API changes
 - Never commit without explicit permission
 - Minimal comments; only document non-obvious logic
+- Prefer self-documenting code over large explanatory comments
+- Keep the main method or primary public entry point near the top of the file after imports, types, and constants
+- If a function reads like a sequence of commented steps, extract small named helpers instead of stacking narrative comments in one large method
 - Preserve existing comments unless they are outdated or incorrect
 - No emojis in logs or code
 
@@ -47,6 +50,8 @@ Monorepo using pnpm workspaces and Turborepo.
 - Keep functions small and single-purpose
 - Validate all user input at boundaries
 - Never use magic numbers or literals; define named constants or variables for clarity
+- Reduce duplicated logic by extracting shared helpers when behavior must remain identical
+- For security-sensitive or arithmetic-heavy logic, prefer one well-named shared implementation over parallel copies
 - Prefer explicit names over short ambiguous names, even when the explicit name is longer
 - Prefer self-documenting names over explanatory comments when either would work
 - Include role or phase in names when it clarifies workflow intent (e.g., `buyer_balance_sats`, `accept_journal_entry_id`)
@@ -57,6 +62,17 @@ Monorepo using pnpm workspaces and Turborepo.
 - Never expose sensitive data client-side
 - Principle of least privilege for canister access
 
+## Input Validation
+
+- Define and enforce explicit lower and upper bounds for externally supplied amounts, indexes, limits, timestamps, and similar inputs
+- Validate inputs at the boundary before business logic runs
+
+## Error Handling
+
+- Do not return success for internal failures
+- Use typed errors consistently and make retriable versus non-retriable failures explicit
+- Do not rely on panics as a safety mechanism
+
 ---
 
 # Rust Patterns
@@ -66,6 +82,9 @@ Monorepo using pnpm workspaces and Turborepo.
 - Use `Result` and `Option` for error handling; propagate with `?`
 - Use `thiserror` for custom error types
 - Avoid code duplication; modularize into functions and modules
+- Prefer checked, saturating, or otherwise explicitly validated arithmetic over panic-prone arithmetic
+- Handle underflow, overflow, rounding, and decimal-scaling behavior explicitly
+- Panic only for truly unreachable invariants, never for user-controlled inputs, cross-canister inputs, or expected failure paths
 - Write unit tests with `#[test]` in `#[cfg(test)]` modules
 
 ## ICP Canister Patterns
@@ -190,3 +209,6 @@ test("should return expected result for valid input", () => {
 - Define test inputs as constants in the `// given` section
 - Define assertion-only values (prefixed with `EXPECTED_`) in the `// then` section
 - Reuse input constants for assertions when verifying the input was stored correctly
+- Add focused unit tests for arithmetic-heavy, scaling-heavy, and boundary-sensitive functions
+- Test boundary conditions explicitly: zero, minimum, maximum, underflow, overflow, rounding edges, and mismatched decimal scales
+- Add regression tests for previously identified bugs before refactoring bug-prone logic

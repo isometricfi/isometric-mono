@@ -8,7 +8,5 @@ export type Input = z.infer<typeof inputSchema>;
 
 export interface Output {
   optionId: string;
-  settlementPriceCents: string;
-  payoutToBuyer: string;
-  payoutToWriter: string;
+  status: "succeeded";
 }

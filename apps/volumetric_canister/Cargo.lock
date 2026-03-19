@@ -2564,6 +2564,7 @@ dependencies = [
  "ic-stable-structures 0.7.2",
  "icrc-ledger-types",
  "pocket-ic",
+ "scopeguard",
  "serde",
  "serde_bytes",
  "sha2",
