@@ -10,8 +10,8 @@ use crate::guards::{validate_offer_params, OfferParams};
 use crate::ic;
 use crate::journaling::{
     default_policy, enqueue_if_absent, execute_wal_entry_now, get_entry, register_retryable_error,
-    AcceptWalPayload, AcceptWalPreparedAccept, AcceptWalTransfer, DispatchError, OperationId,
-    RunOutcome, WalKind, WalPayload, WalResult,
+    AcceptWalPayload, AcceptWalPreparedAccept, AcceptWalTransfer, OperationId, WalExecutionError,
+    WalExecutionOutcome, WalKind, WalPayload, WalResult,
 };
 use crate::locks::AcceptLock;
 use crate::oracle::get_btc_usd_price_cents;
@@ -207,7 +207,7 @@ pub async fn accept_offers_use_case(
     );
 
     match execute_wal_entry_now(operation_id).await {
-        RunOutcome::Succeeded | RunOutcome::SucceededAlready => {
+        WalExecutionOutcome::Succeeded | WalExecutionOutcome::SucceededAlready => {
             let wal_entry = get_entry(operation_id).ok_or_else(|| {
                 VolumetricError::from_def(
                     error_codes::INTERNAL_ERROR,
@@ -240,14 +240,14 @@ pub async fn accept_offers_use_case(
                 fill_group_id: accept_wal_result.fill_group_id,
             })
         }
-        RunOutcome::SkippedAlreadyInFlight | RunOutcome::FailedRetryable(_) => {
+        WalExecutionOutcome::SkippedAlreadyInFlight | WalExecutionOutcome::FailedRetryable(_) => {
             Err(VolumetricError::from_def(
                 error_codes::INTER_CANISTER_CALL_FAILED,
                 Some("accept queued for retry"),
                 None,
             ))
         }
-        RunOutcome::FailedPermanent(message) => {
+        WalExecutionOutcome::FailedPermanent(message) => {
             rollback_locked_collateral_states_and_offers(&locked_collateral_states);
             add_available(
                 buyer_principal,
@@ -582,9 +582,11 @@ fn lock_collateral_for_offer_acceptances(
     Ok(locked_collateral_states)
 }
 
-pub async fn run_accept_wal(payload: &AcceptWalPayload) -> Result<AcceptWalResult, DispatchError> {
+pub async fn run_accept_wal(
+    payload: &AcceptWalPayload,
+) -> Result<AcceptWalResult, WalExecutionError> {
     let accept = crate::storage::get_accept(payload.accept_journal_entry_id).ok_or_else(|| {
-        DispatchError::Permanent(format!(
+        WalExecutionError::Permanent(format!(
             "accept journal {} not found",
             payload.accept_journal_entry_id
         ))
@@ -600,7 +602,7 @@ pub async fn run_accept_wal(payload: &AcceptWalPayload) -> Result<AcceptWalResul
     }
 
     let accept = crate::storage::get_accept(payload.accept_journal_entry_id).ok_or_else(|| {
-        DispatchError::Permanent(format!(
+        WalExecutionError::Permanent(format!(
             "accept journal {} missing before finalization",
             payload.accept_journal_entry_id
         ))
@@ -624,7 +626,7 @@ pub async fn run_accept_wal(payload: &AcceptWalPayload) -> Result<AcceptWalResul
 
 async fn await_wal_writer_and_fee_transfers(
     payload: &AcceptWalPayload,
-) -> Result<bool, DispatchError> {
+) -> Result<bool, WalExecutionError> {
     for writer_transfer in &payload.writer_transfers {
         transfer_ckbtc(
             Some(derive_subaccount(payload.buyer)),
@@ -669,7 +671,7 @@ async fn await_wal_writer_and_fee_transfers(
 fn create_active_options_from_wal_payload(
     payload: &AcceptWalPayload,
     platform_fee_collected: bool,
-) -> Result<(), DispatchError> {
+) -> Result<(), WalExecutionError> {
     for prepared_accept in &payload.prepared_accepts {
         let created_active_option = ActiveOption {
             id: prepared_accept.option_id,
@@ -703,7 +705,7 @@ fn create_active_options_from_wal_payload(
         insert_active_option(created_active_option);
 
         let mut offer_to_update = get_offer(prepared_accept.offer_id).ok_or_else(|| {
-            DispatchError::Permanent(format!(
+            WalExecutionError::Permanent(format!(
                 "offer {} not found during accept finalization",
                 prepared_accept.offer_id
             ))

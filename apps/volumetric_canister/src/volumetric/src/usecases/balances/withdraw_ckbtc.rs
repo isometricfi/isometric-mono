@@ -7,7 +7,8 @@ use crate::errors::{error_codes, VolumetricError};
 use crate::generated::ckbtc::RetrieveBtcWithApprovalArgs;
 use crate::journaling::{
     default_policy, enqueue_if_absent, execute_wal_entry_now, get_entry, register_retryable_error,
-    DispatchError, OperationId, RunOutcome, WalKind, WalPayload, WalResult, WithdrawalWalPayload,
+    OperationId, WalExecutionError, WalExecutionOutcome, WalKind, WalPayload, WalResult,
+    WithdrawalWalPayload,
 };
 use crate::locks::WithdrawalLock;
 use crate::storage::{
@@ -98,7 +99,7 @@ pub async fn withdraw_ckbtc_use_case(
     );
 
     match execute_wal_entry_now(operation_id).await {
-        RunOutcome::Succeeded | RunOutcome::SucceededAlready => {
+        WalExecutionOutcome::Succeeded | WalExecutionOutcome::SucceededAlready => {
             let wal_entry = get_entry(operation_id).ok_or_else(|| {
                 VolumetricError::from_def(
                     error_codes::INTERNAL_ERROR,
@@ -130,14 +131,14 @@ pub async fn withdraw_ckbtc_use_case(
                 block_index: withdrawal_wal_result.block_index,
             })
         }
-        RunOutcome::SkippedAlreadyInFlight | RunOutcome::FailedRetryable(_) => {
+        WalExecutionOutcome::SkippedAlreadyInFlight | WalExecutionOutcome::FailedRetryable(_) => {
             Err(VolumetricError::from_def(
                 error_codes::INTER_CANISTER_CALL_FAILED,
                 Some("withdrawal queued for retry"),
                 None,
             ))
         }
-        RunOutcome::FailedPermanent(message) => {
+        WalExecutionOutcome::FailedPermanent(message) => {
             add_available(principal, params.amount);
             Err(VolumetricError::from_def(
                 error_codes::INTER_CANISTER_CALL_FAILED,
@@ -150,9 +151,9 @@ pub async fn withdraw_ckbtc_use_case(
 
 pub async fn run_withdrawal_wal(
     payload: &WithdrawalWalPayload,
-) -> Result<WithdrawalWalResult, DispatchError> {
+) -> Result<WithdrawalWalResult, WalExecutionError> {
     let withdrawal = get_withdrawal(payload.withdrawal_id).ok_or_else(|| {
-        DispatchError::Permanent(format!(
+        WalExecutionError::Permanent(format!(
             "withdrawal journal {} not found",
             payload.withdrawal_id
         ))
@@ -184,7 +185,7 @@ pub async fn run_withdrawal_wal(
     }
 
     let withdrawal = get_withdrawal(payload.withdrawal_id).ok_or_else(|| {
-        DispatchError::Permanent(format!(
+        WalExecutionError::Permanent(format!(
             "withdrawal journal {} missing before retrieve",
             payload.withdrawal_id
         ))
@@ -229,7 +230,7 @@ pub async fn run_withdrawal_wal(
     match withdrawal.phase {
         WithdrawalPhase::RetrieveRequested { block_index }
         | WithdrawalPhase::Completed { block_index } => Ok(WithdrawalWalResult { block_index }),
-        _ => Err(DispatchError::Permanent(format!(
+        _ => Err(WalExecutionError::Permanent(format!(
             "withdrawal {} in unexpected phase {:?}",
             payload.withdrawal_id, withdrawal.phase
         ))),
@@ -251,26 +252,26 @@ fn withdrawal_operation_id(
     )
 }
 
-fn map_withdrawal_error(error: VolumetricError) -> DispatchError {
+fn map_withdrawal_error(error: VolumetricError) -> WalExecutionError {
     let lowercase_message = error.message.to_ascii_lowercase();
     if lowercase_message.contains("malformed address")
         || lowercase_message.contains("amount too low")
         || lowercase_message.contains("insufficient allowance")
         || lowercase_message.contains("insufficient funds")
     {
-        return DispatchError::Permanent(error.to_string());
+        return WalExecutionError::Permanent(error.to_string());
     }
 
     register_retryable_error(error)
 }
 
-fn map_withdrawal_approve_error(error: VolumetricError) -> DispatchError {
+fn map_withdrawal_approve_error(error: VolumetricError) -> WalExecutionError {
     let lowercase_message = error.message.to_ascii_lowercase();
     if lowercase_message.contains("approve denied")
         || lowercase_message.contains("insufficient allowance")
         || lowercase_message.contains("insufficient funds")
     {
-        return DispatchError::Permanent(error.to_string());
+        return WalExecutionError::Permanent(error.to_string());
     }
 
     register_retryable_error(error)

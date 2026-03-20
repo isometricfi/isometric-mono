@@ -7,7 +7,7 @@ use crate::errors::{error_codes, VolumetricError};
 use crate::ic;
 use crate::journaling::{
     default_policy, enqueue_if_absent, execute_wal_entry_now, register_retryable_error,
-    DispatchError, OperationId, RunOutcome, SettlementWalPayload, WalKind, WalPayload,
+    OperationId, SettlementWalPayload, WalExecutionError, WalExecutionOutcome, WalKind, WalPayload,
 };
 use crate::locks::SettlementLock;
 use crate::oracle::get_btc_usd_price_cents;
@@ -38,6 +38,31 @@ pub struct SettlementWalResult {
 pub struct SettleExpiredOptionsResult {
     pub settled: Vec<SettlementResult>,
     pub errors: Vec<String>,
+}
+
+pub async fn settle_expired_options_use_case() -> SettleExpiredOptionsResult {
+    let now = ic::time();
+    let expired_options = list_expired_active_options(now);
+
+    let mut settled: Vec<SettlementResult> = Vec::new();
+    let mut errors: Vec<String> = Vec::new();
+
+    let settlement_price_cents = match get_btc_usd_price_cents().await {
+        Ok(price) => price,
+        Err(e) => {
+            errors.push(format!("Failed to get oracle price: {}", e));
+            return SettleExpiredOptionsResult { settled, errors };
+        }
+    };
+
+    for option in expired_options {
+        match settle_single_option(option.id, settlement_price_cents).await {
+            Ok(result) => settled.push(result),
+            Err(e) => errors.push(format!("Option {}: {}", option.id, e)),
+        }
+    }
+
+    SettleExpiredOptionsResult { settled, errors }
 }
 
 pub async fn settle_single_option(
@@ -121,22 +146,24 @@ pub async fn settle_single_option(
     );
 
     match execute_wal_entry_now(operation_id).await {
-        RunOutcome::Succeeded | RunOutcome::SucceededAlready => Ok(SettlementResult {
-            option_id: option.id,
-            settlement_price_cents,
-            payout_to_buyer,
-            payout_to_writer,
-            profit_fee,
-            status: ActiveOptionStatus::Settled,
-        }),
-        RunOutcome::SkippedAlreadyInFlight | RunOutcome::FailedRetryable(_) => {
+        WalExecutionOutcome::Succeeded | WalExecutionOutcome::SucceededAlready => {
+            Ok(SettlementResult {
+                option_id: option.id,
+                settlement_price_cents,
+                payout_to_buyer,
+                payout_to_writer,
+                profit_fee,
+                status: ActiveOptionStatus::Settled,
+            })
+        }
+        WalExecutionOutcome::SkippedAlreadyInFlight | WalExecutionOutcome::FailedRetryable(_) => {
             Err(VolumetricError::from_def(
                 error_codes::INTER_CANISTER_CALL_FAILED,
                 Some("settlement queued for retry"),
                 None,
             ))
         }
-        RunOutcome::FailedPermanent(message) => Err(VolumetricError::from_def(
+        WalExecutionOutcome::FailedPermanent(message) => Err(VolumetricError::from_def(
             error_codes::INTER_CANISTER_CALL_FAILED,
             Some(&message),
             None,
@@ -144,40 +171,15 @@ pub async fn settle_single_option(
     }
 }
 
-pub async fn settle_expired_options_use_case() -> SettleExpiredOptionsResult {
-    let now = ic::time();
-    let expired_options = list_expired_active_options(now);
-
-    let mut settled: Vec<SettlementResult> = Vec::new();
-    let mut errors: Vec<String> = Vec::new();
-
-    let settlement_price_cents = match get_btc_usd_price_cents().await {
-        Ok(price) => price,
-        Err(e) => {
-            errors.push(format!("Failed to get oracle price: {}", e));
-            return SettleExpiredOptionsResult { settled, errors };
-        }
-    };
-
-    for option in expired_options {
-        match settle_single_option(option.id, settlement_price_cents).await {
-            Ok(result) => settled.push(result),
-            Err(e) => errors.push(format!("Option {}: {}", option.id, e)),
-        }
-    }
-
-    SettleExpiredOptionsResult { settled, errors }
-}
-
 pub async fn run_settlement_wal(
     payload: &SettlementWalPayload,
-) -> Result<SettlementWalResult, DispatchError> {
+) -> Result<SettlementWalResult, WalExecutionError> {
     let mut option = get_active_option(payload.option_id).ok_or_else(|| {
-        DispatchError::Permanent(format!("settlement option {} not found", payload.option_id))
+        WalExecutionError::Permanent(format!("settlement option {} not found", payload.option_id))
     })?;
 
     let settlement = get_settlement(payload.option_id).ok_or_else(|| {
-        DispatchError::Permanent(format!(
+        WalExecutionError::Permanent(format!(
             "settlement journal {} not found",
             payload.option_id
         ))
@@ -213,7 +215,7 @@ pub async fn run_settlement_wal(
     }
 
     let settlement = get_settlement(payload.option_id).ok_or_else(|| {
-        DispatchError::Permanent(format!(
+        WalExecutionError::Permanent(format!(
             "settlement journal {} missing after transfer",
             option.id
         ))
@@ -237,7 +239,7 @@ pub async fn run_settlement_wal(
     }
 
     let settlement = get_settlement(payload.option_id).ok_or_else(|| {
-        DispatchError::Permanent(format!(
+        WalExecutionError::Permanent(format!(
             "settlement journal {} missing before finalization",
             option.id
         ))
@@ -317,8 +319,8 @@ fn settlement_operation_id(option_id: u64) -> OperationId {
     OperationId::from_parts(&[b"settlement", &option_id_bytes])
 }
 
-fn map_balance_error_to_permanent(error: crate::storage::InsufficientBalance) -> DispatchError {
-    DispatchError::Permanent(format!(
+fn map_balance_error_to_permanent(error: crate::storage::InsufficientBalance) -> WalExecutionError {
+    WalExecutionError::Permanent(format!(
         "insufficient balance during settlement recovery: available={}, required={}",
         error.available, error.required
     ))

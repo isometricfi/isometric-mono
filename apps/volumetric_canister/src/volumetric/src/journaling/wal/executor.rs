@@ -1,5 +1,9 @@
 use std::cell::RefCell;
 use std::collections::BTreeSet;
+#[cfg(target_arch = "wasm32")]
+use std::time::Duration;
+
+use scopeguard::guard;
 
 use crate::errors::{error_codes, VolumetricError};
 use crate::ic;
@@ -7,11 +11,12 @@ use crate::usecases::{run_accept_wal, run_settlement_wal, run_withdrawal_wal};
 
 use super::super::OperationId;
 use super::store::{due_ids, get_entry, put_entry};
-use super::types::{DispatchError, RunOutcome, WalPayload, WalResult, WalStatus};
+use super::types::{WalExecutionError, WalExecutionOutcome, WalPayload, WalResult, WalStatus};
 
 const MAX_WAL_RETRY_DELAY_SECS: u64 = 60 * 60;
 const MAX_BACKOFF_EXPONENT: u32 = 10;
 const NANOSECONDS_PER_SECOND: u64 = 1_000_000_000;
+const WAL_RETRY_BATCH_LIMIT: usize = 64;
 const WAL_ENTRY_NOT_FOUND_MESSAGE: &str = "WAL entry not found";
 
 // TODO: Replace string message-pattern retry classification with typed error mapping
@@ -26,44 +31,59 @@ const RETRYABLE_INTER_CANISTER_ERROR_PATTERNS: [&str; 6] = [
 
 thread_local! {
     static RUN_GUARDS: RefCell<BTreeSet<OperationId>> = const { RefCell::new(BTreeSet::new()) };
+    static RETRY_SCAN_IN_PROGRESS: RefCell<bool> = const { RefCell::new(false) };
 }
 
-pub fn register_retryable_error(error: VolumetricError) -> DispatchError {
+pub fn register_retryable_error(error: VolumetricError) -> WalExecutionError {
     if !is_retryable_error(&error) {
-        DispatchError::Permanent(error.to_string())
+        WalExecutionError::Permanent(error.to_string())
     } else {
-        DispatchError::Retryable(error.to_string())
+        WalExecutionError::Retryable(error.to_string())
     }
 }
 
-pub async fn execute_wal_entry_now(operation_id: OperationId) -> RunOutcome {
+pub async fn execute_wal_entry_now(operation_id: OperationId) -> WalExecutionOutcome {
     let Some(existing_wal_entry) = get_entry(operation_id) else {
-        return RunOutcome::FailedPermanent(WAL_ENTRY_NOT_FOUND_MESSAGE.to_string());
+        return WalExecutionOutcome::FailedPermanent(WAL_ENTRY_NOT_FOUND_MESSAGE.to_string());
     };
 
     if existing_wal_entry.status == WalStatus::Succeeded {
-        return RunOutcome::SucceededAlready;
+        return WalExecutionOutcome::SucceededAlready;
     }
 
-    if !try_acquire_run_guard(operation_id) {
-        return RunOutcome::SkippedAlreadyInFlight;
+    if !mark_run_in_progress_if_idle(operation_id) {
+        return WalExecutionOutcome::SkippedAlreadyInFlight;
     }
 
-    let outcome = execute_wal_entry_attempt(operation_id).await;
-    release_run_guard(operation_id);
-    outcome
+    let _run_guard = guard(operation_id, |operation_id| {
+        RUN_GUARDS.with(|guards| {
+            guards.borrow_mut().remove(&operation_id);
+        });
+    });
+
+    execute_wal_entry_attempt(operation_id).await
 }
 
 pub async fn retry_all_due() {
+    if !mark_retry_scan_in_progress_if_idle() {
+        return;
+    }
+
+    let _retry_scan_guard = guard((), |_| {
+        RETRY_SCAN_IN_PROGRESS.with(|is_in_progress| {
+            *is_in_progress.borrow_mut() = false;
+        });
+    });
+
     let now_ns = ic::time();
-    let retry_due_operation_ids = due_ids(now_ns);
+    let retry_due_operation_ids = due_ids(now_ns, WAL_RETRY_BATCH_LIMIT);
 
     for operation_id in retry_due_operation_ids {
         let _ = execute_wal_entry_now(operation_id).await;
     }
 }
 
-fn try_acquire_run_guard(operation_id: OperationId) -> bool {
+fn mark_run_in_progress_if_idle(operation_id: OperationId) -> bool {
     RUN_GUARDS.with(|guards| {
         let mut guards = guards.borrow_mut();
         if guards.contains(&operation_id) {
@@ -74,15 +94,21 @@ fn try_acquire_run_guard(operation_id: OperationId) -> bool {
     })
 }
 
-fn release_run_guard(operation_id: OperationId) {
-    RUN_GUARDS.with(|guards| {
-        guards.borrow_mut().remove(&operation_id);
-    });
+fn mark_retry_scan_in_progress_if_idle() -> bool {
+    RETRY_SCAN_IN_PROGRESS.with(|is_in_progress| {
+        let mut is_in_progress = is_in_progress.borrow_mut();
+        if *is_in_progress {
+            return false;
+        }
+
+        *is_in_progress = true;
+        true
+    })
 }
 
-async fn execute_wal_entry_attempt(operation_id: OperationId) -> RunOutcome {
+async fn execute_wal_entry_attempt(operation_id: OperationId) -> WalExecutionOutcome {
     let Some(mut wal_entry) = get_entry(operation_id) else {
-        return RunOutcome::FailedPermanent(WAL_ENTRY_NOT_FOUND_MESSAGE.to_string());
+        return WalExecutionOutcome::FailedPermanent(WAL_ENTRY_NOT_FOUND_MESSAGE.to_string());
     };
 
     let now_ns = ic::time();
@@ -105,9 +131,9 @@ async fn execute_wal_entry_attempt(operation_id: OperationId) -> RunOutcome {
             updated_wal_entry.result = Some(wal_result);
 
             put_entry(updated_wal_entry);
-            RunOutcome::Succeeded
+            WalExecutionOutcome::Succeeded
         }
-        Err(DispatchError::Retryable(retryable_error_message)) => {
+        Err(WalExecutionError::Retryable(retryable_error_message)) => {
             let mut updated_wal_entry = wal_entry;
 
             updated_wal_entry.last_update_ns = ic::time();
@@ -117,7 +143,7 @@ async fn execute_wal_entry_attempt(operation_id: OperationId) -> RunOutcome {
                 updated_wal_entry.status = WalStatus::FailedPermanent;
 
                 put_entry(updated_wal_entry);
-                return RunOutcome::FailedPermanent(retryable_error_message);
+                return WalExecutionOutcome::FailedPermanent(retryable_error_message);
             }
 
             updated_wal_entry.status = WalStatus::FailedRetryable;
@@ -127,12 +153,16 @@ async fn execute_wal_entry_attempt(operation_id: OperationId) -> RunOutcome {
                 updated_wal_entry.backoff_secs,
                 updated_wal_entry.attempts,
             );
+            let retry_delay_ns = updated_wal_entry
+                .next_attempt_at_ns
+                .saturating_sub(updated_wal_entry.last_update_ns);
 
             put_entry(updated_wal_entry);
+            schedule_retry_nudge(retry_delay_ns);
 
-            RunOutcome::FailedRetryable(retryable_error_message)
+            WalExecutionOutcome::FailedRetryable(retryable_error_message)
         }
-        Err(DispatchError::Permanent(permanent_error_message)) => {
+        Err(WalExecutionError::Permanent(permanent_error_message)) => {
             let mut updated_wal_entry = wal_entry;
 
             updated_wal_entry.status = WalStatus::FailedPermanent;
@@ -140,12 +170,12 @@ async fn execute_wal_entry_attempt(operation_id: OperationId) -> RunOutcome {
             updated_wal_entry.last_err = Some(permanent_error_message.clone());
 
             put_entry(updated_wal_entry);
-            RunOutcome::FailedPermanent(permanent_error_message)
+            WalExecutionOutcome::FailedPermanent(permanent_error_message)
         }
     }
 }
 
-async fn execute_wal_payload(payload: &WalPayload) -> Result<WalResult, DispatchError> {
+async fn execute_wal_payload(payload: &WalPayload) -> Result<WalResult, WalExecutionError> {
     match payload {
         WalPayload::Settlement(settlement_payload) => run_settlement_wal(settlement_payload)
             .await
@@ -167,6 +197,20 @@ fn compute_next_attempt_at_ns(now_ns: u64, backoff_secs: u64, attempts: u32) -> 
         .min(MAX_WAL_RETRY_DELAY_SECS);
     now_ns.saturating_add(delay_secs.saturating_mul(NANOSECONDS_PER_SECOND))
 }
+
+#[cfg(target_arch = "wasm32")]
+fn schedule_retry_nudge(delay_ns: u64) {
+    let delay_seconds =
+        delay_ns.saturating_add(NANOSECONDS_PER_SECOND.saturating_sub(1)) / NANOSECONDS_PER_SECOND;
+    let clamped_delay_seconds = delay_seconds.clamp(1, MAX_WAL_RETRY_DELAY_SECS);
+
+    ic_cdk_timers::set_timer(Duration::from_secs(clamped_delay_seconds), || async {
+        retry_all_due().await;
+    });
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+fn schedule_retry_nudge(_delay_ns: u64) {}
 
 fn is_retryable_error(error: &VolumetricError) -> bool {
     if error.code != error_codes::INTER_CANISTER_CALL_FAILED.code {

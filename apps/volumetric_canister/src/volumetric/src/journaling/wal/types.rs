@@ -115,13 +115,13 @@ pub struct WalEntry {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub enum DispatchError {
+pub enum WalExecutionError {
     Retryable(String),
     Permanent(String),
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub enum RunOutcome {
+pub enum WalExecutionOutcome {
     Succeeded,
     SucceededAlready,
     SkippedAlreadyInFlight,
