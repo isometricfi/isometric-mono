@@ -75,6 +75,14 @@ struct LockedCollateralState {
     original_status: OfferStatus,
 }
 
+struct PreparedAcceptExecution {
+    operation_id: OperationId,
+    buyer_principal: Principal,
+    accept_journal_entry_id: u64,
+    total_premium_required_sats: u64,
+    locked_collateral_states: Vec<LockedCollateralState>,
+}
+
 pub async fn accept_offers_use_case(
     buyer_principal: Principal,
     accept_offer_items: Vec<AcceptOfferItem>,
@@ -84,6 +92,33 @@ pub async fn accept_offers_use_case(
     let _buyer_accept_lock = AcceptLock::new(buyer_principal)?;
     let ledger_transfer_created_at_time_ns = ic::time();
 
+    if let Some(existing_accept_result) =
+        load_existing_accept_result(buyer_principal, &accept_offer_items, request_nonce)?
+    {
+        return Ok(existing_accept_result);
+    }
+
+    let current_time_ns = ic::time();
+    let entry_price_cents = get_btc_usd_price_cents().await?;
+    let operation_id = accept_operation_id(buyer_principal, &accept_offer_items, request_nonce);
+    let prepared_accept_execution = prepare_accept_execution(
+        buyer_principal,
+        &accept_offer_items,
+        operation_id,
+        entry_price_cents,
+        current_time_ns,
+        ledger_transfer_created_at_time_ns,
+    )?;
+    let wal_execution_outcome = execute_wal_entry_now(prepared_accept_execution.operation_id).await;
+
+    finish_accept_execution(prepared_accept_execution, wal_execution_outcome)
+}
+
+fn load_existing_accept_result(
+    buyer_principal: Principal,
+    accept_offer_items: &[AcceptOfferItem],
+    request_nonce: u64,
+) -> Result<Option<AcceptOffersResult>, VolumetricError> {
     if list_pending_accepts()
         .into_iter()
         .any(|pending_accept| pending_accept.buyer == buyer_principal)
@@ -103,26 +138,7 @@ pub async fn accept_offers_use_case(
         ));
     }
 
-    let operation_id = accept_operation_id(buyer_principal, &accept_offer_items, request_nonce);
-    if let Some(existing_wal_entry) = get_entry(operation_id) {
-        match existing_wal_entry.result {
-            Some(WalResult::Accept(existing_accept_result)) => {
-                return Ok(AcceptOffersResult {
-                    active_options: load_active_options_by_ids(&existing_accept_result.option_ids)?,
-                    fill_group_id: existing_accept_result.fill_group_id,
-                });
-            }
-            _ => {
-                return Err(VolumetricError::from_def(
-                    error_codes::ACCEPT_IN_PROGRESS,
-                    Some("accept already scheduled"),
-                    None,
-                ));
-            }
-        }
-    }
-
-    if is_stitched_accept_request(&accept_offer_items) && !Config::is_stitching_enabled() {
+    if is_stitched_accept_request(accept_offer_items) && !Config::is_stitching_enabled() {
         return Err(VolumetricError::from_def(
             error_codes::STITCHING_DISABLED,
             None,
@@ -130,28 +146,42 @@ pub async fn accept_offers_use_case(
         ));
     }
 
-    let current_time_ns = ic::time();
-    let entry_price_cents = get_btc_usd_price_cents().await?;
-    let fill_group_id = next_id(CounterKey::FillGroupId);
+    let operation_id = accept_operation_id(buyer_principal, accept_offer_items, request_nonce);
+    let Some(existing_wal_entry) = get_entry(operation_id) else {
+        return Ok(None);
+    };
 
-    let prepared_accept_batch =
-        prepare_offer_acceptances(buyer_principal, &accept_offer_items, current_time_ns)?;
-
-    let buyer_balance_sats = get_balance(&buyer_principal);
-    if buyer_balance_sats.available < prepared_accept_batch.total_premium_required_sats {
-        return Err(VolumetricError::from_def(
-            error_codes::INSUFFICIENT_BALANCE,
-            Some(&format!(
-                "available: {}, required: {}",
-                buyer_balance_sats.available, prepared_accept_batch.total_premium_required_sats
-            )),
+    match existing_wal_entry.result {
+        Some(WalResult::Accept(existing_accept_result)) => {
+            build_accept_result(existing_accept_result).map(Some)
+        }
+        _ => Err(VolumetricError::from_def(
+            error_codes::ACCEPT_IN_PROGRESS,
+            Some("accept already scheduled"),
             None,
-        ));
+        )),
     }
+}
+
+fn prepare_accept_execution(
+    buyer_principal: Principal,
+    accept_offer_items: &[AcceptOfferItem],
+    operation_id: OperationId,
+    entry_price_cents: u64,
+    current_time_ns: u64,
+    ledger_transfer_created_at_time_ns: u64,
+) -> Result<PreparedAcceptExecution, VolumetricError> {
+    let fill_group_id = next_id(CounterKey::FillGroupId);
+    let prepared_accept_batch =
+        prepare_offer_acceptances(buyer_principal, accept_offer_items, current_time_ns)?;
+
+    ensure_buyer_has_required_premium(
+        buyer_principal,
+        prepared_accept_batch.total_premium_required_sats,
+    )?;
 
     let accepted_offers =
         build_accepted_offers_for_journal(&prepared_accept_batch.prepared_accepts);
-
     let accept_journal_entry = create_accept_journal_entry(
         buyer_principal,
         prepared_accept_batch.total_premium_required_sats,
@@ -159,33 +189,18 @@ pub async fn accept_offers_use_case(
         fill_group_id,
     );
     let accept_journal_entry_id = accept_journal_entry.id;
-
     let locked_collateral_states = lock_collateral_for_offer_acceptances(
         &prepared_accept_batch.prepared_accepts,
         accept_journal_entry_id,
     )?;
 
     update_accept_phase(accept_journal_entry_id, AcceptPhase::CollateralLocked);
-
-    if let Err(e) = subtract_available(
+    debit_buyer_available_balance(
         buyer_principal,
         prepared_accept_batch.total_premium_required_sats,
-    ) {
-        rollback_locked_collateral_states_and_offers(&locked_collateral_states);
-        fail_accept(
-            accept_journal_entry_id,
-            format!("subtract_available failed: {:?}", e),
-        );
-        return Err(VolumetricError::from_def(
-            error_codes::INSUFFICIENT_BALANCE,
-            Some(&format!(
-                "available: {}, required: {}",
-                e.available, e.required
-            )),
-            None,
-        ));
-    }
-
+        accept_journal_entry_id,
+        &locked_collateral_states,
+    )?;
     update_accept_phase(accept_journal_entry_id, AcceptPhase::BuyerDebited);
 
     let wal_payload = build_accept_wal_payload(
@@ -198,47 +213,31 @@ pub async fn accept_offers_use_case(
         entry_price_cents,
         current_time_ns,
     );
-
     enqueue_if_absent(
         operation_id,
         WalKind::Accept,
-        WalPayload::Accept(wal_payload.clone()),
+        WalPayload::Accept(wal_payload),
         default_policy(),
     );
 
-    match execute_wal_entry_now(operation_id).await {
+    Ok(PreparedAcceptExecution {
+        operation_id,
+        buyer_principal,
+        accept_journal_entry_id,
+        total_premium_required_sats: prepared_accept_batch.total_premium_required_sats,
+        locked_collateral_states,
+    })
+}
+
+fn finish_accept_execution(
+    prepared_accept_execution: PreparedAcceptExecution,
+    wal_execution_outcome: WalExecutionOutcome,
+) -> Result<AcceptOffersResult, VolumetricError> {
+    match wal_execution_outcome {
         WalExecutionOutcome::Succeeded | WalExecutionOutcome::SucceededAlready => {
-            let wal_entry = get_entry(operation_id).ok_or_else(|| {
-                VolumetricError::from_def(
-                    error_codes::INTERNAL_ERROR,
-                    Some("accept completed without wal entry"),
-                    None,
-                )
-            })?;
+            let accept_wal_result = load_accept_wal_result(prepared_accept_execution.operation_id)?;
 
-            let wal_result = wal_entry.result.ok_or_else(|| {
-                VolumetricError::from_def(
-                    error_codes::INTERNAL_ERROR,
-                    Some("accept completed without result"),
-                    None,
-                )
-            })?;
-
-            let accept_wal_result = match wal_result {
-                WalResult::Accept(result) => result,
-                _ => {
-                    return Err(VolumetricError::from_def(
-                        error_codes::INTERNAL_ERROR,
-                        Some("accept completed with unexpected wal result type"),
-                        None,
-                    ));
-                }
-            };
-
-            Ok(AcceptOffersResult {
-                active_options: load_active_options_by_ids(&accept_wal_result.option_ids)?,
-                fill_group_id: accept_wal_result.fill_group_id,
-            })
+            build_accept_result(accept_wal_result)
         }
         WalExecutionOutcome::SkippedAlreadyInFlight | WalExecutionOutcome::FailedRetryable(_) => {
             Err(VolumetricError::from_def(
@@ -248,12 +247,17 @@ pub async fn accept_offers_use_case(
             ))
         }
         WalExecutionOutcome::FailedPermanent(message) => {
-            rollback_locked_collateral_states_and_offers(&locked_collateral_states);
-            add_available(
-                buyer_principal,
-                prepared_accept_batch.total_premium_required_sats,
+            rollback_locked_collateral_states_and_offers(
+                &prepared_accept_execution.locked_collateral_states,
             );
-            fail_accept(accept_journal_entry_id, message.clone());
+            add_available(
+                prepared_accept_execution.buyer_principal,
+                prepared_accept_execution.total_premium_required_sats,
+            );
+            fail_accept(
+                prepared_accept_execution.accept_journal_entry_id,
+                message.clone(),
+            );
             Err(VolumetricError::from_def(
                 error_codes::INTER_CANISTER_CALL_FAILED,
                 Some(&message),
@@ -773,6 +777,85 @@ fn emit_offer_accepted_events_from_wal(
             role: TradeRole::Writer,
         },
     );
+}
+
+fn ensure_buyer_has_required_premium(
+    buyer_principal: Principal,
+    total_premium_required_sats: u64,
+) -> Result<(), VolumetricError> {
+    let buyer_balance_sats = get_balance(&buyer_principal);
+    if buyer_balance_sats.available < total_premium_required_sats {
+        return Err(VolumetricError::from_def(
+            error_codes::INSUFFICIENT_BALANCE,
+            Some(&format!(
+                "available: {}, required: {}",
+                buyer_balance_sats.available, total_premium_required_sats
+            )),
+            None,
+        ));
+    }
+
+    Ok(())
+}
+
+fn debit_buyer_available_balance(
+    buyer_principal: Principal,
+    total_premium_required_sats: u64,
+    accept_journal_entry_id: u64,
+    locked_collateral_states: &[LockedCollateralState],
+) -> Result<(), VolumetricError> {
+    if let Err(error) = subtract_available(buyer_principal, total_premium_required_sats) {
+        rollback_locked_collateral_states_and_offers(locked_collateral_states);
+        fail_accept(
+            accept_journal_entry_id,
+            format!("subtract_available failed: {:?}", error),
+        );
+        return Err(VolumetricError::from_def(
+            error_codes::INSUFFICIENT_BALANCE,
+            Some(&format!(
+                "available: {}, required: {}",
+                error.available, error.required
+            )),
+            None,
+        ));
+    }
+
+    Ok(())
+}
+
+fn load_accept_wal_result(operation_id: OperationId) -> Result<AcceptWalResult, VolumetricError> {
+    let wal_entry = get_entry(operation_id).ok_or_else(|| {
+        VolumetricError::from_def(
+            error_codes::INTERNAL_ERROR,
+            Some("accept completed without wal entry"),
+            None,
+        )
+    })?;
+    let wal_result = wal_entry.result.ok_or_else(|| {
+        VolumetricError::from_def(
+            error_codes::INTERNAL_ERROR,
+            Some("accept completed without result"),
+            None,
+        )
+    })?;
+
+    match wal_result {
+        WalResult::Accept(result) => Ok(result),
+        _ => Err(VolumetricError::from_def(
+            error_codes::INTERNAL_ERROR,
+            Some("accept completed with unexpected wal result type"),
+            None,
+        )),
+    }
+}
+
+fn build_accept_result(
+    accept_wal_result: AcceptWalResult,
+) -> Result<AcceptOffersResult, VolumetricError> {
+    Ok(AcceptOffersResult {
+        active_options: load_active_options_by_ids(&accept_wal_result.option_ids)?,
+        fill_group_id: accept_wal_result.fill_group_id,
+    })
 }
 
 fn load_active_options_by_ids(option_ids: &[u64]) -> Result<Vec<ActiveOption>, VolumetricError> {

@@ -33,6 +33,12 @@ pub struct WithdrawalWalResult {
     pub block_index: u64,
 }
 
+struct PreparedWithdrawalExecution {
+    operation_id: OperationId,
+    principal: Principal,
+    amount_sats: u64,
+}
+
 pub async fn withdraw_ckbtc_use_case(
     principal: Principal,
     params: WithdrawParams,
@@ -51,85 +57,88 @@ pub async fn withdraw_ckbtc_use_case(
 
     let operation_id =
         withdrawal_operation_id(principal, &params.btc_address, params.amount, request_nonce);
-    if let Some(existing_entry) = get_entry(operation_id) {
-        return match existing_entry.result {
-            Some(WalResult::Withdrawal(result)) => Ok(WithdrawResult {
-                block_index: result.block_index,
-            }),
-            _ => Err(VolumetricError::from_def(
-                error_codes::WITHDRAWAL_IN_PROGRESS,
-                Some("withdrawal already scheduled"),
-                None,
-            )),
-        };
+    if let Some(existing_withdraw_result) = load_existing_withdraw_result(operation_id)? {
+        return Ok(existing_withdraw_result);
     }
 
-    subtract_available(principal, params.amount).map_err(|e| {
+    let prepared_withdrawal_execution =
+        prepare_withdrawal_execution(principal, params, operation_id)?;
+    let wal_execution_outcome =
+        execute_wal_entry_now(prepared_withdrawal_execution.operation_id).await;
+
+    finish_withdrawal_execution(prepared_withdrawal_execution, wal_execution_outcome)
+}
+
+fn load_existing_withdraw_result(
+    operation_id: OperationId,
+) -> Result<Option<WithdrawResult>, VolumetricError> {
+    let Some(existing_entry) = get_entry(operation_id) else {
+        return Ok(None);
+    };
+
+    match existing_entry.result {
+        Some(WalResult::Withdrawal(result)) => Ok(Some(WithdrawResult {
+            block_index: result.block_index,
+        })),
+        _ => Err(VolumetricError::from_def(
+            error_codes::WITHDRAWAL_IN_PROGRESS,
+            Some("withdrawal already scheduled"),
+            None,
+        )),
+    }
+}
+
+fn prepare_withdrawal_execution(
+    principal: Principal,
+    params: WithdrawParams,
+    operation_id: OperationId,
+) -> Result<PreparedWithdrawalExecution, VolumetricError> {
+    subtract_available(principal, params.amount).map_err(|error| {
         VolumetricError::from_def(
             error_codes::INSUFFICIENT_BALANCE,
             Some(&format!(
                 "available: {}, required: {}",
-                e.available, e.required
+                error.available, error.required
             )),
             None,
         )
     })?;
 
-    let created_at_time = ic::time();
-
+    let created_at_time_ns = ic::time();
     let withdrawal = create_withdrawal(
         principal,
         params.amount,
         params.btc_address.clone(),
-        created_at_time,
+        created_at_time_ns,
     );
-    let withdrawal_id = withdrawal.id;
 
     enqueue_if_absent(
         operation_id,
         WalKind::Withdrawal,
         WalPayload::Withdrawal(WithdrawalWalPayload {
-            withdrawal_id,
+            withdrawal_id: withdrawal.id,
             principal,
             amount_sats: params.amount,
             btc_address: params.btc_address,
-            created_at_time_ns: created_at_time,
+            created_at_time_ns,
         }),
         default_policy(),
     );
 
-    match execute_wal_entry_now(operation_id).await {
+    Ok(PreparedWithdrawalExecution {
+        operation_id,
+        principal,
+        amount_sats: params.amount,
+    })
+}
+
+fn finish_withdrawal_execution(
+    prepared_withdrawal_execution: PreparedWithdrawalExecution,
+    wal_execution_outcome: WalExecutionOutcome,
+) -> Result<WithdrawResult, VolumetricError> {
+    match wal_execution_outcome {
         WalExecutionOutcome::Succeeded | WalExecutionOutcome::SucceededAlready => {
-            let wal_entry = get_entry(operation_id).ok_or_else(|| {
-                VolumetricError::from_def(
-                    error_codes::INTERNAL_ERROR,
-                    Some("withdrawal completed without wal entry"),
-                    None,
-                )
-            })?;
-
-            let wal_result = wal_entry.result.ok_or_else(|| {
-                VolumetricError::from_def(
-                    error_codes::INTERNAL_ERROR,
-                    Some("withdrawal completed without result"),
-                    None,
-                )
-            })?;
-
-            let withdrawal_wal_result = match wal_result {
-                WalResult::Withdrawal(result) => result,
-                _ => {
-                    return Err(VolumetricError::from_def(
-                        error_codes::INTERNAL_ERROR,
-                        Some("withdrawal completed with unexpected wal result type"),
-                        None,
-                    ));
-                }
-            };
-
-            Ok(WithdrawResult {
-                block_index: withdrawal_wal_result.block_index,
-            })
+            load_withdrawal_wal_result(prepared_withdrawal_execution.operation_id)
         }
         WalExecutionOutcome::SkippedAlreadyInFlight | WalExecutionOutcome::FailedRetryable(_) => {
             Err(VolumetricError::from_def(
@@ -139,13 +148,46 @@ pub async fn withdraw_ckbtc_use_case(
             ))
         }
         WalExecutionOutcome::FailedPermanent(message) => {
-            add_available(principal, params.amount);
+            add_available(
+                prepared_withdrawal_execution.principal,
+                prepared_withdrawal_execution.amount_sats,
+            );
             Err(VolumetricError::from_def(
                 error_codes::INTER_CANISTER_CALL_FAILED,
                 Some(&message),
                 None,
             ))
         }
+    }
+}
+
+fn load_withdrawal_wal_result(
+    operation_id: OperationId,
+) -> Result<WithdrawResult, VolumetricError> {
+    let wal_entry = get_entry(operation_id).ok_or_else(|| {
+        VolumetricError::from_def(
+            error_codes::INTERNAL_ERROR,
+            Some("withdrawal completed without wal entry"),
+            None,
+        )
+    })?;
+    let wal_result = wal_entry.result.ok_or_else(|| {
+        VolumetricError::from_def(
+            error_codes::INTERNAL_ERROR,
+            Some("withdrawal completed without result"),
+            None,
+        )
+    })?;
+
+    match wal_result {
+        WalResult::Withdrawal(result) => Ok(WithdrawResult {
+            block_index: result.block_index,
+        }),
+        _ => Err(VolumetricError::from_def(
+            error_codes::INTERNAL_ERROR,
+            Some("withdrawal completed with unexpected wal result type"),
+            None,
+        )),
     }
 }
 

@@ -40,6 +40,15 @@ pub struct SettleExpiredOptionsResult {
     pub errors: Vec<String>,
 }
 
+struct PreparedSettlementExecution {
+    operation_id: OperationId,
+    option_id: u64,
+    settlement_price_cents: u64,
+    payout_to_buyer: u64,
+    payout_to_writer: u64,
+    profit_fee: u64,
+}
+
 pub async fn settle_expired_options_use_case() -> SettleExpiredOptionsResult {
     let now = ic::time();
     let expired_options = list_expired_active_options(now);
@@ -70,6 +79,18 @@ pub async fn settle_single_option(
     settlement_price_cents: u64,
 ) -> Result<SettlementResult, VolumetricError> {
     let _lock = SettlementLock::new(option_id)?;
+    let prepared_settlement_execution =
+        prepare_settlement_execution(option_id, settlement_price_cents)?;
+    let wal_execution_outcome =
+        execute_wal_entry_now(prepared_settlement_execution.operation_id).await;
+
+    finish_settlement_execution(prepared_settlement_execution, wal_execution_outcome)
+}
+
+fn prepare_settlement_execution(
+    option_id: u64,
+    settlement_price_cents: u64,
+) -> Result<PreparedSettlementExecution, VolumetricError> {
     let mut option = get_active_option(option_id).ok_or_else(|| {
         VolumetricError::from_def(
             error_codes::OPTION_NOT_FOUND,
@@ -108,13 +129,11 @@ pub async fn settle_single_option(
             option.quantity,
         ),
     };
-
     let profit_fee = if gross_payout_to_buyer > 0 {
         calculate_profit_fee(gross_payout_to_buyer, option.profit_fee_basis_points)
     } else {
         0
     };
-
     let payout_to_buyer = gross_payout_to_buyer.saturating_sub(profit_fee);
     let payout_to_writer = option.quantity.saturating_sub(gross_payout_to_buyer);
     let created_at_time_ns = ic::time();
@@ -145,14 +164,28 @@ pub async fn settle_single_option(
         default_policy(),
     );
 
-    match execute_wal_entry_now(operation_id).await {
+    Ok(PreparedSettlementExecution {
+        operation_id,
+        option_id: option.id,
+        settlement_price_cents,
+        payout_to_buyer,
+        payout_to_writer,
+        profit_fee,
+    })
+}
+
+fn finish_settlement_execution(
+    prepared_settlement_execution: PreparedSettlementExecution,
+    wal_execution_outcome: WalExecutionOutcome,
+) -> Result<SettlementResult, VolumetricError> {
+    match wal_execution_outcome {
         WalExecutionOutcome::Succeeded | WalExecutionOutcome::SucceededAlready => {
             Ok(SettlementResult {
-                option_id: option.id,
-                settlement_price_cents,
-                payout_to_buyer,
-                payout_to_writer,
-                profit_fee,
+                option_id: prepared_settlement_execution.option_id,
+                settlement_price_cents: prepared_settlement_execution.settlement_price_cents,
+                payout_to_buyer: prepared_settlement_execution.payout_to_buyer,
+                payout_to_writer: prepared_settlement_execution.payout_to_writer,
+                profit_fee: prepared_settlement_execution.profit_fee,
                 status: ActiveOptionStatus::Settled,
             })
         }
