@@ -37,6 +37,7 @@ Monorepo using pnpm workspaces and Turborepo.
 - Never commit without explicit permission
 - Minimal comments; only document non-obvious logic
 - Prefer self-documenting code over large explanatory comments
+- Keep the main method or primary public entry point near the top of the file after imports, types, and constants
 - If a function reads like a sequence of commented steps, extract small named helpers instead of stacking narrative comments in one large method
 - Preserve existing comments unless they are outdated or incorrect
 - No emojis in logs or code
