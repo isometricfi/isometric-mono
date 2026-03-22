@@ -43,12 +43,12 @@ pub use options::{
     ClearStorageResponse,
 };
 pub use settlement::{
-    get_pending_settlements, settle_expired_options, settle_option_by_id, testing_expire_option,
-    testing_force_settle, testing_set_option_expiry, SettleExpiredOptionsResponse,
-    SettlementResult,
+    get_pending_settlements, get_settlement_status, settle_expired_options, settle_option_by_id,
+    testing_expire_option, testing_force_settle, testing_set_option_expiry,
+    SettleExpiredOptionsResponse, SettlementResult,
 };
 pub use whitelist::{add_whitelisted, list_whitelisted, remove_whitelisted};
 pub use withdrawals::{
     get_failed_withdrawals, get_my_pending_withdrawals, get_pending_withdrawals,
-    get_withdraw_message, get_withdrawal_by_id, withdraw_ckbtc,
+    get_withdraw_message, get_withdraw_status, get_withdrawal_by_id, withdraw_ckbtc,
 };

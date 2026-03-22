@@ -11,6 +11,6 @@ pub use get_user_balance::{get_user_balance_use_case, UserBalanceResult};
 pub use transfer_ckbtc::transfer_ckbtc;
 pub(crate) use withdraw_ckbtc::finalize_failed_withdrawal_wal;
 pub use withdraw_ckbtc::{
-    run_withdrawal_wal, withdraw_ckbtc_use_case, WithdrawParams, WithdrawResult,
-    WithdrawalWalResult,
+    get_withdraw_status_use_case, run_withdrawal_wal, withdraw_ckbtc_use_case, WithdrawParams,
+    WithdrawReceipt, WithdrawResult, WithdrawStatus, WithdrawalWalResult,
 };

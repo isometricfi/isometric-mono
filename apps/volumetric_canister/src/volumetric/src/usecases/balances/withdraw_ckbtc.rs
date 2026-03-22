@@ -6,9 +6,8 @@ use crate::auth::derive_subaccount;
 use crate::errors::{error_codes, VolumetricError};
 use crate::generated::ckbtc::RetrieveBtcWithApprovalArgs;
 use crate::journaling::{
-    default_policy, enqueue_if_absent, execute_wal_entry_now, get_entry, register_retryable_error,
-    OperationId, WalExecutionError, WalExecutionOutcome, WalKind, WalPayload, WalResult,
-    WithdrawalWalPayload,
+    default_policy, enqueue_if_absent, get_entry, register_retryable_error, OperationId, WalEntry,
+    WalExecutionError, WalKind, WalPayload, WalResult, WalStatus, WithdrawalWalPayload,
 };
 use crate::locks::WithdrawalLock;
 use crate::storage::{
@@ -23,9 +22,32 @@ pub struct WithdrawParams {
     pub amount: u64,
 }
 
-#[derive(Debug)]
+#[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct WithdrawResult {
     pub block_index: u64,
+}
+
+#[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct WithdrawReceipt {
+    pub operation_id: OperationId,
+    pub withdrawal_id: u64,
+}
+
+#[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq)]
+pub enum WithdrawStatus {
+    Pending {
+        receipt: WithdrawReceipt,
+        phase: WithdrawalPhase,
+        last_error: Option<String>,
+    },
+    Succeeded {
+        receipt: WithdrawReceipt,
+        result: WithdrawResult,
+    },
+    Failed {
+        receipt: WithdrawReceipt,
+        message: String,
+    },
 }
 
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
@@ -35,13 +57,14 @@ pub struct WithdrawalWalResult {
 
 struct WithdrawalWalExecutionPreparation {
     operation_id: OperationId,
+    withdrawal_id: u64,
 }
 
-pub async fn withdraw_ckbtc_use_case(
+pub fn withdraw_ckbtc_use_case(
     principal: Principal,
     params: WithdrawParams,
     request_nonce: u64,
-) -> Result<WithdrawResult, VolumetricError> {
+) -> Result<WithdrawReceipt, VolumetricError> {
     let _withdrawal_lock = WithdrawalLock::new(principal)?;
 
     if !get_pending_withdrawals_by_principal(principal).is_empty() {
@@ -55,37 +78,82 @@ pub async fn withdraw_ckbtc_use_case(
     let operation_id =
         withdraw_operation_id(principal, &params.btc_address, params.amount, request_nonce);
 
-    if let Some(existing_withdraw_result) =
-        load_withdraw_wal_result_if_already_succeeded(operation_id)?
-    {
-        return Ok(existing_withdraw_result);
+    if let Some(existing_withdraw_receipt) = load_withdraw_receipt_if_exists(operation_id)? {
+        return Ok(existing_withdraw_receipt);
     }
 
     let withdrawal_wal_execution_preparation =
         prepare_withdraw_execution(principal, params, operation_id)?;
-    let wal_execution_outcome =
-        execute_wal_entry_now(withdrawal_wal_execution_preparation.operation_id).await;
+    let withdraw_receipt = WithdrawReceipt {
+        operation_id: withdrawal_wal_execution_preparation.operation_id,
+        withdrawal_id: withdrawal_wal_execution_preparation.withdrawal_id,
+    };
+    schedule_withdraw_wal_execution(withdraw_receipt.operation_id);
 
-    finish_withdraw_wal_execution(withdrawal_wal_execution_preparation, wal_execution_outcome)
+    Ok(withdraw_receipt)
 }
 
-fn load_withdraw_wal_result_if_already_succeeded(
+pub fn get_withdraw_status_use_case(
     operation_id: OperationId,
-) -> Result<Option<WithdrawResult>, VolumetricError> {
+) -> Result<WithdrawStatus, VolumetricError> {
+    let wal_entry = get_entry(operation_id).ok_or_else(|| {
+        VolumetricError::from_def(
+            error_codes::INTERNAL_ERROR,
+            Some("withdrawal not found"),
+            None,
+        )
+    })?;
+    let withdraw_receipt = build_withdraw_receipt_from_wal_entry(operation_id, &wal_entry)?;
+
+    match wal_entry.status {
+        WalStatus::Succeeded => Ok(WithdrawStatus::Succeeded {
+            receipt: withdraw_receipt,
+            result: load_withdraw_wal_result(operation_id)?,
+        }),
+        WalStatus::FailedPermanent => Ok(WithdrawStatus::Failed {
+            receipt: withdraw_receipt.clone(),
+            message: load_failed_withdraw_message(
+                withdraw_receipt.withdrawal_id,
+                wal_entry.last_err,
+            )?,
+        }),
+        WalStatus::Enqueued | WalStatus::InFlight | WalStatus::FailedRetryable => {
+            let pending_withdrawal = load_withdraw_journal_entry(withdraw_receipt.withdrawal_id)?;
+            Ok(WithdrawStatus::Pending {
+                receipt: withdraw_receipt,
+                phase: pending_withdrawal.phase,
+                last_error: wal_entry.last_err,
+            })
+        }
+    }
+}
+
+fn load_withdraw_receipt_if_exists(
+    operation_id: OperationId,
+) -> Result<Option<WithdrawReceipt>, VolumetricError> {
     let Some(existing_entry) = get_entry(operation_id) else {
         return Ok(None);
     };
 
-    match existing_entry.result {
-        Some(WalResult::Withdrawal(result)) => Ok(Some(WithdrawResult {
-            block_index: result.block_index,
-        })),
-        _ => Err(VolumetricError::from_def(
-            error_codes::WITHDRAWAL_IN_PROGRESS,
-            Some("withdrawal already scheduled"),
+    build_withdraw_receipt_from_wal_entry(operation_id, &existing_entry).map(Some)
+}
+
+fn build_withdraw_receipt_from_wal_entry(
+    operation_id: OperationId,
+    wal_entry: &WalEntry,
+) -> Result<WithdrawReceipt, VolumetricError> {
+    let WalPayload::Withdrawal(payload) = &wal_entry.payload else {
+        return Err(VolumetricError::from_def(
+            error_codes::INTERNAL_ERROR,
+            Some("withdraw receipt loaded from unexpected wal payload"),
             None,
-        )),
-    }
+        ));
+    };
+
+    Ok(WithdrawReceipt {
+        operation_id,
+        withdrawal_id: payload.withdrawal_id,
+    })
 }
 
 fn prepare_withdraw_execution(
@@ -116,7 +184,10 @@ fn prepare_withdraw_execution(
         default_policy(),
     );
 
-    Ok(WithdrawalWalExecutionPreparation { operation_id })
+    Ok(WithdrawalWalExecutionPreparation {
+        operation_id,
+        withdrawal_id: withdrawal.id,
+    })
 }
 
 fn debit_withdrawer_available_balance(
@@ -135,27 +206,14 @@ fn debit_withdrawer_available_balance(
     })
 }
 
-fn finish_withdraw_wal_execution(
-    withdrawal_wal_execution_preparation: WithdrawalWalExecutionPreparation,
-    wal_execution_outcome: WalExecutionOutcome,
-) -> Result<WithdrawResult, VolumetricError> {
-    match wal_execution_outcome {
-        WalExecutionOutcome::Succeeded | WalExecutionOutcome::SucceededAlready => {
-            load_withdraw_wal_result(withdrawal_wal_execution_preparation.operation_id)
-        }
-        WalExecutionOutcome::SkippedAlreadyInFlight | WalExecutionOutcome::FailedRetryable(_) => {
-            Err(VolumetricError::from_def(
-                error_codes::INTER_CANISTER_CALL_FAILED,
-                Some("withdrawal queued for retry"),
-                None,
-            ))
-        }
-        WalExecutionOutcome::FailedPermanent(message) => Err(VolumetricError::from_def(
-            error_codes::INTER_CANISTER_CALL_FAILED,
-            Some(&message),
-            None,
-        )),
-    }
+fn schedule_withdraw_wal_execution(operation_id: OperationId) {
+    #[cfg(target_arch = "wasm32")]
+    ic_cdk::futures::spawn(async move {
+        let _ = crate::journaling::execute_wal_entry_now(operation_id).await;
+    });
+
+    #[cfg(not(target_arch = "wasm32"))]
+    let _ = operation_id;
 }
 
 pub(crate) fn finalize_failed_withdrawal_wal(payload: &WithdrawalWalPayload, message: &str) {
@@ -200,6 +258,37 @@ fn load_withdraw_wal_result(operation_id: OperationId) -> Result<WithdrawResult,
             None,
         )),
     }
+}
+
+fn load_withdraw_journal_entry(
+    withdrawal_id: u64,
+) -> Result<crate::storage::PendingWithdrawal, VolumetricError> {
+    get_withdrawal(withdrawal_id).ok_or_else(|| {
+        VolumetricError::from_def(
+            error_codes::INTERNAL_ERROR,
+            Some("withdrawal journal entry not found"),
+            None,
+        )
+    })
+}
+
+fn load_failed_withdraw_message(
+    withdrawal_id: u64,
+    wal_last_error: Option<String>,
+) -> Result<String, VolumetricError> {
+    if let Some(withdrawal) = get_withdrawal(withdrawal_id) {
+        if let WithdrawalPhase::Failed { reason } = withdrawal.phase {
+            return Ok(reason);
+        }
+    }
+
+    wal_last_error.ok_or_else(|| {
+        VolumetricError::from_def(
+            error_codes::INTERNAL_ERROR,
+            Some("failed withdrawal missing error message"),
+            None,
+        )
+    })
 }
 
 pub async fn run_withdrawal_wal(
@@ -509,11 +598,22 @@ mod tests {
         fund_principal(principal, INITIAL_BALANCE_SATS);
 
         // when
-        let result = withdraw_ckbtc_use_case(principal, withdraw_params(), 1).await;
+        let receipt = withdraw_ckbtc_use_case(principal, withdraw_params(), 1).unwrap();
+        let wal_execution_outcome =
+            crate::journaling::execute_wal_entry_now(receipt.operation_id).await;
+        let status = get_withdraw_status_use_case(receipt.operation_id).unwrap();
 
         // then
-        let withdraw_result = result.unwrap();
-        assert_eq!(withdraw_result.block_index, EXPECTED_BLOCK_INDEX);
+        assert!(matches!(
+            wal_execution_outcome,
+            crate::journaling::WalExecutionOutcome::Succeeded
+        ));
+        match status {
+            WithdrawStatus::Succeeded { result, .. } => {
+                assert_eq!(result.block_index, EXPECTED_BLOCK_INDEX);
+            }
+            _ => panic!("withdrawal should be succeeded"),
+        }
 
         let balance = get_balance(&principal);
         let expected_remaining = INITIAL_BALANCE_SATS - WITHDRAW_AMOUNT_SATS;
@@ -532,7 +632,7 @@ mod tests {
         fund_principal(principal, insufficient_amount);
 
         // when
-        let result = withdraw_ckbtc_use_case(principal, withdraw_params(), 2).await;
+        let result = withdraw_ckbtc_use_case(principal, withdraw_params(), 2);
 
         // then
         let err = result.unwrap_err();
@@ -564,10 +664,20 @@ mod tests {
         fund_principal(principal, INITIAL_BALANCE_SATS);
 
         // when
-        let result = withdraw_ckbtc_use_case(principal, withdraw_params(), 3).await;
+        let receipt = withdraw_ckbtc_use_case(principal, withdraw_params(), 3).unwrap();
+        let wal_execution_outcome =
+            crate::journaling::execute_wal_entry_now(receipt.operation_id).await;
+        let status = get_withdraw_status_use_case(receipt.operation_id).unwrap();
 
         // then
-        assert!(result.is_err());
+        assert!(matches!(
+            wal_execution_outcome,
+            crate::journaling::WalExecutionOutcome::FailedPermanent(_)
+        ));
+        match status {
+            WithdrawStatus::Failed { .. } => {}
+            _ => panic!("withdrawal should be failed"),
+        }
         let balance = get_balance(&principal);
         assert_eq!(balance.available, INITIAL_BALANCE_SATS);
     }
@@ -594,10 +704,20 @@ mod tests {
         fund_principal(principal, INITIAL_BALANCE_SATS);
 
         // when
-        let result = withdraw_ckbtc_use_case(principal, withdraw_params(), 4).await;
+        let receipt = withdraw_ckbtc_use_case(principal, withdraw_params(), 4).unwrap();
+        let wal_execution_outcome =
+            crate::journaling::execute_wal_entry_now(receipt.operation_id).await;
+        let status = get_withdraw_status_use_case(receipt.operation_id).unwrap();
 
         // then
-        assert!(result.is_err());
+        assert!(matches!(
+            wal_execution_outcome,
+            crate::journaling::WalExecutionOutcome::FailedRetryable(_)
+        ));
+        match status {
+            WithdrawStatus::Pending { .. } => {}
+            _ => panic!("withdrawal should be pending after retryable failure"),
+        }
         let balance = get_balance(&principal);
         assert_eq!(
             balance.available,
@@ -623,26 +743,28 @@ mod tests {
         fund_principal(principal, INITIAL_BALANCE_SATS);
 
         // when
-        let first_result =
-            withdraw_ckbtc_use_case(principal, withdraw_params(), request_nonce).await;
+        let first_receipt = withdraw_ckbtc_use_case(principal, withdraw_params(), request_nonce)
+            .expect("first request should enqueue withdrawal");
+        let first_status = get_withdraw_status_use_case(first_receipt.operation_id)
+            .expect("status should load after enqueue");
         let operation_id = withdraw_operation_id(
             principal,
             TEST_BTC_ADDRESS,
             WITHDRAW_AMOUNT_SATS,
             request_nonce,
         );
-        let second_attempt_outcome = execute_wal_entry_now(operation_id).await;
+        let first_attempt_outcome = crate::journaling::execute_wal_entry_now(operation_id).await;
+        let second_attempt_outcome = crate::journaling::execute_wal_entry_now(operation_id).await;
 
         // then
-        let first_error = first_result.expect_err("first attempt should fail retryably");
-        assert_eq!(
-            first_error.code,
-            error_codes::INTER_CANISTER_CALL_FAILED.code
-        );
-        assert!(first_error.message.contains("queued for retry"));
+        assert!(matches!(first_status, WithdrawStatus::Pending { .. }));
+        assert!(matches!(
+            first_attempt_outcome,
+            crate::journaling::WalExecutionOutcome::FailedRetryable(_)
+        ));
         assert!(matches!(
             second_attempt_outcome,
-            WalExecutionOutcome::FailedPermanent(_)
+            crate::journaling::WalExecutionOutcome::FailedPermanent(_)
         ));
 
         let balance = get_balance(&principal);

@@ -27,26 +27,27 @@ pub use api::deposits::DepositInfo;
 pub use api::reset_oracle_config;
 #[cfg(feature = "testing")]
 pub use api::set_oracle_price_config;
-pub use api::withdrawals::WithdrawResult;
 pub use api::{
     accept_offers, cancel_offer, create_offer, get_accept_by_id, get_accept_offers_message,
     get_accept_status, get_active_option_by_id, get_cancel_offer_message, get_create_offer_message,
     get_failed_accepts, get_failed_settlements, get_my_offers, get_my_options,
     get_my_written_options, get_offer_by_id, get_open_offers, get_pending_accepts,
     get_pending_settlements, get_pending_settlements_journal, get_settlement_by_id,
-    settle_expired_options, settle_option_by_id, testing_clear_offers_and_options,
-    testing_expire_option, testing_force_settle, testing_set_option_expiry, AcceptOfferItem,
-    AcceptOffersRequest, CancelOfferRequest, ClearStorageResponse, CreateOfferRequest,
-    CreateOfferResponse, SettleExpiredOptionsResponse, SettlementResult,
+    get_settlement_status, settle_expired_options, settle_option_by_id,
+    testing_clear_offers_and_options, testing_expire_option, testing_force_settle,
+    testing_set_option_expiry, AcceptOfferItem, AcceptOffersRequest, CancelOfferRequest,
+    ClearStorageResponse, CreateOfferRequest, CreateOfferResponse, SettleExpiredOptionsResponse,
+    SettlementResult,
 };
 pub use api::{
     add_whitelisted, create_account, get_account_info, get_account_nonce, get_ckbtc_balance,
     get_config, get_deposit_address, get_failed_withdrawals, get_feature_flags,
     get_message_to_sign, get_my_pending_withdrawals, get_pending_withdrawals, get_trading_limits,
-    get_user_balance, get_username_update_message, get_withdraw_message, get_withdrawal_by_id,
-    list_users, list_whitelisted, remove_whitelisted, set_feature_flags_config,
-    set_trading_limits_config, testing_set_ckbtc_ledger, testing_sync_balance_from_ledger,
-    update_ckbtc_balance, update_username, withdraw_ckbtc, UserBalanceInfo,
+    get_user_balance, get_username_update_message, get_withdraw_message, get_withdraw_status,
+    get_withdrawal_by_id, list_users, list_whitelisted, remove_whitelisted,
+    set_feature_flags_config, set_trading_limits_config, testing_set_ckbtc_ledger,
+    testing_sync_balance_from_ledger, update_ckbtc_balance, update_username, withdraw_ckbtc,
+    UserBalanceInfo,
 };
 pub use auth::types::{
     AuthenticatedPayload, CreateProfileRequest, UpdateUsernameRequest, WithdrawCkbtcRequest,
@@ -60,7 +61,10 @@ pub use storage::{
     PendingWithdrawal, SettlementPhase, TradeRole, TradingLimits, UserBalance, WithdrawalPhase,
     MINIMUM_QUANTITY_SATS,
 };
-pub use usecases::{AcceptOffersReceipt, AcceptOffersResult, AcceptOffersStatus};
+pub use usecases::{
+    AcceptOffersReceipt, AcceptOffersResult, AcceptOffersStatus, SettlementReceipt,
+    SettlementStatus, WithdrawReceipt, WithdrawResult, WithdrawStatus,
+};
 
 use crate::storage::{Cbor, Config, CONFIG};
 

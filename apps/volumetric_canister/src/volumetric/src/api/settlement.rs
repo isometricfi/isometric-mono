@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 use crate::errors::VolumetricError;
 use crate::guards::is_whitelisted;
 use crate::ic;
+use crate::journaling::OperationId;
 use crate::storage::{list_expired_active_options, ActiveOption, ActiveOptionStatus};
 use crate::usecases;
 
@@ -51,10 +52,18 @@ pub async fn settle_expired_options() -> Result<SettleExpiredOptionsResponse, Vo
 }
 
 #[ic_cdk::update]
-pub async fn settle_option_by_id(option_id: u64) -> Result<SettlementResult, VolumetricError> {
+pub async fn settle_option_by_id(
+    option_id: u64,
+) -> Result<usecases::SettlementReceipt, VolumetricError> {
     is_whitelisted()?;
-    let result = usecases::settle_option_by_id_use_case(option_id).await?;
-    Ok(result.into())
+    usecases::settle_option_by_id_use_case(option_id).await
+}
+
+#[ic_cdk::query]
+pub fn get_settlement_status(
+    operation_id: OperationId,
+) -> Result<usecases::SettlementStatus, VolumetricError> {
+    Ok(usecases::get_settlement_status_use_case(operation_id)?)
 }
 
 #[ic_cdk::query]
@@ -79,8 +88,9 @@ pub fn testing_set_option_expiry(
 }
 
 #[ic_cdk::update]
-pub async fn testing_force_settle(option_id: u64) -> Result<SettlementResult, VolumetricError> {
+pub async fn testing_force_settle(
+    option_id: u64,
+) -> Result<usecases::SettlementReceipt, VolumetricError> {
     is_whitelisted()?;
-    let result = usecases::testing_force_settle_option_use_case(option_id).await?;
-    Ok(result.into())
+    usecases::testing_force_settle_option_use_case(option_id).await
 }

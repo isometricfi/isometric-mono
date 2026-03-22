@@ -6,8 +6,9 @@ use crate::auth::derive_subaccount;
 use crate::errors::{error_codes, VolumetricError};
 use crate::ic;
 use crate::journaling::{
-    default_policy, enqueue_if_absent, execute_wal_entry_now, register_retryable_error,
-    OperationId, SettlementWalPayload, WalExecutionError, WalExecutionOutcome, WalKind, WalPayload,
+    default_policy, enqueue_if_absent, execute_wal_entry_now, get_entry, register_retryable_error,
+    OperationId, SettlementWalPayload, WalEntry, WalExecutionError, WalExecutionOutcome, WalKind,
+    WalPayload, WalResult, WalStatus,
 };
 use crate::locks::SettlementLock;
 use crate::oracle::get_btc_usd_price_cents;
@@ -16,7 +17,8 @@ use crate::storage::{
     create_settlement, emit_event, get_active_option, get_fee_recipient, get_settlement,
     list_expired_active_options, release_locked_to_buyer, remove_settlement, subtract_available,
     unlock_collateral, update_active_option, update_settlement_phase, ActiveOption,
-    ActiveOptionStatus, EventData, EventType, OptionType, SettlementPhase, TradeRole,
+    ActiveOptionStatus, EventData, EventType, OptionType, PendingSettlement, SettlementPhase,
+    TradeRole,
 };
 
 use crate::usecases::balances::transfer_ckbtc;
@@ -33,6 +35,29 @@ pub struct SettlementResult {
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct SettlementWalResult {
     pub option_id: u64,
+}
+
+#[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct SettlementReceipt {
+    pub operation_id: OperationId,
+    pub option_id: u64,
+}
+
+#[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq)]
+pub enum SettlementStatus {
+    Pending {
+        receipt: SettlementReceipt,
+        phase: SettlementPhase,
+        last_error: Option<String>,
+    },
+    Succeeded {
+        receipt: SettlementReceipt,
+        result: SettlementWalResult,
+    },
+    Failed {
+        receipt: SettlementReceipt,
+        message: String,
+    },
 }
 
 pub struct SettleExpiredOptionsResult {
@@ -352,6 +377,101 @@ fn settlement_operation_id(option_id: u64) -> OperationId {
     OperationId::from_parts(&[b"settlement", &option_id_bytes])
 }
 
+fn build_settlement_receipt_from_wal_entry(
+    operation_id: OperationId,
+    wal_entry: &WalEntry,
+) -> Result<SettlementReceipt, VolumetricError> {
+    let WalPayload::Settlement(payload) = &wal_entry.payload else {
+        return Err(VolumetricError::from_def(
+            error_codes::INTERNAL_ERROR,
+            Some("settlement receipt loaded from unexpected wal payload"),
+            None,
+        ));
+    };
+
+    Ok(SettlementReceipt {
+        operation_id,
+        option_id: payload.option_id,
+    })
+}
+
+fn load_receipt_if_settlement_exists(
+    operation_id: OperationId,
+) -> Result<Option<SettlementReceipt>, VolumetricError> {
+    let Some(existing_wal_entry) = get_entry(operation_id) else {
+        return Ok(None);
+    };
+
+    build_settlement_receipt_from_wal_entry(operation_id, &existing_wal_entry).map(Some)
+}
+
+fn load_settlement_wal_result(
+    operation_id: OperationId,
+) -> Result<SettlementWalResult, VolumetricError> {
+    let wal_entry = get_entry(operation_id).ok_or_else(|| {
+        VolumetricError::from_def(
+            error_codes::INTERNAL_ERROR,
+            Some("settlement completed without wal entry"),
+            None,
+        )
+    })?;
+    let wal_result = wal_entry.result.ok_or_else(|| {
+        VolumetricError::from_def(
+            error_codes::INTERNAL_ERROR,
+            Some("settlement completed without result"),
+            None,
+        )
+    })?;
+
+    match wal_result {
+        WalResult::Settlement(result) => Ok(result),
+        _ => Err(VolumetricError::from_def(
+            error_codes::INTERNAL_ERROR,
+            Some("settlement completed with unexpected wal result type"),
+            None,
+        )),
+    }
+}
+
+fn load_settlement_journal_entry(option_id: u64) -> Result<PendingSettlement, VolumetricError> {
+    get_settlement(option_id).ok_or_else(|| {
+        VolumetricError::from_def(
+            error_codes::INTERNAL_ERROR,
+            Some("settlement journal entry not found"),
+            None,
+        )
+    })
+}
+
+fn load_failed_settlement_message(
+    option_id: u64,
+    wal_last_error: Option<String>,
+) -> Result<String, VolumetricError> {
+    if let Some(pending_settlement) = get_settlement(option_id) {
+        if let SettlementPhase::Failed { reason } = pending_settlement.phase {
+            return Ok(reason);
+        }
+    }
+
+    wal_last_error.ok_or_else(|| {
+        VolumetricError::from_def(
+            error_codes::INTERNAL_ERROR,
+            Some("failed settlement missing error message"),
+            None,
+        )
+    })
+}
+
+fn schedule_settlement_wal_execution(operation_id: OperationId) {
+    #[cfg(target_arch = "wasm32")]
+    ic_cdk::futures::spawn(async move {
+        let _ = crate::journaling::execute_wal_entry_now(operation_id).await;
+    });
+
+    #[cfg(not(target_arch = "wasm32"))]
+    let _ = operation_id;
+}
+
 fn map_balance_error_to_permanent(error: crate::storage::InsufficientBalance) -> WalExecutionError {
     WalExecutionError::Permanent(format!(
         "insufficient balance during settlement recovery: available={}, required={}",
@@ -359,9 +479,44 @@ fn map_balance_error_to_permanent(error: crate::storage::InsufficientBalance) ->
     ))
 }
 
+pub fn get_settlement_status_use_case(
+    operation_id: OperationId,
+) -> Result<SettlementStatus, VolumetricError> {
+    let wal_entry = get_entry(operation_id).ok_or_else(|| {
+        VolumetricError::from_def(
+            error_codes::INTERNAL_ERROR,
+            Some("settlement not found"),
+            None,
+        )
+    })?;
+    let settlement_receipt = build_settlement_receipt_from_wal_entry(operation_id, &wal_entry)?;
+
+    match wal_entry.status {
+        WalStatus::Succeeded => Ok(SettlementStatus::Succeeded {
+            receipt: settlement_receipt,
+            result: load_settlement_wal_result(operation_id)?,
+        }),
+        WalStatus::FailedPermanent => Ok(SettlementStatus::Failed {
+            receipt: settlement_receipt.clone(),
+            message: load_failed_settlement_message(
+                settlement_receipt.option_id,
+                wal_entry.last_err,
+            )?,
+        }),
+        WalStatus::Enqueued | WalStatus::InFlight | WalStatus::FailedRetryable => {
+            let pending_settlement = load_settlement_journal_entry(settlement_receipt.option_id)?;
+            Ok(SettlementStatus::Pending {
+                receipt: settlement_receipt,
+                phase: pending_settlement.phase,
+                last_error: wal_entry.last_err,
+            })
+        }
+    }
+}
+
 pub async fn settle_option_by_id_use_case(
     option_id: u64,
-) -> Result<SettlementResult, VolumetricError> {
+) -> Result<SettlementReceipt, VolumetricError> {
     let now = ic::time();
 
     let option = get_active_option(option_id).ok_or_else(|| {
@@ -381,14 +536,35 @@ pub async fn settle_option_by_id_use_case(
     }
 
     let settlement_price_cents = get_btc_usd_price_cents().await?;
-    settle_single_option(option_id, settlement_price_cents).await
+    queue_settlement_execution(option_id, settlement_price_cents)
 }
 
 pub async fn testing_force_settle_option_use_case(
     option_id: u64,
-) -> Result<SettlementResult, VolumetricError> {
+) -> Result<SettlementReceipt, VolumetricError> {
     let settlement_price_cents = get_btc_usd_price_cents().await?;
-    settle_single_option(option_id, settlement_price_cents).await
+    queue_settlement_execution(option_id, settlement_price_cents)
+}
+
+fn queue_settlement_execution(
+    option_id: u64,
+    settlement_price_cents: u64,
+) -> Result<SettlementReceipt, VolumetricError> {
+    let operation_id = settlement_operation_id(option_id);
+    if let Some(existing_receipt) = load_receipt_if_settlement_exists(operation_id)? {
+        return Ok(existing_receipt);
+    }
+
+    let _lock = SettlementLock::new(option_id)?;
+    let prepared_settlement_execution =
+        prepare_settlement_execution(option_id, settlement_price_cents)?;
+    let receipt = SettlementReceipt {
+        operation_id: prepared_settlement_execution.operation_id,
+        option_id: prepared_settlement_execution.option_id,
+    };
+    schedule_settlement_wal_execution(receipt.operation_id);
+
+    Ok(receipt)
 }
 
 pub fn testing_expire_option_use_case(option_id: u64) -> Result<ActiveOption, VolumetricError> {
@@ -451,6 +627,7 @@ mod tests {
     use super::*;
     use crate::ic::IcRuntime;
     use crate::ledger::{self, LedgerClient};
+    use crate::oracle::{set_oracle, StubOracle};
     use crate::storage::{
         clear_active_options, clear_events, get_balance, get_settlement, insert_active_option,
         list_failed_settlements, list_pending_settlements_journal, remove_settlement, set_balance,
@@ -595,5 +772,39 @@ mod tests {
 
         let settlement = get_settlement(TEST_OPTION_ID).expect("failed settlement should remain");
         assert_eq!(settlement.phase, SettlementPhase::Started);
+    }
+
+    /// Given: a valid expired option and a deterministic oracle price
+    /// When: settle_option_by_id_use_case is called
+    /// Then: it returns a receipt immediately and status remains pending before WAL execution runs
+    #[tokio::test]
+    async fn test_settle_option_by_id_returns_receipt_and_pending_status() {
+        // given
+        let writer = test_principal(1);
+        let buyer = test_principal(2);
+        setup_test_state(writer, buyer);
+        set_oracle(Rc::new(StubOracle::new(TEST_SETTLEMENT_PRICE_CENTS)));
+
+        // when
+        let receipt = settle_option_by_id_use_case(TEST_OPTION_ID)
+            .await
+            .expect("settle by id should enqueue settlement");
+        let status = get_settlement_status_use_case(receipt.operation_id)
+            .expect("status should load for enqueued settlement");
+
+        // then
+        assert_eq!(receipt.option_id, TEST_OPTION_ID);
+        match status {
+            SettlementStatus::Pending {
+                receipt: status_receipt,
+                phase,
+                last_error,
+            } => {
+                assert_eq!(status_receipt.option_id, TEST_OPTION_ID);
+                assert_eq!(phase, SettlementPhase::Started);
+                assert_eq!(last_error, None);
+            }
+            _ => panic!("settlement should be pending before WAL execution"),
+        }
     }
 }

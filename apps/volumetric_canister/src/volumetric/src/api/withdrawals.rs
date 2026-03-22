@@ -1,28 +1,13 @@
-use candid::CandidType;
-use serde::{Deserialize, Serialize};
-
 use crate::auth::types::{AuthenticatedPayload, SignableAction, WalletKey, WithdrawCkbtcRequest};
 use crate::auth::{build_challenge_context, verify_btc_signature};
 use crate::errors::{error_codes, VolumetricError};
 use crate::guards::{is_controller, is_whitelisted};
+use crate::journaling::OperationId;
 use crate::storage::{
     get_pending_withdrawals_by_principal, get_principal_for_wallet, get_withdrawal,
     increment_nonce, list_failed_withdrawals, list_pending_withdrawals, PendingWithdrawal,
 };
 use crate::usecases;
-
-#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
-pub struct WithdrawResult {
-    pub block_index: u64,
-}
-
-impl From<usecases::WithdrawResult> for WithdrawResult {
-    fn from(r: usecases::WithdrawResult) -> Self {
-        Self {
-            block_index: r.block_index,
-        }
-    }
-}
 
 #[ic_cdk::query]
 pub fn get_withdraw_message(address: String, btc_address: String, amount: u64) -> String {
@@ -36,9 +21,9 @@ pub fn get_withdraw_message(address: String, btc_address: String, amount: u64) -
 }
 
 #[ic_cdk::update]
-pub async fn withdraw_ckbtc(
+pub fn withdraw_ckbtc(
     req: AuthenticatedPayload<WithdrawCkbtcRequest>,
-) -> Result<WithdrawResult, VolumetricError> {
+) -> Result<usecases::WithdrawReceipt, VolumetricError> {
     is_whitelisted()?;
 
     let address = &req.wallet_proof.address;
@@ -59,8 +44,14 @@ pub async fn withdraw_ckbtc(
         amount: req.data.amount,
     };
 
-    let result = usecases::withdraw_ckbtc_use_case(principal, params, context.nonce).await?;
-    Ok(result.into())
+    usecases::withdraw_ckbtc_use_case(principal, params, context.nonce)
+}
+
+#[ic_cdk::query]
+pub fn get_withdraw_status(
+    operation_id: OperationId,
+) -> Result<usecases::WithdrawStatus, VolumetricError> {
+    Ok(usecases::get_withdraw_status_use_case(operation_id)?)
 }
 
 #[ic_cdk::query]
