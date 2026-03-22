@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use crate::auth::types::{AuthenticatedPayload, ChallengeContext, SignableAction, WalletKey};
 use crate::auth::{build_challenge_context, verify_btc_signature};
 use crate::errors::{error_codes, VolumetricError};
-use crate::guards::{is_controller, is_whitelisted};
+use crate::guards::{is_controller, is_whitelisted, no_replicated_call};
 use crate::journaling::OperationId;
 use crate::storage::{
     get_accept, get_active_option, get_principal_for_wallet, get_settlement, increment_nonce,
@@ -82,7 +82,7 @@ pub fn accept_offers(
     usecases::accept_offers_use_case(buyer_principal, items, context.nonce)
 }
 
-#[ic_cdk::query]
+#[ic_cdk::query(guard = "no_replicated_call")]
 pub fn get_accept_status(
     operation_id: OperationId,
 ) -> Result<usecases::AcceptOffersStatus, VolumetricError> {

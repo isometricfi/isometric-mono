@@ -1,7 +1,7 @@
 use crate::auth::types::{AuthenticatedPayload, SignableAction, WalletKey, WithdrawCkbtcRequest};
 use crate::auth::{build_challenge_context, verify_btc_signature};
 use crate::errors::{error_codes, VolumetricError};
-use crate::guards::{is_controller, is_whitelisted};
+use crate::guards::{is_controller, is_whitelisted, no_replicated_call};
 use crate::journaling::OperationId;
 use crate::storage::{
     get_pending_withdrawals_by_principal, get_principal_for_wallet, get_withdrawal,
@@ -47,7 +47,7 @@ pub fn withdraw_ckbtc(
     usecases::withdraw_ckbtc_use_case(principal, params, context.nonce)
 }
 
-#[ic_cdk::query]
+#[ic_cdk::query(guard = "no_replicated_call")]
 pub fn get_withdraw_status(
     operation_id: OperationId,
 ) -> Result<usecases::WithdrawStatus, VolumetricError> {

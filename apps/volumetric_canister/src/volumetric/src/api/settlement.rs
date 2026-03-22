@@ -2,7 +2,7 @@ use candid::CandidType;
 use serde::{Deserialize, Serialize};
 
 use crate::errors::VolumetricError;
-use crate::guards::is_whitelisted;
+use crate::guards::{is_whitelisted, no_replicated_call};
 use crate::ic;
 use crate::journaling::OperationId;
 use crate::storage::{list_expired_active_options, ActiveOption, ActiveOptionStatus};
@@ -59,7 +59,7 @@ pub async fn settle_option_by_id(
     usecases::settle_option_by_id_use_case(option_id).await
 }
 
-#[ic_cdk::query]
+#[ic_cdk::query(guard = "no_replicated_call")]
 pub fn get_settlement_status(
     operation_id: OperationId,
 ) -> Result<usecases::SettlementStatus, VolumetricError> {
