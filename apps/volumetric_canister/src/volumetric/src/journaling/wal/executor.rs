@@ -240,3 +240,169 @@ fn is_retryable_error(error: &VolumetricError) -> bool {
         .iter()
         .any(|retryable_pattern| lowercase_error_message.contains(retryable_pattern))
 }
+
+#[cfg(test)]
+mod tests {
+    use candid::Principal;
+
+    use super::*;
+    use crate::ic::{self, IcRuntime};
+    use crate::journaling::{default_policy, enqueue_if_absent, WalKind};
+    use crate::usecases::WithdrawalWalResult;
+
+    const TEST_NOW_NS: u64 = 1_000_000_000_000;
+
+    struct MockRuntime;
+
+    impl IcRuntime for MockRuntime {
+        fn time(&self) -> u64 {
+            TEST_NOW_NS
+        }
+
+        fn canister_self(&self) -> Principal {
+            Principal::anonymous()
+        }
+
+        fn log(&self, _message: &str) {}
+    }
+
+    fn make_operation_id(seed: u8) -> OperationId {
+        OperationId::from_parts(&[b"executor-test", &[seed]])
+    }
+
+    fn make_withdrawal_payload(seed: u8) -> WalPayload {
+        WalPayload::Withdrawal(super::super::types::WithdrawalWalPayload {
+            withdrawal_id: u64::from(seed),
+            principal: Principal::anonymous(),
+            amount_sats: 100 + u64::from(seed),
+            btc_address: format!("tb1qexecutor{seed}"),
+            created_at_time_ns: TEST_NOW_NS,
+        })
+    }
+
+    fn reset_executor_inflight_state() {
+        WAL_EXECUTION_IN_PROGRESS_OPERATION_IDS.with(|in_progress_operation_ids| {
+            in_progress_operation_ids.borrow_mut().clear();
+        });
+        RETRY_SCAN_IN_PROGRESS.with(|is_in_progress| {
+            *is_in_progress.borrow_mut() = false;
+        });
+    }
+
+    /// Given: backoff inputs from WAL retry policy
+    /// When: computing the next attempt timestamp
+    /// Then: the delay follows exponential growth and clamps at max retry delay
+    #[test]
+    fn compute_next_attempt_at_ns_applies_backoff_and_clamps() {
+        // given
+        let now_ns = TEST_NOW_NS;
+        let backoff_secs = 5;
+
+        // when
+        let first_attempt_next_ns = compute_next_attempt_at_ns(now_ns, backoff_secs, 1);
+        let second_attempt_next_ns = compute_next_attempt_at_ns(now_ns, backoff_secs, 2);
+        let clamped_next_ns = compute_next_attempt_at_ns(now_ns, backoff_secs, 99);
+
+        // then
+        let first_delay_ns = first_attempt_next_ns.saturating_sub(now_ns);
+        let second_delay_ns = second_attempt_next_ns.saturating_sub(now_ns);
+        let clamped_delay_ns = clamped_next_ns.saturating_sub(now_ns);
+
+        assert_eq!(first_delay_ns, 5 * NANOSECONDS_PER_SECOND);
+        assert_eq!(second_delay_ns, 10 * NANOSECONDS_PER_SECOND);
+        assert_eq!(
+            clamped_delay_ns,
+            MAX_WAL_RETRY_DELAY_SECS * NANOSECONDS_PER_SECOND
+        );
+    }
+
+    /// Given: inter-canister and non-inter-canister errors
+    /// When: registering WAL retry classification
+    /// Then: known retryable patterns map to retryable and others map to permanent
+    #[test]
+    fn register_retryable_error_classifies_errors_by_message_and_code() {
+        // given
+        let retryable_error = VolumetricError::from_def(
+            error_codes::INTER_CANISTER_CALL_FAILED,
+            Some("Temporarily unavailable"),
+            None,
+        );
+        let inter_canister_error_with_non_retryable_context = VolumetricError::from_def(
+            error_codes::INTER_CANISTER_CALL_FAILED,
+            Some("malformed address"),
+            None,
+        );
+        let non_inter_canister_error =
+            VolumetricError::from_def(error_codes::INSUFFICIENT_BALANCE, None, None);
+
+        // when
+        let retryable_classification = register_retryable_error(retryable_error);
+        let inter_canister_classification =
+            register_retryable_error(inter_canister_error_with_non_retryable_context);
+        let non_inter_canister_classification = register_retryable_error(non_inter_canister_error);
+
+        // then
+        assert!(matches!(
+            retryable_classification,
+            WalExecutionError::Retryable(_)
+        ));
+        assert!(matches!(
+            inter_canister_classification,
+            WalExecutionError::Retryable(_)
+        ));
+        assert!(matches!(
+            non_inter_canister_classification,
+            WalExecutionError::Permanent(_)
+        ));
+    }
+
+    /// Given: an operation id is already marked as in-flight
+    /// When: a second in-flight mark is attempted
+    /// Then: the second attempt is skipped to prevent concurrent WAL execution
+    #[test]
+    fn mark_wal_execution_in_progress_if_idle_prevents_duplicates() {
+        // given
+        reset_executor_inflight_state();
+        let operation_id = make_operation_id(1);
+
+        // when
+        let first_mark_result = mark_wal_execution_in_progress_if_idle(operation_id);
+        let second_mark_result = mark_wal_execution_in_progress_if_idle(operation_id);
+
+        // then
+        assert!(first_mark_result);
+        assert!(!second_mark_result);
+
+        reset_executor_inflight_state();
+    }
+
+    /// Given: a WAL entry is already in succeeded status
+    /// When: execute_wal_entry_now is called again for the same operation id
+    /// Then: execution returns SucceededAlready without re-running payload side effects
+    #[tokio::test]
+    async fn execute_wal_entry_now_returns_succeeded_already_for_terminal_entry() {
+        // given
+        reset_executor_inflight_state();
+        ic::set_runtime(Box::new(MockRuntime));
+        let operation_id = make_operation_id(2);
+        enqueue_if_absent(
+            operation_id,
+            WalKind::Withdrawal,
+            make_withdrawal_payload(2),
+            default_policy(),
+        );
+
+        let mut wal_entry = get_entry(operation_id).expect("entry should exist");
+        wal_entry.status = WalStatus::Succeeded;
+        wal_entry.result = Some(WalResult::Withdrawal(WithdrawalWalResult {
+            block_index: 42,
+        }));
+        put_entry(wal_entry);
+
+        // when
+        let outcome = execute_wal_entry_now(operation_id).await;
+
+        // then
+        assert_eq!(outcome, WalExecutionOutcome::SucceededAlready);
+    }
+}

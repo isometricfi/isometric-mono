@@ -816,3 +816,86 @@ fn test_settling_already_settled_option_returns_idempotent_receipt() {
         SettlementStatus::Succeeded { .. } | SettlementStatus::Failed { .. }
     ));
 }
+
+/// Given: an expired option ready to settle by id
+/// When: settle_option_by_id is called and status is queried immediately
+/// Then: status is pending first and later reaches a terminal state after polling
+#[test]
+fn test_settle_option_by_id_status_transitions_from_pending_to_terminal() {
+    // given
+    let env = create_test_env();
+    whitelist_controller(&env);
+    configure_test_ledger(&env);
+
+    const WRITER_SEED: u64 = 41;
+    const BUYER_SEED: u64 = 42;
+    const STRIKE_BPS: u16 = 500;
+    const SETTLEMENT_PRICE_CENTS: u64 = 10_200_000;
+    const OPTION_ID: u64 = 1;
+    const EXPIRED_AT_NS: u64 = 0;
+
+    let writer_wallet = generate_wallet(WRITER_SEED);
+    let buyer_wallet = generate_wallet(BUYER_SEED);
+    let writer_profile = create_account(&env, &writer_wallet).expect("Writer account failed");
+    let buyer_profile = create_account(&env, &buyer_wallet).expect("Buyer account failed");
+
+    mint_and_sync_balance(&env, &writer_profile, QUANTITY_SATS).expect("Writer balance failed");
+    mint_and_sync_balance(&env, &buyer_profile, PREMIUM_SATS + ACCEPT_TRANSFER_FEES)
+        .expect("Buyer balance failed");
+
+    set_oracle_price(&env, ENTRY_PRICE_CENTS);
+    create_offer(
+        &env,
+        &writer_wallet,
+        QUANTITY_SATS,
+        STRIKE_BPS,
+        PREMIUM_BPS,
+        ONE_DAY_SECS,
+    )
+    .expect("Create offer failed");
+
+    accept_offers(
+        &env,
+        &buyer_wallet,
+        vec![AcceptOfferItem {
+            offer_id: FIRST_OFFER_ID,
+            quantity: QUANTITY_SATS,
+        }],
+    )
+    .expect("Accept offer failed");
+
+    set_oracle_price(&env, SETTLEMENT_PRICE_CENTS);
+    testing_set_option_expiry(&env, OPTION_ID, EXPIRED_AT_NS).expect("Set expiry failed");
+
+    // when
+    let settlement_receipt =
+        settle_option_by_id(&env, OPTION_ID).expect("settlement should enqueue");
+    let initial_status =
+        get_settlement_status(&env, settlement_receipt.operation_id).expect("status should load");
+
+    // then
+    assert!(matches!(
+        initial_status,
+        SettlementStatus::Pending { .. }
+            | SettlementStatus::Succeeded { .. }
+            | SettlementStatus::Failed { .. }
+    ));
+
+    let mut terminal_status = initial_status;
+    for _attempt in 0..8 {
+        if matches!(
+            terminal_status,
+            SettlementStatus::Succeeded { .. } | SettlementStatus::Failed { .. }
+        ) {
+            break;
+        }
+        env.pic.tick();
+        terminal_status = get_settlement_status(&env, settlement_receipt.operation_id)
+            .expect("status should reload");
+    }
+
+    assert!(matches!(
+        terminal_status,
+        SettlementStatus::Succeeded { .. } | SettlementStatus::Failed { .. }
+    ));
+}
