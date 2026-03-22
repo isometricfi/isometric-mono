@@ -12,7 +12,7 @@ use crate::journaling::{
 };
 use crate::locks::WithdrawalLock;
 use crate::storage::{
-    add_available, complete_withdrawal, create_withdrawal, emit_event,
+    add_available, complete_withdrawal, create_withdrawal, emit_event, fail_withdrawal,
     get_pending_withdrawals_by_principal, get_withdrawal, remove_withdrawal, subtract_available,
     update_withdrawal_phase, Config, EventData, EventType, WithdrawalPhase,
 };
@@ -33,10 +33,8 @@ pub struct WithdrawalWalResult {
     pub block_index: u64,
 }
 
-struct PreparedWithdrawalExecution {
+struct WithdrawalWalExecutionPreparation {
     operation_id: OperationId,
-    principal: Principal,
-    amount_sats: u64,
 }
 
 pub async fn withdraw_ckbtc_use_case(
@@ -44,8 +42,7 @@ pub async fn withdraw_ckbtc_use_case(
     params: WithdrawParams,
     request_nonce: u64,
 ) -> Result<WithdrawResult, VolumetricError> {
-    // bind to _lock, not `let _ =` which drops immediately
-    let _lock = WithdrawalLock::new(principal)?;
+    let _withdrawal_lock = WithdrawalLock::new(principal)?;
 
     if !get_pending_withdrawals_by_principal(principal).is_empty() {
         return Err(VolumetricError::from_def(
@@ -56,20 +53,23 @@ pub async fn withdraw_ckbtc_use_case(
     }
 
     let operation_id =
-        withdrawal_operation_id(principal, &params.btc_address, params.amount, request_nonce);
-    if let Some(existing_withdraw_result) = load_existing_withdraw_result(operation_id)? {
+        withdraw_operation_id(principal, &params.btc_address, params.amount, request_nonce);
+
+    if let Some(existing_withdraw_result) =
+        load_withdraw_wal_result_if_already_succeeded(operation_id)?
+    {
         return Ok(existing_withdraw_result);
     }
 
-    let prepared_withdrawal_execution =
-        prepare_withdrawal_execution(principal, params, operation_id)?;
+    let withdrawal_wal_execution_preparation =
+        prepare_withdraw_execution(principal, params, operation_id)?;
     let wal_execution_outcome =
-        execute_wal_entry_now(prepared_withdrawal_execution.operation_id).await;
+        execute_wal_entry_now(withdrawal_wal_execution_preparation.operation_id).await;
 
-    finish_withdrawal_execution(prepared_withdrawal_execution, wal_execution_outcome)
+    finish_withdraw_wal_execution(withdrawal_wal_execution_preparation, wal_execution_outcome)
 }
 
-fn load_existing_withdraw_result(
+fn load_withdraw_wal_result_if_already_succeeded(
     operation_id: OperationId,
 ) -> Result<Option<WithdrawResult>, VolumetricError> {
     let Some(existing_entry) = get_entry(operation_id) else {
@@ -88,28 +88,19 @@ fn load_existing_withdraw_result(
     }
 }
 
-fn prepare_withdrawal_execution(
+fn prepare_withdraw_execution(
     principal: Principal,
     params: WithdrawParams,
     operation_id: OperationId,
-) -> Result<PreparedWithdrawalExecution, VolumetricError> {
-    subtract_available(principal, params.amount).map_err(|error| {
-        VolumetricError::from_def(
-            error_codes::INSUFFICIENT_BALANCE,
-            Some(&format!(
-                "available: {}, required: {}",
-                error.available, error.required
-            )),
-            None,
-        )
-    })?;
+) -> Result<WithdrawalWalExecutionPreparation, VolumetricError> {
+    debit_withdrawer_available_balance(principal, params.amount)?;
 
-    let created_at_time_ns = ic::time();
+    let ledger_transfer_created_at_time_ns = ic::time();
     let withdrawal = create_withdrawal(
         principal,
         params.amount,
         params.btc_address.clone(),
-        created_at_time_ns,
+        ledger_transfer_created_at_time_ns,
     );
 
     enqueue_if_absent(
@@ -120,25 +111,37 @@ fn prepare_withdrawal_execution(
             principal,
             amount_sats: params.amount,
             btc_address: params.btc_address,
-            created_at_time_ns,
+            created_at_time_ns: ledger_transfer_created_at_time_ns,
         }),
         default_policy(),
     );
 
-    Ok(PreparedWithdrawalExecution {
-        operation_id,
-        principal,
-        amount_sats: params.amount,
+    Ok(WithdrawalWalExecutionPreparation { operation_id })
+}
+
+fn debit_withdrawer_available_balance(
+    principal: Principal,
+    amount_sats: u64,
+) -> Result<(), VolumetricError> {
+    subtract_available(principal, amount_sats).map_err(|error| {
+        VolumetricError::from_def(
+            error_codes::INSUFFICIENT_BALANCE,
+            Some(&format!(
+                "available: {}, required: {}",
+                error.available, error.required
+            )),
+            None,
+        )
     })
 }
 
-fn finish_withdrawal_execution(
-    prepared_withdrawal_execution: PreparedWithdrawalExecution,
+fn finish_withdraw_wal_execution(
+    withdrawal_wal_execution_preparation: WithdrawalWalExecutionPreparation,
     wal_execution_outcome: WalExecutionOutcome,
 ) -> Result<WithdrawResult, VolumetricError> {
     match wal_execution_outcome {
         WalExecutionOutcome::Succeeded | WalExecutionOutcome::SucceededAlready => {
-            load_withdrawal_wal_result(prepared_withdrawal_execution.operation_id)
+            load_withdraw_wal_result(withdrawal_wal_execution_preparation.operation_id)
         }
         WalExecutionOutcome::SkippedAlreadyInFlight | WalExecutionOutcome::FailedRetryable(_) => {
             Err(VolumetricError::from_def(
@@ -147,23 +150,31 @@ fn finish_withdrawal_execution(
                 None,
             ))
         }
-        WalExecutionOutcome::FailedPermanent(message) => {
-            add_available(
-                prepared_withdrawal_execution.principal,
-                prepared_withdrawal_execution.amount_sats,
-            );
-            Err(VolumetricError::from_def(
-                error_codes::INTER_CANISTER_CALL_FAILED,
-                Some(&message),
-                None,
-            ))
-        }
+        WalExecutionOutcome::FailedPermanent(message) => Err(VolumetricError::from_def(
+            error_codes::INTER_CANISTER_CALL_FAILED,
+            Some(&message),
+            None,
+        )),
     }
 }
 
-fn load_withdrawal_wal_result(
-    operation_id: OperationId,
-) -> Result<WithdrawResult, VolumetricError> {
+pub(crate) fn finalize_failed_withdrawal_wal(payload: &WithdrawalWalPayload, message: &str) {
+    let Some(withdrawal) = get_withdrawal(payload.withdrawal_id) else {
+        return;
+    };
+
+    if matches!(
+        withdrawal.phase,
+        WithdrawalPhase::Failed { .. } | WithdrawalPhase::Completed { .. }
+    ) {
+        return;
+    }
+
+    add_available(payload.principal, payload.amount_sats);
+    fail_withdrawal(payload.withdrawal_id, message.to_string());
+}
+
+fn load_withdraw_wal_result(operation_id: OperationId) -> Result<WithdrawResult, VolumetricError> {
     let wal_entry = get_entry(operation_id).ok_or_else(|| {
         VolumetricError::from_def(
             error_codes::INTERNAL_ERROR,
@@ -279,7 +290,7 @@ pub async fn run_withdrawal_wal(
     }
 }
 
-fn withdrawal_operation_id(
+fn withdraw_operation_id(
     principal: Principal,
     btc_address: &str,
     amount_sats: u64,
@@ -322,6 +333,7 @@ fn map_withdrawal_approve_error(error: VolumetricError) -> WalExecutionError {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::cell::Cell;
     use std::rc::Rc;
 
     use async_trait::async_trait;
@@ -332,7 +344,10 @@ mod tests {
     use crate::ic::IcRuntime;
     use crate::ledger::LedgerClient;
     use crate::minter::MinterClient;
-    use crate::storage::{get_balance, set_balance, UserBalance};
+    use crate::storage::{
+        get_balance, get_pending_withdrawals_by_principal, get_withdrawal, set_balance,
+        UserBalance, WithdrawalPhase,
+    };
 
     const TEST_NOW_NS: u64 = 1_000_000_000_000;
     const WITHDRAW_AMOUNT_SATS: u64 = 100_000;
@@ -408,6 +423,50 @@ mod tests {
                     block_index: self.retrieve_block_index.unwrap_or(0),
                 }),
             }
+        }
+    }
+
+    struct RetryableThenPermanentMinter {
+        retrieve_call_count: Cell<u32>,
+    }
+
+    #[async_trait(?Send)]
+    impl MinterClient for RetryableThenPermanentMinter {
+        async fn get_btc_address(
+            &self,
+            _args: GetBtcAddressArg,
+        ) -> Result<String, VolumetricError> {
+            Ok(String::new())
+        }
+
+        async fn update_balance(
+            &self,
+            _args: UpdateBalanceArg,
+        ) -> Result<Vec<UtxoStatus>, VolumetricError> {
+            Ok(vec![])
+        }
+
+        async fn retrieve_btc_with_approval(
+            &self,
+            _args: RetrieveBtcWithApprovalArgs,
+        ) -> Result<RetrieveBtcOk, VolumetricError> {
+            let retrieve_call_count = self.retrieve_call_count.get();
+            self.retrieve_call_count
+                .set(retrieve_call_count.saturating_add(1));
+
+            if retrieve_call_count == 0 {
+                return Err(VolumetricError::from_def(
+                    error_codes::INTER_CANISTER_CALL_FAILED,
+                    Some("temporarily unavailable"),
+                    None,
+                ));
+            }
+
+            Err(VolumetricError::from_def(
+                error_codes::INTER_CANISTER_CALL_FAILED,
+                Some("malformed address"),
+                None,
+            ))
         }
     }
 
@@ -544,5 +603,61 @@ mod tests {
             balance.available,
             INITIAL_BALANCE_SATS - WITHDRAW_AMOUNT_SATS
         );
+    }
+
+    /// Given: a withdrawal first fails retryably, then fails permanently on a later WAL attempt
+    /// When: WAL execution is retried after the initial request returns pending-retry
+    /// Then: the deducted amount is refunded and the withdrawal is marked failed
+    #[tokio::test]
+    async fn test_withdraw_retry_to_permanent_failure_refunds_and_marks_failed() {
+        // given
+        ic::set_runtime(Box::new(MockRuntime));
+        ledger::set_ledger(Rc::new(MockLedger {
+            approve_result: Ok(Nat::from(0u64)),
+        }));
+        minter::set_minter(Rc::new(RetryableThenPermanentMinter {
+            retrieve_call_count: Cell::new(0),
+        }));
+        let principal = test_principal();
+        let request_nonce = 8;
+        fund_principal(principal, INITIAL_BALANCE_SATS);
+
+        // when
+        let first_result =
+            withdraw_ckbtc_use_case(principal, withdraw_params(), request_nonce).await;
+        let operation_id = withdraw_operation_id(
+            principal,
+            TEST_BTC_ADDRESS,
+            WITHDRAW_AMOUNT_SATS,
+            request_nonce,
+        );
+        let second_attempt_outcome = execute_wal_entry_now(operation_id).await;
+
+        // then
+        let first_error = first_result.expect_err("first attempt should fail retryably");
+        assert_eq!(
+            first_error.code,
+            error_codes::INTER_CANISTER_CALL_FAILED.code
+        );
+        assert!(first_error.message.contains("queued for retry"));
+        assert!(matches!(
+            second_attempt_outcome,
+            WalExecutionOutcome::FailedPermanent(_)
+        ));
+
+        let balance = get_balance(&principal);
+        assert_eq!(balance.available, INITIAL_BALANCE_SATS);
+
+        let pending_withdrawals = get_pending_withdrawals_by_principal(principal);
+        const EXPECTED_PENDING_WITHDRAWALS_LEN: usize = 0;
+        assert_eq!(pending_withdrawals.len(), EXPECTED_PENDING_WITHDRAWALS_LEN);
+
+        let withdrawal_id = 1;
+        let failed_withdrawal =
+            get_withdrawal(withdrawal_id).expect("failed withdrawal journal should still exist");
+        assert!(matches!(
+            failed_withdrawal.phase,
+            WithdrawalPhase::Failed { .. }
+        ));
     }
 }

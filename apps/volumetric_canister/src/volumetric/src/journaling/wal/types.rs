@@ -2,7 +2,7 @@ use candid::{CandidType, Principal};
 use serde::{Deserialize, Serialize};
 
 use crate::journaling::OperationId;
-use crate::storage::{Asset, OptionType};
+use crate::storage::{Asset, OfferStatus, OptionType};
 use crate::usecases::{AcceptWalResult, SettlementWalResult, WithdrawalWalResult};
 
 #[derive(CandidType, Serialize, Deserialize, Clone, Copy, Debug, PartialEq, Eq)]
@@ -55,15 +55,15 @@ pub struct AcceptWalPreparedAccept {
     pub writer: Principal,
     pub asset: Asset,
     pub option_type: OptionType,
+    pub strike_basis_points: u16,
     pub quantity_sats: u64,
     pub premium_sats: u64,
     pub premium_to_writer_sats: u64,
     pub premium_fee_sats: u64,
     pub option_id: u64,
     pub expiry_ns: u64,
-    pub strike_price_cents: u64,
-    pub entry_price_cents: u64,
-    pub accepted_at_ns: u64,
+    pub original_remaining_quantity_sats: u64,
+    pub original_status: OfferStatus,
     pub profit_fee_basis_points: u64,
 }
 
@@ -78,7 +78,8 @@ pub struct AcceptWalPayload {
     pub accept_journal_entry_id: u64,
     pub buyer: Principal,
     pub fill_group_id: u64,
-    pub total_platform_fee_sats: u64,
+    pub total_buyer_debit_required_sats: u64,
+    pub planned_platform_fee_sats: u64,
     pub created_at_time_ns: u64,
     pub prepared_accepts: Vec<AcceptWalPreparedAccept>,
     pub writer_transfers: Vec<AcceptWalTransfer>,

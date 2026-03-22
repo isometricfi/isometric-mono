@@ -7,7 +7,10 @@ use scopeguard::guard;
 
 use crate::errors::{error_codes, VolumetricError};
 use crate::ic;
-use crate::usecases::{run_accept_wal, run_settlement_wal, run_withdrawal_wal};
+use crate::usecases::{
+    finalize_failed_accept_wal, finalize_failed_withdrawal_wal, run_accept_wal, run_settlement_wal,
+    run_withdrawal_wal,
+};
 
 use super::super::OperationId;
 use super::store::{due_ids, get_entry, put_entry};
@@ -16,7 +19,7 @@ use super::types::{WalExecutionError, WalExecutionOutcome, WalPayload, WalResult
 const MAX_WAL_RETRY_DELAY_SECS: u64 = 60 * 60;
 const MAX_BACKOFF_EXPONENT: u32 = 10;
 const NANOSECONDS_PER_SECOND: u64 = 1_000_000_000;
-const WAL_RETRY_BATCH_LIMIT: usize = 64;
+const WAL_RETRY_BATCH_LIMIT: usize = 30;
 const WAL_ENTRY_NOT_FOUND_MESSAGE: &str = "WAL entry not found";
 
 // TODO: Replace string message-pattern retry classification with typed error mapping
@@ -30,7 +33,8 @@ const RETRYABLE_INTER_CANISTER_ERROR_PATTERNS: [&str; 6] = [
 ];
 
 thread_local! {
-    static RUN_GUARDS: RefCell<BTreeSet<OperationId>> = const { RefCell::new(BTreeSet::new()) };
+    static WAL_EXECUTION_IN_PROGRESS_OPERATION_IDS: RefCell<BTreeSet<OperationId>> =
+        const { RefCell::new(BTreeSet::new()) };
     static RETRY_SCAN_IN_PROGRESS: RefCell<bool> = const { RefCell::new(false) };
 }
 
@@ -51,13 +55,13 @@ pub async fn execute_wal_entry_now(operation_id: OperationId) -> WalExecutionOut
         return WalExecutionOutcome::SucceededAlready;
     }
 
-    if !mark_run_in_progress_if_idle(operation_id) {
+    if !mark_wal_execution_in_progress_if_idle(operation_id) {
         return WalExecutionOutcome::SkippedAlreadyInFlight;
     }
 
-    let _run_guard = guard(operation_id, |operation_id| {
-        RUN_GUARDS.with(|guards| {
-            guards.borrow_mut().remove(&operation_id);
+    let _wal_execution_guard = guard(operation_id, |operation_id| {
+        WAL_EXECUTION_IN_PROGRESS_OPERATION_IDS.with(|in_progress_operation_ids| {
+            in_progress_operation_ids.borrow_mut().remove(&operation_id);
         });
     });
 
@@ -83,13 +87,13 @@ pub async fn retry_all_due() {
     }
 }
 
-fn mark_run_in_progress_if_idle(operation_id: OperationId) -> bool {
-    RUN_GUARDS.with(|guards| {
-        let mut guards = guards.borrow_mut();
-        if guards.contains(&operation_id) {
+fn mark_wal_execution_in_progress_if_idle(operation_id: OperationId) -> bool {
+    WAL_EXECUTION_IN_PROGRESS_OPERATION_IDS.with(|in_progress_operation_ids| {
+        let mut in_progress_operation_ids = in_progress_operation_ids.borrow_mut();
+        if in_progress_operation_ids.contains(&operation_id) {
             return false;
         }
-        guards.insert(operation_id);
+        in_progress_operation_ids.insert(operation_id);
         true
     })
 }
@@ -134,6 +138,7 @@ async fn execute_wal_entry_attempt(operation_id: OperationId) -> WalExecutionOut
             WalExecutionOutcome::Succeeded
         }
         Err(WalExecutionError::Retryable(retryable_error_message)) => {
+            let wal_payload = wal_entry.payload.clone();
             let mut updated_wal_entry = wal_entry;
 
             updated_wal_entry.last_update_ns = ic::time();
@@ -143,6 +148,7 @@ async fn execute_wal_entry_attempt(operation_id: OperationId) -> WalExecutionOut
                 updated_wal_entry.status = WalStatus::FailedPermanent;
 
                 put_entry(updated_wal_entry);
+                finalize_failed_wal_payload(&wal_payload, &retryable_error_message);
                 return WalExecutionOutcome::FailedPermanent(retryable_error_message);
             }
 
@@ -163,6 +169,7 @@ async fn execute_wal_entry_attempt(operation_id: OperationId) -> WalExecutionOut
             WalExecutionOutcome::FailedRetryable(retryable_error_message)
         }
         Err(WalExecutionError::Permanent(permanent_error_message)) => {
+            let wal_payload = wal_entry.payload.clone();
             let mut updated_wal_entry = wal_entry;
 
             updated_wal_entry.status = WalStatus::FailedPermanent;
@@ -170,6 +177,7 @@ async fn execute_wal_entry_attempt(operation_id: OperationId) -> WalExecutionOut
             updated_wal_entry.last_err = Some(permanent_error_message.clone());
 
             put_entry(updated_wal_entry);
+            finalize_failed_wal_payload(&wal_payload, &permanent_error_message);
             WalExecutionOutcome::FailedPermanent(permanent_error_message)
         }
     }
@@ -198,13 +206,23 @@ fn compute_next_attempt_at_ns(now_ns: u64, backoff_secs: u64, attempts: u32) -> 
     now_ns.saturating_add(delay_secs.saturating_mul(NANOSECONDS_PER_SECOND))
 }
 
+fn finalize_failed_wal_payload(payload: &WalPayload, message: &str) {
+    match payload {
+        WalPayload::Accept(accept_payload) => finalize_failed_accept_wal(accept_payload, message),
+        WalPayload::Withdrawal(withdrawal_payload) => {
+            finalize_failed_withdrawal_wal(withdrawal_payload, message)
+        }
+        WalPayload::Settlement(_) => {}
+    }
+}
+
 #[cfg(target_arch = "wasm32")]
 fn schedule_retry_nudge(delay_ns: u64) {
     let delay_seconds =
         delay_ns.saturating_add(NANOSECONDS_PER_SECOND.saturating_sub(1)) / NANOSECONDS_PER_SECOND;
     let clamped_delay_seconds = delay_seconds.clamp(1, MAX_WAL_RETRY_DELAY_SECS);
 
-    ic_cdk_timers::set_timer(Duration::from_secs(clamped_delay_seconds), || async {
+    ic_cdk_timers::set_timer(Duration::from_secs(clamped_delay_seconds), async move {
         retry_all_due().await;
     });
 }

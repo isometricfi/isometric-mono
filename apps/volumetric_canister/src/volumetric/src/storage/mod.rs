@@ -11,8 +11,8 @@ pub mod withdrawals;
 
 pub use accepts::{
     complete_accept, create_accept_journal_entry, fail_accept, get_accept, list_failed_accepts,
-    list_pending_accepts, remove_accept, update_accept_phase, AcceptPhase, AcceptedOffer,
-    PendingAccept,
+    list_pending_accepts, remove_accept, update_accept_execution_snapshot, update_accept_phase,
+    AcceptPhase, AcceptedOffer, PendingAccept,
 };
 pub use accounts::{
     create_profile, get_nonce, get_principal_for_wallet, get_profile, increment_nonce,

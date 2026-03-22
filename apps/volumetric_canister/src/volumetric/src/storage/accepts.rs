@@ -37,12 +37,14 @@ pub struct AcceptedOffer {
 pub struct PendingAccept {
     pub id: u64,
     pub buyer: Principal,
-    pub total_premium: u64,
+    pub total_buyer_debit_required_sats: u64,
     pub offers: Vec<AcceptedOffer>,
     pub phase: AcceptPhase,
     pub created_at: u64,
     pub updated_at: u64,
     pub fill_group_id: u64,
+    pub entry_price_cents: Option<u64>,
+    pub platform_fee_collected: Option<bool>,
 }
 
 impl Storable for PendingAccept {
@@ -70,32 +72,28 @@ thread_local! {
             MEMORY_MANAGER.with_borrow(|m| m.get(MemoryId::new(MemoryIndex::AcceptJournalMemory as u8))),
         )
     );
-
-    static ACCEPT_ID_COUNTER: RefCell<u64> = const { RefCell::new(0) };
 }
 
 pub fn create_accept_journal_entry(
     buyer: Principal,
-    total_premium: u64,
+    total_buyer_debit_required_sats: u64,
     offers: Vec<AcceptedOffer>,
     fill_group_id: u64,
 ) -> PendingAccept {
     let now = ic::time();
-    let id = ACCEPT_ID_COUNTER.with(|c| {
-        let mut counter = c.borrow_mut();
-        *counter += 1;
-        *counter
-    });
+    let id = super::next_id(super::CounterKey::AcceptJournalId);
 
     let accept = PendingAccept {
         id,
         buyer,
-        total_premium,
+        total_buyer_debit_required_sats,
         offers,
         phase: AcceptPhase::Started,
         created_at: now,
         updated_at: now,
         fill_group_id,
+        entry_price_cents: None,
+        platform_fee_collected: None,
     };
 
     ACCEPT_JOURNAL.with(|journal| {
@@ -110,6 +108,22 @@ pub fn update_accept_phase(id: u64, phase: AcceptPhase) {
         let mut journal = journal.borrow_mut();
         if let Some(mut accept) = journal.get(&id) {
             accept.phase = phase;
+            accept.updated_at = ic::time();
+            journal.insert(id, accept);
+        }
+    });
+}
+
+pub fn update_accept_execution_snapshot(
+    id: u64,
+    entry_price_cents: u64,
+    platform_fee_collected: bool,
+) {
+    ACCEPT_JOURNAL.with(|journal| {
+        let mut journal = journal.borrow_mut();
+        if let Some(mut accept) = journal.get(&id) {
+            accept.entry_price_cents = Some(entry_price_cents);
+            accept.platform_fee_collected = Some(platform_fee_collected);
             accept.updated_at = ic::time();
             journal.insert(id, accept);
         }

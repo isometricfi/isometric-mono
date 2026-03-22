@@ -36,10 +36,10 @@ pub use offers::{
     get_offer_by_id, get_open_offers, CancelOfferRequest, CreateOfferRequest, CreateOfferResponse,
 };
 pub use options::{
-    accept_offers, get_accept_by_id, get_accept_offers_message, get_active_option_by_id,
-    get_failed_accepts, get_failed_settlements, get_my_options, get_my_written_options,
-    get_pending_accepts, get_pending_settlements_journal, get_settlement_by_id,
-    testing_clear_offers_and_options, AcceptOfferItem, AcceptOffersRequest, AcceptOffersResponse,
+    accept_offers, get_accept_by_id, get_accept_offers_message, get_accept_status,
+    get_active_option_by_id, get_failed_accepts, get_failed_settlements, get_my_options,
+    get_my_written_options, get_pending_accepts, get_pending_settlements_journal,
+    get_settlement_by_id, testing_clear_offers_and_options, AcceptOfferItem, AcceptOffersRequest,
     ClearStorageResponse,
 };
 pub use settlement::{
