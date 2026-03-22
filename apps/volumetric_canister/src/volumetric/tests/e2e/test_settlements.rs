@@ -1,11 +1,11 @@
 use crate::common::{create_test_env, generate_wallet};
 use crate::helpers::{
     accept_offers, configure_test_ledger, create_account, create_offer, get_events_for_principal,
-    get_fee_recipient_ledger_balance, get_pending_settlements, get_user_balance,
-    mint_and_sync_balance, set_oracle_price, settle_option_by_id, testing_set_option_expiry,
-    whitelist_controller,
+    get_fee_recipient_ledger_balance, get_pending_settlements, get_settlement_status,
+    get_user_balance, mint_and_sync_balance, set_oracle_price, settle_option_by_id,
+    testing_set_option_expiry, whitelist_controller,
 };
-use volumetric::{errors::error_codes, AcceptOfferItem, EventData, EventType, TradeRole};
+use volumetric::{AcceptOfferItem, EventData, EventType, SettlementStatus, TradeRole};
 
 const ONE_BTC_SATS: u64 = 100_000_000; // 1 BTC
 const BASIS_POINTS: u64 = 10_000;
@@ -727,11 +727,11 @@ fn test_writer_collateral_unlocked_after_option_expires_otm() {
     assert!(new_offer_result.is_ok());
 }
 
-/// Given: An option that has already been settled
-/// When: Settlement is attempted again on the same option
-/// Then: OPTION_ALREADY_SETTLED error is returned
+/// Given: An expired option settlement already enqueued via WAL
+/// When: Settlement is requested again for the same option id
+/// Then: The same receipt is returned and status reaches a terminal WAL state
 #[test]
-fn test_settling_already_settled_option_returns_error() {
+fn test_settling_already_settled_option_returns_idempotent_receipt() {
     // given
     let env = create_test_env();
     whitelist_controller(&env);
@@ -780,14 +780,39 @@ fn test_settling_already_settled_option_returns_error() {
     let past_expiry = 0;
     testing_set_option_expiry(&env, OPTION_ID, past_expiry).expect("Set expiry failed");
 
-    let first_settle = settle_option_by_id(&env, OPTION_ID);
-    assert!(first_settle.is_ok());
+    let first_settle_receipt =
+        settle_option_by_id(&env, OPTION_ID).expect("first settlement should enqueue");
 
     // when
-    let second_settle = settle_option_by_id(&env, OPTION_ID);
+    let second_settle_receipt =
+        settle_option_by_id(&env, OPTION_ID).expect("second settlement should be idempotent");
 
     // then
-    assert!(second_settle.is_err());
-    let error = second_settle.unwrap_err();
-    assert_eq!(error.code, error_codes::OPTION_ALREADY_SETTLED.code);
+    assert_eq!(
+        first_settle_receipt.option_id,
+        second_settle_receipt.option_id
+    );
+    assert_eq!(
+        first_settle_receipt.operation_id,
+        second_settle_receipt.operation_id
+    );
+
+    let mut latest_status =
+        get_settlement_status(&env, first_settle_receipt.operation_id).expect("status should load");
+    for _attempt in 0..5 {
+        if matches!(
+            latest_status,
+            SettlementStatus::Succeeded { .. } | SettlementStatus::Failed { .. }
+        ) {
+            break;
+        }
+        env.pic.tick();
+        latest_status = get_settlement_status(&env, first_settle_receipt.operation_id)
+            .expect("status should reload");
+    }
+
+    assert!(matches!(
+        latest_status,
+        SettlementStatus::Succeeded { .. } | SettlementStatus::Failed { .. }
+    ));
 }

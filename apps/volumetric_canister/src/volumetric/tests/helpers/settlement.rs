@@ -1,6 +1,10 @@
 use candid::Decode;
 
-use volumetric::{ActiveOption, SettleExpiredOptionsResponse, SettlementResult, VolumetricError};
+use volumetric::journaling::OperationId;
+use volumetric::{
+    ActiveOption, SettleExpiredOptionsResponse, SettlementReceipt, SettlementStatus,
+    VolumetricError,
+};
 
 use crate::common::TestEnv;
 
@@ -25,7 +29,7 @@ pub fn settle_expired_options(
 pub fn settle_option_by_id(
     env: &TestEnv,
     option_id: u64,
-) -> Result<SettlementResult, VolumetricError> {
+) -> Result<SettlementReceipt, VolumetricError> {
     let response = env
         .pic
         .update_call(
@@ -36,7 +40,25 @@ pub fn settle_option_by_id(
         )
         .expect("Update call failed");
 
-    Decode!(&response, Result<SettlementResult, VolumetricError>).unwrap()
+    Decode!(&response, Result<SettlementReceipt, VolumetricError>).unwrap()
+}
+
+#[allow(dead_code)]
+pub fn get_settlement_status(
+    env: &TestEnv,
+    operation_id: OperationId,
+) -> Result<SettlementStatus, VolumetricError> {
+    let response = env
+        .pic
+        .query_call(
+            env.volumetric_canister,
+            candid::Principal::anonymous(),
+            "get_settlement_status",
+            candid::encode_one(operation_id).unwrap(),
+        )
+        .expect("Query failed");
+
+    Decode!(&response, Result<SettlementStatus, VolumetricError>).unwrap()
 }
 
 pub fn get_pending_settlements(env: &TestEnv) -> Vec<ActiveOption> {
