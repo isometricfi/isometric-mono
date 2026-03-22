@@ -321,12 +321,13 @@ export const idlFactory = ({ IDL }) => {
     'Ok' : IDL.Vec(PendingSettlement),
     'Err' : VolumetricError,
   });
+  const WithdrawResult = IDL.Record({ 'block_index' : IDL.Nat64 });
   const WithdrawalPhase = IDL.Variant({
     'Started' : IDL.Null,
     'Failed' : IDL.Record({ 'reason' : IDL.Text }),
-    'RetrieveRequested' : IDL.Record({ 'block_index' : IDL.Nat64 }),
+    'RetrieveRequested' : WithdrawResult,
     'Approved' : IDL.Null,
-    'Completed' : IDL.Record({ 'block_index' : IDL.Nat64 }),
+    'Completed' : WithdrawResult,
   });
   const PendingWithdrawal = IDL.Record({
     'id' : IDL.Nat64,
@@ -358,16 +359,63 @@ export const idlFactory = ({ IDL }) => {
     'Ok' : IDL.Opt(PendingSettlement),
     'Err' : VolumetricError,
   });
+  const SettlementReceipt = IDL.Record({
+    'operation_id' : IDL.Vec(IDL.Nat8),
+    'option_id' : IDL.Nat64,
+  });
+  const SettlementWalResult = IDL.Record({ 'option_id' : IDL.Nat64 });
+  const SettlementStatus = IDL.Variant({
+    'Failed' : IDL.Record({
+      'receipt' : SettlementReceipt,
+      'message' : IDL.Text,
+    }),
+    'Succeeded' : IDL.Record({
+      'result' : SettlementWalResult,
+      'receipt' : SettlementReceipt,
+    }),
+    'Pending' : IDL.Record({
+      'last_error' : IDL.Opt(IDL.Text),
+      'receipt' : SettlementReceipt,
+      'phase' : SettlementPhase,
+    }),
+  });
+  const Result_16 = IDL.Variant({
+    'Ok' : SettlementStatus,
+    'Err' : VolumetricError,
+  });
   const UserBalanceInfo = IDL.Record({
     'total' : IDL.Nat64,
     'locked' : IDL.Nat64,
     'available' : IDL.Nat64,
   });
-  const Result_16 = IDL.Variant({
+  const Result_17 = IDL.Variant({
     'Ok' : UserBalanceInfo,
     'Err' : VolumetricError,
   });
-  const Result_17 = IDL.Variant({
+  const WithdrawReceipt = IDL.Record({
+    'withdrawal_id' : IDL.Nat64,
+    'operation_id' : IDL.Vec(IDL.Nat8),
+  });
+  const WithdrawStatus = IDL.Variant({
+    'Failed' : IDL.Record({
+      'receipt' : WithdrawReceipt,
+      'message' : IDL.Text,
+    }),
+    'Succeeded' : IDL.Record({
+      'result' : WithdrawResult,
+      'receipt' : WithdrawReceipt,
+    }),
+    'Pending' : IDL.Record({
+      'last_error' : IDL.Opt(IDL.Text),
+      'receipt' : WithdrawReceipt,
+      'phase' : WithdrawalPhase,
+    }),
+  });
+  const Result_18 = IDL.Variant({
+    'Ok' : WithdrawStatus,
+    'Err' : VolumetricError,
+  });
+  const Result_19 = IDL.Variant({
     'Ok' : IDL.Opt(PendingWithdrawal),
     'Err' : VolumetricError,
   });
@@ -417,23 +465,23 @@ export const idlFactory = ({ IDL }) => {
     'settled' : IDL.Vec(SettlementResult),
     'errors' : IDL.Vec(IDL.Text),
   });
-  const Result_18 = IDL.Variant({
+  const Result_20 = IDL.Variant({
     'Ok' : SettleExpiredOptionsResponse,
     'Err' : VolumetricError,
   });
-  const Result_19 = IDL.Variant({
-    'Ok' : SettlementResult,
+  const Result_21 = IDL.Variant({
+    'Ok' : SettlementReceipt,
     'Err' : VolumetricError,
   });
   const ClearStorageResponse = IDL.Record({
     'options_cleared' : IDL.Nat64,
     'offers_cleared' : IDL.Nat64,
   });
-  const Result_20 = IDL.Variant({
+  const Result_22 = IDL.Variant({
     'Ok' : ClearStorageResponse,
     'Err' : VolumetricError,
   });
-  const Result_21 = IDL.Variant({
+  const Result_23 = IDL.Variant({
     'Ok' : ActiveOption,
     'Err' : VolumetricError,
   });
@@ -456,7 +504,7 @@ export const idlFactory = ({ IDL }) => {
     }),
     'Checked' : Utxo,
   });
-  const Result_22 = IDL.Variant({
+  const Result_24 = IDL.Variant({
     'Ok' : IDL.Vec(UtxoStatus),
     'Err' : VolumetricError,
   });
@@ -473,9 +521,8 @@ export const idlFactory = ({ IDL }) => {
     'data' : WithdrawCkbtcRequest,
     'wallet_proof' : WalletProof,
   });
-  const WithdrawResult = IDL.Record({ 'block_index' : IDL.Nat64 });
-  const Result_23 = IDL.Variant({
-    'Ok' : WithdrawResult,
+  const Result_25 = IDL.Variant({
+    'Ok' : WithdrawReceipt,
     'Err' : VolumetricError,
   });
   return IDL.Service({
@@ -563,8 +610,13 @@ export const idlFactory = ({ IDL }) => {
     'get_pending_withdrawals' : IDL.Func([], [Result_12], ['query']),
     'get_platform_fees_collected_total' : IDL.Func([], [IDL.Nat64], ['query']),
     'get_settlement_by_id' : IDL.Func([IDL.Nat64], [Result_15], ['query']),
+    'get_settlement_status' : IDL.Func(
+        [IDL.Vec(IDL.Nat8)],
+        [Result_16],
+        ['query'],
+      ),
     'get_trading_limits' : IDL.Func([], [TradingLimits], ['query']),
-    'get_user_balance' : IDL.Func([IDL.Text], [Result_16], ['query']),
+    'get_user_balance' : IDL.Func([IDL.Text], [Result_17], ['query']),
     'get_username_update_message' : IDL.Func(
         [IDL.Text, IDL.Text],
         [IDL.Text],
@@ -575,7 +627,12 @@ export const idlFactory = ({ IDL }) => {
         [IDL.Text],
         ['query'],
       ),
-    'get_withdrawal_by_id' : IDL.Func([IDL.Nat64], [Result_17], ['query']),
+    'get_withdraw_status' : IDL.Func(
+        [IDL.Vec(IDL.Nat8)],
+        [Result_18],
+        ['query'],
+      ),
+    'get_withdrawal_by_id' : IDL.Func([IDL.Nat64], [Result_19], ['query']),
     'greet' : IDL.Func([IDL.Text], [IDL.Text], ['query']),
     'http_request' : IDL.Func([HttpRequest], [HttpResponse], ['query']),
     'list_users' : IDL.Func([], [IDL.Vec(UserInfo)], ['query']),
@@ -630,21 +687,21 @@ export const idlFactory = ({ IDL }) => {
       ),
     'set_trading_limits_config' : IDL.Func([TradingLimits], [Result_1], []),
     'set_withdraw_amount_sats_config' : IDL.Func([IDL.Nat64], [Result_1], []),
-    'settle_expired_options' : IDL.Func([], [Result_18], []),
-    'settle_option_by_id' : IDL.Func([IDL.Nat64], [Result_19], []),
-    'testing_clear_offers_and_options' : IDL.Func([], [Result_20], []),
-    'testing_expire_option' : IDL.Func([IDL.Nat64], [Result_21], []),
-    'testing_force_settle' : IDL.Func([IDL.Nat64], [Result_19], []),
+    'settle_expired_options' : IDL.Func([], [Result_20], []),
+    'settle_option_by_id' : IDL.Func([IDL.Nat64], [Result_21], []),
+    'testing_clear_offers_and_options' : IDL.Func([], [Result_22], []),
+    'testing_expire_option' : IDL.Func([IDL.Nat64], [Result_23], []),
+    'testing_force_settle' : IDL.Func([IDL.Nat64], [Result_21], []),
     'testing_set_ckbtc_ledger' : IDL.Func([IDL.Principal], [Result_1], []),
     'testing_set_option_expiry' : IDL.Func(
         [IDL.Nat64, IDL.Nat64],
-        [Result_21],
+        [Result_23],
         [],
       ),
     'testing_sync_balance_from_ledger' : IDL.Func([IDL.Text], [Result_3], []),
-    'update_ckbtc_balance' : IDL.Func([IDL.Text], [Result_22], []),
+    'update_ckbtc_balance' : IDL.Func([IDL.Text], [Result_24], []),
     'update_username' : IDL.Func([AuthenticatedPayload_5], [Result_4], []),
-    'withdraw_ckbtc' : IDL.Func([AuthenticatedPayload_6], [Result_23], []),
+    'withdraw_ckbtc' : IDL.Func([AuthenticatedPayload_6], [Result_25], []),
   });
 };
 export const init = ({ IDL }) => {
