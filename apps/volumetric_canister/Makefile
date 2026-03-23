@@ -1,4 +1,4 @@
-.PHONY: build release deploy generate generate-external-types reinstall-local verify info clean start stop test test-integration test-integration-fast help
+.PHONY: build release deploy generate generate-external-types reinstall-local verify info status set-backup-controller set-freezing-threshold clean start stop test test-integration test-integration-fast help
 
 # Use Homebrew LLVM on macOS if available, otherwise use system clang
 ifneq ($(wildcard /opt/homebrew/opt/llvm/bin/clang),)
@@ -24,6 +24,8 @@ DOCKER_IMAGE := volumetric-canister
 WASM_FILE := volumetric.wasm
 DID_DIR := did
 DID_FILE := $(DID_DIR)/volumetric.did
+BACKUP_CONTROLLER ?=
+FREEZING_THRESHOLD_SECONDS ?= 7776000
 
 build:
 	@echo "Building locally (with testing features)..."
@@ -88,6 +90,22 @@ verify:
 info:
 	dfx canister --network $(NETWORK) info $(CANISTER) --identity anonymous
 
+status:
+	dfx canister --network $(NETWORK) status $(CANISTER)
+
+set-backup-controller:
+	@if [ -z "$(BACKUP_CONTROLLER)" ]; then \
+		echo "Error: BACKUP_CONTROLLER is required."; \
+		echo "Usage: make set-backup-controller TARGET=dev BACKUP_CONTROLLER=<principal>"; \
+		exit 1; \
+	fi
+	dfx canister --network $(NETWORK) update-settings $(CANISTER) --add-controller $(BACKUP_CONTROLLER)
+	@echo "Backup controller added: $(BACKUP_CONTROLLER)"
+
+set-freezing-threshold:
+	dfx canister --network $(NETWORK) update-settings $(CANISTER) --freezing-threshold $(FREEZING_THRESHOLD_SECONDS)
+	@echo "Freezing threshold set to $(FREEZING_THRESHOLD_SECONDS) seconds"
+
 hash:
 	@echo "Wasm hash: $$([ -f $(WASM_FILE) ] && sha256sum $(WASM_FILE) | awk '{print $$1}' || echo 'not built')"
 
@@ -124,6 +142,9 @@ help:
 	@echo "  reinstall-local - Reinstall local canister (wipes state)"
 	@echo "  verify          - Verify local build matches on-chain"
 	@echo "  info            - Show canister info"
+	@echo "  status          - Show canister status (cycles/controllers/freezing threshold)"
+	@echo "  set-backup-controller - Add a backup controller principal"
+	@echo "  set-freezing-threshold - Update canister freezing threshold in seconds"
 	@echo "  hash            - Show wasm hash"
 	@echo "  start           - Start local replica"
 	@echo "  stop            - Stop local replica"
@@ -137,4 +158,7 @@ help:
 	@echo "  make release              # Build reproducible wasm"
 	@echo "  make deploy TARGET=dev    # Deploy to dev"
 	@echo "  make deploy TARGET=local  # Deploy to local replica"
+	@echo "  make status TARGET=dev    # Check cycles/controllers/freeze threshold"
+	@echo "  make set-backup-controller TARGET=dev BACKUP_CONTROLLER=aaaaa-aa"
+	@echo "  make set-freezing-threshold TARGET=dev FREEZING_THRESHOLD_SECONDS=7776000"
 	@echo "  make test                 # Run smoke tests"
