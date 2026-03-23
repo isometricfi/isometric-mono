@@ -9,7 +9,7 @@ use crate::journaling::{
     default_policy, enqueue_if_absent, get_entry, register_retryable_error, OperationId, WalEntry,
     WalExecutionError, WalKind, WalPayload, WalResult, WalStatus, WithdrawalWalPayload,
 };
-use crate::locks::WithdrawalLock;
+use crate::locks::BalanceMutationLock;
 use crate::storage::{
     add_available, complete_withdrawal, create_withdrawal, emit_event, fail_withdrawal,
     get_pending_withdrawals_by_principal, get_withdrawal, remove_withdrawal, subtract_available,
@@ -65,7 +65,7 @@ pub fn withdraw_ckbtc_use_case(
     params: WithdrawParams,
     request_nonce: u64,
 ) -> Result<WithdrawReceipt, VolumetricError> {
-    let _withdrawal_lock = WithdrawalLock::new(principal)?;
+    let _withdrawal_balance_mutation_lock = BalanceMutationLock::new(principal)?;
 
     if !get_pending_withdrawals_by_principal(principal).is_empty() {
         return Err(VolumetricError::from_def(

@@ -10,7 +10,7 @@ use crate::journaling::{
     default_policy, enqueue_if_absent, get_entry, AcceptWalPayload, AcceptWalPreparedAccept,
     AcceptWalTransfer, OperationId, WalEntry, WalKind, WalPayload, WalResult, WalStatus,
 };
-use crate::locks::AcceptLock;
+use crate::locks::BalanceMutationLock;
 use crate::storage::{
     calculate_premium_fee, calculate_premium_in_sats, create_accept_journal_entry, fail_accept,
     get_accept, get_active_option, get_balance, get_offer, list_pending_accepts, lock_collateral,
@@ -60,7 +60,7 @@ pub fn accept_offers_use_case(
     accept_offer_items: Vec<AcceptOfferItem>,
     request_nonce: u64,
 ) -> Result<AcceptOffersReceipt, VolumetricError> {
-    let _buyer_accept_lock = AcceptLock::new(buyer_principal)?;
+    let _buyer_balance_mutation_lock = BalanceMutationLock::new(buyer_principal)?;
     validate_accept_request(&accept_offer_items)?;
 
     let operation_id = accept_operation_id(buyer_principal, &accept_offer_items, request_nonce);
