@@ -4,6 +4,16 @@ import { type _SERVICE, idlFactory } from "@volumetric/canister-types";
 
 let cachedAgent: HttpAgent | null = null;
 let cachedActor: _SERVICE | null = null;
+const LOCAL_REPLICA_HOSTNAMES = new Set(["localhost", "127.0.0.1", "0.0.0.0", "::1"]);
+
+function isLocalReplicaHost(host: string): boolean {
+  try {
+    const parsedHost = new URL(host).hostname;
+    return LOCAL_REPLICA_HOSTNAMES.has(parsedHost) || parsedHost.endsWith(".localhost");
+  } catch {
+    return host.includes("localhost") || host.includes("127.0.0.1");
+  }
+}
 
 function getIdentity(): Identity {
   const privateKeyHex = process.env.WHITELISTED_PRINCIPAL_PRIVATE_KEY;
@@ -31,7 +41,7 @@ async function getAgent(): Promise<HttpAgent> {
     host,
   });
 
-  if (process.env.DFX_NETWORK !== "ic") {
+  if (isLocalReplicaHost(host)) {
     await cachedAgent.fetchRootKey();
   }
 
