@@ -1,4 +1,4 @@
-use std::cell::{Cell, RefCell};
+use std::cell::RefCell;
 
 use candid::{CandidType, Principal};
 use ic_stable_structures::memory_manager::MemoryId;
@@ -7,6 +7,7 @@ use serde::{Deserialize, Serialize};
 
 use super::cbor::Cbor;
 use super::config::Config;
+use super::options::{CounterKey, COUNTERS};
 use super::state::{Memory, MemoryIndex, MEMORY_MANAGER};
 
 pub const CKBTC_TRANSFER_FEE: u64 = 10;
@@ -21,16 +22,19 @@ thread_local! {
             MEMORY_MANAGER.with_borrow(|m| m.get(MemoryId::new(MemoryIndex::BalancesMemory as u8))),
         )
     );
-
-    static PLATFORM_FEES_COLLECTED: Cell<u64> = const { Cell::new(0) };
 }
 
 pub fn add_platform_fee(amount: u64) {
-    PLATFORM_FEES_COLLECTED.with(|f| f.set(f.get().saturating_add(amount)));
+    let key = CounterKey::PlatformFeesCollectedTotal;
+    COUNTERS.with_borrow_mut(|c| {
+        let current = c.get(&key).unwrap_or(0);
+        let next = current.saturating_add(amount);
+        c.insert(key, next);
+    });
 }
 
 pub fn get_platform_fees_collected() -> u64 {
-    PLATFORM_FEES_COLLECTED.with(|f| f.get())
+    COUNTERS.with_borrow(|c| c.get(&CounterKey::PlatformFeesCollectedTotal).unwrap_or(0))
 }
 
 pub fn calculate_premium_fee(premium: u64) -> u64 {
