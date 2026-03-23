@@ -1,0 +1,144 @@
+import { beforeEach, describe, expect, test, vi } from "vitest";
+import { withdraw } from "./usecase";
+
+const { getCanisterActorMock } = vi.hoisted(() => ({
+  getCanisterActorMock: vi.fn(),
+}));
+
+vi.mock("@/lib/canister-server", () => ({
+  getCanisterActor: getCanisterActorMock,
+}));
+
+describe("withdraw usecase", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  test("should return block index after succeeded status", async () => {
+    // given
+    const operationId = [1, 2, 3];
+    const actor = {
+      withdraw_ckbtc: vi.fn().mockResolvedValue({
+        Ok: {
+          operation_id: operationId,
+          withdrawal_id: BigInt(2),
+        },
+      }),
+      get_withdraw_status: vi
+        .fn()
+        .mockResolvedValueOnce({
+          Ok: {
+            Pending: {
+              receipt: {
+                operation_id: operationId,
+                withdrawal_id: BigInt(2),
+              },
+              phase: { Started: null },
+              last_error: [],
+            },
+          },
+        })
+        .mockResolvedValueOnce({
+          Ok: {
+            Succeeded: {
+              receipt: {
+                operation_id: operationId,
+                withdrawal_id: BigInt(2),
+              },
+              result: { block_index: BigInt(777) },
+            },
+          },
+        }),
+    };
+    getCanisterActorMock.mockResolvedValue(actor);
+
+    // when
+    const result = await withdraw({
+      address: "tb1quser",
+      signature: "signature",
+      btcAddress: "tb1qdest",
+      amount: "1000",
+    });
+
+    // then
+    expect(result).toEqual({ blockIndex: BigInt(777) });
+    expect(actor.get_withdraw_status).toHaveBeenCalledTimes(2);
+  });
+
+  test("should throw failed terminal message", async () => {
+    // given
+    const operationId = [5, 6, 7];
+    const actor = {
+      withdraw_ckbtc: vi.fn().mockResolvedValue({
+        Ok: {
+          operation_id: operationId,
+          withdrawal_id: BigInt(2),
+        },
+      }),
+      get_withdraw_status: vi.fn().mockResolvedValue({
+        Ok: {
+          Failed: {
+            receipt: {
+              operation_id: operationId,
+              withdrawal_id: BigInt(2),
+            },
+            message: "withdraw failed",
+          },
+        },
+      }),
+    };
+    getCanisterActorMock.mockResolvedValue(actor);
+
+    // when
+    const run = withdraw({
+      address: "tb1quser",
+      signature: "signature",
+      btcAddress: "tb1qdest",
+      amount: "1000",
+    });
+
+    // then
+    await expect(run).rejects.toThrow("withdraw failed");
+  });
+
+  test("should throw timeout when status stays pending", async () => {
+    // given
+    vi.useFakeTimers();
+    const operationId = [8, 9, 10];
+    const actor = {
+      withdraw_ckbtc: vi.fn().mockResolvedValue({
+        Ok: {
+          operation_id: operationId,
+          withdrawal_id: BigInt(2),
+        },
+      }),
+      get_withdraw_status: vi.fn().mockResolvedValue({
+        Ok: {
+          Pending: {
+            receipt: {
+              operation_id: operationId,
+              withdrawal_id: BigInt(2),
+            },
+            phase: { Started: null },
+            last_error: [],
+          },
+        },
+      }),
+    };
+    getCanisterActorMock.mockResolvedValue(actor);
+
+    // when
+    const run = withdraw({
+      address: "tb1quser",
+      signature: "signature",
+      btcAddress: "tb1qdest",
+      amount: "1000",
+    });
+    const timeoutExpectation = expect(run).rejects.toThrow("terminal state");
+    await vi.runAllTimersAsync();
+
+    // then
+    await timeoutExpectation;
+    vi.useRealTimers();
+  });
+});
