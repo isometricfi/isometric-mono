@@ -107,3 +107,17 @@ pub fn get_principal_ledger_balance(env: &TestEnv, principal: Principal) -> u64 
     let balance: Nat = Decode!(&response, Nat).expect("Failed to decode balance");
     balance.0.try_into().unwrap_or(0)
 }
+
+pub fn get_platform_fees_collected_total(env: &TestEnv) -> u64 {
+    let response = env
+        .pic
+        .query_call(
+            env.volumetric_canister,
+            candid::Principal::anonymous(),
+            "get_platform_fees_collected_total",
+            candid::encode_one(()).unwrap(),
+        )
+        .expect("Get platform fees collected total call failed");
+
+    Decode!(&response, u64).expect("Failed to decode platform fees collected total")
+}
