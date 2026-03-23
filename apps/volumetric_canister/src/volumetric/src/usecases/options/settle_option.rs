@@ -618,6 +618,7 @@ pub fn testing_set_option_expiry_use_case(
 
 #[cfg(test)]
 mod tests {
+    use std::cell::RefCell;
     use std::rc::Rc;
 
     use async_trait::async_trait;
@@ -683,6 +684,61 @@ mod tests {
         }
     }
 
+    struct RetryableProfitFeeTransferLedger {
+        transfer_call_count: RefCell<u64>,
+        did_fail_profit_fee_transfer: RefCell<bool>,
+    }
+
+    impl RetryableProfitFeeTransferLedger {
+        fn new() -> Self {
+            Self {
+                transfer_call_count: RefCell::new(0),
+                did_fail_profit_fee_transfer: RefCell::new(false),
+            }
+        }
+
+        fn transfer_call_count(&self) -> u64 {
+            *self.transfer_call_count.borrow()
+        }
+    }
+
+    #[async_trait(?Send)]
+    impl LedgerClient for RetryableProfitFeeTransferLedger {
+        async fn icrc1_transfer(
+            &self,
+            _from_subaccount: Option<[u8; 32]>,
+            _to: Account,
+            _amount: u64,
+            _created_at_time: u64,
+        ) -> Result<u64, VolumetricError> {
+            let mut transfer_call_count = self.transfer_call_count.borrow_mut();
+            *transfer_call_count = transfer_call_count.saturating_add(1);
+
+            if *transfer_call_count == 2 {
+                let mut did_fail_profit_fee_transfer =
+                    self.did_fail_profit_fee_transfer.borrow_mut();
+                if !*did_fail_profit_fee_transfer {
+                    *did_fail_profit_fee_transfer = true;
+                    return Err(VolumetricError::from_def(
+                        error_codes::INTER_CANISTER_CALL_FAILED,
+                        Some("temporarily unavailable"),
+                        None,
+                    ));
+                }
+            }
+
+            Ok(*transfer_call_count)
+        }
+
+        async fn icrc1_balance_of(&self, _account: Account) -> Result<Nat, VolumetricError> {
+            Ok(Nat::from(0u64))
+        }
+
+        async fn icrc2_approve(&self, _args: ApproveArgs) -> Result<Nat, VolumetricError> {
+            Ok(Nat::from(0u64))
+        }
+    }
+
     fn test_principal(seed: u8) -> Principal {
         Principal::from_slice(&[seed; 29])
     }
@@ -697,12 +753,16 @@ mod tests {
         }
     }
 
-    fn setup_test_state(writer: Principal, buyer: Principal) {
+    fn setup_test_state_with_ledger(
+        writer: Principal,
+        buyer: Principal,
+        ledger_client: Rc<dyn LedgerClient>,
+    ) {
         clear_active_options();
         clear_events();
         clear_settlement_journal();
         ic::set_runtime(Box::new(MockRuntime));
-        ledger::set_ledger(Rc::new(FailingBuyerTransferLedger));
+        ledger::set_ledger(ledger_client);
 
         set_balance(
             writer,
@@ -736,6 +796,10 @@ mod tests {
             fill_group_id: None,
             profit_fee_basis_points: TEST_PROFIT_FEE_BASIS_POINTS,
         });
+    }
+
+    fn setup_test_state(writer: Principal, buyer: Principal) {
+        setup_test_state_with_ledger(writer, buyer, Rc::new(FailingBuyerTransferLedger));
     }
 
     /// Given: settlement needs to pay the buyer and collect a profit fee
@@ -806,5 +870,113 @@ mod tests {
             }
             _ => panic!("settlement should be pending before WAL execution"),
         }
+    }
+
+    /// Given: settlement completed buyer transfer and balance release, then hit a retryable fee transfer failure
+    /// When: run_settlement_wal is retried with the same payload
+    /// Then: retry resumes without double-crediting balances and settles exactly once
+    #[tokio::test]
+    async fn test_run_settlement_wal_retry_after_fee_transfer_failure_keeps_accounting_consistent()
+    {
+        // given
+        let writer = test_principal(11);
+        let buyer = test_principal(12);
+        let retryable_ledger = Rc::new(RetryableProfitFeeTransferLedger::new());
+        setup_test_state_with_ledger(writer, buyer, retryable_ledger.clone());
+        let prepared_settlement_execution =
+            prepare_settlement_execution(TEST_OPTION_ID, TEST_SETTLEMENT_PRICE_CENTS)
+                .expect("settlement should be prepared");
+        let wal_entry = get_entry(prepared_settlement_execution.operation_id)
+            .expect("settlement wal entry should exist");
+        let WalPayload::Settlement(settlement_payload) = wal_entry.payload else {
+            panic!("settlement WAL entry should contain settlement payload");
+        };
+
+        // when
+        let first_attempt_result = run_settlement_wal(&settlement_payload).await;
+        let second_attempt_result = run_settlement_wal(&settlement_payload).await;
+
+        // then
+        assert!(matches!(
+            first_attempt_result,
+            Err(WalExecutionError::Retryable(_))
+        ));
+        assert_eq!(
+            second_attempt_result,
+            Ok(SettlementWalResult {
+                option_id: TEST_OPTION_ID
+            })
+        );
+
+        let writer_balance = get_balance(&writer);
+        let buyer_balance = get_balance(&buyer);
+        let option = get_active_option(TEST_OPTION_ID).expect("option should remain in storage");
+
+        const EXPECTED_GROSS_BUYER_PAYOUT_SATS: u64 = 125_000;
+        const EXPECTED_PROFIT_FEE_SATS: u64 = 12_500;
+        const EXPECTED_BUYER_PAYOUT_SATS: u64 =
+            EXPECTED_GROSS_BUYER_PAYOUT_SATS - EXPECTED_PROFIT_FEE_SATS;
+        const EXPECTED_WRITER_PAYOUT_SATS: u64 =
+            TEST_QUANTITY_SATS - EXPECTED_GROSS_BUYER_PAYOUT_SATS;
+        const EXPECTED_TRANSFER_CALL_COUNT: u64 = 3;
+
+        assert_eq!(buyer_balance.available, EXPECTED_BUYER_PAYOUT_SATS);
+        assert_eq!(buyer_balance.locked_as_writer, 0);
+        assert_eq!(writer_balance.available, EXPECTED_WRITER_PAYOUT_SATS);
+        assert_eq!(writer_balance.locked_as_writer, 0);
+        assert_eq!(option.status, ActiveOptionStatus::Settled);
+        assert!(
+            get_settlement(TEST_OPTION_ID).is_none(),
+            "settlement journal should be removed after success"
+        );
+        assert_eq!(
+            retryable_ledger.transfer_call_count(),
+            EXPECTED_TRANSFER_CALL_COUNT
+        );
+    }
+
+    /// Given: settlement retries always fail at the first buyer transfer step
+    /// When: run_settlement_wal is executed repeatedly with the same payload
+    /// Then: balances stay unchanged across retries and no partial accounting effects leak
+    #[tokio::test]
+    async fn test_run_settlement_wal_repeated_buyer_transfer_failures_are_balance_safe() {
+        // given
+        let writer = test_principal(21);
+        let buyer = test_principal(22);
+        setup_test_state(writer, buyer);
+        let prepared_settlement_execution =
+            prepare_settlement_execution(TEST_OPTION_ID, TEST_SETTLEMENT_PRICE_CENTS)
+                .expect("settlement should be prepared");
+        let wal_entry = get_entry(prepared_settlement_execution.operation_id)
+            .expect("settlement wal entry should exist");
+        let WalPayload::Settlement(settlement_payload) = wal_entry.payload else {
+            panic!("settlement WAL entry should contain settlement payload");
+        };
+
+        // when
+        let first_attempt_result = run_settlement_wal(&settlement_payload).await;
+        let second_attempt_result = run_settlement_wal(&settlement_payload).await;
+
+        // then
+        assert!(matches!(
+            first_attempt_result,
+            Err(WalExecutionError::Retryable(_))
+        ));
+        assert!(matches!(
+            second_attempt_result,
+            Err(WalExecutionError::Retryable(_))
+        ));
+
+        let writer_balance = get_balance(&writer);
+        let buyer_balance = get_balance(&buyer);
+        let option = get_active_option(TEST_OPTION_ID).expect("option should remain in storage");
+        let settlement = get_settlement(TEST_OPTION_ID).expect("settlement should remain pending");
+
+        assert_eq!(writer_balance.available, 0);
+        assert_eq!(writer_balance.locked_as_writer, TEST_QUANTITY_SATS);
+        assert_eq!(buyer_balance.available, 0);
+        assert_eq!(buyer_balance.locked_as_writer, 0);
+        assert_eq!(option.status, ActiveOptionStatus::Settling);
+        assert_eq!(settlement.phase, SettlementPhase::Started);
     }
 }

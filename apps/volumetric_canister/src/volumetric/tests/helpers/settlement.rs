@@ -8,7 +8,6 @@ use volumetric::{
 
 use crate::common::TestEnv;
 
-#[allow(dead_code)]
 pub fn settle_expired_options(
     env: &TestEnv,
 ) -> Result<SettleExpiredOptionsResponse, VolumetricError> {
@@ -25,7 +24,6 @@ pub fn settle_expired_options(
     Decode!(&response, Result<SettleExpiredOptionsResponse, VolumetricError>).unwrap()
 }
 
-#[allow(dead_code)]
 pub fn settle_option_by_id(
     env: &TestEnv,
     option_id: u64,
@@ -43,7 +41,6 @@ pub fn settle_option_by_id(
     Decode!(&response, Result<SettlementReceipt, VolumetricError>).unwrap()
 }
 
-#[allow(dead_code)]
 pub fn get_settlement_status(
     env: &TestEnv,
     operation_id: OperationId,
@@ -75,7 +72,28 @@ pub fn get_pending_settlements(env: &TestEnv) -> Vec<ActiveOption> {
     Decode!(&response, Vec<ActiveOption>).unwrap()
 }
 
-#[allow(dead_code)]
+pub fn wait_for_settlement_terminal_status(
+    env: &TestEnv,
+    operation_id: OperationId,
+    max_attempts: u8,
+) -> Result<SettlementStatus, VolumetricError> {
+    let mut latest_status = get_settlement_status(env, operation_id)?;
+
+    for _attempt in 0..max_attempts {
+        if matches!(
+            latest_status,
+            SettlementStatus::Succeeded { .. } | SettlementStatus::Failed { .. }
+        ) {
+            break;
+        }
+
+        env.pic.tick();
+        latest_status = get_settlement_status(env, operation_id)?;
+    }
+
+    Ok(latest_status)
+}
+
 pub fn testing_set_option_expiry(
     env: &TestEnv,
     option_id: u64,

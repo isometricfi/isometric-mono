@@ -15,6 +15,7 @@ pub use config::{
 pub use events::get_events_for_principal;
 pub use offers::{accept_offers, cancel_offer, create_offer, get_open_offers};
 pub use settlement::{
-    get_pending_settlements, get_settlement_status, settle_option_by_id, testing_set_option_expiry,
+    get_pending_settlements, get_settlement_status, settle_expired_options, settle_option_by_id,
+    testing_set_option_expiry, wait_for_settlement_terminal_status,
 };
 pub use withdrawals::{get_withdraw_status, withdraw_ckbtc};

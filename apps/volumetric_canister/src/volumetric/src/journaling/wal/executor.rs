@@ -248,7 +248,7 @@ mod tests {
     use super::*;
     use crate::ic::{self, IcRuntime};
     use crate::journaling::{default_policy, enqueue_if_absent, WalKind};
-    use crate::usecases::WithdrawalWalResult;
+    use crate::usecases::{SettlementWalResult, WithdrawalWalResult};
 
     const TEST_NOW_NS: u64 = 1_000_000_000_000;
 
@@ -276,6 +276,14 @@ mod tests {
             principal: Principal::anonymous(),
             amount_sats: 100 + u64::from(seed),
             btc_address: format!("tb1qexecutor{seed}"),
+            created_at_time_ns: TEST_NOW_NS,
+        })
+    }
+
+    fn make_settlement_payload(seed: u8) -> WalPayload {
+        WalPayload::Settlement(super::super::types::SettlementWalPayload {
+            option_id: u64::from(seed),
+            settlement_price_cents: 10_000_000 + u64::from(seed),
             created_at_time_ns: TEST_NOW_NS,
         })
     }
@@ -376,6 +384,44 @@ mod tests {
         reset_executor_inflight_state();
     }
 
+    /// Given: retry scan state is currently idle
+    /// When: attempting to mark retry scan in-progress twice
+    /// Then: the second mark is rejected to avoid concurrent retry scans
+    #[test]
+    fn mark_retry_scan_in_progress_if_idle_prevents_duplicates() {
+        // given
+        reset_executor_inflight_state();
+
+        // when
+        let first_mark_result = mark_retry_scan_in_progress_if_idle();
+        let second_mark_result = mark_retry_scan_in_progress_if_idle();
+
+        // then
+        assert!(first_mark_result);
+        assert!(!second_mark_result);
+
+        reset_executor_inflight_state();
+    }
+
+    /// Given: no WAL entry exists for the requested operation id
+    /// When: execute_wal_entry_now is called
+    /// Then: it returns a permanent failure with not-found message
+    #[tokio::test]
+    async fn execute_wal_entry_now_missing_entry_returns_failed_permanent() {
+        // given
+        reset_executor_inflight_state();
+        let operation_id = make_operation_id(200);
+
+        // when
+        let outcome = execute_wal_entry_now(operation_id).await;
+
+        // then
+        assert_eq!(
+            outcome,
+            WalExecutionOutcome::FailedPermanent(WAL_ENTRY_NOT_FOUND_MESSAGE.to_string())
+        );
+    }
+
     /// Given: a WAL entry is already in succeeded status
     /// When: execute_wal_entry_now is called again for the same operation id
     /// Then: execution returns SucceededAlready without re-running payload side effects
@@ -397,6 +443,34 @@ mod tests {
         wal_entry.result = Some(WalResult::Withdrawal(WithdrawalWalResult {
             block_index: 42,
         }));
+        put_entry(wal_entry);
+
+        // when
+        let outcome = execute_wal_entry_now(operation_id).await;
+
+        // then
+        assert_eq!(outcome, WalExecutionOutcome::SucceededAlready);
+    }
+
+    /// Given: a settlement WAL entry is already in succeeded status
+    /// When: execute_wal_entry_now is called again for the same operation id
+    /// Then: execution returns SucceededAlready without re-running settlement side effects
+    #[tokio::test]
+    async fn execute_wal_entry_now_returns_succeeded_already_for_terminal_settlement_entry() {
+        // given
+        reset_executor_inflight_state();
+        ic::set_runtime(Box::new(MockRuntime));
+        let operation_id = make_operation_id(3);
+        enqueue_if_absent(
+            operation_id,
+            WalKind::Settlement,
+            make_settlement_payload(3),
+            default_policy(),
+        );
+
+        let mut wal_entry = get_entry(operation_id).expect("entry should exist");
+        wal_entry.status = WalStatus::Succeeded;
+        wal_entry.result = Some(WalResult::Settlement(SettlementWalResult { option_id: 3 }));
         put_entry(wal_entry);
 
         // when

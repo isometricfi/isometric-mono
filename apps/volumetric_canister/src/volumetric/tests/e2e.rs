@@ -21,3 +21,6 @@ mod test_withdrawals;
 
 #[path = "e2e/test_status_query_guards.rs"]
 mod test_status_query_guards;
+
+#[path = "e2e/test_accept_withdraw_contention.rs"]
+mod test_accept_withdraw_contention;

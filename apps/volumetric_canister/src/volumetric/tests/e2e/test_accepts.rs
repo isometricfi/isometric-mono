@@ -296,6 +296,8 @@ fn test_second_buyer_fails_when_offer_already_fully_accepted() {
     // then
     assert!(buyer_1_result.is_ok());
     assert!(buyer_2_result.is_err());
+    let buyer_2_error = buyer_2_result.unwrap_err();
+    assert_eq!(buyer_2_error.code, error_codes::INVALID_OFFER_STATE.code);
 
     let buyer_1_response = buyer_1_result.unwrap();
     assert_eq!(buyer_1_response.active_options.len(), 1);

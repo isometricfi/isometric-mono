@@ -19,6 +19,7 @@ use crate::storage::{
     clear_offers, get_balance, get_offer, get_platform_fees_collected, insert_offer, set_balance,
     AcceptPhase, Asset, Offer, OfferStatus, OptionType, UserBalance, CKBTC_TRANSFER_FEE,
 };
+use crate::usecases::{withdraw_ckbtc_use_case, WithdrawParams};
 
 const TEST_NOW_NS: u64 = 1_000_000_000_000;
 const TEST_PRICE_CENTS: u64 = 10_000_000;
@@ -553,4 +554,155 @@ async fn test_accept_offer_succeeds_when_platform_fee_transfer_fails() {
     assert_eq!(buyer_balance.available, expected_buyer_available_sats);
 
     assert_eq!(get_platform_fees_collected(), 0);
+}
+
+/// Given: one buyer has already started accepting and the offer is Processing
+/// When: a second buyer tries to accept the same offer before the first WAL run finishes
+/// Then: the second request is rejected with invalid offer state
+#[tokio::test(flavor = "current_thread")]
+async fn test_second_buyer_cannot_accept_offer_while_first_is_processing() {
+    // given
+    let writer = test_principal(21);
+    let first_buyer = test_principal(22);
+    let second_buyer = test_principal(23);
+    setup_test_state(writer, first_buyer);
+    set_balance(
+        second_buyer,
+        UserBalance {
+            available: TEST_BUYER_AVAILABLE_SATS,
+            locked_as_writer: 0,
+        },
+    );
+
+    let (first_transfer_started_sender, first_transfer_started_receiver) = oneshot::channel();
+    let (first_transfer_result_sender, first_transfer_result_receiver) = oneshot::channel();
+    ledger::set_ledger(Rc::new(CoordinatedLedger {
+        first_transfer_started_sender: RefCell::new(Some(first_transfer_started_sender)),
+        first_transfer_result_receiver: RefCell::new(Some(first_transfer_result_receiver)),
+        completed_transfer_count: Cell::new(0),
+    }));
+    let first_receipt =
+        accept_offers_use_case(first_buyer, vec![build_test_accept_offer_item()], 80).unwrap();
+    let local_task_set = task::LocalSet::new();
+
+    // when
+    let second_buyer_error_code = local_task_set
+        .run_until(async move {
+            let accept_wal_task = task::spawn_local(async move {
+                execute_accept_wal_once(first_receipt.operation_id).await
+            });
+
+            first_transfer_started_receiver
+                .await
+                .expect("first accept should reach the first transfer");
+
+            let second_buyer_error =
+                accept_offers_use_case(second_buyer, vec![build_test_accept_offer_item()], 81)
+                    .expect_err("second buyer must be rejected while offer is processing");
+
+            first_transfer_result_sender
+                .send(Ok(TEST_BLOCK_INDEX))
+                .expect("first transfer should still be waiting");
+            let first_outcome = accept_wal_task
+                .await
+                .expect("first accept WAL should finish");
+            assert!(matches!(
+                first_outcome,
+                crate::journaling::WalExecutionOutcome::Succeeded
+            ));
+
+            second_buyer_error.code
+        })
+        .await;
+
+    // then
+    assert_eq!(
+        second_buyer_error_code,
+        error_codes::INVALID_OFFER_STATE.code
+    );
+}
+
+/// Given: buyer funds are reserved by accept local preparation
+/// When: the same buyer tries to withdraw those funds before accept WAL completes
+/// Then: withdrawal is rejected for insufficient available balance
+#[test]
+fn test_withdraw_fails_when_accept_has_already_reserved_buyer_balance() {
+    // given
+    let writer = test_principal(31);
+    let buyer = test_principal(32);
+    setup_test_state(writer, buyer);
+
+    let _accept_receipt = accept_offers_use_case(buyer, vec![build_test_accept_offer_item()], 90)
+        .expect("accept should enqueue and reserve buyer funds");
+    let withdrawal_params = WithdrawParams {
+        btc_address: "tb1qacceptfirst".to_string(),
+        amount: TEST_BUYER_AVAILABLE_SATS,
+    };
+
+    // when
+    let withdraw_result = withdraw_ckbtc_use_case(buyer, withdrawal_params, 91);
+
+    // then
+    let withdraw_error = withdraw_result.expect_err("withdraw should fail when funds are reserved");
+    assert_eq!(withdraw_error.code, error_codes::INSUFFICIENT_BALANCE.code);
+}
+
+/// Given: buyer funds are debited by withdrawal local preparation
+/// When: the same buyer tries to accept an offer using the same funds
+/// Then: accept is rejected for insufficient balance and offer state remains open
+#[test]
+fn test_accept_fails_when_withdraw_has_already_debited_buyer_balance() {
+    // given
+    let writer = test_principal(41);
+    let buyer = test_principal(42);
+    setup_test_state(writer, buyer);
+
+    let withdrawal_params = WithdrawParams {
+        btc_address: "tb1qwithdrawfirst".to_string(),
+        amount: TEST_BUYER_AVAILABLE_SATS,
+    };
+    let _withdraw_receipt = withdraw_ckbtc_use_case(buyer, withdrawal_params, 92)
+        .expect("withdraw should enqueue and debit buyer");
+
+    // when
+    let accept_result = accept_offers_use_case(buyer, vec![build_test_accept_offer_item()], 93);
+
+    // then
+    let accept_error =
+        accept_result.expect_err("accept should fail when buyer funds were already debited");
+    assert_eq!(accept_error.code, error_codes::INSUFFICIENT_BALANCE.code);
+
+    let offer = get_offer(TEST_OFFER_ID).expect("offer should remain available");
+    assert_eq!(offer.status, OfferStatus::Open);
+    assert_eq!(offer.remaining_quantity, TEST_QUANTITY_SATS);
+}
+
+/// Given: writer collateral is reserved by accept local preparation
+/// When: the writer attempts to withdraw the same sats immediately
+/// Then: withdrawal is rejected and collateral remains locked
+#[test]
+fn test_writer_withdraw_fails_when_collateral_is_locked_by_accept() {
+    // given
+    let writer = test_principal(51);
+    let buyer = test_principal(52);
+    setup_test_state(writer, buyer);
+
+    let _accept_receipt = accept_offers_use_case(buyer, vec![build_test_accept_offer_item()], 94)
+        .expect("accept should enqueue and lock writer collateral");
+    let withdrawal_params = WithdrawParams {
+        btc_address: "tb1qwriterlocked".to_string(),
+        amount: TEST_QUANTITY_SATS,
+    };
+
+    // when
+    let withdraw_result = withdraw_ckbtc_use_case(writer, withdrawal_params, 95);
+
+    // then
+    let withdraw_error =
+        withdraw_result.expect_err("writer withdraw should fail while collateral is locked");
+    assert_eq!(withdraw_error.code, error_codes::INSUFFICIENT_BALANCE.code);
+
+    let writer_balance = get_balance(&writer);
+    assert_eq!(writer_balance.available, 0);
+    assert_eq!(writer_balance.locked_as_writer, TEST_QUANTITY_SATS);
 }

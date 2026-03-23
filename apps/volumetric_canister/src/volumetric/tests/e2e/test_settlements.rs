@@ -2,8 +2,9 @@ use crate::common::{create_test_env, generate_wallet};
 use crate::helpers::{
     accept_offers, configure_test_ledger, create_account, create_offer, get_events_for_principal,
     get_fee_recipient_ledger_balance, get_pending_settlements, get_settlement_status,
-    get_user_balance, mint_and_sync_balance, set_oracle_price, settle_option_by_id,
-    testing_set_option_expiry, whitelist_controller,
+    get_user_balance, mint_and_sync_balance, set_oracle_price, settle_expired_options,
+    settle_option_by_id, testing_set_option_expiry, wait_for_settlement_terminal_status,
+    whitelist_controller,
 };
 use volumetric::{AcceptOfferItem, EventData, EventType, SettlementStatus, TradeRole};
 
@@ -22,6 +23,117 @@ const QUANTITY_SATS: u64 = ONE_BTC_SATS;
 const PREMIUM_SATS: u64 = QUANTITY_SATS * PREMIUM_BPS as u64 / BASIS_POINTS;
 const ACCEPT_TRANSFER_COUNT: u64 = 2;
 const ACCEPT_TRANSFER_FEES: u64 = ACCEPT_TRANSFER_COUNT * CKBTC_TRANSFER_FEE;
+
+#[derive(Clone, Copy)]
+enum SettlementExecutionPath {
+    ExpiredOptionsEndpoint,
+    SettleById,
+}
+
+struct SettlementBalanceDeltas {
+    writer_received_sats: u64,
+    buyer_received_sats: u64,
+    profit_fee_received_sats: u64,
+}
+
+fn run_single_option_settlement_and_collect_deltas(
+    path: SettlementExecutionPath,
+) -> SettlementBalanceDeltas {
+    // given
+    let env = create_test_env();
+    whitelist_controller(&env);
+    configure_test_ledger(&env);
+
+    const WRITER_SEED: u64 = 111;
+    const BUYER_SEED: u64 = 222;
+    const STRIKE_BPS: u16 = 500;
+    const OPTION_ID: u64 = 1;
+    const EXPIRED_AT_NS: u64 = 0;
+    const TEST_QUANTITY_SATS: u64 = 73_456_789;
+    const TEST_PREMIUM_SATS: u64 = TEST_QUANTITY_SATS * PREMIUM_BPS as u64 / BASIS_POINTS;
+    const TEST_SETTLEMENT_PRICE_CENTS: u64 = 12_345_678;
+
+    let writer_wallet = generate_wallet(WRITER_SEED);
+    let buyer_wallet = generate_wallet(BUYER_SEED);
+    let writer_profile = create_account(&env, &writer_wallet).expect("Writer account failed");
+    let buyer_profile = create_account(&env, &buyer_wallet).expect("Buyer account failed");
+
+    mint_and_sync_balance(&env, &writer_profile, TEST_QUANTITY_SATS)
+        .expect("Writer balance failed");
+    mint_and_sync_balance(
+        &env,
+        &buyer_profile,
+        TEST_PREMIUM_SATS + ACCEPT_TRANSFER_FEES,
+    )
+    .expect("Buyer balance failed");
+
+    set_oracle_price(&env, ENTRY_PRICE_CENTS);
+    create_offer(
+        &env,
+        &writer_wallet,
+        TEST_QUANTITY_SATS,
+        STRIKE_BPS,
+        PREMIUM_BPS,
+        ONE_DAY_SECS,
+    )
+    .expect("Create offer failed");
+
+    accept_offers(
+        &env,
+        &buyer_wallet,
+        vec![AcceptOfferItem {
+            offer_id: FIRST_OFFER_ID,
+            quantity: TEST_QUANTITY_SATS,
+        }],
+    )
+    .expect("Accept offer failed");
+
+    let fee_recipient_balance_after_accept = get_fee_recipient_ledger_balance(&env);
+    let writer_balance_before =
+        get_user_balance(&env, &writer_wallet.address).expect("Writer balance failed");
+    let buyer_balance_before =
+        get_user_balance(&env, &buyer_wallet.address).expect("Buyer balance failed");
+
+    set_oracle_price(&env, TEST_SETTLEMENT_PRICE_CENTS);
+    testing_set_option_expiry(&env, OPTION_ID, EXPIRED_AT_NS).expect("Set expiry failed");
+
+    // when
+    match path {
+        SettlementExecutionPath::ExpiredOptionsEndpoint => {
+            let response = settle_expired_options(&env).expect("Settle expired options failed");
+            assert!(response.errors.is_empty());
+            assert_eq!(response.settled.len(), 1);
+        }
+        SettlementExecutionPath::SettleById => {
+            let receipt = settle_option_by_id(&env, OPTION_ID).expect("Settle by id failed");
+            let terminal_status =
+                wait_for_settlement_terminal_status(&env, receipt.operation_id, 8)
+                    .expect("Settlement status failed");
+            assert!(matches!(
+                terminal_status,
+                SettlementStatus::Succeeded { .. }
+            ));
+        }
+    }
+
+    // then
+    let writer_balance_after =
+        get_user_balance(&env, &writer_wallet.address).expect("Writer balance failed");
+    let buyer_balance_after =
+        get_user_balance(&env, &buyer_wallet.address).expect("Buyer balance failed");
+    let fee_recipient_balance_after_settle = get_fee_recipient_ledger_balance(&env);
+
+    let writer_received_sats = writer_balance_after.available - writer_balance_before.available;
+    let buyer_received_sats = buyer_balance_after.available - buyer_balance_before.available;
+    let profit_fee_received_sats =
+        fee_recipient_balance_after_settle - fee_recipient_balance_after_accept;
+
+    SettlementBalanceDeltas {
+        writer_received_sats,
+        buyer_received_sats,
+        profit_fee_received_sats,
+    }
+}
 
 /// Given: 1 BTC call option, entry $100k, strike $105k (+5%), premium 1% (0.01 BTC)
 /// When: Price rises to $210k (2x strike), option expires
@@ -815,6 +927,351 @@ fn test_settling_already_settled_option_returns_idempotent_receipt() {
         latest_status,
         SettlementStatus::Succeeded { .. } | SettlementStatus::Failed { .. }
     ));
+}
+
+/// Given: identical single-option setups with ITM settlement
+/// When: one settles via settle_expired_options and the other via settle_option_by_id
+/// Then: buyer, writer, and fee-recipient settlement deltas are identical across both paths
+#[test]
+fn test_settle_option_by_id_produces_same_payouts_as_expired_options_settlement() {
+    // given
+    let expired_options_path_deltas = run_single_option_settlement_and_collect_deltas(
+        SettlementExecutionPath::ExpiredOptionsEndpoint,
+    );
+    let settle_by_id_path_deltas =
+        run_single_option_settlement_and_collect_deltas(SettlementExecutionPath::SettleById);
+
+    // when
+    let expired_options_tuple = (
+        expired_options_path_deltas.writer_received_sats,
+        expired_options_path_deltas.buyer_received_sats,
+        expired_options_path_deltas.profit_fee_received_sats,
+    );
+    let settle_by_id_tuple = (
+        settle_by_id_path_deltas.writer_received_sats,
+        settle_by_id_path_deltas.buyer_received_sats,
+        settle_by_id_path_deltas.profit_fee_received_sats,
+    );
+
+    // then
+    assert_eq!(expired_options_tuple, settle_by_id_tuple);
+}
+
+/// Given: an ITM settlement with non-trivial payout and fee amounts
+/// When: settlement completes
+/// Then: writer payout + buyer payout + profit fee exactly conserves collateral quantity
+#[test]
+fn test_settlement_conserves_collateral_across_writer_buyer_and_profit_fee() {
+    // given
+    let env = create_test_env();
+    whitelist_controller(&env);
+    configure_test_ledger(&env);
+
+    const WRITER_SEED: u64 = 51;
+    const BUYER_SEED: u64 = 52;
+    const STRIKE_BPS: u16 = 500;
+    const OPTION_ID: u64 = 1;
+    const TEST_SETTLEMENT_PRICE_CENTS: u64 = 13_200_000;
+
+    let writer_wallet = generate_wallet(WRITER_SEED);
+    let buyer_wallet = generate_wallet(BUYER_SEED);
+    let writer_profile = create_account(&env, &writer_wallet).expect("Writer account failed");
+    let buyer_profile = create_account(&env, &buyer_wallet).expect("Buyer account failed");
+
+    mint_and_sync_balance(&env, &writer_profile, QUANTITY_SATS).expect("Writer balance failed");
+    mint_and_sync_balance(&env, &buyer_profile, PREMIUM_SATS + ACCEPT_TRANSFER_FEES)
+        .expect("Buyer balance failed");
+
+    set_oracle_price(&env, ENTRY_PRICE_CENTS);
+    create_offer(
+        &env,
+        &writer_wallet,
+        QUANTITY_SATS,
+        STRIKE_BPS,
+        PREMIUM_BPS,
+        ONE_DAY_SECS,
+    )
+    .expect("Create offer failed");
+    accept_offers(
+        &env,
+        &buyer_wallet,
+        vec![AcceptOfferItem {
+            offer_id: FIRST_OFFER_ID,
+            quantity: QUANTITY_SATS,
+        }],
+    )
+    .expect("Accept offer failed");
+
+    let fee_recipient_balance_after_accept = get_fee_recipient_ledger_balance(&env);
+    let writer_balance_before =
+        get_user_balance(&env, &writer_wallet.address).expect("Writer balance failed");
+    let buyer_balance_before =
+        get_user_balance(&env, &buyer_wallet.address).expect("Buyer balance failed");
+
+    set_oracle_price(&env, TEST_SETTLEMENT_PRICE_CENTS);
+    testing_set_option_expiry(&env, OPTION_ID, 0).expect("Set expiry failed");
+
+    // when
+    let response = settle_expired_options(&env).expect("Settle expired options failed");
+    assert!(response.errors.is_empty());
+    assert_eq!(response.settled.len(), 1);
+
+    // then
+    let writer_balance_after =
+        get_user_balance(&env, &writer_wallet.address).expect("Writer balance failed");
+    let buyer_balance_after =
+        get_user_balance(&env, &buyer_wallet.address).expect("Buyer balance failed");
+    let fee_recipient_balance_after_settle = get_fee_recipient_ledger_balance(&env);
+
+    let writer_received_sats = writer_balance_after.available - writer_balance_before.available;
+    let buyer_received_sats = buyer_balance_after.available - buyer_balance_before.available;
+    let profit_fee_received_sats =
+        fee_recipient_balance_after_settle - fee_recipient_balance_after_accept;
+
+    const STRIKE_PRICE_CENTS: u64 =
+        ENTRY_PRICE_CENTS + ENTRY_PRICE_CENTS * STRIKE_BPS as u64 / BASIS_POINTS;
+    let gross_payout_to_buyer_sats = (QUANTITY_SATS as u128
+        * (TEST_SETTLEMENT_PRICE_CENTS - STRIKE_PRICE_CENTS) as u128
+        / TEST_SETTLEMENT_PRICE_CENTS as u128) as u64;
+    let expected_profit_fee_sats = gross_payout_to_buyer_sats * PROFIT_FEE_BPS / BASIS_POINTS;
+    let expected_buyer_payout_sats = gross_payout_to_buyer_sats - expected_profit_fee_sats;
+    let expected_writer_payout_sats = QUANTITY_SATS - gross_payout_to_buyer_sats;
+
+    assert_eq!(buyer_received_sats, expected_buyer_payout_sats);
+    assert_eq!(writer_received_sats, expected_writer_payout_sats);
+    assert_eq!(profit_fee_received_sats, expected_profit_fee_sats);
+    assert_eq!(
+        writer_received_sats + buyer_received_sats + profit_fee_received_sats,
+        QUANTITY_SATS
+    );
+}
+
+/// Given: a partial-quantity option with integer-division payout rounding
+/// When: the option settles ITM
+/// Then: payouts and profit fee match rounded formula outputs and funds route to expected recipients
+#[test]
+fn test_partial_quantity_itm_option_settles_with_correct_payouts_and_fees() {
+    // given
+    let env = create_test_env();
+    whitelist_controller(&env);
+    configure_test_ledger(&env);
+
+    const WRITER_SEED: u64 = 61;
+    const BUYER_SEED: u64 = 62;
+    const STRIKE_BPS: u16 = 900;
+    const OPTION_ID: u64 = 1;
+    const PARTIAL_QUANTITY_SATS: u64 = 12_345_679;
+    const PARTIAL_PREMIUM_SATS: u64 = PARTIAL_QUANTITY_SATS * PREMIUM_BPS as u64 / BASIS_POINTS;
+    const TEST_SETTLEMENT_PRICE_CENTS: u64 = 11_234_567;
+
+    let writer_wallet = generate_wallet(WRITER_SEED);
+    let buyer_wallet = generate_wallet(BUYER_SEED);
+    let writer_profile = create_account(&env, &writer_wallet).expect("Writer account failed");
+    let buyer_profile = create_account(&env, &buyer_wallet).expect("Buyer account failed");
+
+    let fee_recipient_balance_before = get_fee_recipient_ledger_balance(&env);
+    mint_and_sync_balance(&env, &writer_profile, PARTIAL_QUANTITY_SATS)
+        .expect("Writer balance failed");
+    mint_and_sync_balance(
+        &env,
+        &buyer_profile,
+        PARTIAL_PREMIUM_SATS + ACCEPT_TRANSFER_FEES,
+    )
+    .expect("Buyer balance failed");
+
+    set_oracle_price(&env, ENTRY_PRICE_CENTS);
+    create_offer(
+        &env,
+        &writer_wallet,
+        PARTIAL_QUANTITY_SATS,
+        STRIKE_BPS,
+        PREMIUM_BPS,
+        ONE_DAY_SECS,
+    )
+    .expect("Create offer failed");
+    accept_offers(
+        &env,
+        &buyer_wallet,
+        vec![AcceptOfferItem {
+            offer_id: FIRST_OFFER_ID,
+            quantity: PARTIAL_QUANTITY_SATS,
+        }],
+    )
+    .expect("Accept offer failed");
+
+    let fee_recipient_balance_after_accept = get_fee_recipient_ledger_balance(&env);
+    let writer_balance_before =
+        get_user_balance(&env, &writer_wallet.address).expect("Writer balance failed");
+    let buyer_balance_before =
+        get_user_balance(&env, &buyer_wallet.address).expect("Buyer balance failed");
+
+    set_oracle_price(&env, TEST_SETTLEMENT_PRICE_CENTS);
+    testing_set_option_expiry(&env, OPTION_ID, 0).expect("Set expiry failed");
+
+    // when
+    let response = settle_expired_options(&env).expect("Settle expired options failed");
+    assert!(response.errors.is_empty());
+    assert_eq!(response.settled.len(), 1);
+
+    // then
+    let writer_balance_after =
+        get_user_balance(&env, &writer_wallet.address).expect("Writer balance failed");
+    let buyer_balance_after =
+        get_user_balance(&env, &buyer_wallet.address).expect("Buyer balance failed");
+    let fee_recipient_balance_after_settle = get_fee_recipient_ledger_balance(&env);
+
+    let writer_received_sats = writer_balance_after.available - writer_balance_before.available;
+    let buyer_received_sats = buyer_balance_after.available - buyer_balance_before.available;
+    let profit_fee_received_sats =
+        fee_recipient_balance_after_settle - fee_recipient_balance_after_accept;
+    let total_fee_delta = fee_recipient_balance_after_settle - fee_recipient_balance_before;
+
+    const STRIKE_PRICE_CENTS: u64 =
+        ENTRY_PRICE_CENTS + ENTRY_PRICE_CENTS * STRIKE_BPS as u64 / BASIS_POINTS;
+    let gross_payout_to_buyer_sats = (PARTIAL_QUANTITY_SATS as u128
+        * (TEST_SETTLEMENT_PRICE_CENTS - STRIKE_PRICE_CENTS) as u128
+        / TEST_SETTLEMENT_PRICE_CENTS as u128) as u64;
+    let expected_profit_fee_sats = gross_payout_to_buyer_sats * PROFIT_FEE_BPS / BASIS_POINTS;
+    let expected_buyer_payout_sats = gross_payout_to_buyer_sats - expected_profit_fee_sats;
+    let expected_writer_payout_sats = PARTIAL_QUANTITY_SATS - gross_payout_to_buyer_sats;
+    let expected_premium_fee_sats = PARTIAL_PREMIUM_SATS * PREMIUM_FEE_BPS / BASIS_POINTS;
+
+    assert_eq!(buyer_received_sats, expected_buyer_payout_sats);
+    assert_eq!(writer_received_sats, expected_writer_payout_sats);
+    assert_eq!(profit_fee_received_sats, expected_profit_fee_sats);
+    assert_eq!(
+        writer_received_sats + buyer_received_sats + profit_fee_received_sats,
+        PARTIAL_QUANTITY_SATS
+    );
+    assert_eq!(
+        total_fee_delta,
+        expected_premium_fee_sats + expected_profit_fee_sats
+    );
+}
+
+/// Given: two ITM options settle in the same tick
+/// When: settle_expired_options executes both settlements together
+/// Then: fee-recipient profit fee delta equals the sum of each option's expected profit fee
+#[test]
+fn test_two_itm_options_in_one_tick_aggregate_profit_fees_on_fee_recipient() {
+    // given
+    let env = create_test_env();
+    whitelist_controller(&env);
+    configure_test_ledger(&env);
+
+    const WRITER_1_SEED: u64 = 71;
+    const BUYER_1_SEED: u64 = 72;
+    const WRITER_2_SEED: u64 = 73;
+    const BUYER_2_SEED: u64 = 74;
+    const STRIKE_BPS_1: u16 = 500;
+    const STRIKE_BPS_2: u16 = 900;
+    const OPTION_1_ID: u64 = 1;
+    const OPTION_2_ID: u64 = 2;
+    const OFFER_2_ID: u64 = 2;
+    const QUANTITY_1_SATS: u64 = 60_000_000;
+    const QUANTITY_2_SATS: u64 = 25_000_000;
+    const PREMIUM_1_SATS: u64 = QUANTITY_1_SATS * PREMIUM_BPS as u64 / BASIS_POINTS;
+    const PREMIUM_2_SATS: u64 = QUANTITY_2_SATS * PREMIUM_BPS as u64 / BASIS_POINTS;
+    const TEST_SETTLEMENT_PRICE_CENTS: u64 = 12_000_000;
+
+    let writer_1_wallet = generate_wallet(WRITER_1_SEED);
+    let buyer_1_wallet = generate_wallet(BUYER_1_SEED);
+    let writer_2_wallet = generate_wallet(WRITER_2_SEED);
+    let buyer_2_wallet = generate_wallet(BUYER_2_SEED);
+
+    let writer_1_profile = create_account(&env, &writer_1_wallet).expect("Writer 1 account failed");
+    let buyer_1_profile = create_account(&env, &buyer_1_wallet).expect("Buyer 1 account failed");
+    let writer_2_profile = create_account(&env, &writer_2_wallet).expect("Writer 2 account failed");
+    let buyer_2_profile = create_account(&env, &buyer_2_wallet).expect("Buyer 2 account failed");
+
+    mint_and_sync_balance(&env, &writer_1_profile, QUANTITY_1_SATS)
+        .expect("Writer 1 balance failed");
+    mint_and_sync_balance(&env, &writer_2_profile, QUANTITY_2_SATS)
+        .expect("Writer 2 balance failed");
+    mint_and_sync_balance(
+        &env,
+        &buyer_1_profile,
+        PREMIUM_1_SATS + ACCEPT_TRANSFER_FEES,
+    )
+    .expect("Buyer 1 balance failed");
+    mint_and_sync_balance(
+        &env,
+        &buyer_2_profile,
+        PREMIUM_2_SATS + ACCEPT_TRANSFER_FEES,
+    )
+    .expect("Buyer 2 balance failed");
+
+    set_oracle_price(&env, ENTRY_PRICE_CENTS);
+    create_offer(
+        &env,
+        &writer_1_wallet,
+        QUANTITY_1_SATS,
+        STRIKE_BPS_1,
+        PREMIUM_BPS,
+        ONE_DAY_SECS,
+    )
+    .expect("Create offer 1 failed");
+    create_offer(
+        &env,
+        &writer_2_wallet,
+        QUANTITY_2_SATS,
+        STRIKE_BPS_2,
+        PREMIUM_BPS,
+        ONE_DAY_SECS,
+    )
+    .expect("Create offer 2 failed");
+
+    accept_offers(
+        &env,
+        &buyer_1_wallet,
+        vec![AcceptOfferItem {
+            offer_id: FIRST_OFFER_ID,
+            quantity: QUANTITY_1_SATS,
+        }],
+    )
+    .expect("Accept offer 1 failed");
+    accept_offers(
+        &env,
+        &buyer_2_wallet,
+        vec![AcceptOfferItem {
+            offer_id: OFFER_2_ID,
+            quantity: QUANTITY_2_SATS,
+        }],
+    )
+    .expect("Accept offer 2 failed");
+
+    let fee_recipient_balance_after_accept = get_fee_recipient_ledger_balance(&env);
+    set_oracle_price(&env, TEST_SETTLEMENT_PRICE_CENTS);
+    testing_set_option_expiry(&env, OPTION_1_ID, 0).expect("Set option 1 expiry failed");
+    testing_set_option_expiry(&env, OPTION_2_ID, 0).expect("Set option 2 expiry failed");
+
+    // when
+    let response = settle_expired_options(&env).expect("Settle expired options failed");
+    assert!(response.errors.is_empty());
+    assert_eq!(response.settled.len(), 2);
+
+    // then
+    let fee_recipient_balance_after_settle = get_fee_recipient_ledger_balance(&env);
+    let profit_fee_received_sats =
+        fee_recipient_balance_after_settle - fee_recipient_balance_after_accept;
+
+    const STRIKE_PRICE_1_CENTS: u64 =
+        ENTRY_PRICE_CENTS + ENTRY_PRICE_CENTS * STRIKE_BPS_1 as u64 / BASIS_POINTS;
+    const STRIKE_PRICE_2_CENTS: u64 =
+        ENTRY_PRICE_CENTS + ENTRY_PRICE_CENTS * STRIKE_BPS_2 as u64 / BASIS_POINTS;
+
+    let gross_payout_1_sats = (QUANTITY_1_SATS as u128
+        * (TEST_SETTLEMENT_PRICE_CENTS - STRIKE_PRICE_1_CENTS) as u128
+        / TEST_SETTLEMENT_PRICE_CENTS as u128) as u64;
+    let gross_payout_2_sats = (QUANTITY_2_SATS as u128
+        * (TEST_SETTLEMENT_PRICE_CENTS - STRIKE_PRICE_2_CENTS) as u128
+        / TEST_SETTLEMENT_PRICE_CENTS as u128) as u64;
+    let expected_profit_fee_1_sats = gross_payout_1_sats * PROFIT_FEE_BPS / BASIS_POINTS;
+    let expected_profit_fee_2_sats = gross_payout_2_sats * PROFIT_FEE_BPS / BASIS_POINTS;
+    let expected_aggregate_profit_fee_sats =
+        expected_profit_fee_1_sats + expected_profit_fee_2_sats;
+
+    assert_eq!(profit_fee_received_sats, expected_aggregate_profit_fee_sats);
 }
 
 /// Given: an expired option ready to settle by id
