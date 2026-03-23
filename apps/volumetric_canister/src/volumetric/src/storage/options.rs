@@ -39,6 +39,7 @@ pub enum CounterKey {
     EventId = 3,
     AcceptJournalId = 4,
     WithdrawalJournalId = 5,
+    PlatformFeesCollectedTotal = 6,
 }
 
 impl ic_stable_structures::Storable for CounterKey {
@@ -54,6 +55,7 @@ impl ic_stable_structures::Storable for CounterKey {
             Some(3) => CounterKey::EventId,
             Some(4) => CounterKey::AcceptJournalId,
             Some(5) => CounterKey::WithdrawalJournalId,
+            Some(6) => CounterKey::PlatformFeesCollectedTotal,
             _ => CounterKey::OfferId,
         }
     }

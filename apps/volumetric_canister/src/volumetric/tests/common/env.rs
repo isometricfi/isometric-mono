@@ -71,6 +71,19 @@ impl TestEnv {
         self.pic
             .advance_time(std::time::Duration::from_nanos(nanos));
     }
+
+    #[allow(dead_code)]
+    pub fn upgrade_volumetric_canister(&self) {
+        let volumetric_wasm = load_volumetric_wasm();
+        self.pic
+            .upgrade_canister(
+                self.volumetric_canister,
+                volumetric_wasm,
+                encode_one(()).expect("Failed to encode upgrade args"),
+                Some(self.controller),
+            )
+            .expect("Failed to upgrade volumetric canister");
+    }
 }
 
 fn volumetric_wasm_path() -> PathBuf {

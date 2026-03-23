@@ -24,3 +24,6 @@ mod test_status_query_guards;
 
 #[path = "e2e/test_accept_withdraw_contention.rs"]
 mod test_accept_withdraw_contention;
+
+#[path = "e2e/test_platform_fees_upgrade.rs"]
+mod test_platform_fees_upgrade;

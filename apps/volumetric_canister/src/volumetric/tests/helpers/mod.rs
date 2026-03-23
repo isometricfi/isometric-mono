@@ -9,8 +9,8 @@ pub mod withdrawals;
 pub use accounts::{create_account, create_account_with_signature};
 pub use balances::{get_user_balance, mint_and_sync_balance};
 pub use config::{
-    configure_test_ledger, get_fee_recipient_ledger_balance, set_feature_flags, set_oracle_price,
-    whitelist_controller,
+    configure_test_ledger, get_fee_recipient_ledger_balance, get_platform_fees_collected_total,
+    set_feature_flags, set_oracle_price, whitelist_controller,
 };
 pub use events::get_events_for_principal;
 pub use offers::{accept_offers, cancel_offer, create_offer, get_open_offers};
