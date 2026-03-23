@@ -97,14 +97,14 @@ impl PriceOracle for IcOracle {
             timestamp: Some(timestamp_secs),
         };
 
-        let response = ic_cdk::call::Call::unbounded_wait(xrc, "get_exchange_rate")
+        let response = ic_cdk::call::Call::bounded_wait(xrc, "get_exchange_rate")
             .with_arg(&request)
             .with_cycles(XRC_CYCLES)
             .await
             .map_err(|e| {
                 VolumetricError::from_def(
                     error_codes::INTER_CANISTER_CALL_FAILED,
-                    Some(&format!("get_exchange_rate: {:?}", e)),
+                    Some(&format!("get_exchange_rate (bounded_wait): {:?}", e)),
                     None,
                 )
             })?;

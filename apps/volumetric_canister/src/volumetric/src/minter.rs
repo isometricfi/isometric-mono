@@ -63,13 +63,13 @@ impl MinterClient for IcMinter {
     async fn get_btc_address(&self, args: GetBtcAddressArg) -> Result<String, VolumetricError> {
         let minter = Config::ckbtc_minter();
 
-        let response = ic_cdk::call::Call::unbounded_wait(minter, "get_btc_address")
+        let response = ic_cdk::call::Call::bounded_wait(minter, "get_btc_address")
             .with_arg(&args)
             .await
             .map_err(|e| {
                 VolumetricError::from_def(
                     error_codes::INTER_CANISTER_CALL_FAILED,
-                    Some(&format!("get_btc_address: {:?}", e)),
+                    Some(&format!("get_btc_address (bounded_wait): {:?}", e)),
                     None,
                 )
             })?;
@@ -91,13 +91,13 @@ impl MinterClient for IcMinter {
     ) -> Result<Vec<UtxoStatus>, VolumetricError> {
         let minter = Config::ckbtc_minter();
 
-        let response = ic_cdk::call::Call::unbounded_wait(minter, "update_balance")
+        let response = ic_cdk::call::Call::bounded_wait(minter, "update_balance")
             .with_arg(&args)
             .await
             .map_err(|e| {
                 VolumetricError::from_def(
                     error_codes::INTER_CANISTER_CALL_FAILED,
-                    Some(&format!("update_balance: {:?}", e)),
+                    Some(&format!("update_balance (bounded_wait): {:?}", e)),
                     None,
                 )
             })?;
@@ -136,13 +136,16 @@ impl MinterClient for IcMinter {
     ) -> Result<RetrieveBtcOk, VolumetricError> {
         let minter = Config::ckbtc_minter();
 
-        let response = ic_cdk::call::Call::unbounded_wait(minter, "retrieve_btc_with_approval")
+        let response = ic_cdk::call::Call::bounded_wait(minter, "retrieve_btc_with_approval")
             .with_arg(&args)
             .await
             .map_err(|e| {
                 VolumetricError::from_def(
                     error_codes::INTER_CANISTER_CALL_FAILED,
-                    Some(&format!("retrieve_btc_with_approval: {:?}", e)),
+                    Some(&format!(
+                        "retrieve_btc_with_approval (bounded_wait): {:?}",
+                        e
+                    )),
                     None,
                 )
             })?;

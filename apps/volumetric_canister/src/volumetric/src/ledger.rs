@@ -33,6 +33,16 @@ pub trait LedgerClient {
 /// Production implementation — delegates to ckBTC ledger via `ic_cdk`.
 struct IcLedger;
 
+fn nat_to_u64_or_error(value: Nat, context: &str) -> Result<u64, VolumetricError> {
+    value.0.try_into().map_err(|_| {
+        VolumetricError::from_def(
+            error_codes::INTER_CANISTER_CALL_FAILED,
+            Some(&format!("{}: block index does not fit into u64", context)),
+            None,
+        )
+    })
+}
+
 #[async_trait(?Send)]
 impl LedgerClient for IcLedger {
     async fn icrc1_transfer(
@@ -53,13 +63,13 @@ impl LedgerClient for IcLedger {
             created_at_time: Some(created_at_time),
         };
 
-        let response = ic_cdk::call::Call::unbounded_wait(ledger, "icrc1_transfer")
+        let response = ic_cdk::call::Call::bounded_wait(ledger, "icrc1_transfer")
             .with_arg(&args)
             .await
             .map_err(|e| {
                 VolumetricError::from_def(
                     error_codes::INTER_CANISTER_CALL_FAILED,
-                    Some(&format!("icrc1_transfer: {:?}", e)),
+                    Some(&format!("icrc1_transfer (bounded_wait): {:?}", e)),
                     None,
                 )
             })?;
@@ -73,14 +83,10 @@ impl LedgerClient for IcLedger {
         })?;
 
         match result {
-            Ok(block_index) => Ok(block_index
-                .0
-                .try_into()
-                .expect("block index should fit into u64")),
-            Err(TransferError::Duplicate { duplicate_of }) => Ok(duplicate_of
-                .0
-                .try_into()
-                .expect("block index should fit into u64")),
+            Ok(block_index) => nat_to_u64_or_error(block_index, "icrc1_transfer"),
+            Err(TransferError::Duplicate { duplicate_of }) => {
+                nat_to_u64_or_error(duplicate_of, "icrc1_transfer duplicate")
+            }
             Err(e) => Err(VolumetricError::from_def(
                 error_codes::INTER_CANISTER_CALL_FAILED,
                 Some(&format!("icrc1_transfer rejected: {:?}", e)),
@@ -92,13 +98,13 @@ impl LedgerClient for IcLedger {
     async fn icrc1_balance_of(&self, account: Account) -> Result<Nat, VolumetricError> {
         let ledger = Config::ckbtc_ledger();
 
-        let response = ic_cdk::call::Call::unbounded_wait(ledger, "icrc1_balance_of")
+        let response = ic_cdk::call::Call::bounded_wait(ledger, "icrc1_balance_of")
             .with_arg(account)
             .await
             .map_err(|e| {
                 VolumetricError::from_def(
                     error_codes::INTER_CANISTER_CALL_FAILED,
-                    Some(&format!("icrc1_balance_of: {:?}", e)),
+                    Some(&format!("icrc1_balance_of (bounded_wait): {:?}", e)),
                     None,
                 )
             })?;
@@ -117,13 +123,13 @@ impl LedgerClient for IcLedger {
     async fn icrc2_approve(&self, args: ApproveArgs) -> Result<Nat, VolumetricError> {
         let ledger = Config::ckbtc_ledger();
 
-        let response = ic_cdk::call::Call::unbounded_wait(ledger, "icrc2_approve")
+        let response = ic_cdk::call::Call::bounded_wait(ledger, "icrc2_approve")
             .with_arg(&args)
             .await
             .map_err(|e| {
                 VolumetricError::from_def(
                     error_codes::INTER_CANISTER_CALL_FAILED,
-                    Some(&format!("icrc2_approve: {:?}", e)),
+                    Some(&format!("icrc2_approve (bounded_wait): {:?}", e)),
                     None,
                 )
             })?;
@@ -178,4 +184,36 @@ pub async fn icrc2_approve(args: ApproveArgs) -> Result<Nat, VolumetricError> {
 #[cfg(test)]
 pub fn set_ledger(client: Rc<dyn LedgerClient>) {
     LEDGER.with(|l| *l.borrow_mut() = client);
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_nat_to_u64_or_error_rejects_overflowing_value() {
+        // given
+        let overflowing_value = Nat::from(u128::MAX);
+
+        // when
+        let result = nat_to_u64_or_error(overflowing_value, "overflow test");
+
+        // then
+        assert!(result.is_err());
+        let error = result.unwrap_err();
+        assert_eq!(error.code, error_codes::INTER_CANISTER_CALL_FAILED.code);
+    }
+
+    #[test]
+    fn test_nat_to_u64_or_error_accepts_u64_value() {
+        // given
+        let in_range_value = Nat::from(42u64);
+
+        // when
+        let result = nat_to_u64_or_error(in_range_value, "in-range test");
+
+        // then
+        assert!(result.is_ok());
+        assert_eq!(result.expect("value should convert to u64"), 42);
+    }
 }

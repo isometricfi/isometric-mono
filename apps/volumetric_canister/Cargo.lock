@@ -2560,6 +2560,7 @@ dependencies = [
  "ic-cdk",
  "ic-cdk-timers",
  "ic-http-types",
+ "ic-management-canister-types",
  "ic-metrics-encoder",
  "ic-stable-structures 0.7.2",
  "icrc-ledger-types",
