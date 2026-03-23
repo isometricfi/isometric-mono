@@ -49,6 +49,19 @@ Deploy:
 make deploy TARGET=dev
 ```
 
+Immediately after deploy, set and verify operational safeguards:
+
+```bash
+# Add a backup controller to avoid permanent lockout if one key is lost
+make set-backup-controller TARGET=dev BACKUP_CONTROLLER=<backup-principal>
+
+# Keep enough cycle reserve to reduce freeze risk (default here: 90 days)
+make set-freezing-threshold TARGET=dev FREEZING_THRESHOLD_SECONDS=7776000
+
+# Verify controllers, cycles balance, and freezing threshold
+make status TARGET=dev
+```
+
 This will create a new canister and output its ID. Add the ID to `canister_ids.json`:
 
 ```json
@@ -67,6 +80,12 @@ For reproducible deployments, use the Docker-built wasm:
 make release                  # Build reproducible wasm
 make deploy TARGET=dev        # Deploy volumetric.wasm
 make verify                   # Confirm hashes match
+```
+
+Before and after each upgrade, run:
+
+```bash
+make status TARGET=dev
 ```
 
 ## Reinstalling (wiping state)
@@ -170,6 +189,36 @@ dfx canister call volumetric_dev set_trading_limits --network ic '(record {
 | `term_days` | Min/max term length in days |
 | `deposit_amount_sats` | Minimum deposit amount |
 | `withdraw_amount_sats` | Minimum withdrawal amount |
+
+## Operations runbook
+
+### Controller safety
+
+- Always maintain at least two controllers for production canisters.
+- Keep the backup controller key in separate custody from the primary deploy key.
+- Re-verify controllers after each deploy or upgrade:
+
+```bash
+make status TARGET=dev
+```
+
+### Cycles and freezing-threshold monitoring
+
+- Check canister status regularly and alert on low-cycle conditions:
+
+```bash
+make status TARGET=dev
+```
+
+- Recommended baseline:
+  - Freezing threshold: at least `7776000` seconds (90 days) for production.
+  - Alert when estimated runway is below your operational SLO.
+- Top up before approaching freeze:
+
+```bash
+dfx cycles balance --network ic
+dfx cycles convert --amount 0.5 --network ic
+```
 
 ## Resources
 
