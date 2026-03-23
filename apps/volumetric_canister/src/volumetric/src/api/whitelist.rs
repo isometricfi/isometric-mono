@@ -8,8 +8,7 @@ use crate::usecases;
 #[update]
 pub fn add_whitelisted(principal: Principal) -> Result<(), VolumetricError> {
     is_controller()?;
-    usecases::add_whitelisted_use_case(principal);
-    Ok(())
+    usecases::add_whitelisted_use_case(principal)
 }
 
 #[update]

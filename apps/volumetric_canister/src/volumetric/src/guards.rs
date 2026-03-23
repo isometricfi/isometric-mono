@@ -1,3 +1,4 @@
+use candid::Principal;
 use ic_cdk::api::{in_replicated_execution, is_controller as api_is_controller, msg_caller};
 
 use crate::errors::{error_codes, VolumetricError};
@@ -5,6 +6,7 @@ use crate::storage::{Config, TradingLimits, WHITELIST};
 
 pub fn is_controller() -> Result<(), VolumetricError> {
     let caller_id = msg_caller();
+    ensure_non_anonymous(&caller_id, error_codes::UNAUTHORIZED_CONTROLLER)?;
 
     if !api_is_controller(&caller_id) {
         return Err(VolumetricError::from_def(
@@ -19,6 +21,7 @@ pub fn is_controller() -> Result<(), VolumetricError> {
 
 pub fn is_whitelisted() -> Result<(), VolumetricError> {
     let caller_id = msg_caller();
+    ensure_non_anonymous(&caller_id, error_codes::UNAUTHORIZED_WHITELISTED)?;
 
     WHITELIST.with_borrow(|whitelist| {
         if !whitelist.contains_key(&caller_id) {
@@ -31,6 +34,20 @@ pub fn is_whitelisted() -> Result<(), VolumetricError> {
 
         Ok(())
     })
+}
+
+fn ensure_non_anonymous(
+    caller_id: &Principal,
+    unauthorized_error: error_codes::ErrorDef,
+) -> Result<(), VolumetricError> {
+    if caller_id == &Principal::anonymous() {
+        return Err(VolumetricError::from_def(
+            unauthorized_error,
+            Some("anonymous caller not allowed"),
+            Some(&caller_id.to_string()),
+        ));
+    }
+    Ok(())
 }
 
 pub fn no_replicated_call() -> Result<(), String> {
@@ -222,6 +239,33 @@ mod tests {
             withdraw_amount_sats: 50_000,
             max_offers_per_term: 5,
         }
+    }
+
+    #[test]
+    fn test_ensure_non_anonymous_rejects_anonymous_caller() {
+        // given
+        let anonymous_caller = Principal::anonymous();
+
+        // when
+        let result = ensure_non_anonymous(&anonymous_caller, error_codes::UNAUTHORIZED_WHITELISTED);
+
+        // then
+        assert!(result.is_err());
+        let error = result.unwrap_err();
+        assert_eq!(error.code, error_codes::UNAUTHORIZED_WHITELISTED.code);
+    }
+
+    #[test]
+    fn test_ensure_non_anonymous_allows_authenticated_caller() {
+        // given
+        let authenticated_caller = Principal::from_slice(&[1; 29]);
+
+        // when
+        let result =
+            ensure_non_anonymous(&authenticated_caller, error_codes::UNAUTHORIZED_CONTROLLER);
+
+        // then
+        assert!(result.is_ok());
     }
 
     #[test]
