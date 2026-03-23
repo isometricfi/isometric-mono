@@ -1,5 +1,6 @@
 use candid::{encode_one, CandidType, Decode, Principal};
 use flate2::read::GzDecoder;
+use ic_management_canister_types::CanisterSettings;
 use pocket_ic::PocketIc;
 use serde::{Deserialize, Serialize};
 use std::fs;
@@ -7,6 +8,12 @@ use std::io::Read;
 use std::path::PathBuf;
 
 const INIT_CYCLES: u128 = 2_000_000_000_000;
+
+const POCKET_IC_VOLUMETRIC_CONTROLLER_SEED: &[u8] = b"pocket-ic-volumetric-controller";
+
+fn pocket_ic_volumetric_controller() -> Principal {
+    Principal::self_authenticating(POCKET_IC_VOLUMETRIC_CONTROLLER_SEED)
+}
 
 pub struct TestEnv {
     pub pic: PocketIc,
@@ -247,7 +254,14 @@ pub fn create_test_env_with_network(network: &str) -> TestEnv {
     let ledger_init_payload = encode_one(ledger_arg).unwrap();
     pic.install_canister(ledger_canister, ledger_wasm, ledger_init_payload, None);
 
-    let volumetric_canister = pic.create_canister();
+    let controller = pocket_ic_volumetric_controller();
+    let volumetric_canister = pic.create_canister_with_settings(
+        None,
+        Some(CanisterSettings {
+            controllers: Some(vec![controller]),
+            ..Default::default()
+        }),
+    );
     pic.add_cycles(volumetric_canister, INIT_CYCLES);
 
     let volumetric_wasm = load_volumetric_wasm();
@@ -256,10 +270,8 @@ pub fn create_test_env_with_network(network: &str) -> TestEnv {
         volumetric_canister,
         volumetric_wasm,
         volumetric_init_arg,
-        None,
+        Some(controller),
     );
-
-    let controller = pic.get_controllers(volumetric_canister)[0];
 
     TestEnv {
         pic,
