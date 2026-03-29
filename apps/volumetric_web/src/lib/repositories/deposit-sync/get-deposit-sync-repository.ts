@@ -1,12 +1,12 @@
-import { getFirestore } from "@/lib/firebase";
+import { getD1Db } from "@/lib/db/get-d1-db";
 import type { IDepositSyncRepository } from "./deposit-sync-repository.interface";
-import { FirebaseDepositSyncRepository } from "./firebase-deposit-sync.repository";
+import { DrizzleDepositSyncRepository } from "./drizzle-deposit-sync.repository";
 
 let depositSyncRepository: IDepositSyncRepository | null = null;
 
 export function getDepositSyncRepository(): IDepositSyncRepository {
   if (!depositSyncRepository) {
-    depositSyncRepository = new FirebaseDepositSyncRepository(getFirestore());
+    depositSyncRepository = new DrizzleDepositSyncRepository(getD1Db());
   }
 
   return depositSyncRepository;
