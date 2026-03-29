@@ -10,8 +10,6 @@ use super::config::Config;
 use super::options::{CounterKey, COUNTERS};
 use super::state::{Memory, MemoryIndex, MEMORY_MANAGER};
 
-pub const CKBTC_TRANSFER_FEE: u64 = 10;
-
 pub fn get_fee_recipient() -> Principal {
     Config::fee_config().fee_recipient
 }

@@ -481,6 +481,10 @@ mod tests {
         async fn icrc2_approve(&self, _args: ApproveArgs) -> Result<Nat, VolumetricError> {
             self.approve_result.clone()
         }
+
+        async fn icrc1_fee(&self) -> Result<u64, VolumetricError> {
+            Ok(10)
+        }
     }
 
     struct MockMinter {
