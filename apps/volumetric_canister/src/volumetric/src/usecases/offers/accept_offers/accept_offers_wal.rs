@@ -11,7 +11,7 @@ use crate::storage::{
     add_available, add_platform_fee, calculate_strike_price_in_cents, complete_accept, emit_event,
     fail_accept, get_accept, get_fee_recipient, get_offer, insert_active_option, remove_accept,
     update_accept_execution_snapshot, update_accept_phase, update_offer, AcceptPhase, ActiveOption,
-    ActiveOptionStatus, EventData, EventType, OfferStatus, TradeRole, CKBTC_TRANSFER_FEE,
+    ActiveOptionStatus, EventData, EventType, OfferStatus, TradeRole,
 };
 use crate::usecases::balances::transfer_ckbtc;
 
@@ -189,7 +189,7 @@ async fn execute_wal_writer_and_fee_transfers(
                 payload.buyer,
                 payload
                     .planned_platform_fee_sats
-                    .saturating_add(CKBTC_TRANSFER_FEE),
+                    .saturating_add(payload.transfer_fee_sats),
             );
             ic::log("accept_offers: platform fee transfer failed, waiving platform fee");
             return Ok(false);

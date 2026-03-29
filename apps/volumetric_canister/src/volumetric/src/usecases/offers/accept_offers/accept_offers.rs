@@ -10,13 +10,13 @@ use crate::journaling::{
     default_policy, enqueue_if_absent, get_entry, AcceptWalPayload, AcceptWalPreparedAccept,
     AcceptWalTransfer, OperationId, WalEntry, WalKind, WalPayload, WalResult, WalStatus,
 };
+use crate::ledger;
 use crate::locks::BalanceMutationLock;
 use crate::storage::{
     calculate_premium_fee, calculate_premium_in_sats, create_accept_journal_entry, fail_accept,
     get_accept, get_active_option, get_balance, get_offer, list_pending_accepts, lock_collateral,
     next_id, subtract_available, unlock_collateral, update_accept_phase, update_offer, AcceptPhase,
     AcceptedOffer, ActiveOption, Asset, Config, CounterKey, OfferStatus, OptionType,
-    CKBTC_TRANSFER_FEE,
 };
 use crate::time::calculate_expiry_ns;
 
@@ -60,6 +60,7 @@ pub fn accept_offers_use_case(
     accept_offer_items: Vec<AcceptOfferItem>,
     request_nonce: u64,
 ) -> Result<AcceptOffersReceipt, VolumetricError> {
+    let transfer_fee_sats = ledger::get_cached_icrc1_transfer_fee_sats_for_sync_flow()?;
     let _buyer_balance_mutation_lock = BalanceMutationLock::new(buyer_principal)?;
     validate_accept_request(&accept_offer_items)?;
 
@@ -79,6 +80,7 @@ pub fn accept_offers_use_case(
         operation_id,
         current_time_ns,
         ledger_transfer_created_at_time_ns,
+        transfer_fee_sats,
     )?;
 
     schedule_accept_wal_execution(accept_receipt.operation_id);
@@ -224,10 +226,15 @@ fn prepare_accept_execution(
     operation_id: OperationId,
     current_time_ns: u64,
     ledger_transfer_created_at_time_ns: u64,
+    transfer_fee_sats: u64,
 ) -> Result<AcceptOffersReceipt, VolumetricError> {
     let fill_group_id = next_id(CounterKey::FillGroupId);
-    let accept_execution_preparation =
-        prepare_offer_acceptances(buyer_principal, accept_offer_items, current_time_ns)?;
+    let accept_execution_preparation = prepare_offer_acceptances(
+        buyer_principal,
+        accept_offer_items,
+        current_time_ns,
+        transfer_fee_sats,
+    )?;
 
     ensure_buyer_has_required_debit(
         buyer_principal,
@@ -263,6 +270,7 @@ fn prepare_accept_execution(
         fill_group_id,
         accept_execution_preparation.total_buyer_debit_required_sats,
         accept_execution_preparation.planned_platform_fee_sats,
+        transfer_fee_sats,
         ledger_transfer_created_at_time_ns,
         &accept_execution_preparation.prepared_accept_executions,
     );
@@ -309,6 +317,7 @@ fn prepare_offer_acceptances(
     buyer_principal: Principal,
     accept_offer_items: &[AcceptOfferItem],
     current_time_ns: u64,
+    transfer_fee_sats: u64,
 ) -> Result<AcceptExecutionPreparation, VolumetricError> {
     let mut prepared_accept_executions: Vec<PreparedAcceptExecution> =
         Vec::with_capacity(accept_offer_items.len());
@@ -393,7 +402,7 @@ fn prepare_offer_acceptances(
     let has_planned_platform_fee = planned_platform_fee_sats > 0;
     let platform_fee_transfer_count = u64::from(has_planned_platform_fee);
     let total_transfer_count = writer_transfer_count + platform_fee_transfer_count;
-    let total_transfer_fees_sats = total_transfer_count.saturating_mul(CKBTC_TRANSFER_FEE);
+    let total_transfer_fees_sats = total_transfer_count.saturating_mul(transfer_fee_sats);
 
     let total_buyer_debit_required_sats =
         total_premium_sats.saturating_add(total_transfer_fees_sats);
@@ -447,6 +456,7 @@ fn build_accept_wal_payload(
     fill_group_id: u64,
     total_buyer_debit_required_sats: u64,
     planned_platform_fee_sats: u64,
+    transfer_fee_sats: u64,
     created_at_time_ns: u64,
     prepared_accept_executions: &[PreparedAcceptExecution],
 ) -> AcceptWalPayload {
@@ -456,6 +466,7 @@ fn build_accept_wal_payload(
         fill_group_id,
         total_buyer_debit_required_sats,
         planned_platform_fee_sats,
+        transfer_fee_sats,
         created_at_time_ns,
         prepared_accepts: build_accept_wal_prepared_accepts(prepared_accept_executions),
         writer_transfers: build_accept_wal_transfers(prepared_accept_executions),

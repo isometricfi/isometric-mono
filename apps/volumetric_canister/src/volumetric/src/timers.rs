@@ -1,13 +1,16 @@
 use std::time::Duration;
 
 use crate::journaling::{cleanup_succeeded, retry_all_due};
+use crate::ledger::refresh_transfer_fee_cache_if_idle;
 use crate::usecases::{cleanup_old_events_use_case, settle_expired_options_use_case};
 
 const WAL_RETRY_INTERVAL_SECS: u64 = 10;
+const TRANSFER_FEE_REFRESH_INTERVAL_SECS: u64 = 60;
 const ONE_HOUR_SECS: u64 = 60 * 60;
 const ONE_DAY_SECS: u64 = 24 * ONE_HOUR_SECS;
 
 pub fn setup_timers() {
+    setup_transfer_fee_refresh_timer();
     setup_event_cleanup_timer();
     setup_wal_retry_timer();
     setup_settlement_timer();
@@ -34,6 +37,15 @@ fn setup_wal_retry_timer() {
     ic_cdk_timers::set_timer_interval(Duration::from_secs(WAL_RETRY_INTERVAL_SECS), || async {
         retry_all_due().await;
     });
+}
+
+fn setup_transfer_fee_refresh_timer() {
+    ic_cdk_timers::set_timer_interval(
+        Duration::from_secs(TRANSFER_FEE_REFRESH_INTERVAL_SECS),
+        || async {
+            refresh_transfer_fee_cache_if_idle().await;
+        },
+    );
 }
 
 /// Runs hourly to settle all expired options.

@@ -1,8 +1,12 @@
 use candid::Principal;
 
 #[cfg(feature = "testing")]
+use crate::ledger::TESTING_CKBTC_TRANSFER_FEE_SATS;
+#[cfg(feature = "testing")]
 use crate::oracle::{reset_oracle_internal, set_oracle_price_internal};
 use crate::storage::{Config, FeatureFlags, FeeConfig, TradingLimits};
+#[cfg(feature = "testing")]
+use crate::{ic, ledger};
 
 #[cfg(feature = "testing")]
 pub fn set_oracle_price_use_case(price_cents: u64) {
@@ -70,6 +74,9 @@ pub fn set_fee_recipient_use_case(recipient: Principal) {
     Config::set_fee_recipient(recipient);
 }
 
-pub fn testing_set_ckbtc_ledger_use_case(ledger: Principal) {
-    Config::set_ckbtc_ledger(ledger);
+pub fn testing_set_ckbtc_ledger_use_case(ckbtc_ledger: Principal) {
+    Config::set_ckbtc_ledger(ckbtc_ledger);
+
+    #[cfg(feature = "testing")]
+    ledger::set_cached_transfer_fee_for_testing(TESTING_CKBTC_TRANSFER_FEE_SATS, ic::time());
 }

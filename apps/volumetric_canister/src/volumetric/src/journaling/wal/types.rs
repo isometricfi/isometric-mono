@@ -80,6 +80,7 @@ pub struct AcceptWalPayload {
     pub fill_group_id: u64,
     pub total_buyer_debit_required_sats: u64,
     pub planned_platform_fee_sats: u64,
+    pub transfer_fee_sats: u64,
     pub created_at_time_ns: u64,
     pub prepared_accepts: Vec<AcceptWalPreparedAccept>,
     pub writer_transfers: Vec<AcceptWalTransfer>,

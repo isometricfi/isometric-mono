@@ -12,12 +12,12 @@ use super::accept_offers::validate_accept_offer_request;
 use super::*;
 use crate::errors::{error_codes, VolumetricError};
 use crate::ic::{self, IcRuntime};
-use crate::ledger::{self, LedgerClient};
+use crate::ledger::{self, LedgerClient, TESTING_CKBTC_TRANSFER_FEE_SATS};
 use crate::oracle::{set_oracle, StubOracle};
 use crate::storage::{
     calculate_premium_fee, calculate_premium_in_sats, clear_active_options, clear_events,
     clear_offers, get_balance, get_offer, get_platform_fees_collected, insert_offer, set_balance,
-    AcceptPhase, Asset, Offer, OfferStatus, OptionType, UserBalance, CKBTC_TRANSFER_FEE,
+    AcceptPhase, Asset, Offer, OfferStatus, OptionType, UserBalance,
 };
 use crate::usecases::{withdraw_ckbtc_use_case, WithdrawParams};
 
@@ -31,6 +31,7 @@ const TEST_DURATION_SECS: u64 = 3_600;
 const TEST_OFFER_VALID_FOR_NS: u64 = 60_000_000_000;
 const TEST_BUYER_AVAILABLE_SATS: u64 = 200_000;
 const TEST_BLOCK_INDEX: u64 = 42;
+const STALE_TRANSFER_FEE_FETCHED_AT_NS: u64 = TEST_NOW_NS - 90_000_000_001;
 
 struct MockRuntime {
     now: u64,
@@ -96,6 +97,10 @@ impl LedgerClient for CoordinatedLedger {
     async fn icrc2_approve(&self, _args: ApproveArgs) -> Result<Nat, VolumetricError> {
         Ok(Nat::from(0u64))
     }
+
+    async fn icrc1_fee(&self) -> Result<u64, VolumetricError> {
+        Ok(TESTING_CKBTC_TRANSFER_FEE_SATS)
+    }
 }
 
 struct SecondTransferFailsLedger {
@@ -133,6 +138,10 @@ impl LedgerClient for SecondTransferFailsLedger {
     async fn icrc2_approve(&self, _args: ApproveArgs) -> Result<Nat, VolumetricError> {
         Ok(Nat::from(0u64))
     }
+
+    async fn icrc1_fee(&self) -> Result<u64, VolumetricError> {
+        Ok(TESTING_CKBTC_TRANSFER_FEE_SATS)
+    }
 }
 
 fn test_principal(seed: u8) -> Principal {
@@ -145,6 +154,7 @@ fn setup_test_state(writer: Principal, buyer: Principal) {
     clear_events();
     ic::set_runtime(Box::new(MockRuntime { now: TEST_NOW_NS }));
     set_oracle(Rc::new(StubOracle::new(TEST_PRICE_CENTS)));
+    ledger::set_cached_transfer_fee_for_testing(TESTING_CKBTC_TRANSFER_FEE_SATS, TEST_NOW_NS);
 
     set_balance(
         writer,
@@ -284,6 +294,40 @@ fn test_accept_offers_returns_pending_receipt_before_wal_runs() {
     let processing_offer = get_offer(TEST_OFFER_ID).expect("offer should exist");
     assert_eq!(processing_offer.status, OfferStatus::Processing);
     assert_eq!(processing_offer.remaining_quantity, 0);
+}
+
+/// Given: transfer fee cache is stale for a sync accept request
+/// When: accept_offers_use_case is called
+/// Then: the request fails before mutating offer or balances
+#[test]
+fn test_accept_offers_rejects_when_transfer_fee_cache_is_stale() {
+    // given
+    let writer = test_principal(70);
+    let buyer = test_principal(71);
+    setup_test_state(writer, buyer);
+    ledger::set_cached_transfer_fee_for_testing(
+        TESTING_CKBTC_TRANSFER_FEE_SATS,
+        STALE_TRANSFER_FEE_FETCHED_AT_NS,
+    );
+
+    // when
+    let accept_result = accept_offers_use_case(buyer, vec![build_test_accept_offer_item()], 6);
+
+    // then
+    let accept_error = accept_result.expect_err("stale fee cache should reject accept");
+    assert_eq!(accept_error.code, error_codes::CONFIG_ERROR.code);
+
+    let offer = get_offer(TEST_OFFER_ID).expect("offer should remain unchanged");
+    assert_eq!(offer.status, OfferStatus::Open);
+    assert_eq!(offer.remaining_quantity, TEST_QUANTITY_SATS);
+
+    let writer_balance = get_balance(&writer);
+    assert_eq!(writer_balance.available, TEST_QUANTITY_SATS);
+    assert_eq!(writer_balance.locked_as_writer, 0);
+
+    let buyer_balance = get_balance(&buyer);
+    assert_eq!(buyer_balance.available, TEST_BUYER_AVAILABLE_SATS);
+    assert_eq!(buyer_balance.locked_as_writer, 0);
 }
 
 /// Given: the same buyer submits the same accept request twice
@@ -518,7 +562,7 @@ async fn test_accept_offer_succeeds_when_platform_fee_transfer_fails() {
     let premium_to_writer_sats = premium_sats.saturating_sub(premium_fee_sats);
     let expected_buyer_available_sats = TEST_BUYER_AVAILABLE_SATS
         .saturating_sub(premium_to_writer_sats)
-        .saturating_sub(CKBTC_TRANSFER_FEE);
+        .saturating_sub(TESTING_CKBTC_TRANSFER_FEE_SATS);
     let receipt = accept_offers_use_case(buyer, vec![build_test_accept_offer_item()], 5).unwrap();
 
     // when
