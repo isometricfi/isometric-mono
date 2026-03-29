@@ -1,4 +1,4 @@
-import { and, desc, eq, gt, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gt, sql } from "drizzle-orm";
 import type { DrizzleD1Database } from "drizzle-orm/d1";
 import { z } from "zod";
 import type * as dbSchema from "@/lib/db/schema";
@@ -86,10 +86,11 @@ export class DrizzleEventsRepository implements IEventsRepository {
       })
       .from(events)
       .where(whereConditions.length > 0 ? and(...whereConditions) : undefined)
-      .orderBy(desc(events.idNum))
+      .orderBy(asc(events.idNum))
       .limit(query.limit ?? DEFAULT_EVENTS_LIMIT);
 
-    return rows.map((row) => fromStoredEventRow(storedEventRowSchema.parse(row)));
+    const parsedRows = rows.map((row) => fromStoredEventRow(storedEventRowSchema.parse(row)));
+    return parsedRows.reverse();
   }
 
   async getEventsByPrincipal(
