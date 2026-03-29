@@ -1,12 +1,12 @@
-import { getFirestore } from "@/lib/firebase";
+import { getD1Db } from "@/lib/db/get-d1-db";
+import { DrizzleEventsRepository } from "./drizzle-events.repository";
 import type { IEventsRepository } from "./events-repository.interface";
-import { FirebaseEventsRepository } from "./firebase-events.repository";
 
 let eventsRepository: IEventsRepository | null = null;
 
 export function getEventsRepository(): IEventsRepository {
   if (!eventsRepository) {
-    eventsRepository = new FirebaseEventsRepository(getFirestore());
+    eventsRepository = new DrizzleEventsRepository(getD1Db());
   }
   return eventsRepository;
 }
