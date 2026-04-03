@@ -9,17 +9,24 @@ export async function getAccount(address: string): Promise<Output> {
   return withSpan(GET_ACCOUNT_SPAN_NAME, async () => {
     const actor = await getCanisterActor();
 
-    const [profileResult, balanceResult] = await Promise.all([
-      actor.get_account_info(address),
-      actor.get_user_balance(address),
-    ]);
+    const [profileResult, balanceResult, inviteCodeResult, referralCountResult] = await Promise.all(
+      [
+        actor.get_account_info(address),
+        actor.get_user_balance(address),
+        actor.get_invite_code(address),
+        actor.get_referral_count(address),
+      ],
+    );
 
     const profile = profileResult.length > 0 ? profileResult[0] : null;
     const balanceData = "Ok" in balanceResult ? balanceResult.Ok : null;
+    const inviteCode = inviteCodeResult[0] ?? null;
+    const referrals = referralCountResult[0] ?? BigInt(0);
 
     return {
-      profile: profile ? mapProfile(profile) : null,
+      profile: profile ? mapProfile(profile, inviteCode) : null,
       balance: balanceData ? mapBalance(balanceData) : null,
+      referrals,
     };
   });
 }

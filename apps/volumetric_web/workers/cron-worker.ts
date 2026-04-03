@@ -6,7 +6,6 @@ export interface Env {
 }
 
 const ONE_MINUTE_CRON = "* * * * *";
-const FIVE_MINUTES_CRON = "*/5 * * * *";
 
 async function callCronEndpoint(env: Env, path: string): Promise<unknown> {
   const res = await env.NEXT_APP.fetch(`https://dummy${path}`, {
