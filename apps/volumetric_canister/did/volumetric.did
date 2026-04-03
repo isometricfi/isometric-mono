@@ -67,7 +67,7 @@ type AuthenticatedPayload_1 = record {
   wallet_proof : WalletProof;
 };
 type AuthenticatedPayload_2 = record {
-  data : record {};
+  data : CreateProfileRequest;
   wallet_proof : WalletProof;
 };
 type AuthenticatedPayload_3 = record {
@@ -110,6 +110,7 @@ type CreateOfferRequest = record {
   option_duration_seconds : nat64;
 };
 type CreateOfferResponse = record { offer : Offer };
+type CreateProfileRequest = record { invite_code : opt text };
 type DepositInfo = record { account : Account; btc_address : text };
 type ErrorDetails = record { caller : opt text };
 type Event = record {
@@ -424,7 +425,8 @@ service : (opt BtcNetwork) -> {
   get_failed_withdrawals : () -> (Result_12) query;
   get_feature_flags : () -> (FeatureFlags) query;
   get_fee_config : () -> (FeeConfig) query;
-  get_message_to_sign : (text) -> (text) query;
+  get_invite_code : (text) -> (opt text) query;
+  get_message_to_sign : (text, opt text) -> (text) query;
   get_my_events : (opt nat64, opt nat32) -> (vec Event) query;
   get_my_offers : (text) -> (Result_13) query;
   get_my_options : (text) -> (Result_14) query;
@@ -437,6 +439,7 @@ service : (opt BtcNetwork) -> {
   get_pending_settlements_journal : () -> (Result_11) query;
   get_pending_withdrawals : () -> (Result_12) query;
   get_platform_fees_collected_total : () -> (nat64) query;
+  get_referral_count : (text) -> (opt nat64) query;
   get_settlement_by_id : (nat64) -> (Result_15) query;
   get_settlement_status : (blob) -> (Result_16) query;
   get_trading_limits : () -> (TradingLimits) query;
@@ -452,6 +455,7 @@ service : (opt BtcNetwork) -> {
   observability_get_metrics : () -> (ObservabilityMetrics) query;
   remove_whitelisted : (principal) -> (Result_1);
   reset_oracle_config : () -> (Result_1);
+  resolve_invite_code : (text) -> (opt text) query;
   set_deposit_amount_sats_config : (nat64) -> (Result_1);
   set_feature_flags_config : (FeatureFlags) -> (Result_1);
   set_fee_config_config : (FeeConfig) -> (Result_1);

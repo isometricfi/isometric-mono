@@ -36,6 +36,14 @@ pub enum MemoryIndex {
     EventsMemory = 12,
     /// Durable WAL entries for async side effects
     WalMemory = 13,
+    /// Invite code to principal lookup
+    InviteCodeRegistryMemory = 14,
+    /// Principal to invite code lookup
+    PrincipalInviteCodeMemory = 15,
+    /// Referred principal to referrer mapping
+    ReferralLinksMemory = 16,
+    /// Referrer principal to referral count mapping
+    ReferralCountsMemory = 17,
 }
 
 pub type Memory = VirtualMemory<DefaultMemoryImpl>;

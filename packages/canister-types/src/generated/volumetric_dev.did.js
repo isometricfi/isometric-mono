@@ -65,8 +65,11 @@ export const idlFactory = ({ IDL }) => {
   });
   const Result_2 = IDL.Variant({ 'Ok' : Offer, 'Err' : VolumetricError });
   const Result_3 = IDL.Variant({ 'Ok' : IDL.Nat64, 'Err' : VolumetricError });
+  const CreateProfileRequest = IDL.Record({
+    'invite_code' : IDL.Opt(IDL.Text),
+  });
   const AuthenticatedPayload_2 = IDL.Record({
-    'data' : IDL.Record({}),
+    'data' : CreateProfileRequest,
     'wallet_proof' : WalletProof,
   });
   const ProfileInfo = IDL.Record({
@@ -584,7 +587,12 @@ export const idlFactory = ({ IDL }) => {
     'get_failed_withdrawals' : IDL.Func([], [Result_12], ['query']),
     'get_feature_flags' : IDL.Func([], [FeatureFlags], ['query']),
     'get_fee_config' : IDL.Func([], [FeeConfig], ['query']),
-    'get_message_to_sign' : IDL.Func([IDL.Text], [IDL.Text], ['query']),
+    'get_invite_code' : IDL.Func([IDL.Text], [IDL.Opt(IDL.Text)], ['query']),
+    'get_message_to_sign' : IDL.Func(
+        [IDL.Text, IDL.Opt(IDL.Text)],
+        [IDL.Text],
+        ['query'],
+      ),
     'get_my_events' : IDL.Func(
         [IDL.Opt(IDL.Nat64), IDL.Opt(IDL.Nat32)],
         [IDL.Vec(Event)],
@@ -609,6 +617,11 @@ export const idlFactory = ({ IDL }) => {
     'get_pending_settlements_journal' : IDL.Func([], [Result_11], ['query']),
     'get_pending_withdrawals' : IDL.Func([], [Result_12], ['query']),
     'get_platform_fees_collected_total' : IDL.Func([], [IDL.Nat64], ['query']),
+    'get_referral_count' : IDL.Func(
+        [IDL.Text],
+        [IDL.Opt(IDL.Nat64)],
+        ['query'],
+      ),
     'get_settlement_by_id' : IDL.Func([IDL.Nat64], [Result_15], ['query']),
     'get_settlement_status' : IDL.Func(
         [IDL.Vec(IDL.Nat8)],
@@ -644,6 +657,11 @@ export const idlFactory = ({ IDL }) => {
       ),
     'remove_whitelisted' : IDL.Func([IDL.Principal], [Result_1], []),
     'reset_oracle_config' : IDL.Func([], [Result_1], []),
+    'resolve_invite_code' : IDL.Func(
+        [IDL.Text],
+        [IDL.Opt(IDL.Text)],
+        ['query'],
+      ),
     'set_deposit_amount_sats_config' : IDL.Func([IDL.Nat64], [Result_1], []),
     'set_feature_flags_config' : IDL.Func([FeatureFlags], [Result_1], []),
     'set_fee_config_config' : IDL.Func([FeeConfig], [Result_1], []),

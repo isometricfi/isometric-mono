@@ -79,7 +79,7 @@ export interface AuthenticatedPayload_1 {
   'wallet_proof' : WalletProof,
 }
 export interface AuthenticatedPayload_2 {
-  'data' : {},
+  'data' : CreateProfileRequest,
   'wallet_proof' : WalletProof,
 }
 export interface AuthenticatedPayload_3 {
@@ -123,6 +123,7 @@ export interface CreateOfferRequest {
   'option_duration_seconds' : bigint,
 }
 export interface CreateOfferResponse { 'offer' : Offer }
+export interface CreateProfileRequest { 'invite_code' : [] | [string] }
 export interface DepositInfo { 'account' : Account, 'btc_address' : string }
 export interface ErrorDetails { 'caller' : [] | [string] }
 export interface Event {
@@ -505,7 +506,8 @@ export interface _SERVICE {
   'get_failed_withdrawals' : ActorMethod<[], Result_12>,
   'get_feature_flags' : ActorMethod<[], FeatureFlags>,
   'get_fee_config' : ActorMethod<[], FeeConfig>,
-  'get_message_to_sign' : ActorMethod<[string], string>,
+  'get_invite_code' : ActorMethod<[string], [] | [string]>,
+  'get_message_to_sign' : ActorMethod<[string, [] | [string]], string>,
   'get_my_events' : ActorMethod<[[] | [bigint], [] | [number]], Array<Event>>,
   'get_my_offers' : ActorMethod<[string], Result_13>,
   'get_my_options' : ActorMethod<[string], Result_14>,
@@ -521,6 +523,7 @@ export interface _SERVICE {
   'get_pending_settlements_journal' : ActorMethod<[], Result_11>,
   'get_pending_withdrawals' : ActorMethod<[], Result_12>,
   'get_platform_fees_collected_total' : ActorMethod<[], bigint>,
+  'get_referral_count' : ActorMethod<[string], [] | [bigint]>,
   'get_settlement_by_id' : ActorMethod<[bigint], Result_15>,
   'get_settlement_status' : ActorMethod<[Uint8Array | number[]], Result_16>,
   'get_trading_limits' : ActorMethod<[], TradingLimits>,
@@ -536,6 +539,7 @@ export interface _SERVICE {
   'observability_get_metrics' : ActorMethod<[], ObservabilityMetrics>,
   'remove_whitelisted' : ActorMethod<[Principal], Result_1>,
   'reset_oracle_config' : ActorMethod<[], Result_1>,
+  'resolve_invite_code' : ActorMethod<[string], [] | [string]>,
   'set_deposit_amount_sats_config' : ActorMethod<[bigint], Result_1>,
   'set_feature_flags_config' : ActorMethod<[FeatureFlags], Result_1>,
   'set_fee_config_config' : ActorMethod<[FeeConfig], Result_1>,
