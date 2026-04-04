@@ -57,14 +57,7 @@ pub async fn mint_ckbtc_from_utxos(
     };
 
     let statuses = minter::update_balance(args).await?;
-
-    let total_minted: u64 = statuses
-        .iter()
-        .filter_map(|s| match s {
-            UtxoStatus::Minted { minted_amount, .. } => Some(*minted_amount),
-            _ => None,
-        })
-        .sum();
+    let total_minted = calculate_total_minted_sats(&statuses)?;
 
     if total_minted > 0 {
         add_available(principal, total_minted);
@@ -78,6 +71,26 @@ pub async fn mint_ckbtc_from_utxos(
     }
 
     Ok(statuses)
+}
+
+fn calculate_total_minted_sats(statuses: &[UtxoStatus]) -> Result<u64, VolumetricError> {
+    statuses
+        .iter()
+        .filter_map(|status| match status {
+            UtxoStatus::Minted { minted_amount, .. } => Some(*minted_amount),
+            _ => None,
+        })
+        .try_fold(0u64, |total_minted_sats, minted_amount_sats| {
+            total_minted_sats
+                .checked_add(minted_amount_sats)
+                .ok_or_else(|| {
+                    VolumetricError::from_def(
+                        error_codes::INTERNAL_ERROR,
+                        Some("minted amount total overflow"),
+                        None,
+                    )
+                })
+        })
 }
 
 pub async fn get_ledger_balance(principal: Principal) -> Result<Nat, VolumetricError> {
@@ -137,12 +150,13 @@ mod tests {
     use async_trait::async_trait;
     use icrc_ledger_types::icrc2::approve::ApproveArgs;
 
+    use crate::errors::error_codes;
     use crate::generated::ckbtc::{Utxo, UtxoOutpoint, UtxoStatus};
     use crate::ic::IcRuntime;
     use crate::ledger::LedgerClient;
     use crate::locks::BalanceMutationLock;
     use crate::minter::MinterClient;
-    use crate::storage::get_balance;
+    use crate::storage::{get_balance, Config};
 
     const TEST_NOW_NS: u64 = 1_000_000_000_000;
     const TEST_CANISTER_ID: Principal = Principal::anonymous();
@@ -272,6 +286,7 @@ mod tests {
 
     fn setup(ledger_balance: u64, minted_amounts: Vec<u64>) {
         ic::set_runtime(Box::new(MockRuntime));
+        Config::set_deposit_amount_sats(50_000);
         ledger::set_ledger(Rc::new(MockLedger {
             balance: Nat::from(ledger_balance),
         }));
@@ -354,6 +369,43 @@ mod tests {
         let expected_total = MINTED_AMOUNT_SATS + second_mint;
         let balance = get_balance(&principal);
         assert_eq!(balance.available, expected_total);
+    }
+
+    /// Given: minter returns minted UTXOs whose total overflows u64
+    /// When: mint_ckbtc_from_utxos is called
+    /// Then: returns an error instead of overflowing
+    #[tokio::test]
+    async fn test_mint_ckbtc_rejects_minted_total_overflow() {
+        // given
+        setup(0, vec![u64::MAX, 1]);
+        let principal = test_principal();
+
+        // when
+        let result = mint_ckbtc_from_utxos(principal).await;
+
+        // then
+        assert!(result.is_err());
+    }
+
+    /// Given: configured minimum deposit amount exceeds newly minted total
+    /// When: mint_ckbtc_from_utxos is called
+    /// Then: minted funds are still credited
+    #[tokio::test]
+    async fn test_mint_ckbtc_allows_minted_total_below_configured_minimum() {
+        // given
+        const CONFIGURED_MINIMUM_DEPOSIT_SATS: u64 = 100_000;
+        const MINTED_BELOW_MINIMUM_SATS: u64 = 10_000;
+        setup(0, vec![MINTED_BELOW_MINIMUM_SATS]);
+        Config::set_deposit_amount_sats(CONFIGURED_MINIMUM_DEPOSIT_SATS);
+        let principal = test_principal();
+
+        // when
+        let result = mint_ckbtc_from_utxos(principal).await;
+
+        // then
+        assert!(result.is_ok());
+        let balance = get_balance(&principal);
+        assert_eq!(balance.available, MINTED_BELOW_MINIMUM_SATS);
     }
 
     /// Given: a ledger with a known balance
