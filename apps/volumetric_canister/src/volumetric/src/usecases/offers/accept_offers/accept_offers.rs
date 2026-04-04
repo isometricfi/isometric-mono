@@ -357,7 +357,7 @@ fn prepare_offer_acceptances(
         let platform_fee_config = Config::fee_config();
         let premium_sats =
             calculate_premium_in_sats(accept_offer_item.quantity, offer.premium_basis_points);
-        let premium_fee_sats = calculate_premium_fee(premium_sats);
+        let premium_fee_sats = calculate_premium_fee(premium_sats)?;
         let premium_to_writer_sats = premium_sats.saturating_sub(premium_fee_sats);
 
         total_premium_sats = total_premium_sats.saturating_add(premium_sats);

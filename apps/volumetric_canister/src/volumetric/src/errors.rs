@@ -186,6 +186,11 @@ pub mod error_codes {
         name: "INVALID_OFFER_STATE",
         message: "Invalid offer state",
     };
+    pub const FEE_CALCULATION_OVERFLOW: ErrorDef = ErrorDef {
+        code: 5028,
+        name: "FEE_CALCULATION_OVERFLOW",
+        message: "Fee calculation overflow",
+    };
 
     // 9xxx: Internal/generic errors
     pub const INTERNAL_ERROR: ErrorDef = ErrorDef {

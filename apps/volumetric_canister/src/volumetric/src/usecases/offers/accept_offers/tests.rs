@@ -558,7 +558,8 @@ async fn test_accept_offer_succeeds_when_platform_fee_transfer_fails() {
     }));
 
     let premium_sats = calculate_premium_in_sats(TEST_QUANTITY_SATS, TEST_PREMIUM_BPS);
-    let premium_fee_sats = calculate_premium_fee(premium_sats);
+    let premium_fee_sats =
+        calculate_premium_fee(premium_sats).expect("premium fee should calculate");
     let premium_to_writer_sats = premium_sats.saturating_sub(premium_fee_sats);
     let expected_buyer_available_sats = TEST_BUYER_AVAILABLE_SATS
         .saturating_sub(premium_to_writer_sats)
