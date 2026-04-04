@@ -5,19 +5,38 @@ use ic_stable_structures::storable::Bound;
 use ic_stable_structures::Storable;
 use serde::{Deserialize, Serialize};
 
+use crate::errors::{error_codes, VolumetricError};
+
 const WALLET_KEY_SIZE: usize = 64;
+const MAX_WALLET_ADDRESS_BYTES: usize = WALLET_KEY_SIZE;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct WalletKey([u8; WALLET_KEY_SIZE]);
 
 impl WalletKey {
-    pub fn from_address(address: &str) -> Self {
+    pub fn try_from_address(address: &str) -> Result<Self, VolumetricError> {
+        let normalized_address = address.trim();
+        if normalized_address.is_empty() {
+            return Err(VolumetricError::from_def(
+                error_codes::INVALID_WALLET_ADDRESS,
+                Some("Wallet address cannot be empty"),
+                None,
+            ));
+        }
+
+        let address_bytes = normalized_address.as_bytes();
+        if address_bytes.len() > MAX_WALLET_ADDRESS_BYTES {
+            return Err(VolumetricError::from_def(
+                error_codes::INVALID_WALLET_ADDRESS,
+                Some("Wallet address exceeds maximum supported length of 64 bytes"),
+                None,
+            ));
+        }
+
         let zero_padding: u8 = 0;
         let mut bytes = [zero_padding; WALLET_KEY_SIZE];
-        let address_bytes = address.as_bytes();
-        let len = address_bytes.len().min(WALLET_KEY_SIZE);
-        bytes[..len].copy_from_slice(&address_bytes[..len]);
-        Self(bytes)
+        bytes[..address_bytes.len()].copy_from_slice(address_bytes);
+        Ok(Self(bytes))
     }
 
     pub fn to_address(&self) -> String {
@@ -180,5 +199,51 @@ impl SignableAction for WithdrawCkbtcRequest {
             context.network,
             context.nonce
         )
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::WalletKey;
+
+    #[test]
+    fn wallet_key_try_from_address_should_reject_overlong_addresses() {
+        // given
+        const PREFIX_64_BYTES: &str =
+            "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+        let first_address = format!("{PREFIX_64_BYTES}11111111");
+
+        // when
+        let result = WalletKey::try_from_address(&first_address);
+
+        // then
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn wallet_key_try_from_address_should_be_deterministic_for_valid_addresses() {
+        // given
+        const VALID_ADDRESS: &str = "bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh";
+
+        // when
+        let first_wallet_key = WalletKey::try_from_address(VALID_ADDRESS).unwrap();
+        let second_wallet_key = WalletKey::try_from_address(VALID_ADDRESS).unwrap();
+
+        // then
+        assert_eq!(first_wallet_key, second_wallet_key);
+    }
+
+    #[test]
+    fn wallet_key_try_from_address_should_trim_input() {
+        // given
+        const VALID_ADDRESS_WITH_SPACES: &str = "  bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh  ";
+        const VALID_ADDRESS: &str = "bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh";
+
+        // when
+        let first_wallet_key = WalletKey::try_from_address(VALID_ADDRESS_WITH_SPACES).unwrap();
+        let second_wallet_key = WalletKey::try_from_address(VALID_ADDRESS).unwrap();
+
+        // then
+        assert_eq!(first_wallet_key, second_wallet_key);
     }
 }

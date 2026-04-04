@@ -2,6 +2,7 @@ use candid::Principal;
 
 use crate::auth::types::WalletKey;
 use crate::auth::{derive_principal, derive_subaccount};
+use crate::errors::VolumetricError;
 use crate::ic;
 use crate::storage::{create_profile, emit_event, register_wallet, EventData, EventType, Profile};
 
@@ -14,10 +15,12 @@ pub struct RegisterAccountResult {
     pub subaccount: [u8; 32],
 }
 
-pub fn register_account_use_case(params: RegisterAccountParams) -> RegisterAccountResult {
+pub fn register_account_use_case(
+    params: RegisterAccountParams,
+) -> Result<RegisterAccountResult, VolumetricError> {
     let principal = derive_principal(&params.wallet_address);
     let subaccount = derive_subaccount(principal);
-    let wallet_key = WalletKey::from_address(&params.wallet_address);
+    let wallet_key = WalletKey::try_from_address(&params.wallet_address)?;
 
     let profile = Profile {
         wallet_address: params.wallet_address.clone(),
@@ -36,8 +39,8 @@ pub fn register_account_use_case(params: RegisterAccountParams) -> RegisterAccou
         },
     );
 
-    RegisterAccountResult {
+    Ok(RegisterAccountResult {
         principal,
         subaccount,
-    }
+    })
 }
