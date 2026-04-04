@@ -155,7 +155,7 @@ fn prepare_settlement_execution(
         ),
     };
     let profit_fee = if gross_payout_to_buyer > 0 {
-        calculate_profit_fee(gross_payout_to_buyer, option.profit_fee_basis_points)
+        calculate_profit_fee(gross_payout_to_buyer, option.profit_fee_basis_points)?
     } else {
         0
     };
