@@ -38,6 +38,7 @@ pub struct TradingLimits {
     pub strike_basis_points: Range<u16>,
     pub option_duration_seconds: Range<u64>,
     pub term_days: Range<u64>,
+    // Used only by the web app UX; deposit flow does not enforce this server-side.
     pub deposit_amount_sats: u64,
     pub withdraw_amount_sats: u64,
     #[serde(default = "default_max_offers_per_term")]

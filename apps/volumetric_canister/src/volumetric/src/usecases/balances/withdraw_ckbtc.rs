@@ -66,6 +66,7 @@ pub fn withdraw_ckbtc_use_case(
     request_nonce: u64,
 ) -> Result<WithdrawReceipt, VolumetricError> {
     let _withdrawal_balance_mutation_lock = BalanceMutationLock::new(principal)?;
+    validate_minimum_withdraw_amount_sats(params.amount)?;
 
     if !get_pending_withdrawals_by_principal(principal).is_empty() {
         return Err(VolumetricError::from_def(
@@ -204,6 +205,22 @@ fn debit_withdrawer_available_balance(
             None,
         )
     })
+}
+
+fn validate_minimum_withdraw_amount_sats(amount_sats: u64) -> Result<(), VolumetricError> {
+    let minimum_withdraw_amount_sats = Config::trading_limits().withdraw_amount_sats;
+    if amount_sats < minimum_withdraw_amount_sats {
+        return Err(VolumetricError::from_def(
+            error_codes::QUANTITY_BELOW_MINIMUM,
+            Some(&format!(
+                "requested: {}, minimum_withdraw: {}",
+                amount_sats, minimum_withdraw_amount_sats
+            )),
+            None,
+        ));
+    }
+
+    Ok(())
 }
 
 fn schedule_withdraw_wal_execution(operation_id: OperationId) {
@@ -565,6 +582,7 @@ mod tests {
 
     fn setup_success() {
         ic::set_runtime(Box::new(MockRuntime));
+        Config::set_withdraw_amount_sats(50_000);
         ledger::set_ledger(Rc::new(MockLedger {
             approve_result: Ok(Nat::from(0u64)),
         }));
@@ -785,5 +803,24 @@ mod tests {
             failed_withdrawal.phase,
             WithdrawalPhase::Failed { .. }
         ));
+    }
+
+    /// Given: configured minimum withdraw amount exceeds requested amount
+    /// When: withdraw_ckbtc_use_case is called
+    /// Then: request is rejected at boundary with quantity-below-minimum error
+    #[tokio::test]
+    async fn test_withdraw_rejects_amount_below_configured_minimum() {
+        // given
+        setup_success();
+        Config::set_withdraw_amount_sats(WITHDRAW_AMOUNT_SATS.saturating_add(1));
+        let principal = test_principal();
+        fund_principal(principal, INITIAL_BALANCE_SATS);
+
+        // when
+        let result = withdraw_ckbtc_use_case(principal, withdraw_params(), 9);
+
+        // then
+        let error = result.expect_err("withdraw should reject amount below configured minimum");
+        assert_eq!(error.code, error_codes::QUANTITY_BELOW_MINIMUM.code);
     }
 }
