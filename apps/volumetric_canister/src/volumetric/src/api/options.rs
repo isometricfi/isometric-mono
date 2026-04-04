@@ -43,11 +43,14 @@ impl SignableAction for AcceptOffersRequest {
 }
 
 #[ic_cdk::query]
-pub fn get_accept_offers_message(wallet_address: String, items: Vec<AcceptOfferItem>) -> String {
-    let wallet_key = WalletKey::from_address(&wallet_address);
+pub fn get_accept_offers_message(
+    wallet_address: String,
+    items: Vec<AcceptOfferItem>,
+) -> Result<String, VolumetricError> {
+    let wallet_key = WalletKey::try_from_address(&wallet_address)?;
     let context = build_challenge_context(&wallet_key);
     let req = AcceptOffersRequest { items };
-    req.signing_message(&wallet_address, &context)
+    Ok(req.signing_message(&wallet_address, &context))
 }
 
 #[ic_cdk::update]
@@ -57,7 +60,7 @@ pub fn accept_offers(
     is_whitelisted()?;
 
     let address = &req.wallet_proof.address;
-    let wallet_key = WalletKey::from_address(address);
+    let wallet_key = WalletKey::try_from_address(address)?;
 
     let context = build_challenge_context(&wallet_key);
     let reconstructed_message = req.data.signing_message(address, &context);
@@ -91,7 +94,7 @@ pub fn get_accept_status(
 
 #[ic_cdk::query]
 pub fn get_my_options(wallet_address: String) -> Result<Vec<ActiveOption>, VolumetricError> {
-    let wallet_key = WalletKey::from_address(&wallet_address);
+    let wallet_key = WalletKey::try_from_address(&wallet_address)?;
     let principal = get_principal_for_wallet(&wallet_key)
         .ok_or_else(|| VolumetricError::from_def(error_codes::PROFILE_NOT_FOUND, None, None))?;
 
@@ -102,7 +105,7 @@ pub fn get_my_options(wallet_address: String) -> Result<Vec<ActiveOption>, Volum
 pub fn get_my_written_options(
     wallet_address: String,
 ) -> Result<Vec<ActiveOption>, VolumetricError> {
-    let wallet_key = WalletKey::from_address(&wallet_address);
+    let wallet_key = WalletKey::try_from_address(&wallet_address)?;
     let principal = get_principal_for_wallet(&wallet_key)
         .ok_or_else(|| VolumetricError::from_def(error_codes::PROFILE_NOT_FOUND, None, None))?;
 

@@ -33,6 +33,11 @@ pub mod error_codes {
         name: "INVALID_SIGNATURE",
         message: "Signature verification failed",
     };
+    pub const INVALID_WALLET_ADDRESS: ErrorDef = ErrorDef {
+        code: 1004,
+        name: "INVALID_WALLET_ADDRESS",
+        message: "Invalid wallet address",
+    };
 
     // 2xxx: Profile/account errors
     pub const PROFILE_NOT_FOUND: ErrorDef = ErrorDef {

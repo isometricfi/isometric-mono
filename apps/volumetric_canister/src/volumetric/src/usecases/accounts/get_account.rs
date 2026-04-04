@@ -2,6 +2,7 @@ use candid::Principal;
 
 use crate::auth::derive_subaccount;
 use crate::auth::types::WalletKey;
+use crate::errors::VolumetricError;
 use crate::storage::{get_principal_for_wallet, get_profile};
 
 pub struct AccountInfo {
@@ -11,16 +12,20 @@ pub struct AccountInfo {
     pub username: Option<String>,
 }
 
-pub fn get_account_info_use_case(address: String) -> Option<AccountInfo> {
-    let wallet_key = WalletKey::from_address(&address);
-    let principal = get_principal_for_wallet(&wallet_key)?;
+pub fn get_account_info_use_case(address: String) -> Result<Option<AccountInfo>, VolumetricError> {
+    let wallet_key = WalletKey::try_from_address(&address)?;
+    let Some(principal) = get_principal_for_wallet(&wallet_key) else {
+        return Ok(None);
+    };
     let subaccount = derive_subaccount(principal);
-    let profile = get_profile(&principal)?;
+    let Some(profile) = get_profile(&principal) else {
+        return Ok(None);
+    };
 
-    Some(AccountInfo {
+    Ok(Some(AccountInfo {
         principal,
         subaccount,
         address,
         username: profile.username,
-    })
+    }))
 }
