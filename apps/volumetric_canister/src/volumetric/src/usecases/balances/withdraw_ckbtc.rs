@@ -44,6 +44,11 @@ pub enum WithdrawStatus {
         receipt: WithdrawReceipt,
         result: WithdrawResult,
     },
+    RecoveryRequired {
+        receipt: WithdrawReceipt,
+        phase: WithdrawalPhase,
+        last_error: Option<String>,
+    },
     Failed {
         receipt: WithdrawReceipt,
         message: String,
@@ -118,9 +123,17 @@ pub fn get_withdraw_status_use_case(
                 wal_entry.last_err,
             )?,
         }),
-        WalStatus::Enqueued | WalStatus::InFlight | WalStatus::FailedRetryable => {
+        WalStatus::Enqueued | WalStatus::InFlight => {
             let pending_withdrawal = load_withdraw_journal_entry(withdraw_receipt.withdrawal_id)?;
             Ok(WithdrawStatus::Pending {
+                receipt: withdraw_receipt,
+                phase: pending_withdrawal.phase,
+                last_error: wal_entry.last_err,
+            })
+        }
+        WalStatus::RecoveryRequired => {
+            let pending_withdrawal = load_withdraw_journal_entry(withdraw_receipt.withdrawal_id)?;
+            Ok(WithdrawStatus::RecoveryRequired {
                 receipt: withdraw_receipt,
                 phase: pending_withdrawal.phase,
                 last_error: wal_entry.last_err,
@@ -734,11 +747,11 @@ mod tests {
         // then
         assert!(matches!(
             wal_execution_outcome,
-            crate::journaling::WalExecutionOutcome::FailedRetryable(_)
+            crate::journaling::WalExecutionOutcome::RecoveryRequired(_)
         ));
         match status {
-            WithdrawStatus::Pending { .. } => {}
-            _ => panic!("withdrawal should be pending after retryable failure"),
+            WithdrawStatus::RecoveryRequired { .. } => {}
+            _ => panic!("withdrawal should require recovery after ambiguous failure"),
         }
         let balance = get_balance(&principal);
         assert_eq!(
@@ -782,7 +795,7 @@ mod tests {
         assert!(matches!(first_status, WithdrawStatus::Pending { .. }));
         assert!(matches!(
             first_attempt_outcome,
-            crate::journaling::WalExecutionOutcome::FailedRetryable(_)
+            crate::journaling::WalExecutionOutcome::RecoveryRequired(_)
         ));
         assert!(matches!(
             second_attempt_outcome,

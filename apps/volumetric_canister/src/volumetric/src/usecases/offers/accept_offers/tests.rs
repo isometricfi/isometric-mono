@@ -275,7 +275,7 @@ fn test_accept_offers_returns_pending_receipt_before_wal_runs() {
 
     // when
     let receipt = accept_offers_use_case(buyer, vec![build_test_accept_offer_item()], 1).unwrap();
-    let status = get_accept_status_use_case(receipt.operation_id).unwrap();
+    let status = get_accept_status(receipt.operation_id).unwrap();
 
     // then
     match status {
@@ -403,7 +403,7 @@ async fn test_processing_offer_cannot_be_cancelled_during_accept_success() {
                 crate::journaling::WalExecutionOutcome::Succeeded
             ));
 
-            get_accept_status_use_case(receipt.operation_id)
+            get_accept_status(receipt.operation_id)
                 .expect("accept status should load after WAL success")
         })
         .await;
@@ -470,17 +470,17 @@ async fn test_retryable_accept_failure_remains_pending_for_retry() {
                 .expect("accept WAL task should complete");
             assert!(matches!(
                 wal_execution_outcome,
-                crate::journaling::WalExecutionOutcome::FailedRetryable(_)
+                crate::journaling::WalExecutionOutcome::RecoveryRequired(_)
             ));
 
-            get_accept_status_use_case(receipt.operation_id)
+            get_accept_status(receipt.operation_id)
                 .expect("accept status should load after retryable WAL failure")
         })
         .await;
 
     // then
     match accept_status {
-        AcceptOffersStatus::Pending {
+        AcceptOffersStatus::RecoveryRequired {
             phase, last_error, ..
         } => {
             assert_eq!(phase, AcceptPhase::BuyerDebited);
@@ -488,7 +488,7 @@ async fn test_retryable_accept_failure_remains_pending_for_retry() {
                 .as_ref()
                 .is_some_and(|message| message.contains("transfer failed")));
         }
-        other => panic!("expected pending accept status, got {:?}", other),
+        other => panic!("expected recovery-required accept status, got {:?}", other),
     }
 
     let final_offer = get_offer(TEST_OFFER_ID).expect("offer should still exist");
@@ -518,8 +518,7 @@ async fn test_permanent_accept_failure_restores_balance_and_collateral() {
 
     // when
     let wal_execution_outcome = execute_accept_wal_once(receipt.operation_id).await;
-    let accept_status =
-        get_accept_status_use_case(receipt.operation_id).expect("accept status should load");
+    let accept_status = get_accept_status(receipt.operation_id).expect("accept status should load");
 
     // then
     assert!(matches!(
@@ -568,8 +567,7 @@ async fn test_accept_offer_succeeds_when_platform_fee_transfer_fails() {
 
     // when
     let wal_execution_outcome = execute_accept_wal_once(receipt.operation_id).await;
-    let accept_status =
-        get_accept_status_use_case(receipt.operation_id).expect("accept status should load");
+    let accept_status = get_accept_status(receipt.operation_id).expect("accept status should load");
 
     // then
     assert!(matches!(

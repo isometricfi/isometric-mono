@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 use crate::journaling::OperationId;
 use crate::storage::{AcceptPhase, ActiveOption};
 
-pub use self::accept_offers::{accept_offers_use_case, get_accept_status_use_case};
+pub use self::accept_offers::{accept_offers_use_case, get_accept_status};
 pub(crate) use self::accept_offers_wal::finalize_failed_accept_wal;
 pub use self::accept_offers_wal::run_accept_wal;
 
@@ -41,6 +41,11 @@ pub enum AcceptOffersStatus {
     Succeeded {
         receipt: AcceptOffersReceipt,
         result: AcceptOffersResult,
+    },
+    RecoveryRequired {
+        receipt: AcceptOffersReceipt,
+        phase: AcceptPhase,
+        last_error: Option<String>,
     },
     Failed {
         receipt: AcceptOffersReceipt,

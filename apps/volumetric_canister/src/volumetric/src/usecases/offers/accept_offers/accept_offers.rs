@@ -88,9 +88,7 @@ pub fn accept_offers_use_case(
     Ok(accept_receipt)
 }
 
-pub fn get_accept_status_use_case(
-    operation_id: OperationId,
-) -> Result<AcceptOffersStatus, VolumetricError> {
+pub fn get_accept_status(operation_id: OperationId) -> Result<AcceptOffersStatus, VolumetricError> {
     let wal_entry = get_entry(operation_id).ok_or_else(|| {
         VolumetricError::from_def(error_codes::INTERNAL_ERROR, Some("accept not found"), None)
     })?;
@@ -108,9 +106,17 @@ pub fn get_accept_status_use_case(
                 wal_entry.last_err,
             )?,
         }),
-        WalStatus::Enqueued | WalStatus::InFlight | WalStatus::FailedRetryable => {
+        WalStatus::Enqueued | WalStatus::InFlight => {
             let pending_accept = load_accept_journal_entry(accept_receipt.accept_journal_entry_id)?;
             Ok(AcceptOffersStatus::Pending {
+                receipt: accept_receipt,
+                phase: pending_accept.phase,
+                last_error: wal_entry.last_err,
+            })
+        }
+        WalStatus::RecoveryRequired => {
+            let pending_accept = load_accept_journal_entry(accept_receipt.accept_journal_entry_id)?;
+            Ok(AcceptOffersStatus::RecoveryRequired {
                 receipt: accept_receipt,
                 phase: pending_accept.phase,
                 last_error: wal_entry.last_err,
@@ -550,10 +556,12 @@ fn lock_collateral_for_offer_acceptances(
         }
 
         let mut offer_to_update = get_offer(prepared_accept_execution.offer_id).unwrap();
+
         offer_to_update.remaining_quantity = offer_to_update
             .remaining_quantity
             .saturating_sub(prepared_accept_execution.quantity_sats);
         offer_to_update.status = OfferStatus::Processing;
+
         update_offer(offer_to_update);
 
         locked_collateral_reservations.push(LockedCollateralReservation {

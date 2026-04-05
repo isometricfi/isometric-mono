@@ -73,6 +73,72 @@ pub fn get_entry(operation_id: OperationId) -> Option<WalEntry> {
     WAL.with_borrow(|wal| wal.get(&operation_id).map(|entry| entry.0))
 }
 
+pub fn list_entries_by_status(status: WalStatus, limit: usize) -> Vec<WalEntry> {
+    if limit == 0 {
+        return Vec::new();
+    }
+
+    WAL.with_borrow(|wal| {
+        wal.iter()
+            .filter_map(|entry| {
+                let wal_entry = entry.value().0;
+                if wal_entry.status == status {
+                    Some(wal_entry)
+                } else {
+                    None
+                }
+            })
+            .take(limit)
+            .collect()
+    })
+}
+
+pub fn promote_stale_in_flight_to_recovery_required() -> u64 {
+    let now_ns = ic::time();
+    let stale_after_ns =
+        STALE_IN_FLIGHT_RETRY_TIMEOUT_15_MINUTES_SECS.saturating_mul(NANOSECONDS_PER_SECOND);
+    let stale_deadline_ns = now_ns.saturating_sub(stale_after_ns);
+
+    WAL.with_borrow_mut(|wal| {
+        let stale_operation_ids: Vec<OperationId> = wal
+            .iter()
+            .filter_map(|entry| {
+                let wal_entry = entry.value().0;
+                if wal_entry.status == WalStatus::InFlight
+                    && wal_entry.last_update_ns <= stale_deadline_ns
+                {
+                    Some(*entry.key())
+                } else {
+                    None
+                }
+            })
+            .collect();
+
+        let mut promoted_count: u64 = 0;
+        for operation_id in stale_operation_ids {
+            if let Some(mut wal_entry) = wal.get(&operation_id).map(|entry| entry.0) {
+                if wal_entry.status != WalStatus::InFlight
+                    || wal_entry.last_update_ns > stale_deadline_ns
+                {
+                    continue;
+                }
+
+                wal_entry.status = WalStatus::RecoveryRequired;
+                wal_entry.last_update_ns = now_ns;
+                wal_entry.next_attempt_at_ns = now_ns;
+                if wal_entry.last_err.is_none() {
+                    wal_entry.last_err =
+                        Some("stale in-flight WAL execution requires manual recovery".to_string());
+                }
+                wal.insert(operation_id, Cbor(wal_entry));
+                promoted_count = promoted_count.saturating_add(1);
+            }
+        }
+
+        promoted_count
+    })
+}
+
 pub fn cleanup_succeeded() -> u64 {
     let now_ns = ic::time();
     WAL.with_borrow_mut(|wal| {
@@ -106,51 +172,12 @@ pub(super) fn put_entry(entry: WalEntry) {
     });
 }
 
-pub(super) fn due_ids(now_ns: u64, limit: usize) -> Vec<OperationId> {
-    if limit == 0 {
-        return Vec::new();
-    }
-
-    WAL.with_borrow(|wal| {
-        wal.iter()
-            .filter_map(|entry| {
-                let wal_entry = entry.value().0;
-                if is_actionable(&wal_entry, now_ns) {
-                    Some(*entry.key())
-                } else {
-                    None
-                }
-            })
-            .take(limit)
-            .collect()
-    })
-}
-
-fn is_actionable(entry: &WalEntry, now_ns: u64) -> bool {
-    if matches!(
-        entry.status,
-        WalStatus::Enqueued | WalStatus::FailedRetryable
-    ) {
-        return entry.next_attempt_at_ns <= now_ns;
-    }
-
-    if entry.status == WalStatus::InFlight {
-        let stale_after_ns =
-            STALE_IN_FLIGHT_RETRY_TIMEOUT_15_MINUTES_SECS.saturating_mul(NANOSECONDS_PER_SECOND);
-        let last_update_deadline_ns = now_ns.saturating_sub(stale_after_ns);
-        return entry.last_update_ns <= last_update_deadline_ns;
-    }
-
-    false
-}
-
 #[cfg(test)]
 mod tests {
     use candid::Principal;
 
     use super::*;
     use crate::ic::{self, IcRuntime};
-    use crate::usecases::WithdrawalWalResult;
 
     const TEST_NOW_NS: u64 = 1_000_000_000_000;
 
@@ -222,57 +249,19 @@ mod tests {
         );
     }
 
-    /// Given: more due WAL entries than the retry batch limit
-    /// When: collecting due operation ids
-    /// Then: only the requested number of ids is returned
+    /// Given: stale and fresh in-flight WAL entries
+    /// When: promoting stale in-flight entries to recovery-required
+    /// Then: stale entries become recovery-required while fresh entries stay in-flight
     #[test]
-    fn due_ids_respects_limit() {
+    fn promote_stale_in_flight_to_recovery_required_promotes_only_stale_entries() {
         // given
         reset_wal_for_test();
-        const DUE_ENTRY_COUNT: u8 = 3;
-        const DUE_LIMIT: usize = 2;
-
-        for seed in 0..DUE_ENTRY_COUNT {
-            let operation_id = make_operation_id(seed);
-            put_entry(WalEntry {
-                id: operation_id,
-                kind: WalKind::Withdrawal,
-                attempts: 0,
-                status: WalStatus::FailedRetryable,
-                first_seen_ns: TEST_NOW_NS,
-                last_update_ns: TEST_NOW_NS,
-                last_err: Some("retry me".to_string()),
-                payload: make_withdrawal_payload(seed),
-                max_retries: 20,
-                backoff_secs: 5,
-                next_attempt_at_ns: TEST_NOW_NS,
-                result: Some(super::super::types::WalResult::Withdrawal(
-                    WithdrawalWalResult {
-                        block_index: u64::from(seed),
-                    },
-                )),
-            });
-        }
-
-        // when
-        let due_operation_ids = due_ids(TEST_NOW_NS, DUE_LIMIT);
-
-        // then
-        const EXPECTED_DUE_IDS_LEN: usize = DUE_LIMIT;
-        assert_eq!(due_operation_ids.len(), EXPECTED_DUE_IDS_LEN);
-    }
-
-    /// Given: a WAL entry is stuck in in-flight beyond the stale timeout
-    /// When: collecting due operation ids
-    /// Then: the entry is retried instead of being stranded forever
-    #[test]
-    fn due_ids_includes_stale_in_flight_entries() {
-        // given
-        reset_wal_for_test();
-        let stale_operation_id = make_operation_id(10);
+        let stale_operation_id = make_operation_id(31);
+        let fresh_operation_id = make_operation_id(32);
         let stale_after_ns =
             STALE_IN_FLIGHT_RETRY_TIMEOUT_15_MINUTES_SECS.saturating_mul(NANOSECONDS_PER_SECOND);
         let stale_last_update_ns = TEST_NOW_NS.saturating_sub(stale_after_ns);
+        let fresh_last_update_ns = TEST_NOW_NS.saturating_sub(stale_after_ns.saturating_sub(1));
 
         put_entry(WalEntry {
             id: stale_operation_id,
@@ -281,8 +270,23 @@ mod tests {
             status: WalStatus::InFlight,
             first_seen_ns: TEST_NOW_NS,
             last_update_ns: stale_last_update_ns,
-            last_err: Some("execution interrupted".to_string()),
-            payload: make_withdrawal_payload(10),
+            last_err: None,
+            payload: make_withdrawal_payload(31),
+            max_retries: 20,
+            backoff_secs: 5,
+            next_attempt_at_ns: TEST_NOW_NS.saturating_add(1_000),
+            result: None,
+        });
+
+        put_entry(WalEntry {
+            id: fresh_operation_id,
+            kind: WalKind::Withdrawal,
+            attempts: 1,
+            status: WalStatus::InFlight,
+            first_seen_ns: TEST_NOW_NS,
+            last_update_ns: fresh_last_update_ns,
+            last_err: None,
+            payload: make_withdrawal_payload(32),
             max_retries: 20,
             backoff_secs: 5,
             next_attempt_at_ns: TEST_NOW_NS.saturating_add(1_000),
@@ -290,43 +294,16 @@ mod tests {
         });
 
         // when
-        let due_operation_ids = due_ids(TEST_NOW_NS, 16);
+        let promoted_count = promote_stale_in_flight_to_recovery_required();
+        let stale_entry = get_entry(stale_operation_id).expect("stale entry should exist");
+        let fresh_entry = get_entry(fresh_operation_id).expect("fresh entry should exist");
 
         // then
-        assert!(due_operation_ids.contains(&stale_operation_id));
-    }
-
-    /// Given: a WAL entry is currently in-flight and still fresh
-    /// When: collecting due operation ids
-    /// Then: the entry is not retried concurrently
-    #[test]
-    fn due_ids_excludes_fresh_in_flight_entries() {
-        // given
-        reset_wal_for_test();
-        let in_flight_operation_id = make_operation_id(11);
-        let stale_after_ns =
-            STALE_IN_FLIGHT_RETRY_TIMEOUT_15_MINUTES_SECS.saturating_mul(NANOSECONDS_PER_SECOND);
-        let fresh_last_update_ns = TEST_NOW_NS.saturating_sub(stale_after_ns.saturating_sub(1));
-
-        put_entry(WalEntry {
-            id: in_flight_operation_id,
-            kind: WalKind::Withdrawal,
-            attempts: 1,
-            status: WalStatus::InFlight,
-            first_seen_ns: TEST_NOW_NS,
-            last_update_ns: fresh_last_update_ns,
-            last_err: None,
-            payload: make_withdrawal_payload(11),
-            max_retries: 20,
-            backoff_secs: 5,
-            next_attempt_at_ns: TEST_NOW_NS.saturating_sub(1_000),
-            result: None,
-        });
-
-        // when
-        let due_operation_ids = due_ids(TEST_NOW_NS, 16);
-
-        // then
-        assert!(!due_operation_ids.contains(&in_flight_operation_id));
+        assert_eq!(promoted_count, 1);
+        assert_eq!(stale_entry.status, WalStatus::RecoveryRequired);
+        assert!(stale_entry
+            .last_err
+            .is_some_and(|message| !message.trim().is_empty()));
+        assert_eq!(fresh_entry.status, WalStatus::InFlight);
     }
 }

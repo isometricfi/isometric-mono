@@ -1,25 +1,19 @@
 use std::cell::RefCell;
 use std::collections::BTreeSet;
-#[cfg(target_arch = "wasm32")]
-use std::time::Duration;
 
 use scopeguard::guard;
 
 use crate::errors::{error_codes, VolumetricError};
 use crate::ic;
 use crate::usecases::{
-    finalize_failed_accept_wal, finalize_failed_withdrawal_wal, run_accept_wal, run_settlement_wal,
-    run_withdrawal_wal,
+    finalize_failed_accept_wal, finalize_failed_settlement_wal, finalize_failed_withdrawal_wal,
+    run_accept_wal, run_settlement_wal, run_withdrawal_wal,
 };
 
 use super::super::OperationId;
-use super::store::{due_ids, get_entry, put_entry};
+use super::store::{get_entry, put_entry};
 use super::types::{WalExecutionError, WalExecutionOutcome, WalPayload, WalResult, WalStatus};
 
-const MAX_WAL_RETRY_DELAY_SECS: u64 = 60 * 60;
-const MAX_BACKOFF_EXPONENT: u32 = 10;
-const NANOSECONDS_PER_SECOND: u64 = 1_000_000_000;
-const WAL_RETRY_BATCH_LIMIT: usize = 30;
 const WAL_ENTRY_NOT_FOUND_MESSAGE: &str = "WAL entry not found";
 
 // TODO: Replace string message-pattern retry classification with typed error mapping
@@ -35,7 +29,6 @@ const RETRYABLE_INTER_CANISTER_ERROR_PATTERNS: [&str; 6] = [
 thread_local! {
     static WAL_EXECUTION_IN_PROGRESS_OPERATION_IDS: RefCell<BTreeSet<OperationId>> =
         const { RefCell::new(BTreeSet::new()) };
-    static RETRY_SCAN_IN_PROGRESS: RefCell<bool> = const { RefCell::new(false) };
 }
 
 pub fn register_retryable_error(error: VolumetricError) -> WalExecutionError {
@@ -68,25 +61,6 @@ pub async fn execute_wal_entry_now(operation_id: OperationId) -> WalExecutionOut
     execute_wal_entry_attempt(operation_id).await
 }
 
-pub async fn retry_all_due() {
-    if !mark_retry_scan_in_progress_if_idle() {
-        return;
-    }
-
-    let _retry_scan_guard = guard((), |_| {
-        RETRY_SCAN_IN_PROGRESS.with(|is_in_progress| {
-            *is_in_progress.borrow_mut() = false;
-        });
-    });
-
-    let now_ns = ic::time();
-    let retry_due_operation_ids = due_ids(now_ns, WAL_RETRY_BATCH_LIMIT);
-
-    for operation_id in retry_due_operation_ids {
-        let _ = execute_wal_entry_now(operation_id).await;
-    }
-}
-
 fn mark_wal_execution_in_progress_if_idle(operation_id: OperationId) -> bool {
     WAL_EXECUTION_IN_PROGRESS_OPERATION_IDS.with(|in_progress_operation_ids| {
         let mut in_progress_operation_ids = in_progress_operation_ids.borrow_mut();
@@ -94,18 +68,6 @@ fn mark_wal_execution_in_progress_if_idle(operation_id: OperationId) -> bool {
             return false;
         }
         in_progress_operation_ids.insert(operation_id);
-        true
-    })
-}
-
-fn mark_retry_scan_in_progress_if_idle() -> bool {
-    RETRY_SCAN_IN_PROGRESS.with(|is_in_progress| {
-        let mut is_in_progress = is_in_progress.borrow_mut();
-        if *is_in_progress {
-            return false;
-        }
-
-        *is_in_progress = true;
         true
     })
 }
@@ -138,35 +100,15 @@ async fn execute_wal_entry_attempt(operation_id: OperationId) -> WalExecutionOut
             WalExecutionOutcome::Succeeded
         }
         Err(WalExecutionError::Retryable(retryable_error_message)) => {
-            let wal_payload = wal_entry.payload.clone();
             let mut updated_wal_entry = wal_entry;
 
             updated_wal_entry.last_update_ns = ic::time();
             updated_wal_entry.last_err = Some(retryable_error_message.clone());
 
-            if updated_wal_entry.attempts >= updated_wal_entry.max_retries {
-                updated_wal_entry.status = WalStatus::FailedPermanent;
-
-                put_entry(updated_wal_entry);
-                finalize_failed_wal_payload(&wal_payload, &retryable_error_message);
-                return WalExecutionOutcome::FailedPermanent(retryable_error_message);
-            }
-
-            updated_wal_entry.status = WalStatus::FailedRetryable;
-
-            updated_wal_entry.next_attempt_at_ns = compute_next_attempt_at_ns(
-                updated_wal_entry.last_update_ns,
-                updated_wal_entry.backoff_secs,
-                updated_wal_entry.attempts,
-            );
-            let retry_delay_ns = updated_wal_entry
-                .next_attempt_at_ns
-                .saturating_sub(updated_wal_entry.last_update_ns);
-
+            updated_wal_entry.status = WalStatus::RecoveryRequired;
+            updated_wal_entry.next_attempt_at_ns = updated_wal_entry.last_update_ns;
             put_entry(updated_wal_entry);
-            schedule_retry_nudge(retry_delay_ns);
-
-            WalExecutionOutcome::FailedRetryable(retryable_error_message)
+            WalExecutionOutcome::RecoveryRequired(retryable_error_message)
         }
         Err(WalExecutionError::Permanent(permanent_error_message)) => {
             let wal_payload = wal_entry.payload.clone();
@@ -197,38 +139,17 @@ async fn execute_wal_payload(payload: &WalPayload) -> Result<WalResult, WalExecu
     }
 }
 
-fn compute_next_attempt_at_ns(now_ns: u64, backoff_secs: u64, attempts: u32) -> u64 {
-    let exponent = attempts.saturating_sub(1).min(MAX_BACKOFF_EXPONENT);
-    let multiplier = 1u64 << exponent;
-    let delay_secs = backoff_secs
-        .saturating_mul(multiplier)
-        .min(MAX_WAL_RETRY_DELAY_SECS);
-    now_ns.saturating_add(delay_secs.saturating_mul(NANOSECONDS_PER_SECOND))
-}
-
 fn finalize_failed_wal_payload(payload: &WalPayload, message: &str) {
     match payload {
         WalPayload::Accept(accept_payload) => finalize_failed_accept_wal(accept_payload, message),
         WalPayload::Withdrawal(withdrawal_payload) => {
             finalize_failed_withdrawal_wal(withdrawal_payload, message)
         }
-        WalPayload::Settlement(_) => {}
+        WalPayload::Settlement(settlement_payload) => {
+            finalize_failed_settlement_wal(settlement_payload, message)
+        }
     }
 }
-
-#[cfg(target_arch = "wasm32")]
-fn schedule_retry_nudge(delay_ns: u64) {
-    let delay_seconds =
-        delay_ns.saturating_add(NANOSECONDS_PER_SECOND.saturating_sub(1)) / NANOSECONDS_PER_SECOND;
-    let clamped_delay_seconds = delay_seconds.clamp(1, MAX_WAL_RETRY_DELAY_SECS);
-
-    ic_cdk_timers::set_timer(Duration::from_secs(clamped_delay_seconds), async move {
-        retry_all_due().await;
-    });
-}
-
-#[cfg(not(target_arch = "wasm32"))]
-fn schedule_retry_nudge(_delay_ns: u64) {}
 
 fn is_retryable_error(error: &VolumetricError) -> bool {
     if error.code != error_codes::INTER_CANISTER_CALL_FAILED.code {
@@ -292,36 +213,6 @@ mod tests {
         WAL_EXECUTION_IN_PROGRESS_OPERATION_IDS.with(|in_progress_operation_ids| {
             in_progress_operation_ids.borrow_mut().clear();
         });
-        RETRY_SCAN_IN_PROGRESS.with(|is_in_progress| {
-            *is_in_progress.borrow_mut() = false;
-        });
-    }
-
-    /// Given: backoff inputs from WAL retry policy
-    /// When: computing the next attempt timestamp
-    /// Then: the delay follows exponential growth and clamps at max retry delay
-    #[test]
-    fn compute_next_attempt_at_ns_applies_backoff_and_clamps() {
-        // given
-        let now_ns = TEST_NOW_NS;
-        let backoff_secs = 5;
-
-        // when
-        let first_attempt_next_ns = compute_next_attempt_at_ns(now_ns, backoff_secs, 1);
-        let second_attempt_next_ns = compute_next_attempt_at_ns(now_ns, backoff_secs, 2);
-        let clamped_next_ns = compute_next_attempt_at_ns(now_ns, backoff_secs, 99);
-
-        // then
-        let first_delay_ns = first_attempt_next_ns.saturating_sub(now_ns);
-        let second_delay_ns = second_attempt_next_ns.saturating_sub(now_ns);
-        let clamped_delay_ns = clamped_next_ns.saturating_sub(now_ns);
-
-        assert_eq!(first_delay_ns, 5 * NANOSECONDS_PER_SECOND);
-        assert_eq!(second_delay_ns, 10 * NANOSECONDS_PER_SECOND);
-        assert_eq!(
-            clamped_delay_ns,
-            MAX_WAL_RETRY_DELAY_SECS * NANOSECONDS_PER_SECOND
-        );
     }
 
     /// Given: inter-canister and non-inter-canister errors
@@ -376,25 +267,6 @@ mod tests {
         // when
         let first_mark_result = mark_wal_execution_in_progress_if_idle(operation_id);
         let second_mark_result = mark_wal_execution_in_progress_if_idle(operation_id);
-
-        // then
-        assert!(first_mark_result);
-        assert!(!second_mark_result);
-
-        reset_executor_inflight_state();
-    }
-
-    /// Given: retry scan state is currently idle
-    /// When: attempting to mark retry scan in-progress twice
-    /// Then: the second mark is rejected to avoid concurrent retry scans
-    #[test]
-    fn mark_retry_scan_in_progress_if_idle_prevents_duplicates() {
-        // given
-        reset_executor_inflight_state();
-
-        // when
-        let first_mark_result = mark_retry_scan_in_progress_if_idle();
-        let second_mark_result = mark_retry_scan_in_progress_if_idle();
 
         // then
         assert!(first_mark_result);

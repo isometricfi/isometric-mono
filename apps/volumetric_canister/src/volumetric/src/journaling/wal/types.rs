@@ -21,8 +21,8 @@ pub enum WalStatus {
     InFlight,
     /// Finished successfully.
     Succeeded,
-    /// Failed and will retry.
-    FailedRetryable,
+    /// Failed with ambiguous external outcome and requires operator recovery.
+    RecoveryRequired,
     /// Failed permanently.
     FailedPermanent,
 }
@@ -116,17 +116,17 @@ pub struct WalEntry {
     pub result: Option<WalResult>,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub enum WalExecutionError {
     Retryable(String),
     Permanent(String),
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub enum WalExecutionOutcome {
     Succeeded,
     SucceededAlready,
     SkippedAlreadyInFlight,
-    FailedRetryable(String),
+    RecoveryRequired(String),
     FailedPermanent(String),
 }
