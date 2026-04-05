@@ -3,6 +3,7 @@
 import { isBitcoinWallet } from "@dynamic-labs/bitcoin";
 import { useDynamicContext } from "@dynamic-labs/sdk-react-core";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { unwrapResult } from "@volumetric/canister-types";
 import { useState } from "react";
 import type { Output as AcceptOffersOutput } from "@/lib/use-cases/options/accept-offers/schema";
 import { trpcClient } from "@/trpc/react";
@@ -39,7 +40,7 @@ export function useAcceptOffer() {
       setStep("signing");
 
       const items = [{ offer_id: BigInt(offerId), quantity: BigInt(quantitySats) }];
-      const message = await canister.get_accept_offers_message(address, items);
+      const message = unwrapResult(await canister.get_accept_offers_message(address, items));
       const signature = await primaryWallet.signMessage(message, { addressType: "payment" });
 
       if (!signature) {
