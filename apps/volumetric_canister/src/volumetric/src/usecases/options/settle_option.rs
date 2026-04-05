@@ -709,6 +709,22 @@ mod tests {
         fn log(&self, _message: &str) {}
     }
 
+    struct RuntimeAt {
+        now_ns: u64,
+    }
+
+    impl IcRuntime for RuntimeAt {
+        fn time(&self) -> u64 {
+            self.now_ns
+        }
+
+        fn canister_self(&self) -> Principal {
+            Principal::anonymous()
+        }
+
+        fn log(&self, _message: &str) {}
+    }
+
     struct FailingBuyerTransferLedger;
 
     #[async_trait(?Send)]
@@ -799,6 +815,60 @@ mod tests {
         }
     }
 
+    struct TrapAfterFirstTransferOnceLedger {
+        transfer_call_count: RefCell<u64>,
+        did_trap_on_second_transfer: RefCell<bool>,
+    }
+
+    impl TrapAfterFirstTransferOnceLedger {
+        fn new() -> Self {
+            Self {
+                transfer_call_count: RefCell::new(0),
+                did_trap_on_second_transfer: RefCell::new(false),
+            }
+        }
+
+        fn transfer_call_count(&self) -> u64 {
+            *self.transfer_call_count.borrow()
+        }
+    }
+
+    #[async_trait(?Send)]
+    impl LedgerClient for TrapAfterFirstTransferOnceLedger {
+        async fn icrc1_transfer(
+            &self,
+            _from_subaccount: Option<[u8; 32]>,
+            _to: Account,
+            _amount: u64,
+            _created_at_time: u64,
+        ) -> Result<u64, VolumetricError> {
+            let mut transfer_call_count = self.transfer_call_count.borrow_mut();
+            *transfer_call_count = transfer_call_count.saturating_add(1);
+
+            if *transfer_call_count == 2 {
+                let mut did_trap_on_second_transfer = self.did_trap_on_second_transfer.borrow_mut();
+                if !*did_trap_on_second_transfer {
+                    *did_trap_on_second_transfer = true;
+                    panic!("simulated trap after first settlement transfer");
+                }
+            }
+
+            Ok(*transfer_call_count)
+        }
+
+        async fn icrc1_balance_of(&self, _account: Account) -> Result<Nat, VolumetricError> {
+            Ok(Nat::from(0u64))
+        }
+
+        async fn icrc2_approve(&self, _args: ApproveArgs) -> Result<Nat, VolumetricError> {
+            Ok(Nat::from(0u64))
+        }
+
+        async fn icrc1_fee(&self) -> Result<u64, VolumetricError> {
+            Ok(10)
+        }
+    }
+
     fn test_principal(seed: u8) -> Principal {
         Principal::from_slice(&[seed; 29])
     }
@@ -860,6 +930,14 @@ mod tests {
 
     fn setup_test_state(writer: Principal, buyer: Principal) {
         setup_test_state_with_ledger(writer, buyer, Rc::new(FailingBuyerTransferLedger));
+    }
+
+    fn execute_wal_entry_now_blocking(operation_id: OperationId) -> WalExecutionOutcome {
+        let runtime = tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()
+            .expect("tokio runtime should build");
+        runtime.block_on(async { crate::journaling::execute_wal_entry_now(operation_id).await })
     }
 
     /// Given: settlement needs to pay the buyer and collect a profit fee
@@ -1038,5 +1116,74 @@ mod tests {
         assert_eq!(buyer_balance.locked_as_writer, 0);
         assert_eq!(option.status, ActiveOptionStatus::Settling);
         assert_eq!(settlement.phase, SettlementPhase::Started);
+    }
+
+    /// Given: settlement traps after the first transfer and leaves WAL attempt in-flight
+    /// When: stale in-flight WAL is promoted and manually replayed
+    /// Then: recovery succeeds without duplicating buyer payout or corrupting balances
+    #[test]
+    fn test_settlement_recovery_after_trap_post_first_transfer() {
+        // given
+        let writer = test_principal(31);
+        let buyer = test_principal(32);
+        let trap_once_ledger = Rc::new(TrapAfterFirstTransferOnceLedger::new());
+        setup_test_state_with_ledger(writer, buyer, trap_once_ledger.clone());
+        let prepared_settlement_execution =
+            prepare_settlement_execution(TEST_OPTION_ID, TEST_SETTLEMENT_PRICE_CENTS)
+                .expect("settlement should be prepared");
+        let operation_id = prepared_settlement_execution.operation_id;
+
+        // when
+        let first_attempt = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            let _ = execute_wal_entry_now_blocking(operation_id);
+        }));
+        assert!(first_attempt.is_err(), "first attempt should trap");
+
+        let wal_entry_after_trap = get_entry(operation_id).expect("wal entry should exist");
+        assert_eq!(wal_entry_after_trap.status, WalStatus::InFlight);
+
+        const SIXTEEN_MINUTES_NS: u64 = 16 * 60 * 1_000_000_000;
+        ic::set_runtime(Box::new(RuntimeAt {
+            now_ns: TEST_NOW_NS.saturating_add(SIXTEEN_MINUTES_NS),
+        }));
+        let promoted_count = crate::journaling::promote_stale_in_flight_to_recovery_required();
+        let wal_entry_after_promotion = get_entry(operation_id).expect("wal entry should exist");
+        let replay_outcome = execute_wal_entry_now_blocking(operation_id);
+        let settlement_status = get_settlement_status_use_case(operation_id)
+            .expect("settlement status should load after replay");
+
+        // then
+        assert_eq!(promoted_count, 1);
+        assert_eq!(
+            wal_entry_after_promotion.status,
+            WalStatus::RecoveryRequired
+        );
+        assert_eq!(replay_outcome, WalExecutionOutcome::Succeeded);
+        assert!(matches!(
+            settlement_status,
+            SettlementStatus::Succeeded { .. }
+        ));
+
+        let writer_balance = get_balance(&writer);
+        let buyer_balance = get_balance(&buyer);
+        const EXPECTED_GROSS_BUYER_PAYOUT_SATS: u64 = 125_000;
+        const EXPECTED_PROFIT_FEE_SATS: u64 = 12_500;
+        const EXPECTED_BUYER_PAYOUT_SATS: u64 =
+            EXPECTED_GROSS_BUYER_PAYOUT_SATS - EXPECTED_PROFIT_FEE_SATS;
+        const EXPECTED_WRITER_PAYOUT_SATS: u64 =
+            TEST_QUANTITY_SATS - EXPECTED_GROSS_BUYER_PAYOUT_SATS;
+        const EXPECTED_TRANSFER_CALL_COUNT: u64 = 3;
+        assert_eq!(buyer_balance.available, EXPECTED_BUYER_PAYOUT_SATS);
+        assert_eq!(buyer_balance.locked_as_writer, 0);
+        assert_eq!(writer_balance.available, EXPECTED_WRITER_PAYOUT_SATS);
+        assert_eq!(writer_balance.locked_as_writer, 0);
+        assert!(
+            get_settlement(TEST_OPTION_ID).is_none(),
+            "settlement journal should be removed after recovery replay"
+        );
+        assert_eq!(
+            trap_once_ledger.transfer_call_count(),
+            EXPECTED_TRANSFER_CALL_COUNT
+        );
     }
 }
