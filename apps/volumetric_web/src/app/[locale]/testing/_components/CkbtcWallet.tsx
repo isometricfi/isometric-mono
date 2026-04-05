@@ -3,6 +3,7 @@
 import { isBitcoinWallet } from "@dynamic-labs/bitcoin";
 import { useDynamicContext } from "@dynamic-labs/sdk-react-core";
 import { useMutation, useQuery } from "@tanstack/react-query";
+import { profileFromGetAccountInfoResult, unwrapResult } from "@volumetric/canister-types";
 import { useState } from "react";
 import { useBtcAddress, useCanister } from "@/hooks";
 import type { Output as WithdrawOutput } from "@/lib/use-cases/account/withdraw/schema";
@@ -22,8 +23,7 @@ export function CkbtcWallet() {
     queryKey: ["account", address],
     queryFn: async () => {
       if (!canister || !address) return null;
-      const result = await canister.get_account_info(address);
-      return result.length > 0 ? result[0] : null;
+      return profileFromGetAccountInfoResult(await canister.get_account_info(address));
     },
     enabled: !!canister && !!address,
   });
@@ -92,7 +92,9 @@ export function CkbtcWallet() {
       if (!withdrawAmount || !withdrawBtcAddress) throw new Error("Missing fields");
 
       const amount = BigInt(withdrawAmount);
-      const message = await canister.get_withdraw_message(address, withdrawBtcAddress, amount);
+      const message = unwrapResult(
+        await canister.get_withdraw_message(address, withdrawBtcAddress, amount),
+      );
       const signature = await primaryWallet.signMessage(message, { addressType: "payment" });
 
       if (!signature) {

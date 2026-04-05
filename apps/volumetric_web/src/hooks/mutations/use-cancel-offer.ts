@@ -3,6 +3,7 @@
 import { isBitcoinWallet } from "@dynamic-labs/bitcoin";
 import { useDynamicContext } from "@dynamic-labs/sdk-react-core";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { unwrapResult } from "@volumetric/canister-types";
 import { useState } from "react";
 import { toast } from "sonner";
 import type { Output as CancelOfferOutput } from "@/lib/use-cases/options/cancel-offer/schema";
@@ -35,7 +36,9 @@ export function useCancelOffer() {
         setStep("signing");
         toastId = toast.loading(`Approve deletion of offer #${offerId}`);
 
-        const message = await canister.get_cancel_offer_message(address, BigInt(offerId));
+        const message = unwrapResult(
+          await canister.get_cancel_offer_message(address, BigInt(offerId)),
+        );
         const signature = await primaryWallet.signMessage(message, { addressType: "payment" });
 
         if (!signature) {

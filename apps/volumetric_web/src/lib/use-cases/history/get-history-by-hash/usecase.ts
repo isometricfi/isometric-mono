@@ -1,3 +1,4 @@
+import { profileFromGetAccountInfoResult } from "@volumetric/canister-types";
 import { getCanisterActor } from "@/lib/canister-server";
 import { ATTR_RESULT_FOUND } from "@/lib/telemetry/traceConstants";
 import { withSpan } from "@/lib/telemetry/withSpan";
@@ -10,7 +11,7 @@ export async function getHistoryByHash(address: string): Promise<HistoryByHashOu
   return withSpan(GET_HISTORY_BY_HASH_SPAN_NAME, async (span) => {
     const actor = await getCanisterActor();
     const profileResult = await actor.get_account_info(address);
-    const profile = profileResult.length > 0 ? profileResult[0] : null;
+    const profile = profileFromGetAccountInfoResult(profileResult);
 
     span.setAttribute(ATTR_RESULT_FOUND, profile !== null);
 

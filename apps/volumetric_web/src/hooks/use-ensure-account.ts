@@ -3,6 +3,7 @@
 import { isBitcoinWallet } from "@dynamic-labs/bitcoin";
 import { useDynamicContext } from "@dynamic-labs/sdk-react-core";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { unwrapResult } from "@volumetric/canister-types";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { openOnboardingModal } from "@/components/wallet/OnboardingModal";
 import type { Output as CreateAccountOutput } from "@/lib/use-cases/account/create-account/schema";
@@ -56,7 +57,7 @@ export function useEnsureAccount() {
       }
 
       setStep("awaiting_signature");
-      const message = await canister.get_message_to_sign(address);
+      const message = unwrapResult(await canister.get_message_to_sign(address));
       const signature = await primaryWallet.signMessage(message, { addressType: "payment" });
 
       if (!signature) {

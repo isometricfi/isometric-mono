@@ -1,4 +1,4 @@
-import type { VolumetricError } from "./generated/volumetric_dev.did";
+import type { ProfileInfo, Result_9, VolumetricError } from "./generated/volumetric_dev.did";
 
 /**
  * Error codes - must match apps/volumetric_canister/src/volumetric/src/errors.rs
@@ -115,4 +115,9 @@ export function unwrapResult<T>(result: { Ok: T } | { Err: VolumetricError }): T
     throw new CanisterError(result.Err);
   }
   return result.Ok;
+}
+
+export function profileFromGetAccountInfoResult(result: Result_9): ProfileInfo | null {
+  const profileTuple = unwrapResult(result);
+  return profileTuple[0] ?? null;
 }
