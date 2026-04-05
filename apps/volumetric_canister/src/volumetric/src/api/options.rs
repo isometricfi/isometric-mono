@@ -89,7 +89,7 @@ pub fn accept_offers(
 pub fn get_accept_status(
     operation_id: OperationId,
 ) -> Result<usecases::AcceptOffersStatus, VolumetricError> {
-    Ok(usecases::get_accept_status_use_case(operation_id)?)
+    Ok(usecases::get_accept_status(operation_id)?)
 }
 
 #[ic_cdk::query]

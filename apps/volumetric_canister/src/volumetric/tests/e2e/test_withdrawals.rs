@@ -55,9 +55,9 @@ fn test_withdraw_returns_receipt_and_initial_pending_status() {
     }
 }
 
-/// Given: minter calls fail with retryable inter-canister errors in e2e
-/// When: withdrawal status is queried after retry nudges
-/// Then: status remains pending and records the latest retryable error
+/// Given: minter calls fail with ambiguous inter-canister outcomes in e2e
+/// When: withdrawal status is queried after time advances
+/// Then: status moves to recovery-required and records the latest error
 #[test]
 fn test_withdraw_retryable_failure_keeps_pending_with_last_error() {
     // given
@@ -80,7 +80,7 @@ fn test_withdraw_retryable_failure_keeps_pending_with_last_error() {
 
     // then
     match status {
-        WithdrawStatus::Pending {
+        WithdrawStatus::RecoveryRequired {
             phase, last_error, ..
         } => {
             assert!(matches!(
@@ -91,13 +91,16 @@ fn test_withdraw_retryable_failure_keeps_pending_with_last_error() {
                 .as_ref()
                 .is_some_and(|message| !message.trim().is_empty()));
         }
-        other => panic!("expected pending withdraw status, got {:?}", other),
+        other => panic!(
+            "expected recovery-required withdraw status, got {:?}",
+            other
+        ),
     }
 }
 
-/// Given: a queued withdrawal with retryable minter failures
+/// Given: a queued withdrawal with ambiguous minter failures
 /// When: status is polled over the helper retry window
-/// Then: it remains pending with retry metadata and keeps the deducted amount reserved
+/// Then: it stays recovery-required with error metadata and keeps deducted amount reserved
 #[test]
 fn test_withdraw_retry_window_keeps_pending_and_balance_reserved() {
     // given
@@ -125,7 +128,7 @@ fn test_withdraw_retry_window_keeps_pending_and_balance_reserved() {
 
     // then
     match latest_status {
-        WithdrawStatus::Pending {
+        WithdrawStatus::RecoveryRequired {
             receipt: pending_receipt,
             last_error,
             ..
@@ -135,7 +138,10 @@ fn test_withdraw_retry_window_keeps_pending_and_balance_reserved() {
                 .as_ref()
                 .is_some_and(|message| !message.trim().is_empty()));
         }
-        other => panic!("expected pending withdraw status, got {:?}", other),
+        other => panic!(
+            "expected recovery-required withdraw status, got {:?}",
+            other
+        ),
     }
 
     let balance_after_terminal =

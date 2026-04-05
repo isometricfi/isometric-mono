@@ -14,11 +14,11 @@ use crate::locks::SettlementLock;
 use crate::oracle::get_btc_usd_price_cents;
 use crate::storage::{
     add_platform_fee, calculate_call_option_payout, calculate_profit_fee, complete_settlement,
-    create_settlement, emit_event, get_active_option, get_fee_recipient, get_settlement,
-    list_expired_active_options, release_locked_to_buyer, remove_settlement, subtract_available,
-    unlock_collateral, update_active_option, update_settlement_phase, ActiveOption,
-    ActiveOptionStatus, EventData, EventType, OptionType, PendingSettlement, SettlementPhase,
-    TradeRole,
+    create_settlement, emit_event, fail_settlement, get_active_option, get_fee_recipient,
+    get_settlement, list_expired_active_options, release_locked_to_buyer, remove_settlement,
+    subtract_available, unlock_collateral, update_active_option, update_settlement_phase,
+    ActiveOption, ActiveOptionStatus, EventData, EventType, OptionType, PendingSettlement,
+    SettlementPhase, TradeRole,
 };
 
 use crate::usecases::balances::transfer_ckbtc;
@@ -53,6 +53,11 @@ pub enum SettlementStatus {
     Succeeded {
         receipt: SettlementReceipt,
         result: SettlementWalResult,
+    },
+    RecoveryRequired {
+        receipt: SettlementReceipt,
+        phase: SettlementPhase,
+        last_error: Option<String>,
     },
     Failed {
         receipt: SettlementReceipt,
@@ -214,10 +219,10 @@ fn finish_settlement_execution(
                 status: ActiveOptionStatus::Settled,
             })
         }
-        WalExecutionOutcome::SkippedAlreadyInFlight | WalExecutionOutcome::FailedRetryable(_) => {
+        WalExecutionOutcome::SkippedAlreadyInFlight | WalExecutionOutcome::RecoveryRequired(_) => {
             Err(VolumetricError::from_def(
                 error_codes::INTER_CANISTER_CALL_FAILED,
-                Some("settlement queued for retry"),
+                Some("settlement requires manual recovery"),
                 None,
             ))
         }
@@ -479,6 +484,45 @@ fn map_balance_error_to_permanent(error: crate::storage::InsufficientBalance) ->
     ))
 }
 
+pub(crate) fn finalize_failed_settlement_wal(payload: &SettlementWalPayload, message: &str) {
+    let Some(settlement) = get_settlement(payload.option_id) else {
+        return;
+    };
+
+    if matches!(
+        settlement.phase,
+        SettlementPhase::Completed | SettlementPhase::Failed { .. }
+    ) {
+        return;
+    }
+
+    fail_settlement(payload.option_id, message.to_string());
+
+    if let Some(mut option) = get_active_option(payload.option_id) {
+        if option.status == ActiveOptionStatus::Settling {
+            option.status = ActiveOptionStatus::Expired;
+            update_active_option(option.clone());
+        }
+
+        emit_event(
+            option.buyer,
+            EventType::OptionSettlementFailed,
+            EventData::OptionSettlementFailed {
+                option_id: option.id,
+                reason: message.to_string(),
+            },
+        );
+        emit_event(
+            option.writer,
+            EventType::OptionSettlementFailed,
+            EventData::OptionSettlementFailed {
+                option_id: option.id,
+                reason: message.to_string(),
+            },
+        );
+    }
+}
+
 pub fn get_settlement_status_use_case(
     operation_id: OperationId,
 ) -> Result<SettlementStatus, VolumetricError> {
@@ -503,9 +547,17 @@ pub fn get_settlement_status_use_case(
                 wal_entry.last_err,
             )?,
         }),
-        WalStatus::Enqueued | WalStatus::InFlight | WalStatus::FailedRetryable => {
+        WalStatus::Enqueued | WalStatus::InFlight => {
             let pending_settlement = load_settlement_journal_entry(settlement_receipt.option_id)?;
             Ok(SettlementStatus::Pending {
+                receipt: settlement_receipt,
+                phase: pending_settlement.phase,
+                last_error: wal_entry.last_err,
+            })
+        }
+        WalStatus::RecoveryRequired => {
+            let pending_settlement = load_settlement_journal_entry(settlement_receipt.option_id)?;
+            Ok(SettlementStatus::RecoveryRequired {
                 receipt: settlement_receipt,
                 phase: pending_settlement.phase,
                 last_error: wal_entry.last_err,

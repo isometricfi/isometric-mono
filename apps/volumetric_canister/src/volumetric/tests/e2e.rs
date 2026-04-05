@@ -27,3 +27,6 @@ mod test_accept_withdraw_contention;
 
 #[path = "e2e/test_platform_fees_upgrade.rs"]
 mod test_platform_fees_upgrade;
+
+#[path = "e2e/test_recovery.rs"]
+mod test_recovery;
