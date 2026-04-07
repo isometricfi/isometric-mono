@@ -3,6 +3,7 @@ mod common;
 
 use common::{create_test_env, fixtures, generate_wallet, ledger, minter};
 use icrc_ledger_types::icrc1::account::Account;
+use icrc_ledger_types::icrc1::transfer::TransferError;
 
 const MINT_AMOUNT: u64 = 1_000;
 const UTXO_VALUE_SATS: u64 = 100_000;
@@ -51,6 +52,135 @@ fn test_ledger_mint_increases_balance() {
     // then
     let new_balance = ledger::balance_of(&env, account);
     assert_eq!(new_balance, MINT_AMOUNT);
+}
+
+#[test]
+fn test_ledger_deduplicates_identical_transfer_payload_but_not_different_memo() {
+    // given
+    let env = create_test_env();
+    let sender = fixtures::test_principal(10);
+    let recipient = fixtures::test_principal(11);
+    let sender_account = Account {
+        owner: sender,
+        subaccount: None,
+    };
+    let recipient_account = Account {
+        owner: recipient,
+        subaccount: None,
+    };
+    const INITIAL_SENDER_BALANCE_SATS: u64 = 10_000;
+    const TRANSFER_AMOUNT_SATS: u64 = 1_000;
+    let created_at_time_ns = env.get_time_ns();
+    let first_memo_bytes = b"dedup-transfer-1".to_vec();
+    let second_memo_bytes = b"dedup-transfer-2".to_vec();
+
+    ledger::mint(&env, sender_account, INITIAL_SENDER_BALANCE_SATS)
+        .expect("mint should fund sender");
+
+    // when
+    let first_transfer_result = ledger::transfer_with_dedup_fields(
+        &env,
+        sender,
+        recipient_account,
+        TRANSFER_AMOUNT_SATS,
+        None,
+        Some(first_memo_bytes.clone()),
+        Some(created_at_time_ns),
+    );
+    let duplicate_transfer_result = ledger::transfer_with_dedup_fields(
+        &env,
+        sender,
+        recipient_account,
+        TRANSFER_AMOUNT_SATS,
+        None,
+        Some(first_memo_bytes),
+        Some(created_at_time_ns),
+    );
+    let different_memo_transfer_result = ledger::transfer_with_dedup_fields(
+        &env,
+        sender,
+        recipient_account,
+        TRANSFER_AMOUNT_SATS,
+        None,
+        Some(second_memo_bytes),
+        Some(created_at_time_ns),
+    );
+
+    // then
+    let first_transfer_block_index = first_transfer_result.expect("first transfer should succeed");
+    match duplicate_transfer_result {
+        Err(TransferError::Duplicate { duplicate_of }) => {
+            let duplicate_block_index = duplicate_of.0.try_into().unwrap_or(u64::MAX);
+            assert_eq!(duplicate_block_index, first_transfer_block_index);
+        }
+        other => panic!("expected duplicate transfer error, got {:?}", other),
+    }
+
+    let different_memo_block_index =
+        different_memo_transfer_result.expect("transfer with different memo should succeed");
+    assert!(
+        different_memo_block_index > first_transfer_block_index,
+        "different memo should produce a new ledger block"
+    );
+
+    let recipient_balance = ledger::balance_of(&env, recipient_account);
+    assert_eq!(recipient_balance, TRANSFER_AMOUNT_SATS * 2);
+}
+
+#[test]
+fn test_ledger_deduplicates_identical_transfer_payload_without_memo() {
+    // given
+    let env = create_test_env();
+    let sender = fixtures::test_principal(20);
+    let recipient = fixtures::test_principal(21);
+    let sender_account = Account {
+        owner: sender,
+        subaccount: None,
+    };
+    let recipient_account = Account {
+        owner: recipient,
+        subaccount: None,
+    };
+    const INITIAL_SENDER_BALANCE_SATS: u64 = 10_000;
+    const TRANSFER_AMOUNT_SATS: u64 = 1_000;
+    let created_at_time_ns = env.get_time_ns();
+
+    ledger::mint(&env, sender_account, INITIAL_SENDER_BALANCE_SATS)
+        .expect("mint should fund sender");
+
+    // when
+    let first_transfer_result = ledger::transfer_with_dedup_fields(
+        &env,
+        sender,
+        recipient_account,
+        TRANSFER_AMOUNT_SATS,
+        None,
+        None,
+        Some(created_at_time_ns),
+    );
+    let duplicate_transfer_result = ledger::transfer_with_dedup_fields(
+        &env,
+        sender,
+        recipient_account,
+        TRANSFER_AMOUNT_SATS,
+        None,
+        None,
+        Some(created_at_time_ns),
+    );
+
+    // then
+    let first_transfer_block_index =
+        first_transfer_result.expect("first transfer without memo should succeed");
+    match duplicate_transfer_result {
+        Err(TransferError::Duplicate { duplicate_of }) => {
+            let duplicate_block_index = duplicate_of.0.try_into().unwrap_or(u64::MAX);
+            assert_eq!(duplicate_block_index, first_transfer_block_index);
+        }
+        other => panic!("expected duplicate transfer error, got {:?}", other),
+    }
+
+    let recipient_balance = ledger::balance_of(&env, recipient_account);
+    assert_eq!(recipient_balance, TRANSFER_AMOUNT_SATS);
 }
 
 #[test]
