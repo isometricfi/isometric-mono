@@ -42,3 +42,14 @@ coverage/
 # Misc
 *.pem
 apps/test/
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+crash.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+infra/cloudflare/current/secrets.auto.tfvars
+infra/cloudflare/current/terraform.tfvars
