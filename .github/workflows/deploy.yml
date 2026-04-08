@@ -34,4 +34,4 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           NEXT_PUBLIC_DYNAMIC_ENVIRONMENT_ID: ${{ secrets.NEXT_PUBLIC_DYNAMIC_ENVIRONMENT_ID }}
           NEXT_PUBLIC_BASE_URL: ${{ secrets.NEXT_PUBLIC_BASE_URL }}
-        run: pnpm cf:deploy-all
+        run: pnpm cf:deploy-all:prod
