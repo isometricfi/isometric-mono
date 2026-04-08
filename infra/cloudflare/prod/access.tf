@@ -1,4 +1,4 @@
-resource "cloudflare_zero_trust_access_application" "current_app" {
+resource "cloudflare_zero_trust_access_application" "app" {
   account_id                 = var.account_id
   allowed_idps               = ["a668400f-9bf9-4d30-8cae-037f7e7bed43"]
   app_launcher_visible       = true

@@ -1,22 +1,19 @@
-resource "cloudflare_zero_trust_access_application" "current_app" {
+resource "cloudflare_zero_trust_access_application" "app" {
   account_id                 = var.account_id
   allowed_idps               = ["a668400f-9bf9-4d30-8cae-037f7e7bed43"]
   app_launcher_visible       = true
   auto_redirect_to_identity  = false
-  domain                     = "isometric.fi"
+  domain                     = "dev.isometric.fi"
   enable_binding_cookie      = false
   http_only_cookie_attribute = false
-  name                       = "isometric-prod"
+  name                       = "isometric-dev"
   options_preflight_bypass   = false
   session_duration           = "730h"
   type                       = "self_hosted"
 
   destinations = [{
     type = "public"
-    uri  = "isometric.fi"
-  }, {
-    type = "public"
-    uri  = "www.isometric.fi"
+    uri  = "dev.isometric.fi"
   }]
 
   policies = [{
