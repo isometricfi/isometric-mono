@@ -1,8 +1,17 @@
-import { type EnvRecord, getOptionalEnv, getRequiredEnv } from "./env";
+import { type EnvRecord, getOptionalEnv } from "./env";
 import { parseOtlpHeaders } from "./parseOtlpHeaders";
 
 export function createOtlpTraceConfig(env: EnvRecord, defaultServiceName: string) {
-  const tracesEndpoint = getRequiredEnv(env, "OTEL_EXPORTER_OTLP_TRACES_ENDPOINT");
+  const tracesEndpoint = getOptionalEnv(env, "OTEL_EXPORTER_OTLP_TRACES_ENDPOINT");
+
+  if (!tracesEndpoint) {
+    return {
+      service: {
+        name: getOptionalEnv(env, "OTEL_SERVICE_NAME") ?? defaultServiceName,
+      },
+      spanProcessors: [],
+    };
+  }
 
   return {
     exporter: {

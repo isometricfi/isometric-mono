@@ -1,6 +1,6 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "volumetric-web",
+  "name": "volumetric-web-dev",
   "main": "./worker.ts",
   "compatibility_date": "2026-03-29",
   "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
@@ -12,7 +12,7 @@
   "services": [
     {
       "binding": "WORKER_SELF_REFERENCE",
-      "service": "volumetric-web"
+      "service": "volumetric-web-dev"
     }
   ],
   "d1_databases": [
@@ -25,5 +25,41 @@
   ],
   "observability": {
     "enabled": true
+  },
+  "env": {
+    "dev": {
+      "name": "volumetric-web-dev",
+      "services": [
+        {
+          "binding": "WORKER_SELF_REFERENCE",
+          "service": "volumetric-web-dev"
+        }
+      ],
+      "d1_databases": [
+        {
+          "binding": "DB",
+          "database_name": "volumetric_d1_db",
+          "database_id": "626bd0d6-2f2b-4821-86af-366b021db87c",
+          "migrations_dir": "drizzle/migrations"
+        }
+      ]
+    },
+    "production": {
+      "name": "volumetric-web-production",
+      "services": [
+        {
+          "binding": "WORKER_SELF_REFERENCE",
+          "service": "volumetric-web-production"
+        }
+      ],
+      "d1_databases": [
+        {
+          "binding": "DB",
+          "database_name": "volumetric_d1_prod",
+          "database_id": "bb200e69-caee-4241-b358-7d11efb1165a",
+          "migrations_dir": "drizzle/migrations"
+        }
+      ]
+    }
   }
 }

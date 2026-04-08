@@ -51,5 +51,5 @@ override.tf
 override.tf.json
 *_override.tf
 *_override.tf.json
-infra/cloudflare/current/secrets.auto.tfvars
-infra/cloudflare/current/terraform.tfvars
+infra/cloudflare/*/secrets.auto.tfvars
+infra/cloudflare/*/terraform.tfvars

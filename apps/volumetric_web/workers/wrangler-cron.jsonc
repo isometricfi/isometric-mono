@@ -1,6 +1,6 @@
 {
   "$schema": "../../node_modules/wrangler/config-schema.json",
-  "name": "volumetric-cron",
+  "name": "volumetric-cron-dev",
   "main": "cron-worker.ts",
   "compatibility_date": "2025-01-03",
   "compatibility_flags": ["nodejs_compat"],
@@ -11,10 +11,30 @@
   "services": [
     {
       "binding": "NEXT_APP",
-      "service": "volumetric-web"
+      "service": "volumetric-web-dev"
     }
   ],
   "triggers": {
     "crons": ["* * * * *", "*/5 * * * *"]
+  },
+  "env": {
+    "dev": {
+      "name": "volumetric-cron-dev",
+      "services": [
+        {
+          "binding": "NEXT_APP",
+          "service": "volumetric-web-dev"
+        }
+      ]
+    },
+    "production": {
+      "name": "volumetric-cron-production",
+      "services": [
+        {
+          "binding": "NEXT_APP",
+          "service": "volumetric-web-production"
+        }
+      ]
+    }
   }
 }
