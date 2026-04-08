@@ -13,7 +13,6 @@ target/
 
 # ICP / DFX
 .dfx/
-canister_ids.json
 
 # Environment
 .env
