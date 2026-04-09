@@ -123,6 +123,19 @@ describe("formatBtcWithSymbol", () => {
 });
 
 describe("parseBtcToSats", () => {
+  test("should parse dynamic labs wallet getbalance btc strings without treating them as sats", () => {
+    // given
+    const dynamicGetBalanceBtcString = "0.0015";
+
+    // when
+    const parsedAsSats = parseBtcToSats(dynamicGetBalanceBtcString);
+    const mistakenNumberCoercion = Math.floor(Number(dynamicGetBalanceBtcString));
+
+    // then
+    expect(mistakenNumberCoercion).toBe(0);
+    expect(parsedAsSats).toBe(150_000);
+  });
+
   test("should parse '1.5' to 150_000_000 sats", () => {
     // given
     const input = "1.5";
