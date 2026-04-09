@@ -24,7 +24,7 @@ crons = ["0 */12 * * *"]
 
 [[env.bot1.services]]
 binding = "NEXT_APP"
-service = "volumetric-web"
+service = "volumetric-web-dev"
 
 [env.bot2]
 name = "volumetric-bot-2"
@@ -42,7 +42,7 @@ crons = ["0 */12 * * *"]
 
 [[env.bot2.services]]
 binding = "NEXT_APP"
-service = "volumetric-web"
+service = "volumetric-web-dev"
 
 [env.bot3]
 name = "volumetric-bot-3"
@@ -60,7 +60,7 @@ crons = ["0 */12 * * *"]
 
 [[env.bot3.services]]
 binding = "NEXT_APP"
-service = "volumetric-web"
+service = "volumetric-web-dev"
 
 [env.bot4]
 name = "volumetric-bot-4"
@@ -78,4 +78,4 @@ crons = ["0 */12 * * *"]
 
 [[env.bot4.services]]
 binding = "NEXT_APP"
-service = "volumetric-web"
+service = "volumetric-web-dev"
