@@ -78,8 +78,10 @@
   },
   "Forms": {
     "connectWallet": "Connect Wallet",
-    "depositMoreToCreateOffers": "Deposit BTC to create offers",
-    "depositMoreToBuyOptions": "Deposit BTC to buy options",
+    "depositMoreToCreateOffers": "Need {minBtc} available",
+    "depositMoreToBuyOptions": "Need {minBtc} available",
+    "createOffersDepositReason": "Minimum offer size is {minBtc}. Use Available balance.",
+    "buyOptionsDepositReason": "Minimum size is {minBtc}. Use Available balance.",
     "creatingOffer": "Creating Offer...",
     "createOffer": "Create Offer",
     "buyingOption": "Buying Option...",

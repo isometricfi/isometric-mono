@@ -18,6 +18,7 @@ import {
   DEFAULT_MAX_OFFER_AMOUNT_SATS,
   DEFAULT_MIN_OFFER_AMOUNT_SATS,
   formatBtc,
+  formatBtcWithSymbol,
 } from "@/lib/utils";
 import { useChartOptionsStore } from "@/stores/chart-options-store";
 import {
@@ -167,7 +168,11 @@ export function useCallWriteOptionFormModel() {
 
   const getButtonText = () => {
     if (!isWalletConnected) return t("connectWallet");
-    if (needDepositMore) return t("depositMoreToCreateOffers");
+    if (needDepositMore) {
+      return t("depositMoreToCreateOffers", {
+        minBtc: formatBtcWithSymbol(minOfferAmountSats),
+      });
+    }
     if (createOffer.isPending) return t("creatingOffer");
     if (amountSats < minOfferAmountSats)
       return `${tCommon("min")}: ₿${formatBtc(minOfferAmountSats)}`;
@@ -197,6 +202,7 @@ export function useCallWriteOptionFormModel() {
     handleStrikeUsdChange,
     handleSubmit,
     isSubmitDisabled: !isWalletConnected || !isValidAmount || createOffer.isPending,
+    minOfferAmountSats,
     maxOfferAmountSats,
     needDepositMore,
     premiumPercent,

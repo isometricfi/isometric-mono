@@ -78,8 +78,10 @@
   },
   "Forms": {
     "connectWallet": "连接钱包",
-    "depositMoreToCreateOffers": "存入 BTC 以创建报价",
-    "depositMoreToBuyOptions": "存入 BTC 以购买期权",
+    "depositMoreToCreateOffers": "需要至少 {minBtc} 可用余额",
+    "depositMoreToBuyOptions": "需要至少 {minBtc} 可用余额",
+    "createOffersDepositReason": "最小报价规模为 {minBtc}。请使用账户中的「可用」余额。",
+    "buyOptionsDepositReason": "最小规模为 {minBtc}。请使用账户中的「可用」余额。",
     "creatingOffer": "正在创建报价...",
     "createOffer": "创建报价",
     "buyingOption": "正在购买期权...",

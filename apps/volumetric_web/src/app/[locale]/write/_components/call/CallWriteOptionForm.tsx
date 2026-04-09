@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { NumberCarousel } from "@/components/ui/number-carousel";
 import { DepositModal } from "@/components/wallet/DepositModal";
+import { formatBtcWithSymbol } from "@/lib/utils";
 import { useCallWriteOptionFormModel } from "./_internal/use-call-write-option-form-model";
 import { CallWriteOptionSummary } from "./CallWriteOptionSummary";
 import { WriteEarningsSection } from "./WriteEarningsSection";
@@ -30,6 +31,7 @@ export function CallWriteOptionForm() {
     handleStrikeUsdChange,
     handleSubmit,
     isSubmitDisabled,
+    minOfferAmountSats,
     maxOfferAmountSats,
     needDepositMore,
     premiumPercent,
@@ -109,12 +111,19 @@ export function CallWriteOptionForm() {
                 ? () => setDepositModalOpen(true)
                 : handleSubmit
           }
-          className="w-full text-base "
+          className="w-full text-base"
           size="default"
           disabled={primaryWallet ? (needDepositMore ? false : isSubmitDisabled) : false}
         >
           {getButtonText()}
         </Button>
+        {needDepositMore ? (
+          <p className="text-xs text-muted-foreground">
+            {t("createOffersDepositReason", {
+              minBtc: formatBtcWithSymbol(minOfferAmountSats),
+            })}
+          </p>
+        ) : null}
 
         <DepositModal open={depositModalOpen} onOpenChange={setDepositModalOpen} />
 

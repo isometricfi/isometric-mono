@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { NumberCarousel } from "@/components/ui/number-carousel";
 import { DepositModal } from "@/components/wallet/DepositModal";
+import { formatBtcWithSymbol } from "@/lib/utils";
 import { useCallOptionBuyFormModel } from "./_internal/use-call-option-buy-form-model";
 import { CallBuyOptionSummary } from "./CallBuyOptionSummary";
 
@@ -26,6 +27,7 @@ export function CallOptionBuyForm() {
     handleSubmit,
     isSubmitDisabled,
     leverage,
+    minOfferAmountSats,
     maxPremiumAmountSats,
     needDepositMore,
     quantitySats,
@@ -89,12 +91,19 @@ export function CallOptionBuyForm() {
                 ? () => setDepositModalOpen(true)
                 : handleSubmit
           }
-          className="w-full  text-base font-semibold"
+          className="w-full text-base font-semibold"
           size="lg"
           disabled={primaryWallet ? (needDepositMore ? false : isSubmitDisabled) : false}
         >
           {getButtonText()}
         </Button>
+        {needDepositMore ? (
+          <p className="text-xs text-muted-foreground">
+            {t("buyOptionsDepositReason", {
+              minBtc: formatBtcWithSymbol(minOfferAmountSats),
+            })}
+          </p>
+        ) : null}
 
         <DepositModal open={depositModalOpen} onOpenChange={setDepositModalOpen} />
 

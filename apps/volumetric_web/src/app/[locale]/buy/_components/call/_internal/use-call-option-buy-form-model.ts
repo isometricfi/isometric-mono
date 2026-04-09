@@ -14,7 +14,7 @@ import {
   getStrikeUsd,
   getStrikeUsdValues,
 } from "@/lib/options-form";
-import { DEFAULT_MIN_OFFER_AMOUNT_SATS, formatBtc } from "@/lib/utils";
+import { DEFAULT_MIN_OFFER_AMOUNT_SATS, formatBtc, formatBtcWithSymbol } from "@/lib/utils";
 import { useChartOptionsStore } from "@/stores/chart-options-store";
 import {
   findBestOfferForPremiumAmount,
@@ -182,7 +182,11 @@ export function useCallOptionBuyFormModel() {
 
   const getButtonText = () => {
     if (!isWalletConnected) return t("connectWallet");
-    if (needDepositMore) return t("depositMoreToBuyOptions");
+    if (needDepositMore) {
+      return t("depositMoreToBuyOptions", {
+        minBtc: formatBtcWithSymbol(minOfferAmountSats),
+      });
+    }
     if (acceptOffer.isPending) return t("buyingOption");
     if (hasInsufficientLiquidity) return t("insufficientLiquidity");
     if (isBelowMinimum) return `${tCommon("min")}: ₿${formatBtc(minPremiumAmountSats)}`;
@@ -201,6 +205,7 @@ export function useCallOptionBuyFormModel() {
     isSubmitDisabled: !isWalletConnected || !isValidAmount || !bestOffer || acceptOffer.isPending,
     leverage,
     needDepositMore,
+    minOfferAmountSats,
     maxPremiumAmountSats,
     quantitySats,
     selectedStrikeUsd,
