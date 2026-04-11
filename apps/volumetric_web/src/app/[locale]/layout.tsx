@@ -111,13 +111,17 @@ export default async function LocaleLayout({
       <body className={`${geistSans.variable} ${geistMono.variable} font-sans antialiased`}>
         {TAWK_EMBED_URL && (
           <>
-            <Script id="tawk-api-init" strategy="afterInteractive" nonce={nonce}>
-              {`window.Tawk_API = window.Tawk_API || {}; window.Tawk_LoadStart = new Date();`}
+            <Script id="tawk-api-init" strategy="lazyOnload" nonce={nonce}>
+              {`window.Tawk_API = window.Tawk_API || {};
+window.Tawk_API.onLoad = function () {
+  window.Tawk_API.minimize();
+};
+window.Tawk_LoadStart = new Date();`}
             </Script>
             <Script
               id="tawk-embed"
               src={TAWK_EMBED_URL}
-              strategy="afterInteractive"
+              strategy="lazyOnload"
               nonce={nonce}
               crossOrigin="anonymous"
             />
