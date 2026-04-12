@@ -30,6 +30,14 @@ pub fn set_quantity_sats_range_use_case(min: u64, max: u64) {
     Config::set_quantity_sats_range(min, max);
 }
 
+pub fn set_create_offer_quantity_sats_range_use_case(min: u64, max: u64) {
+    Config::set_create_offer_quantity_sats_range(min, max);
+}
+
+pub fn set_accept_offer_quantity_sats_range_use_case(min: u64, max: u64) {
+    Config::set_accept_offer_quantity_sats_range(min, max);
+}
+
 pub fn set_premium_basis_points_range_use_case(min: u16, max: u16) {
     Config::set_premium_basis_points_range(min, max);
 }

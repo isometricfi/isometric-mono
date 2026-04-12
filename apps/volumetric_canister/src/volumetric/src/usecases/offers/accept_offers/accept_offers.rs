@@ -4,7 +4,7 @@ use std::mem::size_of;
 use candid::Principal;
 
 use crate::errors::{error_codes, VolumetricError};
-use crate::guards::{validate_offer_params, OfferParams};
+use crate::guards::{validate_trading_limits_for_accept_offer, OfferParams};
 use crate::ic;
 use crate::journaling::{
     default_policy, enqueue_if_absent, get_entry, AcceptWalPayload, AcceptWalPreparedAccept,
@@ -131,7 +131,7 @@ pub(super) fn validate_accept_offer_request(
     offer: &crate::storage::Offer,
     current_time_ns: u64,
 ) -> Result<(), VolumetricError> {
-    validate_offer_params(&OfferParams {
+    validate_trading_limits_for_accept_offer(&OfferParams {
         quantity: accept_offer_item.quantity,
         strike_basis_points: offer.strike_basis_points,
         premium_basis_points: offer.premium_basis_points,

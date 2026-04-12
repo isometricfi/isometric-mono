@@ -17,7 +17,7 @@ use crate::oracle::{set_oracle, StubOracle};
 use crate::storage::{
     calculate_premium_fee, calculate_premium_in_sats, clear_active_options, clear_events,
     clear_offers, get_balance, get_offer, get_platform_fees_collected, insert_offer, set_balance,
-    AcceptPhase, Asset, Offer, OfferStatus, OptionType, UserBalance,
+    AcceptPhase, Asset, Config, FeatureFlags, Offer, OfferStatus, OptionType, UserBalance,
 };
 use crate::usecases::{withdraw_ckbtc_use_case, WithdrawParams};
 
@@ -261,6 +261,44 @@ fn test_validate_accept_offer_request_allows_partially_filled_status() {
 
     // then
     assert!(result.is_ok());
+}
+
+/// Given: accept minimum is lower than create minimum
+/// When: validating an accept request within the accept range
+/// Then: the request is allowed even below the create-offer minimum
+#[test]
+fn test_validate_accept_offer_request_allows_quantity_below_create_minimum() {
+    // given
+    let writer = test_principal(79);
+    let buyer = test_principal(89);
+    let accept_quantity_sats = 10_000;
+    let prior_feature_flags = Config::feature_flags();
+    let prior_accept_offer_quantity_sats = Config::trading_limits().accept_offer_quantity_sats;
+    Config::set_feature_flags(FeatureFlags {
+        is_partial_filling_enabled: true,
+        ..prior_feature_flags
+    });
+    Config::set_accept_offer_quantity_sats_range(
+        accept_quantity_sats,
+        prior_accept_offer_quantity_sats.max,
+    );
+    let accept_offer_item = AcceptOfferItem {
+        offer_id: TEST_OFFER_ID,
+        quantity: accept_quantity_sats,
+    };
+    let offer = build_test_offer(writer, OfferStatus::Open);
+
+    // when
+    let result = validate_accept_offer_request(buyer, &accept_offer_item, &offer, TEST_NOW_NS);
+
+    Config::set_accept_offer_quantity_sats_range(
+        prior_accept_offer_quantity_sats.min,
+        prior_accept_offer_quantity_sats.max,
+    );
+    Config::set_feature_flags(prior_feature_flags);
+
+    // then
+    assert!(result.is_ok(), "{result:?}");
 }
 
 /// Given: a valid accept request

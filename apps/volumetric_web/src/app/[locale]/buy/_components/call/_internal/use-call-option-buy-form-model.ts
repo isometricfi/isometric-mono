@@ -14,12 +14,18 @@ import {
   getStrikeUsd,
   getStrikeUsdValues,
 } from "@/lib/options-form";
-import { DEFAULT_MIN_OFFER_AMOUNT_SATS, formatBtc, formatBtcWithSymbol } from "@/lib/utils";
+import {
+  DEFAULT_MAX_ACCEPT_OFFER_AMOUNT_SATS,
+  DEFAULT_MIN_ACCEPT_OFFER_AMOUNT_SATS,
+  formatBtc,
+  formatBtcWithSymbol,
+} from "@/lib/utils";
 import { useChartOptionsStore } from "@/stores/chart-options-store";
 import {
   findBestOfferForPremiumAmount,
   getMaxPremiumAmountSats,
   getMinPremiumAmountSats,
+  shouldRequireDepositForPremiumPurchase,
 } from "./premium-amount";
 
 const DEFAULT_STRIKE_PERCENT = 5;
@@ -39,7 +45,10 @@ export function useCallOptionBuyFormModel() {
   const setChartStrikePercent = useChartOptionsStore((state) => state.setStrikePercent);
   const setChartTermDays = useChartOptionsStore((state) => state.setTermDays);
 
-  const minOfferAmountSats = config?.minOfferAmountSats ?? DEFAULT_MIN_OFFER_AMOUNT_SATS;
+  const minAcceptOfferAmountSats =
+    config?.minAcceptOfferAmountSats ?? DEFAULT_MIN_ACCEPT_OFFER_AMOUNT_SATS;
+  const maxAcceptOfferAmountSats =
+    config?.maxAcceptOfferAmountSats ?? DEFAULT_MAX_ACCEPT_OFFER_AMOUNT_SATS;
   const availableBalanceSats = Number(account?.balance?.available ?? 0);
   const [amountSats, setAmountSats] = useState(0);
   const [strikePercent, setStrikePercentLocal] = useState<number>(DEFAULT_STRIKE_PERCENT);
@@ -90,17 +99,23 @@ export function useCallOptionBuyFormModel() {
   }, [filteredData, term, strikePercent]);
 
   const maxPremiumAmountSats = useMemo(
-    () => getMaxPremiumAmountSats(selectedStrikeOffers),
-    [selectedStrikeOffers],
+    () => getMaxPremiumAmountSats(selectedStrikeOffers, maxAcceptOfferAmountSats),
+    [selectedStrikeOffers, maxAcceptOfferAmountSats],
   );
   const minPremiumAmountSats = useMemo(
-    () => getMinPremiumAmountSats(selectedStrikeOffers, minOfferAmountSats),
-    [selectedStrikeOffers, minOfferAmountSats],
+    () => getMinPremiumAmountSats(selectedStrikeOffers, minAcceptOfferAmountSats),
+    [selectedStrikeOffers, minAcceptOfferAmountSats],
   );
 
   const offerMatch = useMemo(
-    () => findBestOfferForPremiumAmount(selectedStrikeOffers, amountSats, minOfferAmountSats),
-    [selectedStrikeOffers, amountSats, minOfferAmountSats],
+    () =>
+      findBestOfferForPremiumAmount(
+        selectedStrikeOffers,
+        amountSats,
+        minAcceptOfferAmountSats,
+        maxAcceptOfferAmountSats,
+      ),
+    [selectedStrikeOffers, amountSats, minAcceptOfferAmountSats, maxAcceptOfferAmountSats],
   );
   const bestOffer = offerMatch?.offer ?? null;
   const quantitySats = offerMatch?.quantitySats ?? 0;
@@ -173,7 +188,10 @@ export function useCallOptionBuyFormModel() {
   };
 
   const isWalletConnected = !!primaryWallet;
-  const needDepositMore = isWalletConnected && availableBalanceSats < minOfferAmountSats;
+  const depositMinSats = minPremiumAmountSats;
+  const needDepositMore =
+    isWalletConnected &&
+    shouldRequireDepositForPremiumPurchase(availableBalanceSats, minPremiumAmountSats);
   const hasInsufficientLiquidity = amountSats > maxPremiumAmountSats && maxPremiumAmountSats > 0;
   const isBelowMinimum = amountSats > 0 && amountSats < minPremiumAmountSats;
   const isValidAmount =
@@ -184,7 +202,7 @@ export function useCallOptionBuyFormModel() {
     if (!isWalletConnected) return t("connectWallet");
     if (needDepositMore) {
       return t("depositMoreToBuyOptions", {
-        minBtc: formatBtcWithSymbol(minOfferAmountSats),
+        minBtc: formatBtcWithSymbol(depositMinSats),
       });
     }
     if (acceptOffer.isPending) return t("buyingOption");
@@ -204,8 +222,8 @@ export function useCallOptionBuyFormModel() {
     handleSubmit,
     isSubmitDisabled: !isWalletConnected || !isValidAmount || !bestOffer || acceptOffer.isPending,
     leverage,
+    depositMinSats,
     needDepositMore,
-    minOfferAmountSats,
     maxPremiumAmountSats,
     quantitySats,
     selectedStrikeUsd,

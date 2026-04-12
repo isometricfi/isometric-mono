@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { DEFAULT_MIN_OFFER_AMOUNT_SATS } from "@/lib/utils";
+import { DEFAULT_MIN_ACCEPT_OFFER_AMOUNT_SATS } from "@/lib/utils";
 import { useTRPC } from "@/trpc/react";
 import type { OptionOffer, OptionsData } from "@/types/options";
 import { useConfig } from "./use-config";
@@ -9,7 +9,8 @@ import { useConfig } from "./use-config";
 export function useOptions() {
   const trpc = useTRPC();
   const { data: config } = useConfig();
-  const minOfferAmountSats = config?.minOfferAmountSats ?? DEFAULT_MIN_OFFER_AMOUNT_SATS;
+  const minAcceptOfferAmountSats =
+    config?.minAcceptOfferAmountSats ?? DEFAULT_MIN_ACCEPT_OFFER_AMOUNT_SATS;
 
   return useQuery({
     ...trpc.options.listOptions.queryOptions(),
@@ -20,7 +21,7 @@ export function useOptions() {
           const filteredStrikes = termGroup.strikes
             .map((strike) => ({
               ...strike,
-              offers: strike.offers.filter((offer) => offer.amountSats >= minOfferAmountSats),
+              offers: strike.offers.filter((offer) => offer.amountSats >= minAcceptOfferAmountSats),
             }))
             .filter((strike) => strike.offers.length > 0);
 

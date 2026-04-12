@@ -22,7 +22,7 @@ import { Progress } from "@/components/ui/progress";
 import { type PortfolioOffer, useConfig } from "@/hooks";
 import {
   cn,
-  DEFAULT_MIN_OFFER_AMOUNT_SATS,
+  DEFAULT_MIN_ACCEPT_OFFER_AMOUNT_SATS,
   formatBtcWithSymbol,
   formatBtcWithSymbolBigint,
   roundToN,
@@ -44,12 +44,11 @@ export function OfferCard({ offer, btcPrice, onCancel, isCancelling, rankInfo }:
   const filledAmount = totalSats - remainingSats;
   const filledPercent = totalSats > 0 ? (Number(filledAmount) / Number(totalSats)) * 100 : 0;
   const { data: config } = useConfig();
-  const minOfferAmountSats = config?.minOfferAmountSats ?? DEFAULT_MIN_OFFER_AMOUNT_SATS;
+  const minAcceptOfferAmountSats =
+    config?.minAcceptOfferAmountSats ?? DEFAULT_MIN_ACCEPT_OFFER_AMOUNT_SATS;
   const strikePrice = btcPrice > 0 ? btcPrice * (1 + offer.strikeBasisPoints / 10000) : null;
   const premiumSats = (Number(totalSats) * offer.premiumBasisPoints) / 10000;
-  const belowMinOfferAmount = remainingSats < minOfferAmountSats;
-
-  console.log(rankInfo);
+  const belowMinOfferAmount = remainingSats < minAcceptOfferAmountSats;
 
   return (
     <Card className={cn("overflow-hidden transition-all hover:border-primary/50 relative py-4")}>
@@ -74,7 +73,7 @@ export function OfferCard({ offer, btcPrice, onCancel, isCancelling, rankInfo }:
           <div className="-mt-1.5">
             <Badge variant={"destructive"} className="text-sm text-center w-full py-0">
               {t("remainingBelowMinimum", {
-                amount: formatBtcWithSymbol(minOfferAmountSats),
+                amount: formatBtcWithSymbol(minAcceptOfferAmountSats),
               })}
             </Badge>
           </div>

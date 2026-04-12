@@ -76,7 +76,7 @@ describe("acceptOffer", () => {
       config: {
         getConfig: {
           query: vi.fn().mockResolvedValue({
-            minOfferAmountSats: MIN_OFFER_AMOUNT_SATS,
+            minAcceptOfferAmountSats: MIN_OFFER_AMOUNT_SATS,
           }),
         },
       },

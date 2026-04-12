@@ -33,7 +33,10 @@ pub struct Range<T> {
 
 #[derive(Debug, Deserialize, Serialize, CandidType, Clone, Copy)]
 pub struct TradingLimits {
-    pub quantity_sats: Range<u64>,
+    #[serde(default = "default_offer_quantity_sats_range")]
+    pub create_offer_quantity_sats: Range<u64>,
+    #[serde(default = "default_offer_quantity_sats_range")]
+    pub accept_offer_quantity_sats: Range<u64>,
     pub premium_basis_points: Range<u16>,
     pub strike_basis_points: Range<u16>,
     pub option_duration_seconds: Range<u64>,
@@ -47,6 +50,13 @@ pub struct TradingLimits {
 
 fn default_max_offers_per_term() -> usize {
     5
+}
+
+fn default_offer_quantity_sats_range() -> Range<u64> {
+    Range {
+        min: 40_000,
+        max: 100_000_000,
+    }
 }
 
 #[derive(Debug, Deserialize, Serialize, CandidType, Clone, Copy)]
@@ -71,11 +81,10 @@ impl Default for FeeConfig {
 
 impl Default for TradingLimits {
     fn default() -> Self {
+        let default_offer_quantity_sats = default_offer_quantity_sats_range();
         Self {
-            quantity_sats: Range {
-                min: 90_000,
-                max: 100_000_000,
-            },
+            create_offer_quantity_sats: default_offer_quantity_sats,
+            accept_offer_quantity_sats: default_offer_quantity_sats,
             premium_basis_points: Range {
                 min: 50,
                 max: 10_000,
@@ -190,9 +199,22 @@ impl Config {
     }
 
     pub fn set_quantity_sats_range(min: u64, max: u64) {
+        Config::set_create_offer_quantity_sats_range(min, max);
+        Config::set_accept_offer_quantity_sats_range(min, max);
+    }
+
+    pub fn set_create_offer_quantity_sats_range(min: u64, max: u64) {
         CONFIG.with_borrow_mut(|c| {
             let mut config = c.get().0.clone();
-            config.trading_limits.quantity_sats = Range { min, max };
+            config.trading_limits.create_offer_quantity_sats = Range { min, max };
+            let _ = c.set(Cbor(config));
+        });
+    }
+
+    pub fn set_accept_offer_quantity_sats_range(min: u64, max: u64) {
+        CONFIG.with_borrow_mut(|c| {
+            let mut config = c.get().0.clone();
+            config.trading_limits.accept_offer_quantity_sats = Range { min, max };
             let _ = c.set(Cbor(config));
         });
     }

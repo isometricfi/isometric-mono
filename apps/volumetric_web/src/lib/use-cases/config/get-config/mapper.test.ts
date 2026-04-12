@@ -4,7 +4,8 @@ import { mapConfig } from "./mapper";
 function makeValidLimits(overrides: Record<string, unknown> = {}) {
   return {
     term_days: { min: BigInt(1), max: BigInt(14) },
-    quantity_sats: { min: BigInt(10_000), max: BigInt(1_000_000) },
+    create_offer_quantity_sats: { min: BigInt(10_000), max: BigInt(1_000_000) },
+    accept_offer_quantity_sats: { min: BigInt(5_000), max: BigInt(500_000) },
     premium_basis_points: { min: 100, max: 5_000 },
     strike_basis_points: { min: 500, max: 2_000 },
     option_duration_seconds: { min: BigInt(86_400), max: BigInt(1_209_600) },
@@ -45,8 +46,10 @@ describe("mapConfig", () => {
       termOptions: [1, 7, 14],
       strikePercentOptions: [5, 10, 15, 20],
       premium: { min: 1, max: 50, step: 0.25 },
-      minOfferAmountSats: 10_000,
-      maxOfferAmountSats: 1_000_000,
+      minCreateOfferAmountSats: 10_000,
+      maxCreateOfferAmountSats: 1_000_000,
+      minAcceptOfferAmountSats: 5_000,
+      maxAcceptOfferAmountSats: 500_000,
       minDepositAmountSats: 5_000,
       minWithdrawAmountSats: 5_000,
       minTermDays: 1,

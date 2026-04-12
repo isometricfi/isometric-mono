@@ -5,12 +5,14 @@ use crate::errors::VolumetricError;
 use crate::guards::is_whitelisted;
 use crate::storage::{get_platform_fees_collected, Config, FeatureFlags, FeeConfig, TradingLimits};
 use crate::usecases::{
-    self, set_deposit_amount_sats_use_case, set_fee_config_use_case, set_fee_recipient_use_case,
-    set_max_offers_per_term_use_case, set_option_duration_seconds_range_use_case,
-    set_premium_basis_points_range_use_case, set_premium_fee_basis_points_use_case,
-    set_profit_fee_basis_points_use_case, set_quantity_sats_range_use_case,
-    set_strike_basis_points_range_use_case, set_term_days_range_use_case,
-    set_withdraw_amount_sats_use_case, testing_set_ckbtc_ledger_use_case,
+    self, set_accept_offer_quantity_sats_range_use_case,
+    set_create_offer_quantity_sats_range_use_case, set_deposit_amount_sats_use_case,
+    set_fee_config_use_case, set_fee_recipient_use_case, set_max_offers_per_term_use_case,
+    set_option_duration_seconds_range_use_case, set_premium_basis_points_range_use_case,
+    set_premium_fee_basis_points_use_case, set_profit_fee_basis_points_use_case,
+    set_quantity_sats_range_use_case, set_strike_basis_points_range_use_case,
+    set_term_days_range_use_case, set_withdraw_amount_sats_use_case,
+    testing_set_ckbtc_ledger_use_case,
 };
 
 #[query]
@@ -72,6 +74,26 @@ pub fn set_trading_limits_config(limits: TradingLimits) -> Result<(), Volumetric
 pub fn set_quantity_sats_range_config(min: u64, max: u64) -> Result<(), VolumetricError> {
     is_whitelisted()?;
     set_quantity_sats_range_use_case(min, max);
+    Ok(())
+}
+
+#[update]
+pub fn set_create_offer_quantity_sats_range_config(
+    min: u64,
+    max: u64,
+) -> Result<(), VolumetricError> {
+    is_whitelisted()?;
+    set_create_offer_quantity_sats_range_use_case(min, max);
+    Ok(())
+}
+
+#[update]
+pub fn set_accept_offer_quantity_sats_range_config(
+    min: u64,
+    max: u64,
+) -> Result<(), VolumetricError> {
+    is_whitelisted()?;
+    set_accept_offer_quantity_sats_range_use_case(min, max);
     Ok(())
 }
 

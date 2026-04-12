@@ -18,7 +18,8 @@ pub use config::reset_oracle_config;
 #[cfg(feature = "testing")]
 pub use config::set_oracle_price_config;
 pub use config::{
-    get_config, get_feature_flags, get_trading_limits, set_deposit_amount_sats_config,
+    get_config, get_feature_flags, get_trading_limits, set_accept_offer_quantity_sats_range_config,
+    set_create_offer_quantity_sats_range_config, set_deposit_amount_sats_config,
     set_feature_flags_config, set_max_offers_per_term_config,
     set_option_duration_seconds_range_config, set_premium_basis_points_range_config,
     set_quantity_sats_range_config, set_strike_basis_points_range_config,

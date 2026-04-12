@@ -31,8 +31,8 @@ export function CallWriteOptionForm() {
     handleStrikeUsdChange,
     handleSubmit,
     isSubmitDisabled,
-    minOfferAmountSats,
-    maxOfferAmountSats,
+    minCreateOfferAmountSats,
+    maxCreateOfferAmountSats,
     needDepositMore,
     premiumPercent,
     premiumValues,
@@ -85,7 +85,7 @@ export function CallWriteOptionForm() {
           label={t("collateral")}
           amountSats={amountSats}
           btcPrice={btcPrice}
-          maxAmountSats={maxOfferAmountSats}
+          maxAmountSats={maxCreateOfferAmountSats}
           onAmountSatsChange={handleAmountSatsChange}
         />
 
@@ -120,7 +120,7 @@ export function CallWriteOptionForm() {
         {needDepositMore ? (
           <p className="text-xs text-muted-foreground">
             {t("createOffersDepositReason", {
-              minBtc: formatBtcWithSymbol(minOfferAmountSats),
+              minBtc: formatBtcWithSymbol(minCreateOfferAmountSats),
             })}
           </p>
         ) : null}

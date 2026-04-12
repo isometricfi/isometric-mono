@@ -103,8 +103,8 @@ describe("createOffer", () => {
       termOptions: [2, 3],
       strikePercentOptions: [5, 10, 15],
       premium: { min: 1, max: 10, step: 0.25 },
-      minOfferAmountSats: MIN_OFFER_AMOUNT_SATS,
-      maxOfferAmountSats: MAX_OFFER_AMOUNT_SATS,
+      minCreateOfferAmountSats: MIN_OFFER_AMOUNT_SATS,
+      maxCreateOfferAmountSats: MAX_OFFER_AMOUNT_SATS,
     });
     mockTrpc.options.createOffer.mutate.mockResolvedValue({ offerId: "unexpected-create" });
   });
@@ -196,8 +196,8 @@ describe("createOffer", () => {
       termOptions: [7, 2],
       strikePercentOptions: [5, 10, 15],
       premium: { min: 1, max: 10, step: 0.25 },
-      minOfferAmountSats: MIN_OFFER_AMOUNT_SATS,
-      maxOfferAmountSats: MAX_OFFER_AMOUNT_SATS,
+      minCreateOfferAmountSats: MIN_OFFER_AMOUNT_SATS,
+      maxCreateOfferAmountSats: MAX_OFFER_AMOUNT_SATS,
     });
     mockTrpc.account.getBalance.query.mockResolvedValue({
       available: LARGE_AVAILABLE_BALANCE_SATS,
@@ -221,8 +221,8 @@ describe("createOffer", () => {
       termOptions: [7, 14],
       strikePercentOptions: [5, 10, 15],
       premium: { min: 1, max: 10, step: 0.25 },
-      minOfferAmountSats: MIN_OFFER_AMOUNT_SATS,
-      maxOfferAmountSats: MAX_OFFER_AMOUNT_SATS,
+      minCreateOfferAmountSats: MIN_OFFER_AMOUNT_SATS,
+      maxCreateOfferAmountSats: MAX_OFFER_AMOUNT_SATS,
     });
     mockTrpc.account.getBalance.query.mockResolvedValue({
       available: LARGE_AVAILABLE_BALANCE_SATS,
@@ -241,8 +241,8 @@ describe("createOffer", () => {
       termOptions: [2, 3],
       strikePercentOptions: [5, 10, 15],
       premium: { min: 1, max: 10, step: 0.25 },
-      minOfferAmountSats: 100_000,
-      maxOfferAmountSats: 50_000,
+      minCreateOfferAmountSats: 100_000,
+      maxCreateOfferAmountSats: 50_000,
     });
     mockTrpc.account.getBalance.query.mockResolvedValue({
       available: LARGE_AVAILABLE_BALANCE_SATS,
