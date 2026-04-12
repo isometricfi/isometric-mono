@@ -39,7 +39,7 @@
         "OTEL_EXPORTER_OTLP_TRACES_ENDPOINT": "https://otlp-gateway-prod-eu-central-0.grafana.net/otlp/v1/traces",
         "OTEL_EXPORTER_OTLP_LOGS_ENDPOINT": "https://otlp-gateway-prod-eu-central-0.grafana.net/otlp/v1/logs",
         "MEMPOOL_API_URL": "https://mempool.space/testnet/api",
-        "NEXT_PUBLIC_MEMPOOL_URL": "https://mempool.space/",
+        "NEXT_PUBLIC_MEMPOOL_URL": "https://mempool.space",
         "CANISTER_ID": "4dqqd-aqaaa-aaaae-qgbta-cai"
       },
       "services": [

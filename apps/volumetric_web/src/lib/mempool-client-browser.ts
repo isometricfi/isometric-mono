@@ -16,7 +16,7 @@ export async function fetchAddressTransactions(
   baseUrl: string,
   address: string,
 ): Promise<MempoolAddressTransaction[]> {
-  const response = await fetch(`${baseUrl}/api/address/${address}/txs`);
+  const response = await fetch(`${baseUrl}/api/address/${address}/txs/mempool`);
   if (!response.ok) {
     throw new Error(`Mempool request failed (${response.status})`);
   }

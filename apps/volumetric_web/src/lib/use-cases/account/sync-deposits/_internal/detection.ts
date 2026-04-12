@@ -12,7 +12,6 @@ interface DetectMaturedDepositsForUserParams {
   userAddress: string;
   nowMs: number;
   currentBlockTipHeight: number;
-  minDepositAmountSats: number;
   minterConfirmations: number;
 }
 
@@ -21,6 +20,7 @@ interface GroupDueDepositsByUserParams {
   nowMs: number;
   maxDueDepositsPerTick: number;
   maxTrackedDepositAgeMs: number;
+  minimumConfirmationsToSync: number;
 }
 
 function getDepositTrackingKey(userAddress: string, txid: string, vout: number): string {
@@ -64,15 +64,8 @@ async function resolveUserDepositAddress(
 export async function detectMaturedDepositsForUser(
   params: DetectMaturedDepositsForUserParams,
 ): Promise<number> {
-  const {
-    repository,
-    actor,
-    userAddress,
-    nowMs,
-    currentBlockTipHeight,
-    minDepositAmountSats,
-    minterConfirmations,
-  } = params;
+  const { repository, actor, userAddress, nowMs, currentBlockTipHeight, minterConfirmations } =
+    params;
 
   const depositAddress = await resolveUserDepositAddress(repository, actor, userAddress, nowMs);
   if (!depositAddress) {
@@ -101,9 +94,6 @@ export async function detectMaturedDepositsForUser(
       }
 
       const valueSats = output.value ?? 0;
-      if (valueSats < minDepositAmountSats) {
-        continue;
-      }
 
       const trackingKey = getDepositTrackingKey(userAddress, tx.txid, vout);
       const existingTrackedDeposit = await repository.getTrackedDepositByKey(trackingKey);
@@ -150,7 +140,13 @@ export async function detectMaturedDepositsForUser(
 export async function groupDueDepositsByUser(
   params: GroupDueDepositsByUserParams,
 ): Promise<Map<string, TrackedDeposit[]>> {
-  const { repository, nowMs, maxDueDepositsPerTick, maxTrackedDepositAgeMs } = params;
+  const {
+    repository,
+    nowMs,
+    maxDueDepositsPerTick,
+    maxTrackedDepositAgeMs,
+    minimumConfirmationsToSync,
+  } = params;
 
   const dueTrackedDeposits = await repository.listDueTrackedDeposits(nowMs, maxDueDepositsPerTick);
   const dueDepositsByUser = new Map<string, TrackedDeposit[]>();
@@ -163,6 +159,10 @@ export async function groupDueDepositsByUser(
         status: "expired",
         updatedAtMs: nowMs,
       });
+      continue;
+    }
+
+    if (trackedDeposit.confirmations < minimumConfirmationsToSync) {
       continue;
     }
 
