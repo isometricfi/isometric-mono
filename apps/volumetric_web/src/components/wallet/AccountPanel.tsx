@@ -19,6 +19,7 @@ import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Drawer, DrawerContent, DrawerTitle } from "@/components/ui/drawer";
 import { DepositModal } from "@/components/wallet/DepositModal";
+import { PendingDeposits } from "@/components/wallet/PendingDeposits";
 import { WithdrawModal } from "@/components/wallet/WithdrawModal";
 import { useAccount, usePrices, useUpdateUsername } from "@/hooks";
 import { Link, usePathname, useRouter } from "@/i18n/routing";
@@ -202,6 +203,7 @@ function AccountPanelContent({ onDisconnect }: { onDisconnect: () => void }) {
                   <p>{t("withdraw")}</p>
                 </Button>
               </div>
+              <PendingDeposits />
               <Link href="/history" className="md:absolute right-0 w-full">
                 <Button variant="outline" size="sm" className="w-full">
                   <History className="size-4 " /> {t("tradeHistory")}

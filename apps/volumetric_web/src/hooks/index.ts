@@ -49,6 +49,11 @@ export {
   getStrikePercentsForTerm,
   useOptions,
 } from "./queries/use-options";
+export {
+  type PendingDeposit,
+  type PendingDepositStatus,
+  usePendingDeposits,
+} from "./queries/use-pending-deposits";
 export { usePortfolio } from "./queries/use-portfolio";
 export { usePrices } from "./queries/use-prices";
 export { useWalletBalance } from "./queries/use-wallet-balance";
