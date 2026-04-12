@@ -4,6 +4,7 @@ import {
   findBestOfferForPremiumAmount,
   getMinPremiumAmountSats,
   isBalanceInsufficientForPremiumPurchase,
+  shouldRequireDepositForPremiumPurchase,
 } from "./premium-amount";
 
 const TEST_OFFER: OptionOffer = {
@@ -35,6 +36,23 @@ describe("isBalanceInsufficientForPremiumPurchase", () => {
     // then
     expect(minPremiumAmountSats).toBe(EXPECTED_MIN_PREMIUM_SATS);
     expect(isInsufficient).toBe(false);
+  });
+});
+
+describe("shouldRequireDepositForPremiumPurchase", () => {
+  test("should not require a deposit when no buyable offers exist", () => {
+    // given
+    const availableBalanceSats = 0;
+    const minPremiumAmountSats = 0;
+
+    // when
+    const shouldRequireDeposit = shouldRequireDepositForPremiumPurchase(
+      availableBalanceSats,
+      minPremiumAmountSats,
+    );
+
+    // then
+    expect(shouldRequireDeposit).toBe(false);
   });
 });
 

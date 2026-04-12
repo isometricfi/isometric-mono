@@ -66,3 +66,14 @@ export function isBalanceInsufficientForPremiumPurchase(
 ): boolean {
   return availableBalanceSats < minPremiumAmountSats;
 }
+
+export function shouldRequireDepositForPremiumPurchase(
+  availableBalanceSats: number,
+  minPremiumAmountSats: number,
+): boolean {
+  if (minPremiumAmountSats <= 0) {
+    return false;
+  }
+
+  return isBalanceInsufficientForPremiumPurchase(availableBalanceSats, minPremiumAmountSats);
+}

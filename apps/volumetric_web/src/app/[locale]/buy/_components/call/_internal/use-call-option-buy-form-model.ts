@@ -25,7 +25,7 @@ import {
   findBestOfferForPremiumAmount,
   getMaxPremiumAmountSats,
   getMinPremiumAmountSats,
-  isBalanceInsufficientForPremiumPurchase,
+  shouldRequireDepositForPremiumPurchase,
 } from "./premium-amount";
 
 const DEFAULT_STRIKE_PERCENT = 5;
@@ -188,10 +188,10 @@ export function useCallOptionBuyFormModel() {
   };
 
   const isWalletConnected = !!primaryWallet;
-  const depositMinSats = minPremiumAmountSats > 0 ? minPremiumAmountSats : minAcceptOfferAmountSats;
+  const depositMinSats = minPremiumAmountSats;
   const needDepositMore =
     isWalletConnected &&
-    isBalanceInsufficientForPremiumPurchase(availableBalanceSats, depositMinSats);
+    shouldRequireDepositForPremiumPurchase(availableBalanceSats, minPremiumAmountSats);
   const hasInsufficientLiquidity = amountSats > maxPremiumAmountSats && maxPremiumAmountSats > 0;
   const isBelowMinimum = amountSats > 0 && amountSats < minPremiumAmountSats;
   const isValidAmount =
