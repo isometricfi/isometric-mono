@@ -370,9 +370,14 @@ describe("syncDepositsFromCanister", () => {
     nowSpy.mockRestore();
 
     // then
-    expect(result.maturedDetected).toBe(0);
+    expect(result.maturedDetected).toBe(1);
     expect(result.syncCalls).toBe(0);
     expect(actor.update_ckbtc_balance).not.toHaveBeenCalled();
+
+    const trackedDeposits = repository.getAllTracked();
+    expect(trackedDeposits).toHaveLength(1);
+    expect(trackedDeposits[0]?.status).toBe("matured");
+    expect(trackedDeposits[0]?.confirmations).toBe(3);
   });
 
   test("should use exponential backoff and keep snapshot history when sync does not credit", async () => {

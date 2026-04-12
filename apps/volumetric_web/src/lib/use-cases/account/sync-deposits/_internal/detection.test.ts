@@ -226,6 +226,7 @@ describe("groupDueDepositsByUser", () => {
       nowMs: TEST_NOW_MS,
       maxDueDepositsPerTick: 50,
       maxTrackedDepositAgeMs: 5_000,
+      minimumConfirmationsToSync: TEST_MINTER_CONFIRMATIONS,
     });
 
     // then

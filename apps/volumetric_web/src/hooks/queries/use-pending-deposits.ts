@@ -1,16 +1,14 @@
 "use client";
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useMemo, useRef } from "react";
-import {
-  fetchAddressTransactions,
-  fetchTipHeight,
-  MempoolAddressTracker,
-} from "@/lib/mempool-client-browser";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { fetchAddressTransactions, MempoolAddressTracker } from "@/lib/mempool-client-browser";
 import { useTRPC } from "@/trpc/react";
 import { useBtcAddress } from "./use-btc-address";
 import { useDepositAddress } from "./use-deposit-address";
 
+const MEMPOOL_FALLBACK_BASE_URL = "https://mempool.space";
+const DEPOSIT_ADDRESS_CACHE_PREFIX = "deposit-address-cache";
 const REQUIRED_CONFIRMATIONS = 4;
 
 export type PendingDepositStatus = "unconfirmed" | "confirming" | "processing";
@@ -23,8 +21,79 @@ export interface PendingDeposit {
   status: PendingDepositStatus;
 }
 
+function getBackendPendingStatus(confirmations: number): PendingDepositStatus {
+  if (confirmations < REQUIRED_CONFIRMATIONS) {
+    return "confirming";
+  }
+
+  return "processing";
+}
+
 function getMempoolBaseUrl(): string | null {
-  return process.env.NEXT_PUBLIC_MEMPOOL_URL?.trim().replace(/\/$/, "") ?? null;
+  const configuredBaseUrl = process.env.NEXT_PUBLIC_MEMPOOL_URL?.trim().replace(/\/$/, "");
+
+  if (configuredBaseUrl) {
+    return configuredBaseUrl;
+  }
+
+  return MEMPOOL_FALLBACK_BASE_URL;
+}
+
+function getDepositAddressCacheKey(userAddress: string): string {
+  return `${DEPOSIT_ADDRESS_CACHE_PREFIX}:${userAddress}`;
+}
+
+interface ServerPendingDepositRow {
+  txid: string;
+  vout: number;
+  valueSats: number;
+  confirmations: number;
+}
+
+interface BuildPendingDepositsParams {
+  mempoolTxs: Awaited<ReturnType<typeof fetchAddressTransactions>>;
+  serverPendingDeposits: ServerPendingDepositRow[];
+  depositAddress: string | null;
+}
+
+export function buildPendingDeposits(params: BuildPendingDepositsParams): PendingDeposit[] {
+  const { mempoolTxs, serverPendingDeposits, depositAddress } = params;
+  const result: PendingDeposit[] = [];
+
+  if (depositAddress) {
+    // process unconfirmed mempool transactions detected for the deposit address
+    for (const tx of mempoolTxs) {
+      const outputs = tx.vout ?? [];
+      for (let voutIndex = 0; voutIndex < outputs.length; voutIndex++) {
+        const output = outputs[voutIndex];
+        if (output.scriptpubkey_address !== depositAddress || !output.value) continue;
+
+        result.push({
+          txid: tx.txid,
+          vout: voutIndex,
+          valueSats: output.value,
+          confirmations: 0,
+          status: "unconfirmed",
+        });
+      }
+    }
+  }
+
+  // add server tracked pending deposits (confirmed, not yet credited)
+  for (const deposit of serverPendingDeposits) {
+    result.push({
+      txid: deposit.txid,
+      vout: deposit.vout,
+      valueSats: deposit.valueSats,
+      confirmations: deposit.confirmations,
+      status: getBackendPendingStatus(deposit.confirmations),
+    });
+  }
+
+  // by confirmations ascending
+  result.sort((a, b) => a.confirmations - b.confirmations);
+
+  return result;
 }
 
 export function usePendingDeposits() {
@@ -32,25 +101,40 @@ export function usePendingDeposits() {
   const queryClient = useQueryClient();
   const userAddress = useBtcAddress("payment");
   const { data: depositAddressData } = useDepositAddress();
-  const depositAddress = depositAddressData?.btcAddress ?? null;
+  const depositAddressFromServer = depositAddressData?.btcAddress ?? null;
+  const [cachedDepositAddress, setCachedDepositAddress] = useState<string | null>(null);
   const mempoolBaseUrl = getMempoolBaseUrl();
+  const depositAddress = depositAddressFromServer ?? cachedDepositAddress;
 
   const enabled = !!depositAddress && !!mempoolBaseUrl;
 
+  useEffect(() => {
+    if (!userAddress) {
+      setCachedDepositAddress(null);
+      return;
+    }
+
+    const cacheKey = getDepositAddressCacheKey(userAddress);
+    const cachedValue = window.localStorage.getItem(cacheKey);
+    setCachedDepositAddress(cachedValue);
+  }, [userAddress]);
+
+  useEffect(() => {
+    if (!userAddress || !depositAddressFromServer) {
+      return;
+    }
+
+    const cacheKey = getDepositAddressCacheKey(userAddress);
+    window.localStorage.setItem(cacheKey, depositAddressFromServer);
+    setCachedDepositAddress(depositAddressFromServer);
+  }, [userAddress, depositAddressFromServer]);
+
   const mempoolTxQuery = useQuery({
-    queryKey: ["mempool", "address-txs", depositAddress],
+    queryKey: ["mempool", "address-txs-mempool", depositAddress],
     queryFn: () => fetchAddressTransactions(mempoolBaseUrl!, depositAddress!),
     enabled,
     refetchInterval: 30_000,
     staleTime: 10_000,
-  });
-
-  const tipHeightQuery = useQuery({
-    queryKey: ["mempool", "tip-height"],
-    queryFn: () => fetchTipHeight(mempoolBaseUrl!),
-    enabled: !!mempoolBaseUrl,
-    refetchInterval: 60_000,
-    staleTime: 30_000,
   });
 
   const serverPendingQuery = useQuery({
@@ -66,11 +150,14 @@ export function usePendingDeposits() {
 
     const tracker = new MempoolAddressTracker(mempoolBaseUrl!, depositAddress!, {
       onTransaction: () => {
-        queryClient.invalidateQueries({ queryKey: ["mempool", "address-txs", depositAddress] });
+        queryClient.invalidateQueries({
+          queryKey: ["mempool", "address-txs-mempool", depositAddress],
+        });
       },
       onBlockHeight: () => {
-        queryClient.invalidateQueries({ queryKey: ["mempool", "tip-height"] });
-        queryClient.invalidateQueries({ queryKey: ["mempool", "address-txs", depositAddress] });
+        queryClient.invalidateQueries({
+          queryKey: ["mempool", "address-txs-mempool", depositAddress],
+        });
       },
     });
 
@@ -84,63 +171,19 @@ export function usePendingDeposits() {
   }, [enabled, mempoolBaseUrl, depositAddress, queryClient]);
 
   const deposits = useMemo<PendingDeposit[]>(() => {
-    const tipHeight = tipHeightQuery.data;
     const mempoolTxs = mempoolTxQuery.data ?? [];
-    const serverDeposits = serverPendingQuery.data?.pendingDeposits ?? [];
-    const serverKeys = new Set(serverDeposits.map((d) => `${d.txid}:${d.vout}`));
-    const result: PendingDeposit[] = [];
+    const serverPendingDeposits = serverPendingQuery.data?.pendingDeposits ?? [];
 
-    // process mempool transactions (0-3 confirmations)
-    for (const tx of mempoolTxs) {
-      const outputs = tx.vout ?? [];
-      for (let voutIndex = 0; voutIndex < outputs.length; voutIndex++) {
-        const output = outputs[voutIndex];
-        if (output.scriptpubkey_address !== depositAddress || !output.value) continue;
-
-        const isConfirmed = tx.status?.confirmed === true && tx.status.block_height != null;
-        const confirmations =
-          isConfirmed && tipHeight != null
-            ? Math.max(0, tipHeight - tx.status!.block_height! + 1)
-            : 0;
-
-        // skip if already tracked by server (server is authoritative for 4+ conf)
-        if (serverKeys.has(`${tx.txid}:${voutIndex}`)) continue;
-
-        result.push({
-          txid: tx.txid,
-          vout: voutIndex,
-          valueSats: output.value,
-          confirmations,
-          status:
-            confirmations === 0
-              ? "unconfirmed"
-              : confirmations < REQUIRED_CONFIRMATIONS
-                ? "confirming"
-                : "processing",
-        });
-      }
-    }
-
-    // add server tracked deposits (4+ confirmations, not yet credited)
-    for (const deposit of serverDeposits) {
-      result.push({
-        txid: deposit.txid,
-        vout: deposit.vout,
-        valueSats: deposit.valueSats,
-        confirmations: deposit.confirmations,
-        status: "processing",
-      });
-    }
-
-    // by confirmations ascending
-    result.sort((a, b) => a.confirmations - b.confirmations);
-
-    return result;
-  }, [tipHeightQuery.data, mempoolTxQuery.data, serverPendingQuery.data, depositAddress]);
+    return buildPendingDeposits({
+      mempoolTxs,
+      serverPendingDeposits,
+      depositAddress,
+    });
+  }, [mempoolTxQuery.data, serverPendingQuery.data, depositAddress]);
 
   return {
     deposits,
-    isLoading: mempoolTxQuery.isLoading || tipHeightQuery.isLoading,
+    isLoading: mempoolTxQuery.isLoading || serverPendingQuery.isLoading,
     hasPending: deposits.length > 0,
   };
 }

@@ -8,6 +8,7 @@ import { reconcileUserDepositsAfterSync } from "./_internal/reconciliation";
 import { mapResult } from "./mapper";
 import type { Output } from "./schema";
 
+const DETECTION_CONFIRMATIONS = 1;
 const MINTER_CONFIRMATIONS = 4;
 const MAX_SYNC_ATTEMPTS = 6;
 const MAX_DUE_DEPOSITS_PER_TICK = 200;
@@ -62,7 +63,7 @@ export async function syncDepositsFromCanister(): Promise<Output> {
           userAddress: user.address,
           nowMs,
           currentBlockTipHeight,
-          minterConfirmations: MINTER_CONFIRMATIONS,
+          minterConfirmations: DETECTION_CONFIRMATIONS,
         }),
       );
       const detectionResults = await Promise.all(detectionPromises);
@@ -78,6 +79,7 @@ export async function syncDepositsFromCanister(): Promise<Output> {
         nowMs,
         maxDueDepositsPerTick: MAX_DUE_DEPOSITS_PER_TICK,
         maxTrackedDepositAgeMs: MAX_TRACKED_DEPOSIT_AGE_6_HOURS_MS,
+        minimumConfirmationsToSync: MINTER_CONFIRMATIONS,
       }),
     );
 

@@ -20,6 +20,7 @@ interface GroupDueDepositsByUserParams {
   nowMs: number;
   maxDueDepositsPerTick: number;
   maxTrackedDepositAgeMs: number;
+  minimumConfirmationsToSync: number;
 }
 
 function getDepositTrackingKey(userAddress: string, txid: string, vout: number): string {
@@ -139,7 +140,13 @@ export async function detectMaturedDepositsForUser(
 export async function groupDueDepositsByUser(
   params: GroupDueDepositsByUserParams,
 ): Promise<Map<string, TrackedDeposit[]>> {
-  const { repository, nowMs, maxDueDepositsPerTick, maxTrackedDepositAgeMs } = params;
+  const {
+    repository,
+    nowMs,
+    maxDueDepositsPerTick,
+    maxTrackedDepositAgeMs,
+    minimumConfirmationsToSync,
+  } = params;
 
   const dueTrackedDeposits = await repository.listDueTrackedDeposits(nowMs, maxDueDepositsPerTick);
   const dueDepositsByUser = new Map<string, TrackedDeposit[]>();
@@ -152,6 +159,10 @@ export async function groupDueDepositsByUser(
         status: "expired",
         updatedAtMs: nowMs,
       });
+      continue;
+    }
+
+    if (trackedDeposit.confirmations < minimumConfirmationsToSync) {
       continue;
     }
 
