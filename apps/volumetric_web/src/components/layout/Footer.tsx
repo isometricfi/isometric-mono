@@ -1,20 +1,18 @@
 "use client";
 
-import { Book, FileText, Github, Mail, MessageCircleQuestionMark, Shield } from "lucide-react";
+import { Book, FileText, Mail, Shield } from "lucide-react";
 import Image from "next/image";
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/routing";
 
 const SOCIAL_LINKS = {
   telegram: "https://t.me/isometricfi",
-  x: "https://x.com/isometric",
+  x: "https://x.com/isometricfi",
   email: "mailto:support@isometric.fi",
 };
 
 const RESOURCE_LINKS = {
   docs: "https://docs.isometric.fi",
-  support: "/support",
-  github: "https://github.com/volumetrichq/volumetric-mono",
 };
 
 const LEGAL_LINKS = {
@@ -63,7 +61,22 @@ export function Footer() {
                 {t("copyright", { year: currentYear })}
               </p>
             </div>
-
+            <div>
+              <h3 className="font-medium text-sm mb-3">{t("resources")}</h3>
+              <ul className="space-y-2.5">
+                <li>
+                  <a
+                    href={RESOURCE_LINKS.docs}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center gap-2"
+                  >
+                    <Book className="size-4" />
+                    {t("documentation")}
+                  </a>
+                </li>
+              </ul>
+            </div>
             <div>
               <h3 className="font-medium text-sm mb-3">{t("legal")}</h3>
               <ul className="space-y-2.5">
@@ -87,46 +100,6 @@ export function Footer() {
                 </li>
               </ul>
             </div>
-
-            <div>
-              <h3 className="font-medium text-sm mb-3">{t("resources")}</h3>
-              <ul className="space-y-2.5">
-                <li>
-                  <a
-                    href={RESOURCE_LINKS.docs}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center gap-2"
-                  >
-                    <Book className="size-4" />
-                    {t("documentation")}
-                  </a>
-                </li>
-                <li>
-                  <a
-                    href={RESOURCE_LINKS.support}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center gap-2"
-                  >
-                    <MessageCircleQuestionMark className="size-4" />
-                    {t("support")}
-                  </a>
-                </li>
-                <li>
-                  <a
-                    href={RESOURCE_LINKS.github}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center gap-2"
-                  >
-                    <Github className="size-4" />
-                    {t("github")}
-                  </a>
-                </li>
-              </ul>
-            </div>
-
             <div>
               <h3 className="font-medium text-sm mb-3">{t("connect")}</h3>
               <ul className="space-y-2.5">
