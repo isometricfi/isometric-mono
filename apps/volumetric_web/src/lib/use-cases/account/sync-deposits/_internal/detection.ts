@@ -88,7 +88,7 @@ export async function detectMaturedDepositsForUser(
       continue;
     }
 
-    const confirmations = currentBlockTipHeight - blockHeight + 1;
+    const confirmations = Math.max(0, currentBlockTipHeight - blockHeight + 1);
     if (confirmations < minterConfirmations) {
       continue;
     }

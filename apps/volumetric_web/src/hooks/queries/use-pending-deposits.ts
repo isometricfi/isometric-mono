@@ -99,7 +99,9 @@ export function usePendingDeposits() {
 
         const isConfirmed = tx.status?.confirmed === true && tx.status.block_height != null;
         const confirmations =
-          isConfirmed && tipHeight ? tipHeight - tx.status!.block_height! + 1 : 0;
+          isConfirmed && tipHeight != null
+            ? Math.max(0, tipHeight - tx.status!.block_height! + 1)
+            : 0;
 
         // skip if already tracked by server (server is authoritative for 4+ conf)
         if (serverKeys.has(`${tx.txid}:${voutIndex}`)) continue;
