@@ -7,7 +7,6 @@ import { useMediaQuery } from "react-responsive";
 import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { useAccount, useEnsureAccount, usePendingDeposits } from "@/hooks";
-import { cn } from "@/lib/utils";
 import { AccountCreationModal } from "./AccountCreationModal";
 import { AccountPanel } from "./AccountPanel";
 
@@ -41,13 +40,10 @@ export function ConnectButton() {
         <Button
           variant="outline"
           onClick={() => setOpen(true)}
-          className={cn(
-            "gap-2 pl-1.5 pr-3 relative overflow-hidden",
-            hasPending && "animate-shimmer",
-          )}
+          className="gap-2 pl-1.5 pr-3 relative overflow-hidden"
         >
           {hasPending && (
-            <span className="pointer-events-none absolute inset-0 animate-[shimmer_2s_infinite] bg-gradient-to-r from-transparent via-card-foreground/10 to-transparent" />
+            <span className="pointer-events-none absolute inset-0 animate-shimmer bg-gradient-to-r from-transparent via-card-foreground/10 to-transparent" />
           )}
           <Avatar seed={seed} width={24} height={24} className="size-6 rounded-sm" />
           <span className="max-w-[10rem] truncate">{displayName}</span>
