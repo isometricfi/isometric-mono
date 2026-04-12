@@ -34,6 +34,12 @@
     "saved": "Saved",
     "system": "System"
   },
+  "PendingDeposits": {
+    "pending": "pending",
+    "unconfirmed": "0/4 blocks",
+    "confirming": "{count}/4 blocks",
+    "processing": "Crediting..."
+  },
   "Common": {
     "wallet": "Wallet",
     "close": "Close",

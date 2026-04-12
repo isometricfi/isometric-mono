@@ -39,6 +39,7 @@
         "OTEL_EXPORTER_OTLP_TRACES_ENDPOINT": "https://otlp-gateway-prod-eu-central-0.grafana.net/otlp/v1/traces",
         "OTEL_EXPORTER_OTLP_LOGS_ENDPOINT": "https://otlp-gateway-prod-eu-central-0.grafana.net/otlp/v1/logs",
         "MEMPOOL_API_URL": "https://mempool.space/testnet/api",
+        "NEXT_PUBLIC_MEMPOOL_URL": "https://mempool.space/",
         "CANISTER_ID": "4dqqd-aqaaa-aaaae-qgbta-cai"
       },
       "services": [
@@ -68,6 +69,7 @@
         "OTEL_EXPORTER_OTLP_TRACES_ENDPOINT": "https://otlp-gateway-prod-eu-central-0.grafana.net/otlp/v1/traces",
         "OTEL_EXPORTER_OTLP_LOGS_ENDPOINT": "https://otlp-gateway-prod-eu-central-0.grafana.net/otlp/v1/logs",
         "MEMPOOL_API_URL": "https://mempool.space/api",
+        "NEXT_PUBLIC_MEMPOOL_URL": "https://mempool.space",
         "CANISTER_ID": "5optx-3iaaa-aaaae-qjwsa-cai",
         "NEXT_PUBLIC_TAWK_EMBED_URL": "https://embed.tawk.to/69a303f652cbb51c37094784/1jiicevko"
       },
