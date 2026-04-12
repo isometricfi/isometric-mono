@@ -37,8 +37,8 @@ interface BotConfigData {
     max: number;
     step: number;
   };
-  minOfferAmountSats: number;
-  maxOfferAmountSats: number;
+  minCreateOfferAmountSats: number;
+  maxCreateOfferAmountSats: number;
 }
 
 interface OfferParams {
@@ -136,11 +136,11 @@ function buildOfferParams(
     return null;
   }
 
-  if (config.maxOfferAmountSats < config.minOfferAmountSats) {
+  if (config.maxCreateOfferAmountSats < config.minCreateOfferAmountSats) {
     return null;
   }
 
-  if (maxAffordableSats < config.minOfferAmountSats) {
+  if (maxAffordableSats < config.minCreateOfferAmountSats) {
     return null;
   }
 
@@ -165,11 +165,11 @@ function buildOfferParams(
     maxPremiumBps,
   );
 
-  const quantityUpperBound = Math.min(config.maxOfferAmountSats, maxAffordableSats);
-  if (quantityUpperBound < config.minOfferAmountSats) {
+  const quantityUpperBound = Math.min(config.maxCreateOfferAmountSats, maxAffordableSats);
+  if (quantityUpperBound < config.minCreateOfferAmountSats) {
     return null;
   }
-  const quantitySats = randomInt(config.minOfferAmountSats, quantityUpperBound);
+  const quantitySats = randomInt(config.minCreateOfferAmountSats, quantityUpperBound);
   const strikeBasisPoints = toBasisPoints(strikePercent);
   const optionDurationSeconds = termDays * SECONDS_PER_DAY;
 
@@ -227,7 +227,7 @@ export async function createOffer(
         return;
       }
 
-      const minRequiredForOffer = config.minOfferAmountSats;
+      const minRequiredForOffer = config.minCreateOfferAmountSats;
 
       const balance = await trpc.account.getBalance.query({
         address: wallet.address,
@@ -278,8 +278,8 @@ export async function createOffer(
       if (!params) {
         log("warn", "Unable to build a valid offer with current constraints", {
           available: availableSats,
-          min_offer_amount_sats: config.minOfferAmountSats,
-          max_offer_amount_sats: config.maxOfferAmountSats,
+          min_offer_amount_sats: config.minCreateOfferAmountSats,
+          max_offer_amount_sats: config.maxCreateOfferAmountSats,
         });
         span.setAttribute("skipped", true);
         span.setAttribute("skip_reason", CREATE_OFFER_SKIP_REASON.invalidOfferConstraints);

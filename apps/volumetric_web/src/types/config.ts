@@ -14,8 +14,10 @@ export interface ConfigData {
     max: number;
     step: number;
   };
-  minOfferAmountSats: number;
-  maxOfferAmountSats: number;
+  minCreateOfferAmountSats: number;
+  maxCreateOfferAmountSats: number;
+  minAcceptOfferAmountSats: number;
+  maxAcceptOfferAmountSats: number;
   minDepositAmountSats: number;
   minWithdrawAmountSats: number;
   minTermDays: number;

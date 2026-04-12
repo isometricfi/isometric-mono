@@ -15,8 +15,8 @@ import {
   getStrikeUsdValues,
 } from "@/lib/options-form";
 import {
-  DEFAULT_MAX_OFFER_AMOUNT_SATS,
-  DEFAULT_MIN_OFFER_AMOUNT_SATS,
+  DEFAULT_MAX_CREATE_OFFER_AMOUNT_SATS,
+  DEFAULT_MIN_CREATE_OFFER_AMOUNT_SATS,
   formatBtc,
   formatBtcWithSymbol,
 } from "@/lib/utils";
@@ -55,10 +55,12 @@ export function useCallWriteOptionFormModel() {
   );
   const premiumValues = useMemo(() => generatePremiumValues(config), [config]);
 
-  const minOfferAmountSats = config?.minOfferAmountSats ?? DEFAULT_MIN_OFFER_AMOUNT_SATS;
-  const configMaxOfferAmountSats = config?.maxOfferAmountSats ?? DEFAULT_MAX_OFFER_AMOUNT_SATS;
+  const minCreateOfferAmountSats =
+    config?.minCreateOfferAmountSats ?? DEFAULT_MIN_CREATE_OFFER_AMOUNT_SATS;
+  const configMaxCreateOfferAmountSats =
+    config?.maxCreateOfferAmountSats ?? DEFAULT_MAX_CREATE_OFFER_AMOUNT_SATS;
   const availableBalanceSats = Number(accountData?.balance?.available ?? 0);
-  const maxOfferAmountSats = Math.min(configMaxOfferAmountSats, availableBalanceSats);
+  const maxCreateOfferAmountSats = Math.min(configMaxCreateOfferAmountSats, availableBalanceSats);
 
   const [term, setTermLocal] = useState(termDays[0] ?? DEFAULT_TERM_DAYS);
   const [strikePercent, setStrikePercentLocal] = useState<number>(
@@ -101,8 +103,9 @@ export function useCallWriteOptionFormModel() {
   );
 
   const isWalletConnected = !!primaryWallet;
-  const needDepositMore = isWalletConnected && availableBalanceSats < minOfferAmountSats;
-  const isValidAmount = amountSats >= minOfferAmountSats && amountSats <= maxOfferAmountSats;
+  const needDepositMore = isWalletConnected && availableBalanceSats < minCreateOfferAmountSats;
+  const isValidAmount =
+    amountSats >= minCreateOfferAmountSats && amountSats <= maxCreateOfferAmountSats;
 
   useEffect(() => {
     if (termDays.length === 0) return;
@@ -170,14 +173,14 @@ export function useCallWriteOptionFormModel() {
     if (!isWalletConnected) return t("connectWallet");
     if (needDepositMore) {
       return t("depositMoreToCreateOffers", {
-        minBtc: formatBtcWithSymbol(minOfferAmountSats),
+        minBtc: formatBtcWithSymbol(minCreateOfferAmountSats),
       });
     }
     if (createOffer.isPending) return t("creatingOffer");
-    if (amountSats < minOfferAmountSats)
-      return `${tCommon("min")}: ₿${formatBtc(minOfferAmountSats)}`;
-    if (amountSats > maxOfferAmountSats)
-      return `${tCommon("max")}: ₿${formatBtc(maxOfferAmountSats)}`;
+    if (amountSats < minCreateOfferAmountSats)
+      return `${tCommon("min")}: ₿${formatBtc(minCreateOfferAmountSats)}`;
+    if (amountSats > maxCreateOfferAmountSats)
+      return `${tCommon("max")}: ₿${formatBtc(maxCreateOfferAmountSats)}`;
     return t("createOffer");
   };
 
@@ -202,8 +205,8 @@ export function useCallWriteOptionFormModel() {
     handleStrikeUsdChange,
     handleSubmit,
     isSubmitDisabled: !isWalletConnected || !isValidAmount || createOffer.isPending,
-    minOfferAmountSats,
-    maxOfferAmountSats,
+    minCreateOfferAmountSats,
+    maxCreateOfferAmountSats,
     needDepositMore,
     premiumPercent,
     premiumValues,

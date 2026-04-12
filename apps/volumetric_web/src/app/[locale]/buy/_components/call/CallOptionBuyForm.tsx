@@ -27,7 +27,7 @@ export function CallOptionBuyForm() {
     handleSubmit,
     isSubmitDisabled,
     leverage,
-    minOfferAmountSats,
+    depositMinSats,
     maxPremiumAmountSats,
     needDepositMore,
     quantitySats,
@@ -100,7 +100,7 @@ export function CallOptionBuyForm() {
         {needDepositMore ? (
           <p className="text-xs text-muted-foreground">
             {t("buyOptionsDepositReason", {
-              minBtc: formatBtcWithSymbol(minOfferAmountSats),
+              minBtc: formatBtcWithSymbol(depositMinSats),
             })}
           </p>
         ) : null}

@@ -66,11 +66,11 @@ pub struct OfferParams {
 }
 
 /// Validates offer parameters against trading limits.
-/// Used by both create_offer and accept_offers flows.
+/// Used by create_offer.
 pub fn validate_offer_params(params: &OfferParams) -> Result<TradingLimits, VolumetricError> {
     let limits = Config::trading_limits();
 
-    validate_quantity(params.quantity, &limits)?;
+    validate_create_offer_quantity(params.quantity, &limits)?;
     validate_strike_basis_points(params.strike_basis_points, &limits)?;
     validate_premium_basis_points(params.premium_basis_points, &limits)?;
     validate_option_duration(params.option_duration_seconds, &limits)?;
@@ -78,32 +78,70 @@ pub fn validate_offer_params(params: &OfferParams) -> Result<TradingLimits, Volu
     Ok(limits)
 }
 
-/// Validates only quantity against trading limits.
-/// Used when accepting offers where other params come from an existing offer.
-pub fn validate_quantity_only(quantity: u64) -> Result<TradingLimits, VolumetricError> {
+/// Validates strike, premium, duration, and accept quantity against trading limits.
+pub fn validate_trading_limits_for_accept_offer(
+    params: &OfferParams,
+) -> Result<TradingLimits, VolumetricError> {
     let limits = Config::trading_limits();
-    validate_quantity(quantity, &limits)?;
+
+    validate_accept_offer_quantity(params.quantity, &limits)?;
+    validate_strike_basis_points(params.strike_basis_points, &limits)?;
+    validate_premium_basis_points(params.premium_basis_points, &limits)?;
+    validate_option_duration(params.option_duration_seconds, &limits)?;
+
     Ok(limits)
 }
 
-fn validate_quantity(quantity: u64, limits: &TradingLimits) -> Result<(), VolumetricError> {
-    if quantity < limits.quantity_sats.min {
+fn validate_create_offer_quantity(
+    quantity: u64,
+    limits: &TradingLimits,
+) -> Result<(), VolumetricError> {
+    if quantity < limits.create_offer_quantity_sats.min {
         return Err(VolumetricError::from_def(
             error_codes::QUANTITY_BELOW_MINIMUM,
             Some(&format!(
                 "got: {}, minimum: {}",
-                quantity, limits.quantity_sats.min
+                quantity, limits.create_offer_quantity_sats.min
             )),
             None,
         ));
     }
 
-    if quantity > limits.quantity_sats.max {
+    if quantity > limits.create_offer_quantity_sats.max {
         return Err(VolumetricError::from_def(
             error_codes::QUANTITY_ABOVE_MAXIMUM,
             Some(&format!(
                 "got: {}, maximum: {}",
-                quantity, limits.quantity_sats.max
+                quantity, limits.create_offer_quantity_sats.max
+            )),
+            None,
+        ));
+    }
+
+    Ok(())
+}
+
+fn validate_accept_offer_quantity(
+    quantity: u64,
+    limits: &TradingLimits,
+) -> Result<(), VolumetricError> {
+    if quantity < limits.accept_offer_quantity_sats.min {
+        return Err(VolumetricError::from_def(
+            error_codes::QUANTITY_BELOW_MINIMUM,
+            Some(&format!(
+                "got: {}, minimum: {}",
+                quantity, limits.accept_offer_quantity_sats.min
+            )),
+            None,
+        ));
+    }
+
+    if quantity > limits.accept_offer_quantity_sats.max {
+        return Err(VolumetricError::from_def(
+            error_codes::QUANTITY_ABOVE_MAXIMUM,
+            Some(&format!(
+                "got: {}, maximum: {}",
+                quantity, limits.accept_offer_quantity_sats.max
             )),
             None,
         ));
@@ -218,8 +256,12 @@ mod tests {
 
     fn test_limits() -> TradingLimits {
         TradingLimits {
-            quantity_sats: Range {
+            create_offer_quantity_sats: Range {
                 min: MIN_QUANTITY_SATS,
+                max: MAX_QUANTITY_SATS,
+            },
+            accept_offer_quantity_sats: Range {
+                min: 10_000,
                 max: MAX_QUANTITY_SATS,
             },
             premium_basis_points: Range {
@@ -272,10 +314,10 @@ mod tests {
     fn test_validate_quantity_at_minimum() {
         // given
         let limits = test_limits();
-        let quantity = limits.quantity_sats.min;
+        let quantity = limits.create_offer_quantity_sats.min;
 
         // when
-        let result = validate_quantity(quantity, &limits);
+        let result = validate_create_offer_quantity(quantity, &limits);
 
         // then
         assert!(result.is_ok());
@@ -285,10 +327,10 @@ mod tests {
     fn test_validate_quantity_at_maximum() {
         // given
         let limits = test_limits();
-        let quantity = limits.quantity_sats.max;
+        let quantity = limits.create_offer_quantity_sats.max;
 
         // when
-        let result = validate_quantity(quantity, &limits);
+        let result = validate_create_offer_quantity(quantity, &limits);
 
         // then
         assert!(result.is_ok());
@@ -301,7 +343,7 @@ mod tests {
         let quantity = 1_000_000;
 
         // when
-        let result = validate_quantity(quantity, &limits);
+        let result = validate_create_offer_quantity(quantity, &limits);
 
         // then
         assert!(result.is_ok());
@@ -311,10 +353,10 @@ mod tests {
     fn test_validate_quantity_below_minimum() {
         // given
         let limits = test_limits();
-        let quantity = limits.quantity_sats.min - 1;
+        let quantity = limits.create_offer_quantity_sats.min - 1;
 
         // when
-        let result = validate_quantity(quantity, &limits);
+        let result = validate_create_offer_quantity(quantity, &limits);
 
         // then
         assert!(result.is_err());
@@ -326,15 +368,43 @@ mod tests {
     fn test_validate_quantity_above_maximum() {
         // given
         let limits = test_limits();
-        let quantity = limits.quantity_sats.max + 1;
+        let quantity = limits.create_offer_quantity_sats.max + 1;
 
         // when
-        let result = validate_quantity(quantity, &limits);
+        let result = validate_create_offer_quantity(quantity, &limits);
 
         // then
         assert!(result.is_err());
         let error = result.unwrap_err();
         assert_eq!(error.code, error_codes::QUANTITY_ABOVE_MAXIMUM.code);
+    }
+
+    #[test]
+    fn test_validate_accept_quantity_at_minimum() {
+        // given
+        let limits = test_limits();
+        let quantity = limits.accept_offer_quantity_sats.min;
+
+        // when
+        let result = validate_accept_offer_quantity(quantity, &limits);
+
+        // then
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_validate_accept_quantity_below_minimum() {
+        // given
+        let limits = test_limits();
+        let quantity = limits.accept_offer_quantity_sats.min - 1;
+
+        // when
+        let result = validate_accept_offer_quantity(quantity, &limits);
+
+        // then
+        assert!(result.is_err());
+        let error = result.unwrap_err();
+        assert_eq!(error.code, error_codes::QUANTITY_BELOW_MINIMUM.code);
     }
 
     #[test]

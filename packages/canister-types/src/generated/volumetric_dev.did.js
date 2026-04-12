@@ -270,11 +270,12 @@ export const idlFactory = ({ IDL }) => {
   const Range = IDL.Record({ 'max' : IDL.Nat64, 'min' : IDL.Nat64 });
   const Range_1 = IDL.Record({ 'max' : IDL.Nat16, 'min' : IDL.Nat16 });
   const TradingLimits = IDL.Record({
+    'create_offer_quantity_sats' : Range,
     'term_days' : Range,
     'deposit_amount_sats' : IDL.Nat64,
+    'accept_offer_quantity_sats' : Range,
     'max_offers_per_term' : IDL.Nat64,
     'withdraw_amount_sats' : IDL.Nat64,
-    'quantity_sats' : Range,
     'strike_basis_points' : Range_1,
     'premium_basis_points' : Range_1,
     'option_duration_seconds' : Range,
@@ -684,6 +685,16 @@ export const idlFactory = ({ IDL }) => {
     'recover_wal_operation' : IDL.Func([IDL.Vec(IDL.Nat8)], [Result_23], []),
     'remove_whitelisted' : IDL.Func([IDL.Principal], [Result_1], []),
     'reset_oracle_config' : IDL.Func([], [Result_1], []),
+    'set_accept_offer_quantity_sats_range_config' : IDL.Func(
+        [IDL.Nat64, IDL.Nat64],
+        [Result_1],
+        [],
+      ),
+    'set_create_offer_quantity_sats_range_config' : IDL.Func(
+        [IDL.Nat64, IDL.Nat64],
+        [Result_1],
+        [],
+      ),
     'set_deposit_amount_sats_config' : IDL.Func([IDL.Nat64], [Result_1], []),
     'set_feature_flags_config' : IDL.Func([FeatureFlags], [Result_1], []),
     'set_fee_config_config' : IDL.Func([FeeConfig], [Result_1], []),

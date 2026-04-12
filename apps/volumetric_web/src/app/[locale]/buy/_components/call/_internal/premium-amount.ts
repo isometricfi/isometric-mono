@@ -8,7 +8,8 @@ export interface PremiumOfferMatch {
 export function findBestOfferForPremiumAmount(
   offers: OptionOffer[],
   premiumAmountSats: number,
-  minOfferAmountSats: number,
+  minAcceptOfferAmountSats: number,
+  maxAcceptOfferAmountSats: number,
 ): PremiumOfferMatch | null {
   if (premiumAmountSats <= 0) return null;
 
@@ -21,7 +22,8 @@ export function findBestOfferForPremiumAmount(
     if (offer.premium <= 0) continue;
 
     const quantitySats = Math.floor((premiumAmountSats * 100) / offer.premium);
-    if (quantitySats < minOfferAmountSats) continue;
+    if (quantitySats < minAcceptOfferAmountSats) continue;
+    if (quantitySats > maxAcceptOfferAmountSats) continue;
     if (quantitySats > offer.amountSats) continue;
 
     return { offer, quantitySats };
@@ -30,19 +32,37 @@ export function findBestOfferForPremiumAmount(
   return null;
 }
 
-export function getMaxPremiumAmountSats(offers: OptionOffer[]): number {
+export function getMaxPremiumAmountSats(
+  offers: OptionOffer[],
+  maxAcceptOfferAmountSats: number,
+): number {
   if (offers.length === 0) return 0;
 
-  return Math.max(...offers.map((offer) => Math.floor((offer.amountSats * offer.premium) / 100)));
+  return Math.max(
+    ...offers.map((offer) =>
+      Math.floor((Math.min(offer.amountSats, maxAcceptOfferAmountSats) * offer.premium) / 100),
+    ),
+  );
 }
 
-export function getMinPremiumAmountSats(offers: OptionOffer[], minOfferAmountSats: number): number {
+export function getMinPremiumAmountSats(
+  offers: OptionOffer[],
+  minAcceptOfferAmountSats: number,
+): number {
   if (offers.length === 0) return 0;
 
   const minimumPremiumSats = offers
     .filter((offer) => offer.premium > 0)
-    .map((offer) => Math.ceil((minOfferAmountSats * offer.premium) / 100));
+    .filter((offer) => offer.amountSats >= minAcceptOfferAmountSats)
+    .map((offer) => Math.ceil((minAcceptOfferAmountSats * offer.premium) / 100));
 
   if (minimumPremiumSats.length === 0) return 0;
   return Math.min(...minimumPremiumSats);
+}
+
+export function isBalanceInsufficientForPremiumPurchase(
+  availableBalanceSats: number,
+  minPremiumAmountSats: number,
+): boolean {
+  return availableBalanceSats < minPremiumAmountSats;
 }

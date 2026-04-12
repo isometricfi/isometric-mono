@@ -6,7 +6,8 @@ const RangeU16Schema = z.object({ min: z.number().or(z.bigint()), max: z.number(
 
 const TradingLimitsSchema = z.object({
   term_days: RangeU64Schema,
-  quantity_sats: RangeU64Schema,
+  create_offer_quantity_sats: RangeU64Schema,
+  accept_offer_quantity_sats: RangeU64Schema,
   premium_basis_points: RangeU16Schema,
   strike_basis_points: RangeU16Schema,
   option_duration_seconds: RangeU64Schema,
@@ -62,8 +63,10 @@ export function mapConfig(rawLimits: unknown, rawFeeConfig: unknown): ConfigData
       max: Number(limits.premium_basis_points.max) / BASIS_POINTS_PER_PERCENT,
       step: PREMIUM_STEP,
     },
-    minOfferAmountSats: Number(limits.quantity_sats.min),
-    maxOfferAmountSats: Number(limits.quantity_sats.max),
+    minCreateOfferAmountSats: Number(limits.create_offer_quantity_sats.min),
+    maxCreateOfferAmountSats: Number(limits.create_offer_quantity_sats.max),
+    minAcceptOfferAmountSats: Number(limits.accept_offer_quantity_sats.min),
+    maxAcceptOfferAmountSats: Number(limits.accept_offer_quantity_sats.max),
     minDepositAmountSats: Number(limits.deposit_amount_sats),
     minWithdrawAmountSats: Number(limits.withdraw_amount_sats),
     minTermDays,

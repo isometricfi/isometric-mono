@@ -355,11 +355,12 @@ type SettlementStatus = variant {
 type SettlementWalResult = record { option_id : nat64 };
 type TradeRole = variant { Buyer; Writer };
 type TradingLimits = record {
+  create_offer_quantity_sats : Range;
   term_days : Range;
   deposit_amount_sats : nat64;
+  accept_offer_quantity_sats : Range;
   max_offers_per_term : nat64;
   withdraw_amount_sats : nat64;
-  quantity_sats : Range;
   strike_basis_points : Range_1;
   premium_basis_points : Range_1;
   option_duration_seconds : Range;
@@ -480,6 +481,8 @@ service : (opt BtcNetwork) -> {
   recover_wal_operation : (blob) -> (Result_23);
   remove_whitelisted : (principal) -> (Result_1);
   reset_oracle_config : () -> (Result_1);
+  set_accept_offer_quantity_sats_range_config : (nat64, nat64) -> (Result_1);
+  set_create_offer_quantity_sats_range_config : (nat64, nat64) -> (Result_1);
   set_deposit_amount_sats_config : (nat64) -> (Result_1);
   set_feature_flags_config : (FeatureFlags) -> (Result_1);
   set_fee_config_config : (FeeConfig) -> (Result_1);

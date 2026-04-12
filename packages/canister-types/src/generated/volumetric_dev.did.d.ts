@@ -420,11 +420,12 @@ export interface SettlementWalResult { 'option_id' : bigint }
 export type TradeRole = { 'Buyer' : null } |
   { 'Writer' : null };
 export interface TradingLimits {
+  'create_offer_quantity_sats' : Range,
   'term_days' : Range,
   'deposit_amount_sats' : bigint,
+  'accept_offer_quantity_sats' : Range,
   'max_offers_per_term' : bigint,
   'withdraw_amount_sats' : bigint,
-  'quantity_sats' : Range,
   'strike_basis_points' : Range_1,
   'premium_basis_points' : Range_1,
   'option_duration_seconds' : Range,
@@ -572,6 +573,14 @@ export interface _SERVICE {
   'recover_wal_operation' : ActorMethod<[Uint8Array | number[]], Result_23>,
   'remove_whitelisted' : ActorMethod<[Principal], Result_1>,
   'reset_oracle_config' : ActorMethod<[], Result_1>,
+  'set_accept_offer_quantity_sats_range_config' : ActorMethod<
+    [bigint, bigint],
+    Result_1
+  >,
+  'set_create_offer_quantity_sats_range_config' : ActorMethod<
+    [bigint, bigint],
+    Result_1
+  >,
   'set_deposit_amount_sats_config' : ActorMethod<[bigint], Result_1>,
   'set_feature_flags_config' : ActorMethod<[FeatureFlags], Result_1>,
   'set_fee_config_config' : ActorMethod<[FeeConfig], Result_1>,
