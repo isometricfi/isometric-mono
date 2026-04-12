@@ -86,8 +86,8 @@ function AccountPanelContent({ onDisconnect }: { onDisconnect: () => void }) {
   const available = balance?.available ?? BigInt(0);
 
   const btcPrice = priceData?.btc ?? 0;
-  const depositedBtc = Number(deposited) / 100_000_000;
-  const depositedUsd = roundToN(depositedBtc * btcPrice, 0);
+  const availableBtc = Number(available) / 100_000_000;
+  const availableUsd = roundToN(availableBtc * btcPrice, 0);
 
   const connectedAddress = profile?.address ?? primaryWallet?.address ?? null;
   const addressLabel = connectedAddress ? shortenAddress(connectedAddress) : null;
@@ -170,19 +170,19 @@ function AccountPanelContent({ onDisconnect }: { onDisconnect: () => void }) {
               className="space-y-6"
             >
               <div className="space-y-1">
-                <p className="text-sm text-muted-foreground">{t("deposited")}</p>
+                <p className="text-sm text-muted-foreground">{t("available")}</p>
                 <div className="flex items-center gap-2 justify-between">
                   <p className="text-3xl font-semibold tracking-tight">
-                    {isLoadingBalance ? "—" : formatBtcWithSymbolBigint(deposited, 8)}
+                    {isLoadingBalance ? "—" : formatBtcWithSymbolBigint(available, 8)}
                   </p>
-                  {!isLoadingBalance && depositedUsd > 0 && (
+                  {!isLoadingBalance && availableUsd > 0 && (
                     <div className="text-muted-foreground text-sm bg-muted px-2 py-1 rounded-sm">
-                      ${depositedUsd.toLocaleString()}
+                      ${availableUsd.toLocaleString()}
                     </div>
                   )}
                 </div>
                 <Badge variant="secondary">
-                  {t("available")} {formatBtcWithSymbolBigint(available, 8)}
+                  {t("deposited")} {formatBtcWithSymbolBigint(deposited, 8)}
                 </Badge>
               </div>
 
