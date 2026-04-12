@@ -18,7 +18,6 @@ const TEST_USER_ADDRESS = "tb1quser";
 const TEST_DEPOSIT_ADDRESS = "tb1qdeposit";
 const TEST_NOW_MS = 1_700_000_000_000;
 const TEST_BLOCK_TIP_HEIGHT = 200;
-const TEST_MIN_DEPOSIT_SATS = 5_000;
 const TEST_MINTER_CONFIRMATIONS = 4;
 
 function makeTrackedDeposit(overrides: Partial<TrackedDeposit> = {}): TrackedDeposit {
@@ -84,7 +83,6 @@ describe("detectMaturedDepositsForUser", () => {
       userAddress: TEST_USER_ADDRESS,
       nowMs: TEST_NOW_MS,
       currentBlockTipHeight: TEST_BLOCK_TIP_HEIGHT,
-      minDepositAmountSats: TEST_MIN_DEPOSIT_SATS,
       minterConfirmations: TEST_MINTER_CONFIRMATIONS,
     });
 
@@ -113,7 +111,6 @@ describe("detectMaturedDepositsForUser", () => {
       userAddress: TEST_USER_ADDRESS,
       nowMs: TEST_NOW_MS,
       currentBlockTipHeight: TEST_BLOCK_TIP_HEIGHT,
-      minDepositAmountSats: TEST_MIN_DEPOSIT_SATS,
       minterConfirmations: TEST_MINTER_CONFIRMATIONS,
     });
 
@@ -125,6 +122,47 @@ describe("detectMaturedDepositsForUser", () => {
         key: `${TEST_USER_ADDRESS}:tx-new:0`,
         status: "matured",
         confirmations: 4,
+      }),
+    );
+  });
+
+  test("should track a matured deposit even when it is below the minimum deposit amount", async () => {
+    // given
+    const repository = makeRepositoryMocks();
+    const actor = makeActor();
+    const belowMinimumDepositAmountSats = 4_000;
+
+    vi.mocked(repository.getTrackedDepositByKey).mockResolvedValue(null);
+    getMempoolAddressTransactionsMock.mockResolvedValue([
+      {
+        txid: "tx-below-min",
+        status: { confirmed: true, block_height: 197 },
+        vout: [
+          {
+            scriptpubkey_address: TEST_DEPOSIT_ADDRESS,
+            value: belowMinimumDepositAmountSats,
+          },
+        ],
+      },
+    ]);
+
+    // when
+    const detected = await detectMaturedDepositsForUser({
+      repository,
+      actor: actor as unknown as _SERVICE,
+      userAddress: TEST_USER_ADDRESS,
+      nowMs: TEST_NOW_MS,
+      currentBlockTipHeight: TEST_BLOCK_TIP_HEIGHT,
+      minterConfirmations: TEST_MINTER_CONFIRMATIONS,
+    });
+
+    // then
+    expect(detected).toBe(1);
+    expect(repository.saveTrackedDeposit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        key: `${TEST_USER_ADDRESS}:tx-below-min:0`,
+        valueSats: belowMinimumDepositAmountSats,
+        status: "matured",
       }),
     );
   });
@@ -151,7 +189,6 @@ describe("detectMaturedDepositsForUser", () => {
       userAddress: TEST_USER_ADDRESS,
       nowMs: TEST_NOW_MS,
       currentBlockTipHeight: TEST_BLOCK_TIP_HEIGHT,
-      minDepositAmountSats: TEST_MIN_DEPOSIT_SATS,
       minterConfirmations: TEST_MINTER_CONFIRMATIONS,
     });
 

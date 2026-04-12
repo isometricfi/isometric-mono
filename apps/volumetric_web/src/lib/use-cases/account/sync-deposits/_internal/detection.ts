@@ -12,7 +12,6 @@ interface DetectMaturedDepositsForUserParams {
   userAddress: string;
   nowMs: number;
   currentBlockTipHeight: number;
-  minDepositAmountSats: number;
   minterConfirmations: number;
 }
 
@@ -64,15 +63,8 @@ async function resolveUserDepositAddress(
 export async function detectMaturedDepositsForUser(
   params: DetectMaturedDepositsForUserParams,
 ): Promise<number> {
-  const {
-    repository,
-    actor,
-    userAddress,
-    nowMs,
-    currentBlockTipHeight,
-    minDepositAmountSats,
-    minterConfirmations,
-  } = params;
+  const { repository, actor, userAddress, nowMs, currentBlockTipHeight, minterConfirmations } =
+    params;
 
   const depositAddress = await resolveUserDepositAddress(repository, actor, userAddress, nowMs);
   if (!depositAddress) {
@@ -101,9 +93,6 @@ export async function detectMaturedDepositsForUser(
       }
 
       const valueSats = output.value ?? 0;
-      if (valueSats < minDepositAmountSats) {
-        continue;
-      }
 
       const trackingKey = getDepositTrackingKey(userAddress, tx.txid, vout);
       const existingTrackedDeposit = await repository.getTrackedDepositByKey(trackingKey);

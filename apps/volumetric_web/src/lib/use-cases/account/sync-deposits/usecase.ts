@@ -47,21 +47,12 @@ export async function syncDepositsFromCanister(): Promise<Output> {
       });
     }
 
-    const { actor, minDepositAmountSats, users } = await withSpan(
-      LOAD_USERS_AND_LIMITS_SPAN_NAME,
-      async () => {
-        const actor = await getCanisterActor();
-        const tradingLimits = await actor.get_trading_limits();
-        const minDepositAmountSats = Number(tradingLimits.deposit_amount_sats);
-        const users = await actor.list_users();
+    const { actor, users } = await withSpan(LOAD_USERS_AND_LIMITS_SPAN_NAME, async () => {
+      const actor = await getCanisterActor();
+      const users = await actor.list_users();
 
-        return {
-          actor,
-          minDepositAmountSats,
-          users,
-        };
-      },
-    );
+      return { actor, users };
+    });
 
     const maturedDetected = await withSpan(DETECT_MATURED_DEPOSITS_SPAN_NAME, async (span) => {
       const detectionPromises = users.map((user) =>
@@ -71,7 +62,6 @@ export async function syncDepositsFromCanister(): Promise<Output> {
           userAddress: user.address,
           nowMs,
           currentBlockTipHeight,
-          minDepositAmountSats,
           minterConfirmations: MINTER_CONFIRMATIONS,
         }),
       );
