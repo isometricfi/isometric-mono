@@ -4,6 +4,7 @@ import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { SlidingNumber } from "@/components/ui/sliding-number";
 import { useConfig, useModal, usePrices } from "@/hooks";
+import { getStrikeUsd } from "@/lib/options-form";
 import { basisPointsToPercent, roundToN, satsToBtc } from "@/lib/utils";
 
 interface CallWriteOptionSummaryProps {
@@ -19,6 +20,7 @@ export function CallWriteOptionSummary({
   competitivenessRankDisplay,
   earningsSats,
   term,
+  strikePercent,
 }: CallWriteOptionSummaryProps) {
   const tForms = useTranslations("Forms");
   const { data: priceData } = usePrices();
@@ -31,6 +33,8 @@ export function CallWriteOptionSummary({
   const earningsDisplay = Number(earningsBtc.toFixed(6));
   const amountBtc = satsToBtc(amountSats);
   const amountDisplay = Number(amountBtc.toFixed(6));
+  const strikeUsd = getStrikeUsd(btcPrice, strikePercent);
+  const strikeDisplay = `$${strikeUsd.toLocaleString()}`;
 
   const apyPercent = roundToN(
     amountSats > 0 && term > 0 ? (earningsSats / amountSats) * (365 / term) * 100 : 0,
@@ -60,15 +64,19 @@ export function CallWriteOptionSummary({
               <div className="flex items-start gap-2">
                 <span className="text-muted-foreground">•</span>
                 <p className="text-muted-foreground flex-1">
-                  <span className="font-medium text-foreground">{t("writeExplainer.ifBelow")}</span>{" "}
+                  <span className="font-medium text-foreground">
+                    {t("writeExplainer.ifBelow", { strike: strikeDisplay })}
+                  </span>{" "}
                   {t("writeExplainer.ifBelowDesc")}
                 </p>
               </div>
               <div className="flex items-start gap-2">
                 <span className="text-muted-foreground">•</span>
                 <p className="text-muted-foreground flex-1">
-                  <span className="font-medium text-foreground">{t("writeExplainer.ifRises")}</span>{" "}
-                  {t("writeExplainer.ifRisesDesc")}
+                  <span className="font-medium text-foreground">
+                    {t("writeExplainer.ifRises", { strike: strikeDisplay })}
+                  </span>{" "}
+                  {t("writeExplainer.ifRisesDesc", { strike: strikeDisplay })}
                 </p>
               </div>
               <div className="flex items-start gap-2">
@@ -89,6 +97,9 @@ export function CallWriteOptionSummary({
           </a>
         </Button>
       </div>,
+      false,
+      undefined,
+      true,
     );
   };
 

@@ -53,8 +53,7 @@ function StatusText({
 
 function DepositRow({ deposit }: { deposit: PendingDeposit }) {
   const t = useTranslations("PendingDeposits");
-  const mempoolBaseUrl = process.env.NEXT_PUBLIC_MEMPOOL_URL;
-  const txUrl = mempoolBaseUrl ? `${mempoolBaseUrl}/tx/${deposit.txid}` : null;
+  const txUrl = `https://mempool.space/tx/${deposit.txid}`;
 
   const content = (
     <div className="flex items-center justify-between gap-2">
@@ -79,18 +78,14 @@ function DepositRow({ deposit }: { deposit: PendingDeposit }) {
       transition={{ duration: 0.2 }}
       className="text-xs"
     >
-      {txUrl ? (
-        <a
-          href={txUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="block py-1.5 -mx-1 px-1 rounded hover:bg-secondary/50 transition-colors"
-        >
-          {content}
-        </a>
-      ) : (
-        <div className="py-1.5">{content}</div>
-      )}
+      <a
+        href={txUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="block py-1.5 -mx-1 px-1 rounded hover:bg-secondary/50 transition-colors"
+      >
+        {content}
+      </a>
     </motion.div>
   );
 }

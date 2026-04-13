@@ -8,7 +8,13 @@ interface ModalState {
   content: ReactNode | null;
   fullscreen: boolean;
   minHeight?: string;
-  openModal: (content: ReactNode, fullscreen?: boolean, minHeight?: string) => void;
+  showCloseButton: boolean;
+  openModal: (
+    content: ReactNode,
+    fullscreen?: boolean,
+    minHeight?: string,
+    showCloseButton?: boolean,
+  ) => void;
   closeModal: () => void;
 }
 
@@ -17,7 +23,15 @@ export const useModal = create<ModalState>((set) => ({
   content: null,
   fullscreen: false,
   minHeight: undefined,
-  openModal: (content, fullscreen = false, minHeight) =>
-    set({ isOpen: true, content, fullscreen, minHeight }),
-  closeModal: () => set({ isOpen: false, content: null, fullscreen: false, minHeight: undefined }),
+  showCloseButton: false,
+  openModal: (content, fullscreen = false, minHeight, showCloseButton = false) =>
+    set({ isOpen: true, content, fullscreen, minHeight, showCloseButton }),
+  closeModal: () =>
+    set({
+      isOpen: false,
+      content: null,
+      fullscreen: false,
+      minHeight: undefined,
+      showCloseButton: false,
+    }),
 }));
