@@ -364,7 +364,7 @@ export function DepositModal({
 
                     <Button variant="outline" size="icon" asChild>
                       <Link
-                        href={`https://mempool.space/testnet/tx/${txid}`}
+                        href={`https://mempool.space/tx/${txid}`}
                         target="_blank"
                         rel="noopener noreferrer"
                       >
