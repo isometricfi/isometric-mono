@@ -242,7 +242,9 @@ fn validate_withdraw_amount_reserves_ledger_fees(
     amount_sats: u64,
 ) -> Result<(), VolumetricError> {
     let available_sats = get_balance(&principal).available;
-    let ledger_fee_reserve_sats = ledger::withdraw_ckbtc_ledger_fee_reserve_sats();
+    let transfer_fee_sats = ledger::get_cached_icrc1_transfer_fee_sats_for_sync_flow()?;
+    let ledger_fee_reserve_sats =
+        ledger::withdraw_ckbtc_ledger_fee_reserve_sats_for_transfer_fee(transfer_fee_sats);
     let required_sats = amount_sats
         .checked_add(ledger_fee_reserve_sats)
         .ok_or_else(|| {
@@ -504,6 +506,7 @@ mod tests {
     const INITIAL_BALANCE_SATS: u64 = 500_000;
     const EXPECTED_BLOCK_INDEX: u64 = 42;
     const TEST_BTC_ADDRESS: &str = "tb1qwithdraw";
+    const TEST_TRANSFER_FEE_SATS: u64 = 10;
 
     fn test_principal() -> Principal {
         Principal::from_slice(&[2; 29])
@@ -630,6 +633,7 @@ mod tests {
         ledger::set_ledger(Rc::new(MockLedger {
             approve_result: Ok(Nat::from(0u64)),
         }));
+        ledger::set_cached_transfer_fee_for_testing(TEST_TRANSFER_FEE_SATS, TEST_NOW_NS);
         minter::set_minter(Rc::new(MockMinter {
             retrieve_block_index: Some(EXPECTED_BLOCK_INDEX),
             retrieve_error: None,
@@ -729,6 +733,25 @@ mod tests {
         assert_eq!(balance.available, WITHDRAW_AMOUNT_SATS);
     }
 
+    /// Given: the transfer-fee cache is stale
+    /// When: withdraw_ckbtc_use_case is called
+    /// Then: it rejects the request and asks the caller to retry shortly
+    #[tokio::test]
+    async fn test_withdraw_rejects_when_transfer_fee_cache_is_stale() {
+        // given
+        setup_success();
+        let principal = test_principal();
+        fund_principal(principal, INITIAL_BALANCE_SATS);
+        ledger::set_cached_transfer_fee_for_testing(TEST_TRANSFER_FEE_SATS, 0);
+
+        // when
+        let result = withdraw_ckbtc_use_case(principal, withdraw_params(), 22);
+
+        // then
+        let error = result.expect_err("withdraw should reject stale fee cache");
+        assert_eq!(error.code, error_codes::CONFIG_ERROR.code);
+    }
+
     /// Given: ledger approve fails
     /// When: withdraw_ckbtc_use_case is called
     /// Then: returns error and leaves the withdrawal pending for WAL retry
@@ -743,6 +766,7 @@ mod tests {
                 None,
             )),
         }));
+        ledger::set_cached_transfer_fee_for_testing(TEST_TRANSFER_FEE_SATS, TEST_NOW_NS);
         minter::set_minter(Rc::new(MockMinter {
             retrieve_block_index: Some(EXPECTED_BLOCK_INDEX),
             retrieve_error: None,
@@ -779,6 +803,7 @@ mod tests {
         ledger::set_ledger(Rc::new(MockLedger {
             approve_result: Ok(Nat::from(0u64)),
         }));
+        ledger::set_cached_transfer_fee_for_testing(TEST_TRANSFER_FEE_SATS, TEST_NOW_NS);
         minter::set_minter(Rc::new(MockMinter {
             retrieve_block_index: None,
             retrieve_error: Some(VolumetricError::from_def(
@@ -822,6 +847,7 @@ mod tests {
         ledger::set_ledger(Rc::new(MockLedger {
             approve_result: Ok(Nat::from(0u64)),
         }));
+        ledger::set_cached_transfer_fee_for_testing(TEST_TRANSFER_FEE_SATS, TEST_NOW_NS);
         minter::set_minter(Rc::new(RetryableThenPermanentMinter {
             retrieve_call_count: Cell::new(0),
         }));

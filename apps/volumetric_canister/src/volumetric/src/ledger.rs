@@ -8,7 +8,6 @@ use std::rc::Rc;
 
 use async_trait::async_trait;
 use candid::Nat;
-use ic_cdk::api::in_replicated_execution;
 use icrc_ledger_types::icrc1::account::Account;
 use icrc_ledger_types::icrc1::transfer::TransferError;
 use icrc_ledger_types::icrc2::approve::{ApproveArgs, ApproveError};
@@ -263,18 +262,21 @@ pub fn max_withdraw_ckbtc_sats_after_ledger_fees(available_sats: u64) -> u64 {
 }
 
 pub fn schedule_transfer_fee_refresh_if_idle() {
-    if !in_replicated_execution() {
-        return;
-    }
-
     #[cfg(target_arch = "wasm32")]
-    ic_cdk::futures::spawn(async move {
-        refresh_transfer_fee_cache_if_idle().await;
-    });
+    {
+        if !ic_cdk::api::in_replicated_execution() {
+            return;
+        }
+
+        ic_cdk::futures::spawn(async move {
+            refresh_transfer_fee_cache_if_idle().await;
+        });
+    }
 }
 
 pub async fn refresh_transfer_fee_cache_if_idle() {
-    if !in_replicated_execution() {
+    #[cfg(target_arch = "wasm32")]
+    if !ic_cdk::api::in_replicated_execution() {
         return;
     }
 

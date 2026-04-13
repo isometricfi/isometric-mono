@@ -27,7 +27,11 @@ fn test_buyer_cannot_accept_offer_after_withdraw_debits_same_funds() {
     const PREMIUM_BPS: u16 = 100;
     const ONE_DAY_SECS: u64 = 86_400;
     const BUYER_INITIAL_BALANCE_SATS: u64 = 100_000;
-    const WITHDRAW_AMOUNT_SATS: u64 = BUYER_INITIAL_BALANCE_SATS;
+    const WITHDRAW_LEDGER_FEE_CHARGE_COUNT: u64 = 2;
+    const CKBTC_TRANSFER_FEE_SATS: u64 = 10;
+    const WITHDRAW_LEDGER_FEE_RESERVE_SATS: u64 =
+        CKBTC_TRANSFER_FEE_SATS * WITHDRAW_LEDGER_FEE_CHARGE_COUNT;
+    const WITHDRAW_AMOUNT_SATS: u64 = BUYER_INITIAL_BALANCE_SATS - WITHDRAW_LEDGER_FEE_RESERVE_SATS;
 
     let writer_wallet = generate_wallet(WRITER_SEED);
     let buyer_wallet = generate_wallet(BUYER_SEED);

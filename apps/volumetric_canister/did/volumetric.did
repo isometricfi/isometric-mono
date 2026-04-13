@@ -481,7 +481,6 @@ service : (opt BtcNetwork) -> {
   observability_get_metrics : () -> (ObservabilityMetrics) query;
   recover_wal_operation : (blob) -> (Result_23);
   remove_whitelisted : (principal) -> (Result_1);
-  reset_oracle_config : () -> (Result_1);
   set_accept_offer_quantity_sats_range_config : (nat64, nat64) -> (Result_1);
   set_create_offer_quantity_sats_range_config : (nat64, nat64) -> (Result_1);
   set_deposit_amount_sats_config : (nat64) -> (Result_1);
@@ -490,7 +489,6 @@ service : (opt BtcNetwork) -> {
   set_fee_recipient_config : (principal) -> (Result_1);
   set_max_offers_per_term_config : (nat64) -> (Result_1);
   set_option_duration_seconds_range_config : (nat64, nat64) -> (Result_1);
-  set_oracle_price_config : (nat64) -> (Result_1);
   set_premium_basis_points_range_config : (nat16, nat16) -> (Result_1);
   set_premium_fee_basis_points_config : (nat64) -> (Result_1);
   set_profit_fee_basis_points_config : (nat64) -> (Result_1);

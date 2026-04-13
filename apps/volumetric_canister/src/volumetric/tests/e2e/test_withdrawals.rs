@@ -263,34 +263,3 @@ fn test_withdraw_rejects_full_available_balance_even_without_ui_cap() {
         withdraw_result.expect_err("withdraw should reject full available balance");
     assert_eq!(withdraw_error.code, error_codes::INSUFFICIENT_BALANCE.code);
 }
-
-/// Given: a funded account whose transfer-fee cache has gone stale
-/// When: the user withdraws the reported max withdraw amount
-/// Then: the canister refreshes the fee and still enqueues the withdrawal
-#[test]
-fn test_withdraw_accepts_reported_max_after_transfer_fee_cache_stales() {
-    // given
-    let env = create_test_env();
-    whitelist_controller(&env);
-    configure_test_ledger(&env);
-
-    const USER_SEED: u64 = 28;
-    let wallet = generate_wallet(USER_SEED);
-    let profile = create_account(&env, &wallet).expect("Create account failed");
-    mint_and_sync_balance(&env, &profile, INITIAL_BALANCE_SATS).expect("Funding failed");
-    env.advance_time_secs(3_600);
-
-    let balance = get_user_balance(&env, &wallet.address).expect("balance lookup failed");
-
-    // when
-    let receipt = withdraw_ckbtc(&env, &wallet, TEST_BTC_ADDRESS, balance.max_withdraw_sats)
-        .expect("withdraw should accept reported max amount");
-    let status =
-        get_withdraw_status(&env, receipt.operation_id).expect("status should load after enqueue");
-
-    // then
-    assert!(matches!(
-        status,
-        WithdrawStatus::Pending { .. } | WithdrawStatus::Succeeded { .. }
-    ));
-}
