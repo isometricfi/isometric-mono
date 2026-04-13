@@ -38,7 +38,8 @@
     "pending": "待确认",
     "unconfirmed": "0/4 区块",
     "confirming": "{count}/4 区块",
-    "processing": "入账中..."
+    "processing": "入账中...",
+    "depositDetected": "检测到存入 {amount}"
   },
   "Common": {
     "wallet": "钱包",
@@ -86,7 +87,6 @@
     "connectWallet": "连接钱包",
     "depositMoreToCreateOffers": "需要至少 {minBtc} 可用余额",
     "depositMoreToBuyOptions": "需要至少 {minBtc} 可用余额",
-    "createOffersDepositReason": "最小报价规模为 {minBtc}。请使用账户中的「可用」余额。",
     "buyOptionsDepositReason": "最小规模为 {minBtc}。请使用账户中的「可用」余额。",
     "creatingOffer": "正在创建报价...",
     "createOffer": "创建报价",
@@ -103,6 +103,7 @@
     "walletNotConnected": "钱包未连接",
     "bitcoinWalletNotConnected": "比特币钱包未连接",
     "term": "期限",
+    "day": "天",
     "days": "天",
     "call": "看涨",
     "put": "看跌",
@@ -151,10 +152,10 @@
     },
     "writeExplainer": {
       "intro": "您锁定 {amount} BTC，期限 {term}。如果有买家接受，您会立刻赚取 {earnings}。如果 BTC 涨到 {strike} 以上，部分锁定的 BTC 可能会用于支付买方收益。",
-      "ifBelow": "如果 BTC 维持在下方：",
+      "ifBelow": "如果 BTC 低于 {strike}：",
       "ifBelowDesc": "您保留 BTC 并获得收益",
-      "ifRises": "如果 BTC 涨破安全价格：",
-      "ifRisesDesc": "部分锁定的 BTC 可能会用于支付买方，最多不超过您预留的抵押",
+      "ifRises": "如果 BTC 高于 {strike}：",
+      "ifRisesDesc": "您保留收益，但需支付买方在 {strike} 以上的收益（上限为您的抵押）",
       "platformFee": "平台费用：",
       "platformFeeDesc": "收益的 {fee}%"
     }
@@ -172,7 +173,7 @@
     "confirmInWallet": "在钱包中确认",
     "approveTransaction": "在您的钱包中批准交易",
     "depositInitiated": "存入已启动",
-    "depositInBlocks": "您的存入将在 6 个区块后计入（约 60 分钟）",
+    "depositInBlocks": "您的存入将在 4 个区块后计入（约 40 分钟）",
     "transactionId": "交易 ID",
     "depositComplete": "存入完成",
     "balanceUpdated": "您的余额已更新",

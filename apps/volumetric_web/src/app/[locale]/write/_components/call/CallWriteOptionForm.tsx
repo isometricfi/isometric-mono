@@ -9,7 +9,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { NumberCarousel } from "@/components/ui/number-carousel";
 import { DepositModal } from "@/components/wallet/DepositModal";
-import { formatBtcWithSymbol } from "@/lib/utils";
 import { useCallWriteOptionFormModel } from "./_internal/use-call-write-option-form-model";
 import { CallWriteOptionSummary } from "./CallWriteOptionSummary";
 import { WriteEarningsSection } from "./WriteEarningsSection";
@@ -31,7 +30,6 @@ export function CallWriteOptionForm() {
     handleStrikeUsdChange,
     handleSubmit,
     isSubmitDisabled,
-    minCreateOfferAmountSats,
     maxCreateOfferAmountSats,
     needDepositMore,
     premiumPercent,
@@ -44,6 +42,8 @@ export function CallWriteOptionForm() {
     strikeUsdValues,
     termDays,
   } = useCallWriteOptionFormModel();
+
+  const getTermLabel = (dayCount: number) => t(dayCount === 1 ? "day" : "days").toLowerCase();
 
   return (
     <Card className="relative ">
@@ -76,7 +76,7 @@ export function CallWriteOptionForm() {
               values={termDays}
               value={selectedTermDay}
               onChange={setTerm}
-              formatValue={(value) => `${value} ${t("days").toLowerCase()}`}
+              formatValue={(value) => `${value} ${getTermLabel(value)}`}
             />
           </div>
         </div>
@@ -117,13 +117,6 @@ export function CallWriteOptionForm() {
         >
           {getButtonText()}
         </Button>
-        {needDepositMore ? (
-          <p className="text-xs text-muted-foreground">
-            {t("createOffersDepositReason", {
-              minBtc: formatBtcWithSymbol(minCreateOfferAmountSats),
-            })}
-          </p>
-        ) : null}
 
         <DepositModal open={depositModalOpen} onOpenChange={setDepositModalOpen} />
 

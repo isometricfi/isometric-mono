@@ -38,7 +38,8 @@
     "pending": "pending",
     "unconfirmed": "0/4 blocks",
     "confirming": "{count}/4 blocks",
-    "processing": "Crediting..."
+    "processing": "Crediting...",
+    "depositDetected": "Deposit {amount} detected"
   },
   "Common": {
     "wallet": "Wallet",
@@ -86,7 +87,6 @@
     "connectWallet": "Connect Wallet",
     "depositMoreToCreateOffers": "Need {minBtc} available",
     "depositMoreToBuyOptions": "Need {minBtc} available",
-    "createOffersDepositReason": "Minimum offer size is {minBtc}. Use Available balance.",
     "buyOptionsDepositReason": "Minimum size is {minBtc}. Use Available balance.",
     "creatingOffer": "Creating Offer...",
     "createOffer": "Create Offer",
@@ -103,6 +103,7 @@
     "walletNotConnected": "Wallet not connected",
     "bitcoinWalletNotConnected": "Bitcoin wallet not connected",
     "term": "Term",
+    "day": "Day",
     "days": "Days",
     "call": "Call",
     "put": "Put",
@@ -152,10 +153,10 @@
     },
     "writeExplainer": {
       "intro": "When accepted you lock <bold>{amount}</bold> for <bold>{term}</bold> and receive <bold>{earnings}</bold> upfront.",
-      "ifBelow": "BTC below strike:",
+      "ifBelow": "BTC below {strike}:",
       "ifBelowDesc": "Collateral returned, you keep earnings",
-      "ifRises": "BTC above strike:",
-      "ifRisesDesc": "You keep earnings; pay buyer gains above strike (capped at collateral)",
+      "ifRises": "BTC above {strike}:",
+      "ifRisesDesc": "You keep earnings but pay buyer gains above {strike} (capped at collateral)",
       "platformFee": "Platform fee:",
       "platformFeeDesc": "{fee}% of earnings"
     }
@@ -173,7 +174,7 @@
     "confirmInWallet": "Confirm in wallet",
     "approveTransaction": "Approve the transaction in your wallet",
     "depositInitiated": "Deposit initiated",
-    "depositInBlocks": "Your deposit will be accounted in 6 blocks (~60min)",
+    "depositInBlocks": "Your deposit will be accounted in 4 blocks (~40min)",
     "transactionId": "Transaction ID",
     "depositComplete": "Deposit complete",
     "balanceUpdated": "Your balance has been updated",

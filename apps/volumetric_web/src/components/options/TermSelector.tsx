@@ -19,7 +19,7 @@ export function TermSelector({ value, onChange }: TermSelectorProps) {
 
   const options = termOptions.map((term) => ({
     value: term,
-    label: `${term} ${t("days")}`,
+    label: `${term} ${t(term === 1 ? "day" : "days")}`,
   }));
 
   if (termOptions.length === 0) {
