@@ -53,7 +53,8 @@ function StatusText({
 
 function DepositRow({ deposit }: { deposit: PendingDeposit }) {
   const t = useTranslations("PendingDeposits");
-  const txUrl = `https://mempool.space/tx/${deposit.txid}`;
+  const mempoolBaseUrl = process.env.NEXT_PUBLIC_MEMPOOL_URL ?? "https://mempool.space";
+  const txUrl = `${mempoolBaseUrl}/tx/${deposit.txid}`;
 
   const content = (
     <div className="flex items-center justify-between gap-2">

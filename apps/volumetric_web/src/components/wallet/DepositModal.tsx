@@ -51,6 +51,7 @@ export function DepositModal({
   const syncDeposit = useSyncDeposit();
   const t = useTranslations("Deposit");
   const tCommon = useTranslations("Common");
+  const mempoolBaseUrl = process.env.NEXT_PUBLIC_MEMPOOL_URL ?? "https://mempool.space";
 
   const depositAddress = depositAddressData?.btcAddress ?? null;
 
@@ -364,7 +365,7 @@ export function DepositModal({
 
                     <Button variant="outline" size="icon" asChild>
                       <Link
-                        href={`https://mempool.space/tx/${txid}`}
+                        href={`${mempoolBaseUrl}/tx/${txid}`}
                         target="_blank"
                         rel="noopener noreferrer"
                       >
