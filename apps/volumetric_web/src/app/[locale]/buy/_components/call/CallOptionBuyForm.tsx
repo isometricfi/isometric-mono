@@ -42,6 +42,8 @@ export function CallOptionBuyForm() {
     termDays,
   } = useCallOptionBuyFormModel();
 
+  const getTermLabel = (dayCount: number) => t(dayCount === 1 ? "day" : "days").toLowerCase();
+
   return (
     <Card className="relative ">
       <CardContent className="space-y-5 ">
@@ -65,7 +67,7 @@ export function CallOptionBuyForm() {
               values={termDays}
               value={selectedTermDay}
               onChange={setTerm}
-              formatValue={(value) => `${value} ${t("days").toLowerCase()}`}
+              formatValue={(value) => `${value} ${getTermLabel(value)}`}
             />
           </div>
         </div>

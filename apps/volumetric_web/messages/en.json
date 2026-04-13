@@ -103,6 +103,7 @@
     "walletNotConnected": "Wallet not connected",
     "bitcoinWalletNotConnected": "Bitcoin wallet not connected",
     "term": "Term",
+    "day": "Day",
     "days": "Days",
     "call": "Call",
     "put": "Put",

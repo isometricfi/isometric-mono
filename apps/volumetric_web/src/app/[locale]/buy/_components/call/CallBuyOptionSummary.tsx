@@ -38,6 +38,7 @@ export function CallBuyOptionSummary({
   const premiumDisplay = Number(premiumBtc.toFixed(6));
   const maxProfitDisplay = Number(maxProfitBtc.toFixed(6));
   const leverageDisplay = leverage > 0 ? Number(leverage.toFixed(1)) : 0;
+  const termLabel = tForms(term === 1 ? "day" : "days").toLowerCase();
 
   const platformFeePercent = basisPointsToPercent(
     Number(config?.fees.profitFeeBasisPoints ?? BigInt(0)),
@@ -54,7 +55,7 @@ export function CallBuyOptionSummary({
                 amount: `₿${premiumDisplay}`,
                 leverage: leverageDisplay,
                 strike: `$${strikeUsd.toLocaleString()}`,
-                term: `${term} ${tForms("days").toLowerCase()}`,
+                term: `${term} ${termLabel}`,
                 bold: (chunks) => <strong>{chunks}</strong>,
               })}
             </p>

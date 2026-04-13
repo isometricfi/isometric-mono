@@ -35,6 +35,7 @@ export function CallWriteOptionSummary({
   const amountDisplay = Number(amountBtc.toFixed(6));
   const strikeUsd = getStrikeUsd(btcPrice, strikePercent);
   const strikeDisplay = `$${strikeUsd.toLocaleString()}`;
+  const termLabel = tForms(term === 1 ? "day" : "days").toLowerCase();
 
   const apyPercent = roundToN(
     amountSats > 0 && term > 0 ? (earningsSats / amountSats) * (365 / term) * 100 : 0,
@@ -55,7 +56,7 @@ export function CallWriteOptionSummary({
               {t.rich("writeExplainer.intro", {
                 amount: `₿${amountDisplay}`,
                 earnings: `₿${earningsDisplay}`,
-                term: `${term} ${tForms("days").toLowerCase()}`,
+                term: `${term} ${termLabel}`,
                 bold: (chunks) => <strong>{chunks}</strong>,
               })}
             </p>
