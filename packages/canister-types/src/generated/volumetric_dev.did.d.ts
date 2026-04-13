@@ -434,6 +434,7 @@ export interface UpdateUsernameRequest { 'username' : string }
 export interface UserBalanceInfo {
   'total' : bigint,
   'locked' : bigint,
+  'max_withdraw_sats' : bigint,
   'available' : bigint,
 }
 export interface UserInfo {

@@ -14,5 +14,6 @@ export function mapBalance(balance: UserBalanceInfo): BalanceData {
     total: balance.total,
     available: balance.available,
     locked: balance.locked,
+    maxWithdrawSats: balance.max_withdraw_sats,
   };
 }

@@ -10,4 +10,5 @@ export interface Output {
   total: bigint;
   available: bigint;
   locked: bigint;
+  maxWithdrawSats: bigint;
 }

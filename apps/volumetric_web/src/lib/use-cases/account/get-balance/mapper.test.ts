@@ -7,10 +7,12 @@ test("should map all balance fields", () => {
   const TOTAL = BigInt(500_000);
   const AVAILABLE = BigInt(300_000);
   const LOCKED = BigInt(200_000);
+  const MAX_WITHDRAW_SATS = BigInt(299_980);
   const input: UserBalanceInfo = {
     total: TOTAL,
     available: AVAILABLE,
     locked: LOCKED,
+    max_withdraw_sats: MAX_WITHDRAW_SATS,
   };
 
   // when
@@ -21,5 +23,6 @@ test("should map all balance fields", () => {
     total: TOTAL,
     available: AVAILABLE,
     locked: LOCKED,
+    maxWithdrawSats: MAX_WITHDRAW_SATS,
   });
 });

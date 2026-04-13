@@ -9,6 +9,8 @@ use volumetric::{WithdrawStatus, WithdrawalPhase};
 const WITHDRAW_AMOUNT_SATS: u64 = 100_000;
 const INITIAL_BALANCE_SATS: u64 = 500_000;
 const TEST_BTC_ADDRESS: &str = "tb1qvolumetricwithdraw";
+const CKBTC_LEDGER_ICRC1_TRANSFER_FEE_SATS: u64 = 10;
+const CKBTC_WITHDRAW_LEDGER_FEE_RESERVE_SATS: u64 = CKBTC_LEDGER_ICRC1_TRANSFER_FEE_SATS * 2;
 
 /// Given: a funded account with a valid withdrawal request
 /// When: withdraw_ckbtc is called
@@ -177,4 +179,118 @@ fn test_withdraw_rejects_second_request_while_first_is_pending() {
     // then
     let second_error = second_result.expect_err("second withdraw should be blocked");
     assert_eq!(second_error.code, error_codes::WITHDRAWAL_IN_PROGRESS.code);
+}
+
+/// Given: a funded account after test ledger configuration
+/// When: the user balance is queried
+/// Then: max_withdraw_sats leaves room for two ckBTC ledger transfer fees
+#[test]
+fn test_get_user_balance_max_withdraw_reserves_ckbtc_ledger_fees() {
+    // given
+    let env = create_test_env();
+    whitelist_controller(&env);
+    configure_test_ledger(&env);
+
+    const USER_SEED: u64 = 25;
+    let wallet = generate_wallet(USER_SEED);
+    let profile = create_account(&env, &wallet).expect("Create account failed");
+    mint_and_sync_balance(&env, &profile, INITIAL_BALANCE_SATS).expect("Funding failed");
+
+    // when
+    let balance = get_user_balance(&env, &wallet.address).expect("balance lookup failed");
+
+    // then
+    const EXPECTED_MAX_WITHDRAW_SATS: u64 =
+        INITIAL_BALANCE_SATS - CKBTC_WITHDRAW_LEDGER_FEE_RESERVE_SATS;
+    assert_eq!(balance.max_withdraw_sats, EXPECTED_MAX_WITHDRAW_SATS);
+    assert_eq!(
+        balance.max_withdraw_sats,
+        balance
+            .available
+            .saturating_sub(CKBTC_WITHDRAW_LEDGER_FEE_RESERVE_SATS)
+    );
+}
+
+/// Given: the transfer-fee cache has gone stale
+/// When: the user balance is queried
+/// Then: the query still succeeds and reports a max withdraw amount
+#[test]
+fn test_get_user_balance_succeeds_after_transfer_fee_cache_becomes_stale() {
+    // given
+    let env = create_test_env();
+    whitelist_controller(&env);
+    configure_test_ledger(&env);
+
+    const USER_SEED: u64 = 26;
+    let wallet = generate_wallet(USER_SEED);
+    let profile = create_account(&env, &wallet).expect("Create account failed");
+    mint_and_sync_balance(&env, &profile, INITIAL_BALANCE_SATS).expect("Funding failed");
+    env.advance_time_secs(3_600);
+
+    // when
+    let balance =
+        get_user_balance(&env, &wallet.address).expect("stale-cache balance lookup failed");
+
+    // then
+    const EXPECTED_MAX_WITHDRAW_SATS: u64 =
+        INITIAL_BALANCE_SATS - CKBTC_WITHDRAW_LEDGER_FEE_RESERVE_SATS;
+    assert_eq!(balance.available, INITIAL_BALANCE_SATS);
+    assert_eq!(balance.max_withdraw_sats, EXPECTED_MAX_WITHDRAW_SATS);
+}
+
+/// Given: a funded account
+/// When: the user tries to withdraw the full available balance
+/// Then: the canister rejects the request because ledger fees still need headroom
+#[test]
+fn test_withdraw_rejects_full_available_balance_even_without_ui_cap() {
+    // given
+    let env = create_test_env();
+    whitelist_controller(&env);
+    configure_test_ledger(&env);
+
+    const USER_SEED: u64 = 27;
+    let wallet = generate_wallet(USER_SEED);
+    let profile = create_account(&env, &wallet).expect("Create account failed");
+    mint_and_sync_balance(&env, &profile, INITIAL_BALANCE_SATS).expect("Funding failed");
+
+    let balance = get_user_balance(&env, &wallet.address).expect("balance lookup failed");
+
+    // when
+    let withdraw_result = withdraw_ckbtc(&env, &wallet, TEST_BTC_ADDRESS, balance.available);
+
+    // then
+    let withdraw_error =
+        withdraw_result.expect_err("withdraw should reject full available balance");
+    assert_eq!(withdraw_error.code, error_codes::INSUFFICIENT_BALANCE.code);
+}
+
+/// Given: a funded account whose transfer-fee cache has gone stale
+/// When: the user withdraws the reported max withdraw amount
+/// Then: the canister refreshes the fee and still enqueues the withdrawal
+#[test]
+fn test_withdraw_accepts_reported_max_after_transfer_fee_cache_stales() {
+    // given
+    let env = create_test_env();
+    whitelist_controller(&env);
+    configure_test_ledger(&env);
+
+    const USER_SEED: u64 = 28;
+    let wallet = generate_wallet(USER_SEED);
+    let profile = create_account(&env, &wallet).expect("Create account failed");
+    mint_and_sync_balance(&env, &profile, INITIAL_BALANCE_SATS).expect("Funding failed");
+    env.advance_time_secs(3_600);
+
+    let balance = get_user_balance(&env, &wallet.address).expect("balance lookup failed");
+
+    // when
+    let receipt = withdraw_ckbtc(&env, &wallet, TEST_BTC_ADDRESS, balance.max_withdraw_sats)
+        .expect("withdraw should accept reported max amount");
+    let status =
+        get_withdraw_status(&env, receipt.operation_id).expect("status should load after enqueue");
+
+    // then
+    assert!(matches!(
+        status,
+        WithdrawStatus::Pending { .. } | WithdrawStatus::Succeeded { .. }
+    ));
 }

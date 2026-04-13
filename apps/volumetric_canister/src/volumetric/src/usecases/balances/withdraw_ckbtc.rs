@@ -12,8 +12,8 @@ use crate::journaling::{
 use crate::locks::BalanceMutationLock;
 use crate::storage::{
     add_available, complete_withdrawal, create_withdrawal, emit_event, fail_withdrawal,
-    get_pending_withdrawals_by_principal, get_withdrawal, remove_withdrawal, subtract_available,
-    update_withdrawal_phase, Config, EventData, EventType, WithdrawalPhase,
+    get_balance, get_pending_withdrawals_by_principal, get_withdrawal, remove_withdrawal,
+    subtract_available, update_withdrawal_phase, Config, EventData, EventType, WithdrawalPhase,
 };
 use crate::{ic, ledger, minter};
 
@@ -72,6 +72,7 @@ pub fn withdraw_ckbtc_use_case(
 ) -> Result<WithdrawReceipt, VolumetricError> {
     let _withdrawal_balance_mutation_lock = BalanceMutationLock::new(principal)?;
     validate_minimum_withdraw_amount_sats(params.amount)?;
+    validate_withdraw_amount_reserves_ledger_fees(principal, params.amount)?;
 
     if !get_pending_withdrawals_by_principal(principal).is_empty() {
         return Err(VolumetricError::from_def(
@@ -228,6 +229,36 @@ fn validate_minimum_withdraw_amount_sats(amount_sats: u64) -> Result<(), Volumet
             Some(&format!(
                 "requested: {}, minimum_withdraw: {}",
                 amount_sats, minimum_withdraw_amount_sats
+            )),
+            None,
+        ));
+    }
+
+    Ok(())
+}
+
+fn validate_withdraw_amount_reserves_ledger_fees(
+    principal: Principal,
+    amount_sats: u64,
+) -> Result<(), VolumetricError> {
+    let available_sats = get_balance(&principal).available;
+    let ledger_fee_reserve_sats = ledger::withdraw_ckbtc_ledger_fee_reserve_sats();
+    let required_sats = amount_sats
+        .checked_add(ledger_fee_reserve_sats)
+        .ok_or_else(|| {
+            VolumetricError::from_def(
+                error_codes::INTERNAL_ERROR,
+                Some("withdraw required amount overflow"),
+                None,
+            )
+        })?;
+
+    if available_sats < required_sats {
+        return Err(VolumetricError::from_def(
+            error_codes::INSUFFICIENT_BALANCE,
+            Some(&format!(
+                "available: {}, required: {}",
+                available_sats, required_sats
             )),
             None,
         ));
@@ -675,6 +706,27 @@ mod tests {
 
         let balance = get_balance(&principal);
         assert_eq!(balance.available, insufficient_amount);
+    }
+
+    /// Given: account balance equals the requested withdrawal amount
+    /// When: withdraw_ckbtc_use_case is called
+    /// Then: it rejects the request because ledger fees still need headroom
+    #[tokio::test]
+    async fn test_withdraw_rejects_amount_that_leaves_no_ledger_fee_reserve() {
+        // given
+        setup_success();
+        let principal = test_principal();
+        fund_principal(principal, WITHDRAW_AMOUNT_SATS);
+
+        // when
+        let result = withdraw_ckbtc_use_case(principal, withdraw_params(), 21);
+
+        // then
+        let error = result.expect_err("withdraw should reject amount without fee reserve");
+        assert_eq!(error.code, error_codes::INSUFFICIENT_BALANCE.code);
+
+        let balance = get_balance(&principal);
+        assert_eq!(balance.available, WITHDRAW_AMOUNT_SATS);
     }
 
     /// Given: ledger approve fails

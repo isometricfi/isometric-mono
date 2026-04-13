@@ -41,6 +41,7 @@ export function WithdrawModal({
   const profile = accountData?.profile;
   const lockedSats = balance?.locked ?? BigInt(0);
   const availableSats = balance?.available ?? BigInt(0);
+  const maxWithdrawSats = balance?.maxWithdrawSats ?? availableSats;
   const destinationAddress = profile?.address ?? primaryWallet?.address ?? "";
 
   const [step, setStep] = useState<WithdrawStep>("input");
@@ -54,12 +55,12 @@ export function WithdrawModal({
 
   const canWithdraw = useMemo(() => {
     const sats = parseBtcToSatsBigint(amountBtc);
-    console.log("sats", sats < minWithdrawSats, sats > BigInt(availableSats), !destinationAddress);
     if (sats < minWithdrawSats) return false;
     if (sats > BigInt(availableSats)) return false;
+    if (sats > maxWithdrawSats) return false;
     if (!destinationAddress) return false;
     return true;
-  }, [amountBtc, minWithdrawSats, availableSats, destinationAddress]);
+  }, [amountBtc, minWithdrawSats, availableSats, maxWithdrawSats, destinationAddress]);
 
   const isProcessing = step === "signing" || step === "processing";
 
@@ -124,9 +125,9 @@ export function WithdrawModal({
             <AmountInput
               value={amountBtc}
               onChange={setAmountBtc}
-              maxAmountSats={Number(availableSats)}
+              maxAmountSats={Number(maxWithdrawSats)}
               minAmountSats={Number(minWithdrawSats)}
-              onMaxClick={() => setAmountBtc(formatBtcBigint(availableSats, 8))}
+              onMaxClick={() => setAmountBtc(formatBtcBigint(maxWithdrawSats, 8))}
             />
 
             {lockedSats > BigInt(0) && (

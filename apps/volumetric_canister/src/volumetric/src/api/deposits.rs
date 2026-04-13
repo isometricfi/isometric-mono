@@ -74,6 +74,7 @@ pub struct UserBalanceInfo {
     pub total: u64,
     pub available: u64,
     pub locked: u64,
+    pub max_withdraw_sats: u64,
 }
 
 impl From<usecases::UserBalanceResult> for UserBalanceInfo {
@@ -82,6 +83,7 @@ impl From<usecases::UserBalanceResult> for UserBalanceInfo {
             total: result.total,
             available: result.available,
             locked: result.locked,
+            max_withdraw_sats: result.max_withdraw_sats,
         }
     }
 }

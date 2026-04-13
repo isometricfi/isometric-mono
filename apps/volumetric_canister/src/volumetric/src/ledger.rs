@@ -8,6 +8,7 @@ use std::rc::Rc;
 
 use async_trait::async_trait;
 use candid::Nat;
+use ic_cdk::api::in_replicated_execution;
 use icrc_ledger_types::icrc1::account::Account;
 use icrc_ledger_types::icrc1::transfer::TransferError;
 use icrc_ledger_types::icrc2::approve::{ApproveArgs, ApproveError};
@@ -19,6 +20,14 @@ use crate::storage::Config;
 const TRANSFER_FEE_CACHE_TTL_90_SECONDS_NS: u64 = 90_000_000_000;
 #[cfg(any(test, feature = "testing"))]
 pub const TESTING_CKBTC_TRANSFER_FEE_SATS: u64 = 10;
+
+/// ckBTC ledger `icrc1_fee` on mainnet has been 10 satoshi. Used when computing withdraw
+/// capacity in queries if the transfer-fee cache has no fresh value yet.
+pub const CKBTC_ICRC1_TRANSFER_FEE_SATS_MAINNET_FALLBACK: u64 = 10;
+
+/// ckBTC withdrawal uses `icrc2_approve` then a minter-triggered `transfer_from`; each charges
+/// one `icrc1_fee` from the user's subaccount balance.
+pub const CKBTC_WITHDRAW_ICRC2_LEDGER_FEE_CHARGE_COUNT: u64 = 2;
 
 #[derive(Clone, Copy)]
 struct TransferFeeCacheEntry {
@@ -234,7 +243,30 @@ pub fn get_cached_icrc1_transfer_fee_sats_for_sync_flow() -> Result<u64, Volumet
     ))
 }
 
+pub fn estimated_icrc1_transfer_fee_sats_for_balance_queries() -> u64 {
+    let now_ns = ic::time();
+    load_fresh_transfer_fee_sats(now_ns).unwrap_or(CKBTC_ICRC1_TRANSFER_FEE_SATS_MAINNET_FALLBACK)
+}
+
+pub fn withdraw_ckbtc_ledger_fee_reserve_sats_for_transfer_fee(transfer_fee_sats: u64) -> u64 {
+    transfer_fee_sats.saturating_mul(CKBTC_WITHDRAW_ICRC2_LEDGER_FEE_CHARGE_COUNT)
+}
+
+pub fn withdraw_ckbtc_ledger_fee_reserve_sats() -> u64 {
+    withdraw_ckbtc_ledger_fee_reserve_sats_for_transfer_fee(
+        estimated_icrc1_transfer_fee_sats_for_balance_queries(),
+    )
+}
+
+pub fn max_withdraw_ckbtc_sats_after_ledger_fees(available_sats: u64) -> u64 {
+    available_sats.saturating_sub(withdraw_ckbtc_ledger_fee_reserve_sats())
+}
+
 pub fn schedule_transfer_fee_refresh_if_idle() {
+    if !in_replicated_execution() {
+        return;
+    }
+
     #[cfg(target_arch = "wasm32")]
     ic_cdk::futures::spawn(async move {
         refresh_transfer_fee_cache_if_idle().await;
@@ -242,6 +274,10 @@ pub fn schedule_transfer_fee_refresh_if_idle() {
 }
 
 pub async fn refresh_transfer_fee_cache_if_idle() {
+    if !in_replicated_execution() {
+        return;
+    }
+
     if !mark_transfer_fee_refresh_in_flight_if_idle() {
         return;
     }
@@ -626,6 +662,50 @@ mod tests {
         assert_eq!(
             refreshed_result.expect("fee should be refreshed"),
             TEST_FEE_25_SATS
+        );
+    }
+
+    /// Given: a fresh cached per-ledger fee and an available balance
+    /// When: computing the max ckBTC amount that can leave via withdraw-with-approval
+    /// Then: the result reserves two ledger fee deductions
+    #[test]
+    fn test_max_withdraw_ckbtc_reserves_two_cached_ledger_fees() {
+        // given
+        clear_cached_transfer_fee_for_testing();
+        ic::set_runtime(Box::new(MockRuntime {
+            now_ns: TEST_NOW_NS,
+        }));
+        set_cached_transfer_fee_for_testing(TEST_FEE_10_SATS, TEST_NOW_NS);
+        const AVAILABLE_SATS: u64 = 1_000;
+
+        // when
+        let max_sats = max_withdraw_ckbtc_sats_after_ledger_fees(AVAILABLE_SATS);
+
+        // then
+        const EXPECTED_RESERVE_SATS: u64 =
+            TEST_FEE_10_SATS * CKBTC_WITHDRAW_ICRC2_LEDGER_FEE_CHARGE_COUNT;
+        const EXPECTED_MAX_WITHDRAW_SATS: u64 = AVAILABLE_SATS - EXPECTED_RESERVE_SATS;
+        assert_eq!(max_sats, EXPECTED_MAX_WITHDRAW_SATS);
+    }
+
+    /// Given: no cached ledger fee (cold query path)
+    /// When: estimating per-ledger fee for balance presentation
+    /// Then: the mainnet fallback fee is used
+    #[test]
+    fn test_estimated_transfer_fee_uses_mainnet_fallback_without_cache() {
+        // given
+        clear_cached_transfer_fee_for_testing();
+        ic::set_runtime(Box::new(MockRuntime {
+            now_ns: TEST_NOW_NS,
+        }));
+
+        // when
+        let estimated_fee_sats = estimated_icrc1_transfer_fee_sats_for_balance_queries();
+
+        // then
+        assert_eq!(
+            estimated_fee_sats,
+            CKBTC_ICRC1_TRANSFER_FEE_SATS_MAINNET_FALLBACK
         );
     }
 }
