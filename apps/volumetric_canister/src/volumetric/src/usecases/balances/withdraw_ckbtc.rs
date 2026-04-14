@@ -198,7 +198,7 @@ fn enqueue_ckbtc_withdraw_wal_after_debit(
             withdrawal_id: withdrawal.id,
             principal,
             gross_debit_from_available_sats: params.amount,
-            net_for_ckbtc_approve_and_retrieve_sats: Some(withdraw_amount_after_fees_sats),
+            withdraw_amount_after_fees_sats: Some(withdraw_amount_after_fees_sats),
             btc_address: params.btc_address,
             created_at_time_ns: ledger_transfer_created_at_time_ns,
         }),
@@ -229,25 +229,25 @@ fn debit_withdrawer_available_balance(
 
 fn validate_gross_ckbtc_withdraw_or_reject(
     principal: Principal,
-    gross_withdraw_amount_sats: u64,
+    gross_debit_from_available_sats: u64,
 ) -> Result<u64, VolumetricError> {
     let transfer_fee_sats = ledger::get_cached_icrc1_transfer_fee_sats_for_sync_flow()?;
     let ledger_fee_reserve_sats =
         ledger::withdraw_ckbtc_ledger_fee_reserve_sats_for_transfer_fee(transfer_fee_sats);
     let minimum_net_withdraw_amount_sats = Config::trading_limits().withdraw_amount_sats;
 
-    if gross_withdraw_amount_sats < ledger_fee_reserve_sats {
+    if gross_debit_from_available_sats < ledger_fee_reserve_sats {
         return Err(VolumetricError::from_def(
             error_codes::INSUFFICIENT_BALANCE,
             Some(&format!(
-                "gross_withdraw: {} is below ledger_fee_reserve: {}",
-                gross_withdraw_amount_sats, ledger_fee_reserve_sats
+                "gross_debit_from_available: {} is below ledger_fee_reserve: {}",
+                gross_debit_from_available_sats, ledger_fee_reserve_sats
             )),
             None,
         ));
     }
 
-    let withdraw_amount_after_fees_sats = gross_withdraw_amount_sats
+    let withdraw_amount_after_fees_sats = gross_debit_from_available_sats
         .checked_sub(ledger_fee_reserve_sats)
         .ok_or_else(|| {
             VolumetricError::from_def(
@@ -261,7 +261,7 @@ fn validate_gross_ckbtc_withdraw_or_reject(
         return Err(VolumetricError::from_def(
             error_codes::QUANTITY_BELOW_MINIMUM,
             Some(&format!(
-                "net_withdraw: {} is below minimum_withdraw: {}",
+                "withdraw_amount_after_fees_sats: {} is below minimum_withdraw: {}",
                 withdraw_amount_after_fees_sats, minimum_net_withdraw_amount_sats
             )),
             None,
@@ -269,12 +269,12 @@ fn validate_gross_ckbtc_withdraw_or_reject(
     }
 
     let available_sats = get_balance(&principal).available;
-    if available_sats < gross_withdraw_amount_sats {
+    if available_sats < gross_debit_from_available_sats {
         return Err(VolumetricError::from_def(
             error_codes::INSUFFICIENT_BALANCE,
             Some(&format!(
-                "available: {}, required_gross: {}",
-                available_sats, gross_withdraw_amount_sats
+                "available: {}, required_gross_debit_from_available: {}",
+                available_sats, gross_debit_from_available_sats
             )),
             None,
         ));
