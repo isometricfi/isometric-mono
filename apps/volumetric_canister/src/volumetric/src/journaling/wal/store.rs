@@ -73,6 +73,19 @@ pub fn get_entry(operation_id: OperationId) -> Option<WalEntry> {
     WAL.with_borrow(|wal| wal.get(&operation_id).map(|entry| entry.0))
 }
 
+pub fn list_entries(limit: usize) -> Vec<WalEntry> {
+    if limit == 0 {
+        return Vec::new();
+    }
+
+    WAL.with_borrow(|wal| {
+        wal.iter()
+            .map(|entry| entry.value().0)
+            .take(limit)
+            .collect()
+    })
+}
+
 pub fn list_entries_by_status(status: WalStatus, limit: usize) -> Vec<WalEntry> {
     if limit == 0 {
         return Vec::new();
@@ -216,7 +229,7 @@ mod tests {
             withdrawal_id: u64::from(seed),
             principal: Principal::anonymous(),
             gross_withdraw_amount_sats: 100 + u64::from(seed),
-            withdraw_amount_after_fees_sats: Some(100 + u64::from(seed)),
+            withdraw_amount_after_fees_sats: 100 + u64::from(seed),
             btc_address: format!("tb1q{seed}"),
             created_at_time_ns: TEST_NOW_NS,
         })
@@ -248,6 +261,37 @@ mod tests {
             conflicting_payload,
             default_policy(),
         );
+    }
+
+    /// Given: multiple WAL entries exist in storage
+    /// When: listing all WAL entries with a limit
+    /// Then: the result includes entries up to that limit in storage order
+    #[test]
+    fn list_entries_returns_all_entries_up_to_limit() {
+        // given
+        reset_wal_for_test();
+        let first_operation_id = make_operation_id(11);
+        let second_operation_id = make_operation_id(12);
+        enqueue_if_absent(
+            first_operation_id,
+            WalKind::Withdrawal,
+            make_withdrawal_payload(11),
+            default_policy(),
+        );
+        enqueue_if_absent(
+            second_operation_id,
+            WalKind::Withdrawal,
+            make_withdrawal_payload(12),
+            default_policy(),
+        );
+
+        // when
+        let wal_entries = list_entries(1);
+
+        // then
+        const EXPECTED_WAL_ENTRY_COUNT: usize = 1;
+        assert_eq!(wal_entries.len(), EXPECTED_WAL_ENTRY_COUNT);
+        assert_eq!(wal_entries[0].id, first_operation_id);
     }
 
     /// Given: stale and fresh in-flight WAL entries

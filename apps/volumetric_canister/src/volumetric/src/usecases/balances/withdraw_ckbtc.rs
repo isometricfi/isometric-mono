@@ -198,7 +198,7 @@ fn enqueue_ckbtc_withdraw_wal_after_debit(
             withdrawal_id: withdrawal.id,
             principal,
             gross_withdraw_amount_sats: params.amount,
-            withdraw_amount_after_fees_sats: Some(withdraw_amount_after_fees_sats),
+            withdraw_amount_after_fees_sats,
             btc_address: params.btc_address,
             created_at_time_ns: ledger_transfer_created_at_time_ns,
         }),
@@ -382,14 +382,13 @@ pub async fn run_withdrawal_wal(
     let minter = Config::ckbtc_minter();
 
     if withdrawal.phase == WithdrawalPhase::Started {
-        let withdraw_amount_after_fees_sats = payload.ckbtc_ledger_withdraw_amount_sats();
         let approve_args = icrc_ledger_types::icrc2::approve::ApproveArgs {
             from_subaccount: Some(subaccount),
             spender: Account {
                 owner: minter,
                 subaccount: None,
             },
-            amount: Nat::from(withdraw_amount_after_fees_sats),
+            amount: Nat::from(payload.withdraw_amount_after_fees_sats),
             expected_allowance: None,
             expires_at: None,
             fee: None,
@@ -412,10 +411,9 @@ pub async fn run_withdrawal_wal(
     })?;
 
     if withdrawal.phase == WithdrawalPhase::Approved {
-        let withdraw_amount_after_fees_sats = payload.ckbtc_ledger_withdraw_amount_sats();
         let retrieve_args = RetrieveBtcWithApprovalArgs {
             address: payload.btc_address.clone(),
-            amount: withdraw_amount_after_fees_sats,
+            amount: payload.withdraw_amount_after_fees_sats,
             from_subaccount: Some(serde_bytes::ByteBuf::from(subaccount.to_vec())),
         };
 
@@ -438,7 +436,7 @@ pub async fn run_withdrawal_wal(
             payload.principal,
             EventType::Withdrawal,
             EventData::Withdrawal {
-                amount_sats: withdraw_amount_after_fees_sats,
+                amount_sats: payload.withdraw_amount_after_fees_sats,
                 destination: payload.btc_address.clone(),
             },
         );
