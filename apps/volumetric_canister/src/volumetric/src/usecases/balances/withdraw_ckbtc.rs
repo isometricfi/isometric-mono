@@ -197,8 +197,8 @@ fn enqueue_ckbtc_withdraw_wal_after_debit(
         WalPayload::Withdrawal(WithdrawalWalPayload {
             withdrawal_id: withdrawal.id,
             principal,
-            gross_withdraw_amount_sats: params.amount,
-            withdraw_amount_after_fees_sats: Some(withdraw_amount_after_fees_sats),
+            gross_debit_from_available_sats: params.amount,
+            net_for_ckbtc_approve_and_retrieve_sats: Some(withdraw_amount_after_fees_sats),
             btc_address: params.btc_address,
             created_at_time_ns: ledger_transfer_created_at_time_ns,
         }),
@@ -305,7 +305,7 @@ pub(crate) fn finalize_failed_withdrawal_wal(payload: &WithdrawalWalPayload, mes
         return;
     }
 
-    add_available(payload.principal, payload.gross_withdraw_amount_sats);
+    add_available(payload.principal, payload.gross_debit_from_available_sats);
     fail_withdrawal(payload.withdrawal_id, message.to_string());
 }
 

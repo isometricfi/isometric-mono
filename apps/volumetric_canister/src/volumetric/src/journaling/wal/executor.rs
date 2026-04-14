@@ -195,8 +195,8 @@ mod tests {
         WalPayload::Withdrawal(super::super::types::WithdrawalWalPayload {
             withdrawal_id: u64::from(seed),
             principal: Principal::anonymous(),
-            gross_withdraw_amount_sats: 100 + u64::from(seed),
-            withdraw_amount_after_fees_sats: Some(100 + u64::from(seed)),
+            gross_debit_from_available_sats: 100 + u64::from(seed),
+            net_for_ckbtc_approve_and_retrieve_sats: Some(100 + u64::from(seed)),
             btc_address: format!("tb1qexecutor{seed}"),
             created_at_time_ns: TEST_NOW_NS,
         })
