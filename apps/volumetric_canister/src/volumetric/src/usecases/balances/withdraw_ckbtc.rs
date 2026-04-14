@@ -71,7 +71,8 @@ pub fn withdraw_ckbtc_use_case(
     request_nonce: u64,
 ) -> Result<WithdrawReceipt, VolumetricError> {
     let _withdrawal_balance_mutation_lock = BalanceMutationLock::new(principal)?;
-    let withdraw_amount_after_fees_sats = validate_withdraw_request(principal, params.amount)?;
+    let withdraw_amount_after_fees_sats =
+        validate_gross_ckbtc_withdraw_or_reject(principal, params.amount)?;
 
     if !get_pending_withdrawals_by_principal(principal).is_empty() {
         return Err(VolumetricError::from_def(
@@ -88,7 +89,7 @@ pub fn withdraw_ckbtc_use_case(
         return Ok(existing_withdraw_receipt);
     }
 
-    let withdrawal_wal_execution_preparation = prepare_withdraw_execution(
+    let withdrawal_wal_execution_preparation = enqueue_ckbtc_withdraw_wal_after_debit(
         principal,
         params,
         operation_id,
@@ -174,7 +175,7 @@ fn build_withdraw_receipt_from_wal_entry(
     })
 }
 
-fn prepare_withdraw_execution(
+fn enqueue_ckbtc_withdraw_wal_after_debit(
     principal: Principal,
     params: WithdrawParams,
     operation_id: OperationId,
@@ -196,7 +197,7 @@ fn prepare_withdraw_execution(
         WalPayload::Withdrawal(WithdrawalWalPayload {
             withdrawal_id: withdrawal.id,
             principal,
-            amount_sats: params.amount,
+            gross_withdraw_amount_sats: params.amount,
             withdraw_amount_after_fees_sats: Some(withdraw_amount_after_fees_sats),
             btc_address: params.btc_address,
             created_at_time_ns: ledger_transfer_created_at_time_ns,
@@ -226,7 +227,7 @@ fn debit_withdrawer_available_balance(
     })
 }
 
-fn validate_withdraw_request(
+fn validate_gross_ckbtc_withdraw_or_reject(
     principal: Principal,
     gross_withdraw_amount_sats: u64,
 ) -> Result<u64, VolumetricError> {
@@ -304,7 +305,7 @@ pub(crate) fn finalize_failed_withdrawal_wal(payload: &WithdrawalWalPayload, mes
         return;
     }
 
-    add_available(payload.principal, payload.amount_sats);
+    add_available(payload.principal, payload.gross_withdraw_amount_sats);
     fail_withdrawal(payload.withdrawal_id, message.to_string());
 }
 
@@ -381,7 +382,7 @@ pub async fn run_withdrawal_wal(
     let minter = Config::ckbtc_minter();
 
     if withdrawal.phase == WithdrawalPhase::Started {
-        let withdraw_amount_after_fees_sats = payload.withdraw_amount_after_fees_sats_for_ledger();
+        let withdraw_amount_after_fees_sats = payload.ckbtc_ledger_withdraw_amount_sats();
         let approve_args = icrc_ledger_types::icrc2::approve::ApproveArgs {
             from_subaccount: Some(subaccount),
             spender: Account {
@@ -411,7 +412,7 @@ pub async fn run_withdrawal_wal(
     })?;
 
     if withdrawal.phase == WithdrawalPhase::Approved {
-        let withdraw_amount_after_fees_sats = payload.withdraw_amount_after_fees_sats_for_ledger();
+        let withdraw_amount_after_fees_sats = payload.ckbtc_ledger_withdraw_amount_sats();
         let retrieve_args = RetrieveBtcWithApprovalArgs {
             address: payload.btc_address.clone(),
             amount: withdraw_amount_after_fees_sats,
