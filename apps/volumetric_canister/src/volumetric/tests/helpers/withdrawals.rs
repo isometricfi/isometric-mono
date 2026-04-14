@@ -24,7 +24,13 @@ pub fn get_withdraw_message(
                 .unwrap(),
         )
         .expect("Query failed");
-    Decode!(&response, String).unwrap()
+    if let Ok(message) = Decode!(&response, String) {
+        return message;
+    }
+
+    let result_message: Result<String, VolumetricError> =
+        Decode!(&response, Result<String, VolumetricError>).unwrap();
+    result_message.expect("Failed to build withdraw signing message")
 }
 
 pub fn withdraw_ckbtc(

@@ -33,6 +33,11 @@ pub mod error_codes {
         name: "INVALID_SIGNATURE",
         message: "Signature verification failed",
     };
+    pub const INVALID_WALLET_ADDRESS: ErrorDef = ErrorDef {
+        code: 1004,
+        name: "INVALID_WALLET_ADDRESS",
+        message: "Invalid wallet address",
+    };
 
     // 2xxx: Profile/account errors
     pub const PROFILE_NOT_FOUND: ErrorDef = ErrorDef {
@@ -180,6 +185,11 @@ pub mod error_codes {
         code: 5027,
         name: "INVALID_OFFER_STATE",
         message: "Invalid offer state",
+    };
+    pub const FEE_CALCULATION_OVERFLOW: ErrorDef = ErrorDef {
+        code: 5028,
+        name: "FEE_CALCULATION_OVERFLOW",
+        message: "Fee calculation overflow",
     };
 
     // 9xxx: Internal/generic errors

@@ -21,8 +21,8 @@ pub enum WalStatus {
     InFlight,
     /// Finished successfully.
     Succeeded,
-    /// Failed and will retry.
-    FailedRetryable,
+    /// Failed with ambiguous external outcome and requires operator recovery.
+    RecoveryRequired,
     /// Failed permanently.
     FailedPermanent,
 }
@@ -44,7 +44,11 @@ pub struct SettlementWalPayload {
 pub struct WithdrawalWalPayload {
     pub withdrawal_id: u64,
     pub principal: Principal,
-    pub amount_sats: u64,
+    /// Gross ckBTC withdraw amount (debited from platform `available`); refunded if the WAL fails.
+    #[serde(rename = "amount_sats")]
+    pub gross_withdraw_amount_sats: u64,
+    /// Sats for ICRC-2 approve and ckBTC minter retrieve (gross minus double ledger fee reserve).
+    pub withdraw_amount_after_fees_sats: u64,
     pub btc_address: String,
     pub created_at_time_ns: u64,
 }
@@ -116,17 +120,17 @@ pub struct WalEntry {
     pub result: Option<WalResult>,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub enum WalExecutionError {
     Retryable(String),
     Permanent(String),
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub enum WalExecutionOutcome {
     Succeeded,
     SucceededAlready,
     SkippedAlreadyInFlight,
-    FailedRetryable(String),
+    RecoveryRequired(String),
     FailedPermanent(String),
 }

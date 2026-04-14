@@ -35,7 +35,7 @@ interface OptionsData {
 }
 
 interface ConfigData {
-  minOfferAmountSats: number;
+  minAcceptOfferAmountSats: number;
 }
 
 interface AccountData {
@@ -66,8 +66,11 @@ function isOwnOffer(offer: FlatOffer, walletAddress: string, ownPrincipal: strin
   return offer.writerId === walletAddress;
 }
 
-function getMinimumQuantityOffers(offers: FlatOffer[], minOfferAmountSats: number): FlatOffer[] {
-  return offers.filter((offer) => offer.amountSats >= minOfferAmountSats);
+function getMinimumQuantityOffers(
+  offers: FlatOffer[],
+  minAcceptOfferAmountSats: number,
+): FlatOffer[] {
+  return offers.filter((offer) => offer.amountSats >= minAcceptOfferAmountSats);
 }
 
 function getShortTermOffers(offers: FlatOffer[]): FlatOffer[] {
@@ -158,16 +161,16 @@ export async function acceptOffer(
       } as const;
     }
 
-    const minimumOfferAmountSats = (config as ConfigData).minOfferAmountSats;
-    const validOffers = getMinimumQuantityOffers(shortTermOffers, minimumOfferAmountSats);
+    const minimumAcceptOfferAmountSats = (config as ConfigData).minAcceptOfferAmountSats;
+    const validOffers = getMinimumQuantityOffers(shortTermOffers, minimumAcceptOfferAmountSats);
 
     if (validOffers.length === 0) {
       log("info", "No valid offers above minimum quantity", {
-        minimum_quantity_sats: minimumOfferAmountSats,
+        minimum_quantity_sats: minimumAcceptOfferAmountSats,
       });
       span.setAttribute("skipped", true);
       span.setAttribute("skip_reason", ACCEPT_OFFER_SKIP_REASON.noValidOffers);
-      span.setAttribute("minimum_quantity_sats", minimumOfferAmountSats);
+      span.setAttribute("minimum_quantity_sats", minimumAcceptOfferAmountSats);
       return {
         outcome: ACCEPT_OFFER_OUTCOME.noValidOffers,
       } as const;

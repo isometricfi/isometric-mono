@@ -4,9 +4,9 @@ on:
   push:
     branches: [main]
     paths:
-      - 'apps/volumetric_web/**'
-      - 'packages/**'
-      - 'pnpm-lock.yaml'
+      - "apps/volumetric_web/**"
+      - "packages/**"
+      - "pnpm-lock.yaml"
   workflow_dispatch:
 
 jobs:
@@ -22,8 +22,8 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '22'
-          cache: 'pnpm'
+          node-version: "22"
+          cache: "pnpm"
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -34,4 +34,6 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           NEXT_PUBLIC_DYNAMIC_ENVIRONMENT_ID: ${{ secrets.NEXT_PUBLIC_DYNAMIC_ENVIRONMENT_ID }}
           NEXT_PUBLIC_BASE_URL: ${{ secrets.NEXT_PUBLIC_BASE_URL }}
-        run: pnpm cf:deploy-all
+          NEXT_PUBLIC_MEMPOOL_URL: ${{ vars.NEXT_PUBLIC_MEMPOOL_URL }}
+          NEXT_PUBLIC_TAWK_EMBED_URL: ${{ vars.NEXT_PUBLIC_TAWK_EMBED_URL }}
+        run: pnpm cf:deploy-all:prod

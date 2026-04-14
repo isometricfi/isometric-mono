@@ -30,7 +30,7 @@ export function CallWriteOptionForm() {
     handleStrikeUsdChange,
     handleSubmit,
     isSubmitDisabled,
-    maxOfferAmountSats,
+    maxCreateOfferAmountSats,
     needDepositMore,
     premiumPercent,
     premiumValues,
@@ -42,6 +42,8 @@ export function CallWriteOptionForm() {
     strikeUsdValues,
     termDays,
   } = useCallWriteOptionFormModel();
+
+  const getTermLabel = (dayCount: number) => t(dayCount === 1 ? "day" : "days").toLowerCase();
 
   return (
     <Card className="relative ">
@@ -74,7 +76,7 @@ export function CallWriteOptionForm() {
               values={termDays}
               value={selectedTermDay}
               onChange={setTerm}
-              formatValue={(value) => `${value} ${t("days").toLowerCase()}`}
+              formatValue={(value) => `${value} ${getTermLabel(value)}`}
             />
           </div>
         </div>
@@ -83,7 +85,7 @@ export function CallWriteOptionForm() {
           label={t("collateral")}
           amountSats={amountSats}
           btcPrice={btcPrice}
-          maxAmountSats={maxOfferAmountSats}
+          maxAmountSats={maxCreateOfferAmountSats}
           onAmountSatsChange={handleAmountSatsChange}
         />
 
@@ -109,7 +111,7 @@ export function CallWriteOptionForm() {
                 ? () => setDepositModalOpen(true)
                 : handleSubmit
           }
-          className="w-full text-base "
+          className="w-full text-base"
           size="default"
           disabled={primaryWallet ? (needDepositMore ? false : isSubmitDisabled) : false}
         >

@@ -10,14 +10,18 @@ use crate::storage::{
 use crate::usecases;
 
 #[ic_cdk::query]
-pub fn get_withdraw_message(address: String, btc_address: String, amount: u64) -> String {
-    let wallet_key = WalletKey::from_address(&address);
+pub fn get_withdraw_message(
+    address: String,
+    btc_address: String,
+    amount: u64,
+) -> Result<String, VolumetricError> {
+    let wallet_key = WalletKey::try_from_address(&address)?;
     let context = build_challenge_context(&wallet_key);
     let req = WithdrawCkbtcRequest {
         btc_address,
         amount,
     };
-    req.signing_message(&address, &context)
+    Ok(req.signing_message(&address, &context))
 }
 
 #[ic_cdk::update]
@@ -27,7 +31,7 @@ pub fn withdraw_ckbtc(
     is_whitelisted()?;
 
     let address = &req.wallet_proof.address;
-    let wallet_key = WalletKey::from_address(address);
+    let wallet_key = WalletKey::try_from_address(address)?;
 
     let context = build_challenge_context(&wallet_key);
     let reconstructed_message = req.data.signing_message(address, &context);
@@ -79,7 +83,7 @@ pub fn get_my_pending_withdrawals(
     is_whitelisted()?;
 
     let address = &req.wallet_proof.address;
-    let wallet_key = WalletKey::from_address(address);
+    let wallet_key = WalletKey::try_from_address(address)?;
 
     let principal = get_principal_for_wallet(&wallet_key)
         .ok_or_else(|| VolumetricError::from_def(error_codes::PROFILE_NOT_FOUND, None, None))?;

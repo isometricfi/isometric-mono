@@ -1,6 +1,6 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "volumetric-web",
+  "name": "volumetric-web-dev",
   "main": "./worker.ts",
   "compatibility_date": "2026-03-29",
   "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
@@ -12,7 +12,7 @@
   "services": [
     {
       "binding": "WORKER_SELF_REFERENCE",
-      "service": "volumetric-web"
+      "service": "volumetric-web-dev"
     }
   ],
   "d1_databases": [
@@ -25,5 +25,68 @@
   ],
   "observability": {
     "enabled": true
+  },
+  "env": {
+    "dev": {
+      "name": "volumetric-web-dev",
+      "vars": {
+        "TURBO_TELEMETRY_DISABLED": "1",
+        "DO_NOT_TRACK": "1",
+        "IC_HOST": "https://ic0.app",
+        "NEXT_PUBLIC_BASE_URL": "https://dev.isometric.fi",
+        "NEXT_PUBLIC_DYNAMIC_ENVIRONMENT_ID": "de1fcf87-cf70-44f3-960f-eb6a4986f93a",
+        "OTEL_SERVICE_NAME": "volumetric-web-dev",
+        "OTEL_EXPORTER_OTLP_TRACES_ENDPOINT": "https://otlp-gateway-prod-eu-central-0.grafana.net/otlp/v1/traces",
+        "OTEL_EXPORTER_OTLP_LOGS_ENDPOINT": "https://otlp-gateway-prod-eu-central-0.grafana.net/otlp/v1/logs",
+        "MEMPOOL_API_URL": "https://mempool.space/testnet/api",
+        "NEXT_PUBLIC_MEMPOOL_URL": "https://mempool.space",
+        "CANISTER_ID": "4dqqd-aqaaa-aaaae-qgbta-cai"
+      },
+      "services": [
+        {
+          "binding": "WORKER_SELF_REFERENCE",
+          "service": "volumetric-web-dev"
+        }
+      ],
+      "d1_databases": [
+        {
+          "binding": "DB",
+          "database_name": "volumetric_d1_db",
+          "database_id": "626bd0d6-2f2b-4821-86af-366b021db87c",
+          "migrations_dir": "drizzle/migrations"
+        }
+      ]
+    },
+    "production": {
+      "name": "volumetric-web-production",
+      "vars": {
+        "TURBO_TELEMETRY_DISABLED": "1",
+        "DO_NOT_TRACK": "1",
+        "IC_HOST": "https://ic0.app",
+        "NEXT_PUBLIC_BASE_URL": "https://isometric.fi",
+        "NEXT_PUBLIC_DYNAMIC_ENVIRONMENT_ID": "de1fcf87-cf70-44f3-960f-eb6a4986f93a",
+        "OTEL_SERVICE_NAME": "volumetric-web-prod",
+        "OTEL_EXPORTER_OTLP_TRACES_ENDPOINT": "https://otlp-gateway-prod-eu-central-0.grafana.net/otlp/v1/traces",
+        "OTEL_EXPORTER_OTLP_LOGS_ENDPOINT": "https://otlp-gateway-prod-eu-central-0.grafana.net/otlp/v1/logs",
+        "MEMPOOL_API_URL": "https://mempool.space/api",
+        "NEXT_PUBLIC_MEMPOOL_URL": "https://mempool.space",
+        "CANISTER_ID": "5optx-3iaaa-aaaae-qjwsa-cai",
+        "NEXT_PUBLIC_TAWK_EMBED_URL": "https://embed.tawk.to/69a303f652cbb51c37094784/1jiicevko"
+      },
+      "services": [
+        {
+          "binding": "WORKER_SELF_REFERENCE",
+          "service": "volumetric-web-production"
+        }
+      ],
+      "d1_databases": [
+        {
+          "binding": "DB",
+          "database_name": "volumetric_d1_prod",
+          "database_id": "bb200e69-caee-4241-b358-7d11efb1165a",
+          "migrations_dir": "drizzle/migrations"
+        }
+      ]
+    }
   }
 }

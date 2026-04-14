@@ -1,3 +1,4 @@
+import { profileFromGetAccountInfoResult } from "@volumetric/canister-types";
 import { getCanisterActor } from "@/lib/canister-server";
 import { withSpan } from "@/lib/telemetry/withSpan";
 import { mapBalance, mapProfile } from "./mapper";
@@ -18,7 +19,7 @@ export async function getAccount(address: string): Promise<Output> {
       ],
     );
 
-    const profile = profileResult.length > 0 ? profileResult[0] : null;
+    const profile = profileFromGetAccountInfoResult(profileResult);
     const balanceData = "Ok" in balanceResult ? balanceResult.Ok : null;
     const inviteCode = inviteCodeResult[0] ?? null;
     const referrals = referralCountResult[0] ?? BigInt(0);

@@ -9,7 +9,7 @@ This package runs independent Workers from the same codebase:
 - `volumetric-bot-3` (`--env bot3`)
 - `volumetric-bot-4` (`--env bot4`)
 
-Both use a service binding to `volumetric-web` for tRPC calls (`NEXT_APP`), so worker mode does not use public `TRPC_URL`.
+Both use a service binding to `volumetric-web-dev` for tRPC calls (`NEXT_APP`), so worker mode does not use public `TRPC_URL`.
 
 ## Config quick reference
 

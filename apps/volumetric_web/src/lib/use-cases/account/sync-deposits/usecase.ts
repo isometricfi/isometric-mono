@@ -8,6 +8,7 @@ import { reconcileUserDepositsAfterSync } from "./_internal/reconciliation";
 import { mapResult } from "./mapper";
 import type { Output } from "./schema";
 
+const DETECTION_CONFIRMATIONS = 1;
 const MINTER_CONFIRMATIONS = 4;
 const MAX_SYNC_ATTEMPTS = 6;
 const MAX_DUE_DEPOSITS_PER_TICK = 200;
@@ -47,21 +48,12 @@ export async function syncDepositsFromCanister(): Promise<Output> {
       });
     }
 
-    const { actor, minDepositAmountSats, users } = await withSpan(
-      LOAD_USERS_AND_LIMITS_SPAN_NAME,
-      async () => {
-        const actor = await getCanisterActor();
-        const tradingLimits = await actor.get_trading_limits();
-        const minDepositAmountSats = Number(tradingLimits.deposit_amount_sats);
-        const users = await actor.list_users();
+    const { actor, users } = await withSpan(LOAD_USERS_AND_LIMITS_SPAN_NAME, async () => {
+      const actor = await getCanisterActor();
+      const users = await actor.list_users();
 
-        return {
-          actor,
-          minDepositAmountSats,
-          users,
-        };
-      },
-    );
+      return { actor, users };
+    });
 
     const maturedDetected = await withSpan(DETECT_MATURED_DEPOSITS_SPAN_NAME, async (span) => {
       const detectionPromises = users.map((user) =>
@@ -71,8 +63,7 @@ export async function syncDepositsFromCanister(): Promise<Output> {
           userAddress: user.address,
           nowMs,
           currentBlockTipHeight,
-          minDepositAmountSats,
-          minterConfirmations: MINTER_CONFIRMATIONS,
+          minterConfirmations: DETECTION_CONFIRMATIONS,
         }),
       );
       const detectionResults = await Promise.all(detectionPromises);
@@ -88,6 +79,7 @@ export async function syncDepositsFromCanister(): Promise<Output> {
         nowMs,
         maxDueDepositsPerTick: MAX_DUE_DEPOSITS_PER_TICK,
         maxTrackedDepositAgeMs: MAX_TRACKED_DEPOSIT_AGE_6_HOURS_MS,
+        minimumConfirmationsToSync: MINTER_CONFIRMATIONS,
       }),
     );
 

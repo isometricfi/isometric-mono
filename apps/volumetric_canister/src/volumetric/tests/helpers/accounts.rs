@@ -15,7 +15,13 @@ pub fn get_signing_message(env: &TestEnv, address: &str, invite_code: Option<Str
             candid::encode_args((address.to_string(), invite_code)).unwrap(),
         )
         .expect("Query failed");
-    Decode!(&response, String).unwrap()
+    if let Ok(message) = Decode!(&response, String) {
+        return message;
+    }
+
+    let result_message: Result<String, VolumetricError> =
+        Decode!(&response, Result<String, VolumetricError>).unwrap();
+    result_message.expect("Failed to build account signing message")
 }
 
 pub fn create_account(env: &TestEnv, wallet: &TestWallet) -> Result<ProfileInfo, VolumetricError> {

@@ -43,8 +43,8 @@ pub fn get_create_offer_message(
     quantity: u64,
     strike_basis_points: u16,
     premium_basis_points: u16,
-) -> String {
-    let wallet_key = WalletKey::from_address(&wallet_address);
+) -> Result<String, VolumetricError> {
+    let wallet_key = WalletKey::try_from_address(&wallet_address)?;
     let context = build_challenge_context(&wallet_key);
     let req = CreateOfferRequest {
         asset: Asset::CkBtc,
@@ -55,7 +55,7 @@ pub fn get_create_offer_message(
         offer_valid_until: 0,
         option_duration_seconds: 0,
     };
-    req.signing_message(&wallet_address, &context)
+    Ok(req.signing_message(&wallet_address, &context))
 }
 
 #[ic_cdk::update]
@@ -65,7 +65,7 @@ pub fn create_offer(
     is_whitelisted()?;
 
     let address = &req.wallet_proof.address;
-    let wallet_key = WalletKey::from_address(address);
+    let wallet_key = WalletKey::try_from_address(address)?;
 
     let context = build_challenge_context(&wallet_key);
     let reconstructed_message = req.data.signing_message(address, &context);
@@ -107,11 +107,14 @@ impl SignableAction for CancelOfferRequest {
 }
 
 #[ic_cdk::query]
-pub fn get_cancel_offer_message(wallet_address: String, offer_id: u64) -> String {
-    let wallet_key = WalletKey::from_address(&wallet_address);
+pub fn get_cancel_offer_message(
+    wallet_address: String,
+    offer_id: u64,
+) -> Result<String, VolumetricError> {
+    let wallet_key = WalletKey::try_from_address(&wallet_address)?;
     let context = build_challenge_context(&wallet_key);
     let req = CancelOfferRequest { offer_id };
-    req.signing_message(&wallet_address, &context)
+    Ok(req.signing_message(&wallet_address, &context))
 }
 
 #[ic_cdk::update]
@@ -121,7 +124,7 @@ pub fn cancel_offer(
     is_whitelisted()?;
 
     let address = &req.wallet_proof.address;
-    let wallet_key = WalletKey::from_address(address);
+    let wallet_key = WalletKey::try_from_address(address)?;
 
     let context = build_challenge_context(&wallet_key);
     let reconstructed_message = req.data.signing_message(address, &context);
@@ -138,7 +141,7 @@ pub fn cancel_offer(
 
 #[ic_cdk::query]
 pub fn get_my_offers(wallet_address: String) -> Result<Vec<Offer>, VolumetricError> {
-    let wallet_key = WalletKey::from_address(&wallet_address);
+    let wallet_key = WalletKey::try_from_address(&wallet_address)?;
     let principal = get_principal_for_wallet(&wallet_key)
         .ok_or_else(|| VolumetricError::from_def(error_codes::PROFILE_NOT_FOUND, None, None))?;
 

@@ -122,7 +122,6 @@ describe("syncDepositsFromCanister", () => {
     // given
     const repository = new InMemoryDepositSyncRepository();
     const actor = {
-      get_trading_limits: vi.fn().mockResolvedValue({ deposit_amount_sats: BigInt(5000) }),
       list_users: vi.fn().mockResolvedValue([{ address: USER_ADDRESS }]),
       get_deposit_address: vi.fn().mockResolvedValue({ Ok: { btc_address: DEPOSIT_ADDRESS } }),
       get_user_balance: vi
@@ -169,7 +168,6 @@ describe("syncDepositsFromCanister", () => {
       updatedAtMs: 1_700_000_000_000,
     });
     const actor = {
-      get_trading_limits: vi.fn(),
       list_users: vi.fn(),
       get_deposit_address: vi.fn(),
       get_user_balance: vi.fn(),
@@ -193,7 +191,6 @@ describe("syncDepositsFromCanister", () => {
       creditedDeposits: 0,
       snapshotsSaved: 0,
     });
-    expect(actor.get_trading_limits).not.toHaveBeenCalled();
     expect(actor.list_users).not.toHaveBeenCalled();
     expect(actor.update_ckbtc_balance).not.toHaveBeenCalled();
   });
@@ -207,7 +204,6 @@ describe("syncDepositsFromCanister", () => {
     const TOTAL_CREDITED_SATS = FIRST_DEPOSIT_SATS + SECOND_DEPOSIT_SATS + THIRD_DEPOSIT_SATS;
 
     const actor = {
-      get_trading_limits: vi.fn().mockResolvedValue({ deposit_amount_sats: BigInt(5_000) }),
       list_users: vi.fn().mockResolvedValue([{ address: USER_ADDRESS }]),
       get_deposit_address: vi.fn().mockResolvedValue({ Ok: { btc_address: DEPOSIT_ADDRESS } }),
       get_user_balance: vi
@@ -275,7 +271,6 @@ describe("syncDepositsFromCanister", () => {
     const nowValue = 1_700_000_000_000;
 
     const actor = {
-      get_trading_limits: vi.fn().mockResolvedValue({ deposit_amount_sats: BigInt(5_000) }),
       list_users: vi.fn().mockResolvedValue([{ address: USER_ADDRESS }]),
       get_deposit_address: vi.fn().mockResolvedValue({ Ok: { btc_address: DEPOSIT_ADDRESS } }),
       get_user_balance: vi
@@ -346,7 +341,6 @@ describe("syncDepositsFromCanister", () => {
     // given
     const repository = new InMemoryDepositSyncRepository();
     const actor = {
-      get_trading_limits: vi.fn().mockResolvedValue({ deposit_amount_sats: BigInt(5000) }),
       list_users: vi.fn().mockResolvedValue([{ address: USER_ADDRESS }]),
       get_deposit_address: vi.fn().mockResolvedValue({ Ok: { btc_address: DEPOSIT_ADDRESS } }),
       get_user_balance: vi.fn(),
@@ -376,16 +370,20 @@ describe("syncDepositsFromCanister", () => {
     nowSpy.mockRestore();
 
     // then
-    expect(result.maturedDetected).toBe(0);
+    expect(result.maturedDetected).toBe(1);
     expect(result.syncCalls).toBe(0);
     expect(actor.update_ckbtc_balance).not.toHaveBeenCalled();
+
+    const trackedDeposits = repository.getAllTracked();
+    expect(trackedDeposits).toHaveLength(1);
+    expect(trackedDeposits[0]?.status).toBe("matured");
+    expect(trackedDeposits[0]?.confirmations).toBe(3);
   });
 
   test("should use exponential backoff and keep snapshot history when sync does not credit", async () => {
     // given
     const repository = new InMemoryDepositSyncRepository();
     const actor = {
-      get_trading_limits: vi.fn().mockResolvedValue({ deposit_amount_sats: BigInt(5000) }),
       list_users: vi.fn().mockResolvedValue([{ address: USER_ADDRESS }]),
       get_deposit_address: vi.fn().mockResolvedValue({ Ok: { btc_address: DEPOSIT_ADDRESS } }),
       get_user_balance: vi

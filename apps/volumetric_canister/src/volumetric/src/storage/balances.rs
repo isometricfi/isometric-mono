@@ -9,6 +9,9 @@ use super::cbor::Cbor;
 use super::config::Config;
 use super::options::{CounterKey, COUNTERS};
 use super::state::{Memory, MemoryIndex, MEMORY_MANAGER};
+use crate::errors::{error_codes, VolumetricError};
+
+const BASIS_POINTS_DENOMINATOR: u128 = 10_000;
 
 pub fn get_fee_recipient() -> Principal {
     Config::fee_config().fee_recipient
@@ -35,13 +38,16 @@ pub fn get_platform_fees_collected() -> u64 {
     COUNTERS.with_borrow(|c| c.get(&CounterKey::PlatformFeesCollectedTotal).unwrap_or(0))
 }
 
-pub fn calculate_premium_fee(premium: u64) -> u64 {
+pub fn calculate_premium_fee(premium: u64) -> Result<u64, VolumetricError> {
     let fee_config = Config::fee_config();
-    (premium * fee_config.premium_fee_basis_points) / 10_000
+    calculate_fee_from_basis_points(premium, fee_config.premium_fee_basis_points)
 }
 
-pub fn calculate_profit_fee(profit: u64, profit_fee_basis_points: u64) -> u64 {
-    (profit * profit_fee_basis_points) / 10_000
+pub fn calculate_profit_fee(
+    profit: u64,
+    profit_fee_basis_points: u64,
+) -> Result<u64, VolumetricError> {
+    calculate_fee_from_basis_points(profit, profit_fee_basis_points)
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, CandidType, Default)]
@@ -183,4 +189,54 @@ pub fn reverse_release_locked_to_buyer(
 pub struct InsufficientBalance {
     pub available: u64,
     pub required: u64,
+}
+
+fn calculate_fee_from_basis_points(
+    amount: u64,
+    fee_basis_points: u64,
+) -> Result<u64, VolumetricError> {
+    let fee_amount = u128::from(amount) * u128::from(fee_basis_points) / BASIS_POINTS_DENOMINATOR;
+    u64::try_from(fee_amount).map_err(|_| {
+        VolumetricError::from_def(
+            error_codes::FEE_CALCULATION_OVERFLOW,
+            Some(&format!(
+                "amount: {}, basis_points: {}",
+                amount, fee_basis_points
+            )),
+            None,
+        )
+    })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{calculate_premium_fee, calculate_profit_fee};
+    use crate::storage::Config;
+
+    #[test]
+    fn calculate_profit_fee_should_handle_large_inputs_without_overflow() {
+        // given
+        const LARGE_PROFIT_SATS: u64 = u64::MAX;
+        const LARGE_PROFIT_FEE_BASIS_POINTS: u64 = u64::MAX;
+        // when
+        let profit_fee_sats =
+            calculate_profit_fee(LARGE_PROFIT_SATS, LARGE_PROFIT_FEE_BASIS_POINTS);
+
+        // then
+        assert!(profit_fee_sats.is_err());
+    }
+
+    #[test]
+    fn calculate_premium_fee_should_handle_large_inputs_without_overflow() {
+        // given
+        const LARGE_PREMIUM_SATS: u64 = u64::MAX;
+        const LARGE_PREMIUM_FEE_BASIS_POINTS: u64 = u64::MAX;
+        Config::set_premium_fee_basis_points(LARGE_PREMIUM_FEE_BASIS_POINTS);
+
+        // when
+        let premium_fee_sats = calculate_premium_fee(LARGE_PREMIUM_SATS);
+
+        // then
+        assert!(premium_fee_sats.is_err());
+    }
 }

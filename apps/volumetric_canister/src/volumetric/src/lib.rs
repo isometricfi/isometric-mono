@@ -32,12 +32,12 @@ pub use api::{
     get_accept_status, get_active_option_by_id, get_cancel_offer_message, get_create_offer_message,
     get_failed_accepts, get_failed_settlements, get_my_offers, get_my_options,
     get_my_written_options, get_offer_by_id, get_open_offers, get_pending_accepts,
-    get_pending_settlements, get_pending_settlements_journal, get_settlement_by_id,
-    get_settlement_status, settle_expired_options, settle_option_by_id,
-    testing_clear_offers_and_options, testing_expire_option, testing_force_settle,
-    testing_set_option_expiry, AcceptOfferItem, AcceptOffersRequest, CancelOfferRequest,
-    ClearStorageResponse, CreateOfferRequest, CreateOfferResponse, SettleExpiredOptionsResponse,
-    SettlementResult,
+    get_pending_settlements, get_pending_settlements_journal, get_recovery_required_wal_entries,
+    get_settlement_by_id, get_settlement_status, recover_wal_operation, settle_expired_options,
+    settle_option_by_id, testing_clear_offers_and_options, testing_expire_option,
+    testing_force_settle, testing_set_option_expiry, AcceptOfferItem, AcceptOffersRequest,
+    CancelOfferRequest, ClearStorageResponse, CreateOfferRequest, CreateOfferResponse,
+    SettleExpiredOptionsResponse, SettlementResult,
 };
 pub use api::{
     add_whitelisted, create_account, get_account_info, get_account_nonce, get_ckbtc_balance,
@@ -54,6 +54,7 @@ pub use auth::types::{
 };
 pub use errors::VolumetricError;
 pub use generated::ckbtc::{Utxo, UtxoOutpoint, UtxoStatus};
+pub use journaling::WalExecutionOutcome;
 pub use observability::{http_request, observability_get_metrics, ObservabilityMetrics};
 pub use storage::{
     AcceptPhase, ActiveOption, ActiveOptionStatus, Asset, BtcNetwork, Event, EventData, EventType,

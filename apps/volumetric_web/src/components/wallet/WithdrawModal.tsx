@@ -54,7 +54,6 @@ export function WithdrawModal({
 
   const canWithdraw = useMemo(() => {
     const sats = parseBtcToSatsBigint(amountBtc);
-    console.log("sats", sats < minWithdrawSats, sats > BigInt(availableSats), !destinationAddress);
     if (sats < minWithdrawSats) return false;
     if (sats > BigInt(availableSats)) return false;
     if (!destinationAddress) return false;

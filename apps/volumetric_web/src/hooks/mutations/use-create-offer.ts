@@ -3,6 +3,7 @@
 import { isBitcoinWallet } from "@dynamic-labs/bitcoin";
 import { useDynamicContext } from "@dynamic-labs/sdk-react-core";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { unwrapResult } from "@volumetric/canister-types";
 import { useState } from "react";
 import type { Output as CreateOfferOutput } from "@/lib/use-cases/options/create-offer/schema";
 import { trpcClient } from "@/trpc/react";
@@ -51,11 +52,13 @@ export function useCreateOffer() {
       const premiumBasisPoints = Math.round(premiumPercent * PERCENT_TO_BASIS_POINTS);
       const optionDurationSeconds = BigInt(termDays * SECONDS_PER_DAY);
 
-      const message = await canister.get_create_offer_message(
-        address,
-        quantity,
-        strikeBasisPoints,
-        premiumBasisPoints,
+      const message = unwrapResult(
+        await canister.get_create_offer_message(
+          address,
+          quantity,
+          strikeBasisPoints,
+          premiumBasisPoints,
+        ),
       );
       const signature = await primaryWallet.signMessage(message, { addressType: "payment" });
 

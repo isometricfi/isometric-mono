@@ -35,7 +35,7 @@ pub fn create_account(
     is_whitelisted()?;
 
     let address = &req.wallet_proof.address;
-    let wallet_key = WalletKey::from_address(address);
+    let wallet_key = WalletKey::try_from_address(address)?;
 
     if is_wallet_registered(&wallet_key) {
         return Err(VolumetricError::from_def(
@@ -56,7 +56,7 @@ pub fn create_account(
         wallet_address: address.clone(),
         invite_code: req.data.invite_code.clone(),
     };
-    let result = usecases::register_account_use_case(params);
+    let result = usecases::register_account_use_case(params)?;
 
     Ok(ProfileInfo {
         principal: result.principal,
@@ -67,36 +67,39 @@ pub fn create_account(
 }
 
 #[ic_cdk::query]
-pub fn get_account_nonce(address: String) -> u64 {
-    let wallet_key = WalletKey::from_address(&address);
-    get_nonce(&wallet_key)
+pub fn get_account_nonce(address: String) -> Result<u64, VolumetricError> {
+    let wallet_key = WalletKey::try_from_address(&address)?;
+    Ok(get_nonce(&wallet_key))
 }
 
 #[ic_cdk::query]
-pub fn get_account_info(address: String) -> Option<ProfileInfo> {
+pub fn get_account_info(address: String) -> Result<Option<ProfileInfo>, VolumetricError> {
     let info = usecases::get_account_info_use_case(address)?;
-    Some(ProfileInfo {
+    Ok(info.map(|info| ProfileInfo {
         principal: info.principal,
         subaccount: info.subaccount.to_vec(),
         address: info.address,
         username: info.username,
-    })
+    }))
 }
 
 #[ic_cdk::query]
-pub fn get_message_to_sign(address: String, invite_code: Option<String>) -> String {
-    let wallet_key = WalletKey::from_address(&address);
+pub fn get_message_to_sign(address: String) -> Result<String, VolumetricError> {
+    let wallet_key = WalletKey::try_from_address(&address)?;
     let context = build_challenge_context(&wallet_key);
-    let req = CreateProfileRequest { invite_code };
-    req.signing_message(&address, &context)
+    let req = CreateProfileRequest {};
+    Ok(req.signing_message(&address, &context))
 }
 
 #[ic_cdk::query]
-pub fn get_username_update_message(address: String, username: String) -> String {
-    let wallet_key = WalletKey::from_address(&address);
+pub fn get_username_update_message(
+    address: String,
+    username: String,
+) -> Result<String, VolumetricError> {
+    let wallet_key = WalletKey::try_from_address(&address)?;
     let context = build_challenge_context(&wallet_key);
     let req = UpdateUsernameRequest { username };
-    req.signing_message(&address, &context)
+    Ok(req.signing_message(&address, &context))
 }
 
 #[ic_cdk::update]
@@ -106,7 +109,7 @@ pub fn update_username(
     is_whitelisted()?;
 
     let address = &req.wallet_proof.address;
-    let wallet_key = WalletKey::from_address(address);
+    let wallet_key = WalletKey::try_from_address(address)?;
 
     let principal = get_principal_for_wallet(&wallet_key)
         .ok_or_else(|| VolumetricError::from_def(error_codes::PROFILE_NOT_FOUND, None, None))?;

@@ -12,21 +12,6 @@ export { idlFactory } from "./volumetric_dev.did.js";
 export const canisterId =
   process.env.CANISTER_ID_VOLUMETRIC_DEV;
 
-const LOCAL_REPLICA_HOSTNAMES = new Set(["localhost", "127.0.0.1", "0.0.0.0", "::1"]);
-
-const isLocalReplicaHost = (host) => {
-  if (!host) {
-    return false;
-  }
-
-  try {
-    const parsedHost = new URL(host).hostname;
-    return LOCAL_REPLICA_HOSTNAMES.has(parsedHost) || parsedHost.endsWith(".localhost");
-  } catch {
-    return host.includes("localhost") || host.includes("127.0.0.1");
-  }
-};
-
 export const createActor = (canisterId, options = {}) => {
   const agent = options.agent || new HttpAgent({ ...options.agentOptions });
 
@@ -36,8 +21,8 @@ export const createActor = (canisterId, options = {}) => {
     );
   }
 
-  const host = options.agentOptions?.host;
-  if (isLocalReplicaHost(host)) {
+  // Fetch root key for certificate validation during development
+  if (process.env.DFX_NETWORK !== "ic") {
     agent.fetchRootKey().catch((err) => {
       console.warn(
         "Unable to fetch root key. Check to ensure that your local replica is running"

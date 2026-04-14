@@ -21,6 +21,7 @@ import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Drawer, DrawerClose, DrawerContent, DrawerTitle } from "@/components/ui/drawer";
 import { DepositModal } from "@/components/wallet/DepositModal";
+import { PendingDeposits } from "@/components/wallet/PendingDeposits";
 import { WithdrawModal } from "@/components/wallet/WithdrawModal";
 import { useAccount, usePrices, useUpdateUsername } from "@/hooks";
 import { useModal } from "@/hooks/use-modal";
@@ -90,8 +91,8 @@ function AccountPanelContent({ onDisconnect }: { onDisconnect: () => void }) {
   const referrals = accountData?.referrals ?? BigInt(0);
 
   const btcPrice = priceData?.btc ?? 0;
-  const depositedBtc = Number(deposited) / 100_000_000;
-  const depositedUsd = roundToN(depositedBtc * btcPrice, 0);
+  const availableBtc = Number(available) / 100_000_000;
+  const availableUsd = roundToN(availableBtc * btcPrice, 0);
 
   const connectedAddress = profile?.address ?? primaryWallet?.address ?? null;
   const addressLabel = connectedAddress ? shortenAddress(connectedAddress) : null;
@@ -174,19 +175,19 @@ function AccountPanelContent({ onDisconnect }: { onDisconnect: () => void }) {
               className="space-y-6"
             >
               <div className="space-y-1">
-                <p className="text-sm text-muted-foreground">{t("deposited")}</p>
+                <p className="text-sm text-muted-foreground">{t("available")}</p>
                 <div className="flex items-center gap-2 justify-between">
                   <p className="text-3xl font-semibold tracking-tight">
-                    {isLoadingBalance ? "—" : formatBtcWithSymbolBigint(deposited, 8)}
+                    {isLoadingBalance ? "—" : formatBtcWithSymbolBigint(available, 8)}
                   </p>
-                  {!isLoadingBalance && depositedUsd > 0 && (
+                  {!isLoadingBalance && availableUsd > 0 && (
                     <div className="text-muted-foreground text-sm bg-muted px-2 py-1 rounded-sm">
-                      ${depositedUsd.toLocaleString()}
+                      ${availableUsd.toLocaleString()}
                     </div>
                   )}
                 </div>
                 <Badge variant="secondary">
-                  {t("available")} {formatBtcWithSymbolBigint(available, 8)}
+                  {t("deposited")} {formatBtcWithSymbolBigint(deposited, 8)}
                 </Badge>
               </div>
 
@@ -207,21 +208,10 @@ function AccountPanelContent({ onDisconnect }: { onDisconnect: () => void }) {
                   <p>{t("withdraw")}</p>
                 </Button>
               </div>
-              <DrawerClose asChild>
-                <Link href="/history" className="w-full">
-                  <Button variant="outline" size="sm" className="w-full">
-                    <History className="size-4 " /> {t("tradeHistory")}
-                  </Button>
-                </Link>
-              </DrawerClose>
-              <div className="flex items-center justify-between gap-3 mt-4 border p-1 rounded-lg pr-4">
-                <Button
-                  variant="secondary"
-                  className="w-fit"
-                  onClick={() => openModal(<ShareSummaryModal />, false)}
-                >
-                  <Sparkles className="size-4" />
-                  {t("inviteUsers")}
+              <PendingDeposits />
+              <Link href="/history" className="md:absolute right-0 w-full">
+                <Button variant="outline" size="sm" className="w-full">
+                  <History className="size-4 " /> {t("tradeHistory")}
                 </Button>
                 <p className="text-sm text-muted-foreground">
                   {t("referred")}:{" "}

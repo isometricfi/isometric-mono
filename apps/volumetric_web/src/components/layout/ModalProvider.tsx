@@ -6,7 +6,7 @@ import { Drawer, DrawerContent } from "@/components/ui/drawer";
 import { useModal } from "@/hooks/use-modal";
 
 export function ModalProvider() {
-  const { isOpen, content, closeModal, fullscreen, minHeight } = useModal();
+  const { isOpen, content, closeModal, fullscreen, minHeight, showCloseButton } = useModal();
   const isMobile = useMediaQuery({ query: "(max-width: 768px)" });
 
   if (!content) return null;
@@ -24,7 +24,7 @@ export function ModalProvider() {
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && closeModal()}>
       <DialogContent
-        showCloseButton={false}
+        showCloseButton={showCloseButton}
         className="sm:max-w-md p-5 overflow-visible border-0"
         style={{ minHeight }}
       >

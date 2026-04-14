@@ -1,18 +1,18 @@
 use std::time::Duration;
 
-use crate::journaling::{cleanup_succeeded, retry_all_due};
+use crate::journaling::{cleanup_succeeded, promote_stale_in_flight_to_recovery_required};
 use crate::ledger::refresh_transfer_fee_cache_if_idle;
 use crate::usecases::{cleanup_old_events_use_case, settle_expired_options_use_case};
 
-const WAL_RETRY_INTERVAL_SECS: u64 = 10;
 const TRANSFER_FEE_REFRESH_INTERVAL_SECS: u64 = 60;
+const WAL_INFLIGHT_RECOVERY_SCAN_INTERVAL_5_MINUTES_SECS: u64 = 5 * 60;
 const ONE_HOUR_SECS: u64 = 60 * 60;
 const ONE_DAY_SECS: u64 = 24 * ONE_HOUR_SECS;
 
 pub fn setup_timers() {
     setup_transfer_fee_refresh_timer();
     setup_event_cleanup_timer();
-    setup_wal_retry_timer();
+    setup_wal_inflight_recovery_timer();
     setup_settlement_timer();
 }
 
@@ -33,17 +33,26 @@ fn setup_event_cleanup_timer() {
     });
 }
 
-fn setup_wal_retry_timer() {
-    ic_cdk_timers::set_timer_interval(Duration::from_secs(WAL_RETRY_INTERVAL_SECS), || async {
-        retry_all_due().await;
-    });
-}
-
 fn setup_transfer_fee_refresh_timer() {
     ic_cdk_timers::set_timer_interval(
         Duration::from_secs(TRANSFER_FEE_REFRESH_INTERVAL_SECS),
         || async {
             refresh_transfer_fee_cache_if_idle().await;
+        },
+    );
+}
+
+fn setup_wal_inflight_recovery_timer() {
+    ic_cdk_timers::set_timer_interval(
+        Duration::from_secs(WAL_INFLIGHT_RECOVERY_SCAN_INTERVAL_5_MINUTES_SECS),
+        || async {
+            let promoted_entries = promote_stale_in_flight_to_recovery_required();
+            if promoted_entries > 0 {
+                ic_cdk::println!(
+                    "WAL recovery scan: promoted {} stale in-flight entries",
+                    promoted_entries
+                );
+            }
         },
     );
 }

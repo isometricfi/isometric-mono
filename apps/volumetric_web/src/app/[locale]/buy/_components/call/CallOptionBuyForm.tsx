@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { NumberCarousel } from "@/components/ui/number-carousel";
 import { DepositModal } from "@/components/wallet/DepositModal";
+import { formatBtcWithSymbol } from "@/lib/utils";
 import { useCallOptionBuyFormModel } from "./_internal/use-call-option-buy-form-model";
 import { CallBuyOptionSummary } from "./CallBuyOptionSummary";
 
@@ -26,6 +27,7 @@ export function CallOptionBuyForm() {
     handleSubmit,
     isSubmitDisabled,
     leverage,
+    depositMinSats,
     maxPremiumAmountSats,
     needDepositMore,
     quantitySats,
@@ -39,6 +41,8 @@ export function CallOptionBuyForm() {
     term,
     termDays,
   } = useCallOptionBuyFormModel();
+
+  const getTermLabel = (dayCount: number) => t(dayCount === 1 ? "day" : "days").toLowerCase();
 
   return (
     <Card className="relative ">
@@ -63,7 +67,7 @@ export function CallOptionBuyForm() {
               values={termDays}
               value={selectedTermDay}
               onChange={setTerm}
-              formatValue={(value) => `${value} ${t("days").toLowerCase()}`}
+              formatValue={(value) => `${value} ${getTermLabel(value)}`}
             />
           </div>
         </div>
@@ -89,12 +93,19 @@ export function CallOptionBuyForm() {
                 ? () => setDepositModalOpen(true)
                 : handleSubmit
           }
-          className="w-full  text-base font-semibold"
+          className="w-full text-base font-semibold"
           size="lg"
           disabled={primaryWallet ? (needDepositMore ? false : isSubmitDisabled) : false}
         >
           {getButtonText()}
         </Button>
+        {needDepositMore ? (
+          <p className="text-xs text-muted-foreground">
+            {t("buyOptionsDepositReason", {
+              minBtc: formatBtcWithSymbol(depositMinSats),
+            })}
+          </p>
+        ) : null}
 
         <DepositModal open={depositModalOpen} onOpenChange={setDepositModalOpen} />
 

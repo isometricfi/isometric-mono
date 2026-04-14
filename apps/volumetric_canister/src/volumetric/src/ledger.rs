@@ -20,6 +20,10 @@ const TRANSFER_FEE_CACHE_TTL_90_SECONDS_NS: u64 = 90_000_000_000;
 #[cfg(any(test, feature = "testing"))]
 pub const TESTING_CKBTC_TRANSFER_FEE_SATS: u64 = 10;
 
+/// ckBTC withdrawal uses `icrc2_approve` then a minter-triggered `transfer_from`; each charges
+/// one `icrc1_fee` from the user's subaccount balance.
+pub const CKBTC_WITHDRAW_ICRC2_LEDGER_FEE_CHARGE_COUNT: u64 = 2;
+
 #[derive(Clone, Copy)]
 struct TransferFeeCacheEntry {
     fee_sats: u64,
@@ -234,14 +238,45 @@ pub fn get_cached_icrc1_transfer_fee_sats_for_sync_flow() -> Result<u64, Volumet
     ))
 }
 
+pub fn withdraw_ckbtc_ledger_fee_reserve_sats_for_transfer_fee(transfer_fee_sats: u64) -> u64 {
+    transfer_fee_sats.saturating_mul(CKBTC_WITHDRAW_ICRC2_LEDGER_FEE_CHARGE_COUNT)
+}
+
+/// Maximum `WithdrawParams.amount` (gross internal debit) the user can submit for ckBTC withdraw.
+pub fn max_gross_withdraw_sats_for_available_balance(
+    available_sats: u64,
+    transfer_fee_sats: u64,
+    minimum_net_withdraw_amount_sats: u64,
+) -> u64 {
+    let ledger_fee_reserve_sats =
+        withdraw_ckbtc_ledger_fee_reserve_sats_for_transfer_fee(transfer_fee_sats);
+    let minimum_required_available_sats =
+        minimum_net_withdraw_amount_sats.saturating_add(ledger_fee_reserve_sats);
+    if available_sats < minimum_required_available_sats {
+        return 0;
+    }
+    available_sats
+}
+
 pub fn schedule_transfer_fee_refresh_if_idle() {
     #[cfg(target_arch = "wasm32")]
-    ic_cdk::futures::spawn(async move {
-        refresh_transfer_fee_cache_if_idle().await;
-    });
+    {
+        if !ic_cdk::api::in_replicated_execution() {
+            return;
+        }
+
+        ic_cdk::futures::spawn(async move {
+            refresh_transfer_fee_cache_if_idle().await;
+        });
+    }
 }
 
 pub async fn refresh_transfer_fee_cache_if_idle() {
+    #[cfg(target_arch = "wasm32")]
+    if !ic_cdk::api::in_replicated_execution() {
+        return;
+    }
+
     if !mark_transfer_fee_refresh_in_flight_if_idle() {
         return;
     }
@@ -627,5 +662,56 @@ mod tests {
             refreshed_result.expect("fee should be refreshed"),
             TEST_FEE_25_SATS
         );
+    }
+
+    /// Given: available balance at least minimum net withdraw plus two ledger fees
+    /// When: computing the max gross withdraw amount for that balance
+    /// Then: the result is the full available balance
+    #[test]
+    fn test_max_gross_withdraw_sats_returns_available_when_threshold_met() {
+        // given
+        clear_cached_transfer_fee_for_testing();
+        ic::set_runtime(Box::new(MockRuntime {
+            now_ns: TEST_NOW_NS,
+        }));
+        set_cached_transfer_fee_for_testing(TEST_FEE_10_SATS, TEST_NOW_NS);
+        const AVAILABLE_SATS: u64 = 1_000;
+        const MINIMUM_NET_WITHDRAW_SATS: u64 = 900;
+
+        // when
+        let max_sats = max_gross_withdraw_sats_for_available_balance(
+            AVAILABLE_SATS,
+            TEST_FEE_10_SATS,
+            MINIMUM_NET_WITHDRAW_SATS,
+        );
+
+        // then
+        assert_eq!(max_sats, AVAILABLE_SATS);
+    }
+
+    /// Given: available balance below minimum net withdraw plus two ledger fees
+    /// When: computing the max gross withdraw amount
+    /// Then: the result is zero
+    #[test]
+    fn test_max_gross_withdraw_sats_returns_zero_when_available_below_threshold() {
+        // given
+        clear_cached_transfer_fee_for_testing();
+        ic::set_runtime(Box::new(MockRuntime {
+            now_ns: TEST_NOW_NS,
+        }));
+        set_cached_transfer_fee_for_testing(TEST_FEE_10_SATS, TEST_NOW_NS);
+        const AVAILABLE_SATS: u64 = 1_000;
+        const MINIMUM_NET_WITHDRAW_SATS: u64 = 990;
+
+        // when
+        let max_sats = max_gross_withdraw_sats_for_available_balance(
+            AVAILABLE_SATS,
+            TEST_FEE_10_SATS,
+            MINIMUM_NET_WITHDRAW_SATS,
+        );
+
+        // then
+        const EXPECTED_MAX_GROSS_WITHDRAW_SATS: u64 = 0;
+        assert_eq!(max_sats, EXPECTED_MAX_GROSS_WITHDRAW_SATS);
     }
 }

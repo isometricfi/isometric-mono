@@ -30,7 +30,9 @@ pub fn get_create_offer_message(
             candid::encode_args((address.to_string(), quantity, strike_bps, premium_bps)).unwrap(),
         )
         .expect("Query failed");
-    Decode!(&response, String).unwrap()
+    Decode!(&response, Result<String, VolumetricError>)
+        .expect("decode get_create_offer_message")
+        .expect("get_create_offer_message")
 }
 
 pub fn get_accept_offers_message(
@@ -47,7 +49,9 @@ pub fn get_accept_offers_message(
             candid::encode_args((address.to_string(), items)).unwrap(),
         )
         .expect("Query failed");
-    Decode!(&response, String).unwrap()
+    Decode!(&response, Result<String, VolumetricError>)
+        .expect("decode get_accept_offers_message")
+        .expect("get_accept_offers_message")
 }
 
 pub fn create_offer(
@@ -126,7 +130,7 @@ pub fn accept_offers(
             AcceptOffersStatus::Succeeded { result, .. } => {
                 return Ok(result);
             }
-            AcceptOffersStatus::Pending { .. } => {
+            AcceptOffersStatus::Pending { .. } | AcceptOffersStatus::RecoveryRequired { .. } => {
                 env.pic.tick();
             }
             AcceptOffersStatus::Failed { message, .. } => {
@@ -187,7 +191,9 @@ pub fn get_cancel_offer_message(env: &TestEnv, address: &str, offer_id: u64) -> 
             candid::encode_args((address.to_string(), offer_id)).unwrap(),
         )
         .expect("Query failed");
-    Decode!(&response, String).unwrap()
+    Decode!(&response, Result<String, VolumetricError>)
+        .expect("decode get_cancel_offer_message")
+        .expect("get_cancel_offer_message")
 }
 
 pub fn cancel_offer(

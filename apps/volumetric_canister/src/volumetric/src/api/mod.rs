@@ -4,6 +4,7 @@ pub mod deposits;
 pub mod events;
 pub mod offers;
 pub mod options;
+pub mod recovery;
 pub mod settlement;
 pub mod whitelist;
 pub mod withdrawals;
@@ -18,7 +19,8 @@ pub use config::reset_oracle_config;
 #[cfg(feature = "testing")]
 pub use config::set_oracle_price_config;
 pub use config::{
-    get_config, get_feature_flags, get_trading_limits, set_deposit_amount_sats_config,
+    get_config, get_feature_flags, get_trading_limits, set_accept_offer_quantity_sats_range_config,
+    set_create_offer_quantity_sats_range_config, set_deposit_amount_sats_config,
     set_feature_flags_config, set_max_offers_per_term_config,
     set_option_duration_seconds_range_config, set_premium_basis_points_range_config,
     set_quantity_sats_range_config, set_strike_basis_points_range_config,
@@ -43,6 +45,7 @@ pub use options::{
     get_settlement_by_id, testing_clear_offers_and_options, AcceptOfferItem, AcceptOffersRequest,
     ClearStorageResponse,
 };
+pub use recovery::{get_recovery_required_wal_entries, recover_wal_operation};
 pub use settlement::{
     get_pending_settlements, get_settlement_status, settle_expired_options, settle_option_by_id,
     testing_expire_option, testing_force_settle, testing_set_option_expiry,

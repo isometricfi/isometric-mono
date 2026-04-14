@@ -16,6 +16,7 @@ pub use admin::reset_oracle_use_case;
 pub use admin::set_oracle_price_use_case;
 pub use admin::{
     add_whitelisted_use_case, list_whitelisted_use_case, remove_whitelisted_use_case,
+    set_accept_offer_quantity_sats_range_use_case, set_create_offer_quantity_sats_range_use_case,
     set_deposit_amount_sats_use_case, set_feature_flags_use_case, set_fee_config_use_case,
     set_fee_recipient_use_case, set_max_offers_per_term_use_case,
     set_option_duration_seconds_range_use_case, set_premium_basis_points_range_use_case,
@@ -35,11 +36,11 @@ pub use balances::{
 pub use events::cleanup_old_events_use_case;
 pub(crate) use offers::finalize_failed_accept_wal;
 pub use offers::{
-    accept_offers_use_case, cancel_offer_use_case, create_offer_use_case,
-    get_accept_status_use_case, get_open_offers_use_case, run_accept_wal, AcceptOfferItem,
-    AcceptOffersReceipt, AcceptOffersResult, AcceptOffersStatus, AcceptWalResult,
-    CreateOfferParams,
+    accept_offers_use_case, cancel_offer_use_case, create_offer_use_case, get_accept_status,
+    get_open_offers_use_case, run_accept_wal, AcceptOfferItem, AcceptOffersReceipt,
+    AcceptOffersResult, AcceptOffersStatus, AcceptWalResult, CreateOfferParams,
 };
+pub(crate) use options::finalize_failed_settlement_wal;
 pub use options::{
     get_my_options_use_case, get_my_written_options_use_case, get_settlement_status_use_case,
     run_settlement_wal, settle_expired_options_use_case, settle_option_by_id_use_case,

@@ -1,6 +1,6 @@
 import type { MetadataRoute } from "next";
 
-const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || "https://isometric.finance";
+const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || "https://isometric.fi";
 
 export default function robots(): MetadataRoute.Robots {
   return {

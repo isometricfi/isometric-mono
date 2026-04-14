@@ -17,7 +17,7 @@ use crate::oracle::{set_oracle, StubOracle};
 use crate::storage::{
     calculate_premium_fee, calculate_premium_in_sats, clear_active_options, clear_events,
     clear_offers, get_balance, get_offer, get_platform_fees_collected, insert_offer, set_balance,
-    AcceptPhase, Asset, Offer, OfferStatus, OptionType, UserBalance,
+    AcceptPhase, Asset, Config, FeatureFlags, Offer, OfferStatus, OptionType, UserBalance,
 };
 use crate::usecases::{withdraw_ckbtc_use_case, WithdrawParams};
 
@@ -263,6 +263,44 @@ fn test_validate_accept_offer_request_allows_partially_filled_status() {
     assert!(result.is_ok());
 }
 
+/// Given: accept minimum is lower than create minimum
+/// When: validating an accept request within the accept range
+/// Then: the request is allowed even below the create-offer minimum
+#[test]
+fn test_validate_accept_offer_request_allows_quantity_below_create_minimum() {
+    // given
+    let writer = test_principal(79);
+    let buyer = test_principal(89);
+    let accept_quantity_sats = 10_000;
+    let prior_feature_flags = Config::feature_flags();
+    let prior_accept_offer_quantity_sats = Config::trading_limits().accept_offer_quantity_sats;
+    Config::set_feature_flags(FeatureFlags {
+        is_partial_filling_enabled: true,
+        ..prior_feature_flags
+    });
+    Config::set_accept_offer_quantity_sats_range(
+        accept_quantity_sats,
+        prior_accept_offer_quantity_sats.max,
+    );
+    let accept_offer_item = AcceptOfferItem {
+        offer_id: TEST_OFFER_ID,
+        quantity: accept_quantity_sats,
+    };
+    let offer = build_test_offer(writer, OfferStatus::Open);
+
+    // when
+    let result = validate_accept_offer_request(buyer, &accept_offer_item, &offer, TEST_NOW_NS);
+
+    Config::set_accept_offer_quantity_sats_range(
+        prior_accept_offer_quantity_sats.min,
+        prior_accept_offer_quantity_sats.max,
+    );
+    Config::set_feature_flags(prior_feature_flags);
+
+    // then
+    assert!(result.is_ok(), "{result:?}");
+}
+
 /// Given: a valid accept request
 /// When: scheduling the accept without running WAL yet
 /// Then: the caller gets a pending receipt and local state is prepared synchronously
@@ -275,7 +313,7 @@ fn test_accept_offers_returns_pending_receipt_before_wal_runs() {
 
     // when
     let receipt = accept_offers_use_case(buyer, vec![build_test_accept_offer_item()], 1).unwrap();
-    let status = get_accept_status_use_case(receipt.operation_id).unwrap();
+    let status = get_accept_status(receipt.operation_id).unwrap();
 
     // then
     match status {
@@ -403,7 +441,7 @@ async fn test_processing_offer_cannot_be_cancelled_during_accept_success() {
                 crate::journaling::WalExecutionOutcome::Succeeded
             ));
 
-            get_accept_status_use_case(receipt.operation_id)
+            get_accept_status(receipt.operation_id)
                 .expect("accept status should load after WAL success")
         })
         .await;
@@ -470,17 +508,17 @@ async fn test_retryable_accept_failure_remains_pending_for_retry() {
                 .expect("accept WAL task should complete");
             assert!(matches!(
                 wal_execution_outcome,
-                crate::journaling::WalExecutionOutcome::FailedRetryable(_)
+                crate::journaling::WalExecutionOutcome::RecoveryRequired(_)
             ));
 
-            get_accept_status_use_case(receipt.operation_id)
+            get_accept_status(receipt.operation_id)
                 .expect("accept status should load after retryable WAL failure")
         })
         .await;
 
     // then
     match accept_status {
-        AcceptOffersStatus::Pending {
+        AcceptOffersStatus::RecoveryRequired {
             phase, last_error, ..
         } => {
             assert_eq!(phase, AcceptPhase::BuyerDebited);
@@ -488,7 +526,7 @@ async fn test_retryable_accept_failure_remains_pending_for_retry() {
                 .as_ref()
                 .is_some_and(|message| message.contains("transfer failed")));
         }
-        other => panic!("expected pending accept status, got {:?}", other),
+        other => panic!("expected recovery-required accept status, got {:?}", other),
     }
 
     let final_offer = get_offer(TEST_OFFER_ID).expect("offer should still exist");
@@ -518,8 +556,7 @@ async fn test_permanent_accept_failure_restores_balance_and_collateral() {
 
     // when
     let wal_execution_outcome = execute_accept_wal_once(receipt.operation_id).await;
-    let accept_status =
-        get_accept_status_use_case(receipt.operation_id).expect("accept status should load");
+    let accept_status = get_accept_status(receipt.operation_id).expect("accept status should load");
 
     // then
     assert!(matches!(
@@ -558,7 +595,8 @@ async fn test_accept_offer_succeeds_when_platform_fee_transfer_fails() {
     }));
 
     let premium_sats = calculate_premium_in_sats(TEST_QUANTITY_SATS, TEST_PREMIUM_BPS);
-    let premium_fee_sats = calculate_premium_fee(premium_sats);
+    let premium_fee_sats =
+        calculate_premium_fee(premium_sats).expect("premium fee should calculate");
     let premium_to_writer_sats = premium_sats.saturating_sub(premium_fee_sats);
     let expected_buyer_available_sats = TEST_BUYER_AVAILABLE_SATS
         .saturating_sub(premium_to_writer_sats)
@@ -567,8 +605,7 @@ async fn test_accept_offer_succeeds_when_platform_fee_transfer_fails() {
 
     // when
     let wal_execution_outcome = execute_accept_wal_once(receipt.operation_id).await;
-    let accept_status =
-        get_accept_status_use_case(receipt.operation_id).expect("accept status should load");
+    let accept_status = get_accept_status(receipt.operation_id).expect("accept status should load");
 
     // then
     assert!(matches!(
@@ -700,7 +737,6 @@ fn test_accept_fails_when_withdraw_has_already_debited_buyer_balance() {
     let writer = test_principal(41);
     let buyer = test_principal(42);
     setup_test_state(writer, buyer);
-
     let withdrawal_params = WithdrawParams {
         btc_address: "tb1qwithdrawfirst".to_string(),
         amount: TEST_BUYER_AVAILABLE_SATS,
