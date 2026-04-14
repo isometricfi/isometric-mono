@@ -71,7 +71,7 @@ pub fn withdraw_ckbtc_use_case(
     request_nonce: u64,
 ) -> Result<WithdrawReceipt, VolumetricError> {
     let _withdrawal_balance_mutation_lock = BalanceMutationLock::new(principal)?;
-    let net_ckbtc_transfer_amount_sats = validate_withdraw_request(principal, params.amount)?;
+    let withdraw_amount_after_fees_sats = validate_withdraw_request(principal, params.amount)?;
 
     if !get_pending_withdrawals_by_principal(principal).is_empty() {
         return Err(VolumetricError::from_def(
@@ -92,7 +92,7 @@ pub fn withdraw_ckbtc_use_case(
         principal,
         params,
         operation_id,
-        net_ckbtc_transfer_amount_sats,
+        withdraw_amount_after_fees_sats,
     )?;
     let withdraw_receipt = WithdrawReceipt {
         operation_id: withdrawal_wal_execution_preparation.operation_id,
@@ -178,7 +178,7 @@ fn prepare_withdraw_execution(
     principal: Principal,
     params: WithdrawParams,
     operation_id: OperationId,
-    net_ckbtc_transfer_amount_sats: u64,
+    withdraw_amount_after_fees_sats: u64,
 ) -> Result<WithdrawalWalExecutionPreparation, VolumetricError> {
     debit_withdrawer_available_balance(principal, params.amount)?;
 
@@ -197,7 +197,7 @@ fn prepare_withdraw_execution(
             withdrawal_id: withdrawal.id,
             principal,
             amount_sats: params.amount,
-            net_ckbtc_transfer_amount_sats: Some(net_ckbtc_transfer_amount_sats),
+            withdraw_amount_after_fees_sats: Some(withdraw_amount_after_fees_sats),
             btc_address: params.btc_address,
             created_at_time_ns: ledger_transfer_created_at_time_ns,
         }),
@@ -246,7 +246,7 @@ fn validate_withdraw_request(
         ));
     }
 
-    let net_ckbtc_transfer_amount_sats = gross_withdraw_amount_sats
+    let withdraw_amount_after_fees_sats = gross_withdraw_amount_sats
         .checked_sub(ledger_fee_reserve_sats)
         .ok_or_else(|| {
             VolumetricError::from_def(
@@ -256,12 +256,12 @@ fn validate_withdraw_request(
             )
         })?;
 
-    if net_ckbtc_transfer_amount_sats < minimum_net_withdraw_amount_sats {
+    if withdraw_amount_after_fees_sats < minimum_net_withdraw_amount_sats {
         return Err(VolumetricError::from_def(
             error_codes::QUANTITY_BELOW_MINIMUM,
             Some(&format!(
                 "net_withdraw: {} is below minimum_withdraw: {}",
-                net_ckbtc_transfer_amount_sats, minimum_net_withdraw_amount_sats
+                withdraw_amount_after_fees_sats, minimum_net_withdraw_amount_sats
             )),
             None,
         ));
@@ -279,7 +279,7 @@ fn validate_withdraw_request(
         ));
     }
 
-    Ok(net_ckbtc_transfer_amount_sats)
+    Ok(withdraw_amount_after_fees_sats)
 }
 
 fn schedule_withdraw_wal_execution(operation_id: OperationId) {
@@ -381,14 +381,14 @@ pub async fn run_withdrawal_wal(
     let minter = Config::ckbtc_minter();
 
     if withdrawal.phase == WithdrawalPhase::Started {
-        let net_ckbtc_transfer_amount_sats = payload.net_ckbtc_transfer_amount_sats_for_ledger();
+        let withdraw_amount_after_fees_sats = payload.withdraw_amount_after_fees_sats_for_ledger();
         let approve_args = icrc_ledger_types::icrc2::approve::ApproveArgs {
             from_subaccount: Some(subaccount),
             spender: Account {
                 owner: minter,
                 subaccount: None,
             },
-            amount: Nat::from(net_ckbtc_transfer_amount_sats),
+            amount: Nat::from(withdraw_amount_after_fees_sats),
             expected_allowance: None,
             expires_at: None,
             fee: None,
@@ -411,10 +411,10 @@ pub async fn run_withdrawal_wal(
     })?;
 
     if withdrawal.phase == WithdrawalPhase::Approved {
-        let net_ckbtc_transfer_amount_sats = payload.net_ckbtc_transfer_amount_sats_for_ledger();
+        let withdraw_amount_after_fees_sats = payload.withdraw_amount_after_fees_sats_for_ledger();
         let retrieve_args = RetrieveBtcWithApprovalArgs {
             address: payload.btc_address.clone(),
-            amount: net_ckbtc_transfer_amount_sats,
+            amount: withdraw_amount_after_fees_sats,
             from_subaccount: Some(serde_bytes::ByteBuf::from(subaccount.to_vec())),
         };
 
@@ -437,7 +437,7 @@ pub async fn run_withdrawal_wal(
             payload.principal,
             EventType::Withdrawal,
             EventData::Withdrawal {
-                amount_sats: net_ckbtc_transfer_amount_sats,
+                amount_sats: withdraw_amount_after_fees_sats,
                 destination: payload.btc_address.clone(),
             },
         );
