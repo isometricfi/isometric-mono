@@ -92,6 +92,6 @@ pub fn get_user_balance(address: String) -> Result<UserBalanceInfo, VolumetricEr
     let principal = get_principal_for_wallet(&wallet_key)
         .ok_or_else(|| VolumetricError::from_def(error_codes::PROFILE_NOT_FOUND, None, None))?;
 
-    let result = usecases::get_user_balance_use_case(principal);
+    let result = usecases::get_user_balance_use_case(principal)?;
     Ok(result.into())
 }

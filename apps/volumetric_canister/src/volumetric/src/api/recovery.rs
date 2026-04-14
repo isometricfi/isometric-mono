@@ -4,14 +4,14 @@ use crate::journaling::{
     execute_wal_entry_now, list_entries_by_status, OperationId, WalExecutionOutcome, WalStatus,
 };
 
-const MIN_RECOVERY_QUERY_LIMIT_ENTRIES: u32 = 0;
-const MAX_RECOVERY_QUERY_LIMIT_ENTRIES: u32 = 1_000;
+const MIN_WAL_QUERY_LIMIT_ENTRIES: u32 = 0;
+const MAX_WAL_QUERY_LIMIT_ENTRIES: u32 = 1_000;
 
 #[ic_cdk::query]
 pub fn get_recovery_required_wal_entries(limit: u32) -> Result<Vec<OperationId>, VolumetricError> {
     is_controller()?;
 
-    let recovery_limit = normalize_recovery_query_limit_entries(limit);
+    let recovery_limit = normalize_wal_query_limit_entries(limit);
     if recovery_limit == 0 {
         return Ok(Vec::new());
     }
@@ -31,11 +31,9 @@ pub async fn recover_wal_operation(
     Ok(execute_wal_entry_now(operation_id).await)
 }
 
-fn normalize_recovery_query_limit_entries(limit_requested: u32) -> usize {
-    let bounded_limit = limit_requested.clamp(
-        MIN_RECOVERY_QUERY_LIMIT_ENTRIES,
-        MAX_RECOVERY_QUERY_LIMIT_ENTRIES,
-    );
+fn normalize_wal_query_limit_entries(limit_requested: u32) -> usize {
+    let bounded_limit =
+        limit_requested.clamp(MIN_WAL_QUERY_LIMIT_ENTRIES, MAX_WAL_QUERY_LIMIT_ENTRIES);
 
     usize::try_from(bounded_limit).unwrap_or(usize::MAX)
 }

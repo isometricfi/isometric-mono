@@ -737,7 +737,6 @@ fn test_accept_fails_when_withdraw_has_already_debited_buyer_balance() {
     let writer = test_principal(41);
     let buyer = test_principal(42);
     setup_test_state(writer, buyer);
-
     let withdrawal_params = WithdrawParams {
         btc_address: "tb1qwithdrawfirst".to_string(),
         amount: TEST_BUYER_AVAILABLE_SATS,
