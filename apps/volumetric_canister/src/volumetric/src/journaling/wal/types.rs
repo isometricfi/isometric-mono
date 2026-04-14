@@ -44,10 +44,10 @@ pub struct SettlementWalPayload {
 pub struct WithdrawalWalPayload {
     pub withdrawal_id: u64,
     pub principal: Principal,
-    /// Sats removed from the user's platform `available` balance (signed gross); refunded if the WAL fails.
+    /// Gross ckBTC withdraw amount (debited from platform `available`); refunded if the WAL fails.
     #[serde(rename = "amount_sats")]
-    pub gross_debit_from_available_sats: u64,
-    /// Sats for ICRC-2 approve and ckBTC minter retrieve (gross minus double ledger fee reserve). Older WAL rows omit this and use the gross debit for ledger amount.
+    pub gross_withdraw_amount_sats: u64,
+    /// Sats for ICRC-2 approve and ckBTC minter retrieve (gross minus double ledger fee reserve). Older WAL rows omit this and use the gross amount for ledger operations.
     #[serde(default)]
     pub withdraw_amount_after_fees_sats: Option<u64>,
     pub btc_address: String,
@@ -57,7 +57,7 @@ pub struct WithdrawalWalPayload {
 impl WithdrawalWalPayload {
     pub(crate) fn ckbtc_ledger_withdraw_amount_sats(&self) -> u64 {
         self.withdraw_amount_after_fees_sats
-            .unwrap_or(self.gross_debit_from_available_sats)
+            .unwrap_or(self.gross_withdraw_amount_sats)
     }
 }
 
