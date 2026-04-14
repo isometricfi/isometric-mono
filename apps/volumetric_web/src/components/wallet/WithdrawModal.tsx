@@ -41,7 +41,6 @@ export function WithdrawModal({
   const profile = accountData?.profile;
   const lockedSats = balance?.locked ?? BigInt(0);
   const availableSats = balance?.available ?? BigInt(0);
-  const maxWithdrawSats = balance?.maxWithdrawSats ?? availableSats;
   const destinationAddress = profile?.address ?? primaryWallet?.address ?? "";
 
   const [step, setStep] = useState<WithdrawStep>("input");
@@ -57,10 +56,9 @@ export function WithdrawModal({
     const sats = parseBtcToSatsBigint(amountBtc);
     if (sats < minWithdrawSats) return false;
     if (sats > BigInt(availableSats)) return false;
-    if (sats > maxWithdrawSats) return false;
     if (!destinationAddress) return false;
     return true;
-  }, [amountBtc, minWithdrawSats, availableSats, maxWithdrawSats, destinationAddress]);
+  }, [amountBtc, minWithdrawSats, availableSats, destinationAddress]);
 
   const isProcessing = step === "signing" || step === "processing";
 
@@ -125,9 +123,9 @@ export function WithdrawModal({
             <AmountInput
               value={amountBtc}
               onChange={setAmountBtc}
-              maxAmountSats={Number(maxWithdrawSats)}
+              maxAmountSats={Number(availableSats)}
               minAmountSats={Number(minWithdrawSats)}
-              onMaxClick={() => setAmountBtc(formatBtcBigint(maxWithdrawSats, 8))}
+              onMaxClick={() => setAmountBtc(formatBtcBigint(availableSats, 8))}
             />
 
             {lockedSats > BigInt(0) && (

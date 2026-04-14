@@ -369,7 +369,6 @@ type UpdateUsernameRequest = record { username : text };
 type UserBalanceInfo = record {
   total : nat64;
   locked : nat64;
-  max_withdraw_sats : nat64;
   available : nat64;
 };
 type UserInfo = record {

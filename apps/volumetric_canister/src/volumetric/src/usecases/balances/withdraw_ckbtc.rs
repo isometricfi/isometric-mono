@@ -71,8 +71,7 @@ pub fn withdraw_ckbtc_use_case(
     request_nonce: u64,
 ) -> Result<WithdrawReceipt, VolumetricError> {
     let _withdrawal_balance_mutation_lock = BalanceMutationLock::new(principal)?;
-    validate_minimum_withdraw_amount_sats(params.amount)?;
-    validate_withdraw_amount_reserves_ledger_fees(principal, params.amount)?;
+    let net_ckbtc_transfer_amount_sats = validate_withdraw_request(principal, params.amount)?;
 
     if !get_pending_withdrawals_by_principal(principal).is_empty() {
         return Err(VolumetricError::from_def(
@@ -89,8 +88,12 @@ pub fn withdraw_ckbtc_use_case(
         return Ok(existing_withdraw_receipt);
     }
 
-    let withdrawal_wal_execution_preparation =
-        prepare_withdraw_execution(principal, params, operation_id)?;
+    let withdrawal_wal_execution_preparation = prepare_withdraw_execution(
+        principal,
+        params,
+        operation_id,
+        net_ckbtc_transfer_amount_sats,
+    )?;
     let withdraw_receipt = WithdrawReceipt {
         operation_id: withdrawal_wal_execution_preparation.operation_id,
         withdrawal_id: withdrawal_wal_execution_preparation.withdrawal_id,
@@ -175,6 +178,7 @@ fn prepare_withdraw_execution(
     principal: Principal,
     params: WithdrawParams,
     operation_id: OperationId,
+    net_ckbtc_transfer_amount_sats: u64,
 ) -> Result<WithdrawalWalExecutionPreparation, VolumetricError> {
     debit_withdrawer_available_balance(principal, params.amount)?;
 
@@ -193,6 +197,7 @@ fn prepare_withdraw_execution(
             withdrawal_id: withdrawal.id,
             principal,
             amount_sats: params.amount,
+            net_ckbtc_transfer_amount_sats: Some(net_ckbtc_transfer_amount_sats),
             btc_address: params.btc_address,
             created_at_time_ns: ledger_transfer_created_at_time_ns,
         }),
@@ -221,52 +226,60 @@ fn debit_withdrawer_available_balance(
     })
 }
 
-fn validate_minimum_withdraw_amount_sats(amount_sats: u64) -> Result<(), VolumetricError> {
-    let minimum_withdraw_amount_sats = Config::trading_limits().withdraw_amount_sats;
-    if amount_sats < minimum_withdraw_amount_sats {
+fn validate_withdraw_request(
+    principal: Principal,
+    gross_withdraw_amount_sats: u64,
+) -> Result<u64, VolumetricError> {
+    let transfer_fee_sats = ledger::get_cached_icrc1_transfer_fee_sats_for_sync_flow()?;
+    let ledger_fee_reserve_sats =
+        ledger::withdraw_ckbtc_ledger_fee_reserve_sats_for_transfer_fee(transfer_fee_sats);
+    let minimum_net_withdraw_amount_sats = Config::trading_limits().withdraw_amount_sats;
+
+    if gross_withdraw_amount_sats < ledger_fee_reserve_sats {
         return Err(VolumetricError::from_def(
-            error_codes::QUANTITY_BELOW_MINIMUM,
+            error_codes::INSUFFICIENT_BALANCE,
             Some(&format!(
-                "requested: {}, minimum_withdraw: {}",
-                amount_sats, minimum_withdraw_amount_sats
+                "gross_withdraw: {} is below ledger_fee_reserve: {}",
+                gross_withdraw_amount_sats, ledger_fee_reserve_sats
             )),
             None,
         ));
     }
 
-    Ok(())
-}
-
-fn validate_withdraw_amount_reserves_ledger_fees(
-    principal: Principal,
-    amount_sats: u64,
-) -> Result<(), VolumetricError> {
-    let available_sats = get_balance(&principal).available;
-    let transfer_fee_sats = ledger::get_cached_icrc1_transfer_fee_sats_for_sync_flow()?;
-    let ledger_fee_reserve_sats =
-        ledger::withdraw_ckbtc_ledger_fee_reserve_sats_for_transfer_fee(transfer_fee_sats);
-    let required_sats = amount_sats
-        .checked_add(ledger_fee_reserve_sats)
+    let net_ckbtc_transfer_amount_sats = gross_withdraw_amount_sats
+        .checked_sub(ledger_fee_reserve_sats)
         .ok_or_else(|| {
             VolumetricError::from_def(
                 error_codes::INTERNAL_ERROR,
-                Some("withdraw required amount overflow"),
+                Some("withdraw net amount underflow"),
                 None,
             )
         })?;
 
-    if available_sats < required_sats {
+    if net_ckbtc_transfer_amount_sats < minimum_net_withdraw_amount_sats {
         return Err(VolumetricError::from_def(
-            error_codes::INSUFFICIENT_BALANCE,
+            error_codes::QUANTITY_BELOW_MINIMUM,
             Some(&format!(
-                "available: {}, required: {}",
-                available_sats, required_sats
+                "net_withdraw: {} is below minimum_withdraw: {}",
+                net_ckbtc_transfer_amount_sats, minimum_net_withdraw_amount_sats
             )),
             None,
         ));
     }
 
-    Ok(())
+    let available_sats = get_balance(&principal).available;
+    if available_sats < gross_withdraw_amount_sats {
+        return Err(VolumetricError::from_def(
+            error_codes::INSUFFICIENT_BALANCE,
+            Some(&format!(
+                "available: {}, required_gross: {}",
+                available_sats, gross_withdraw_amount_sats
+            )),
+            None,
+        ));
+    }
+
+    Ok(net_ckbtc_transfer_amount_sats)
 }
 
 fn schedule_withdraw_wal_execution(operation_id: OperationId) {
@@ -368,13 +381,14 @@ pub async fn run_withdrawal_wal(
     let minter = Config::ckbtc_minter();
 
     if withdrawal.phase == WithdrawalPhase::Started {
+        let net_ckbtc_transfer_amount_sats = payload.net_ckbtc_transfer_amount_sats_for_ledger();
         let approve_args = icrc_ledger_types::icrc2::approve::ApproveArgs {
             from_subaccount: Some(subaccount),
             spender: Account {
                 owner: minter,
                 subaccount: None,
             },
-            amount: Nat::from(payload.amount_sats),
+            amount: Nat::from(net_ckbtc_transfer_amount_sats),
             expected_allowance: None,
             expires_at: None,
             fee: None,
@@ -397,9 +411,10 @@ pub async fn run_withdrawal_wal(
     })?;
 
     if withdrawal.phase == WithdrawalPhase::Approved {
+        let net_ckbtc_transfer_amount_sats = payload.net_ckbtc_transfer_amount_sats_for_ledger();
         let retrieve_args = RetrieveBtcWithApprovalArgs {
             address: payload.btc_address.clone(),
-            amount: payload.amount_sats,
+            amount: net_ckbtc_transfer_amount_sats,
             from_subaccount: Some(serde_bytes::ByteBuf::from(subaccount.to_vec())),
         };
 
@@ -422,7 +437,7 @@ pub async fn run_withdrawal_wal(
             payload.principal,
             EventType::Withdrawal,
             EventData::Withdrawal {
-                amount_sats: payload.amount_sats,
+                amount_sats: net_ckbtc_transfer_amount_sats,
                 destination: payload.btc_address.clone(),
             },
         );
@@ -485,7 +500,7 @@ fn map_withdrawal_approve_error(error: VolumetricError) -> WalExecutionError {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::cell::Cell;
+    use std::cell::{Cell, RefCell};
     use std::rc::Rc;
 
     use async_trait::async_trait;
@@ -526,6 +541,7 @@ mod tests {
 
     struct MockLedger {
         approve_result: Result<Nat, VolumetricError>,
+        last_approve_amount: RefCell<Option<Nat>>,
     }
 
     #[async_trait(?Send)]
@@ -542,7 +558,8 @@ mod tests {
         async fn icrc1_balance_of(&self, _account: Account) -> Result<Nat, VolumetricError> {
             Ok(Nat::from(0u64))
         }
-        async fn icrc2_approve(&self, _args: ApproveArgs) -> Result<Nat, VolumetricError> {
+        async fn icrc2_approve(&self, args: ApproveArgs) -> Result<Nat, VolumetricError> {
+            self.last_approve_amount.replace(Some(args.amount));
             self.approve_result.clone()
         }
 
@@ -554,6 +571,7 @@ mod tests {
     struct MockMinter {
         retrieve_block_index: Option<u64>,
         retrieve_error: Option<VolumetricError>,
+        last_retrieve_amount_sats: Cell<Option<u64>>,
     }
 
     #[async_trait(?Send)]
@@ -572,8 +590,9 @@ mod tests {
         }
         async fn retrieve_btc_with_approval(
             &self,
-            _args: RetrieveBtcWithApprovalArgs,
+            args: RetrieveBtcWithApprovalArgs,
         ) -> Result<RetrieveBtcOk, VolumetricError> {
+            self.last_retrieve_amount_sats.set(Some(args.amount));
             match &self.retrieve_error {
                 Some(e) => Err(e.clone()),
                 None => Ok(RetrieveBtcOk {
@@ -632,12 +651,35 @@ mod tests {
         Config::set_withdraw_amount_sats(50_000);
         ledger::set_ledger(Rc::new(MockLedger {
             approve_result: Ok(Nat::from(0u64)),
+            last_approve_amount: RefCell::new(None),
         }));
         ledger::set_cached_transfer_fee_for_testing(TEST_TRANSFER_FEE_SATS, TEST_NOW_NS);
         minter::set_minter(Rc::new(MockMinter {
             retrieve_block_index: Some(EXPECTED_BLOCK_INDEX),
             retrieve_error: None,
+            last_retrieve_amount_sats: Cell::new(None),
         }));
+    }
+
+    fn setup_success_with_recorders() -> (Rc<MockLedger>, Rc<MockMinter>) {
+        ic::set_runtime(Box::new(MockRuntime));
+        Config::set_withdraw_amount_sats(50_000);
+
+        let ledger = Rc::new(MockLedger {
+            approve_result: Ok(Nat::from(0u64)),
+            last_approve_amount: RefCell::new(None),
+        });
+        ledger::set_ledger(ledger.clone());
+        ledger::set_cached_transfer_fee_for_testing(TEST_TRANSFER_FEE_SATS, TEST_NOW_NS);
+
+        let minter = Rc::new(MockMinter {
+            retrieve_block_index: Some(EXPECTED_BLOCK_INDEX),
+            retrieve_error: None,
+            last_retrieve_amount_sats: Cell::new(None),
+        });
+        minter::set_minter(minter.clone());
+
+        (ledger, minter)
     }
 
     fn fund_principal(principal: Principal, amount: u64) {
@@ -690,6 +732,54 @@ mod tests {
         assert_eq!(balance.available, expected_remaining);
     }
 
+    /// Given: a withdrawal request whose gross amount covers the minimum plus two fees
+    /// When: withdraw_ckbtc_use_case is called
+    /// Then: it debits the gross amount and sends the net amount to the minter
+    #[tokio::test]
+    async fn test_withdraw_uses_requested_amount_as_gross_and_sends_net_after_fees() {
+        // given
+        let (ledger, minter) = setup_success_with_recorders();
+        let principal = test_principal();
+        fund_principal(principal, INITIAL_BALANCE_SATS);
+        const REQUESTED_GROSS_WITHDRAW_SATS: u64 = 50_020;
+        const EXPECTED_NET_WITHDRAW_SATS: u64 = 50_000;
+        let withdraw_params = WithdrawParams {
+            btc_address: TEST_BTC_ADDRESS.to_string(),
+            amount: REQUESTED_GROSS_WITHDRAW_SATS,
+        };
+
+        // when
+        let receipt = withdraw_ckbtc_use_case(principal, withdraw_params, 31).unwrap();
+        let wal_execution_outcome =
+            crate::journaling::execute_wal_entry_now(receipt.operation_id).await;
+
+        // then
+        assert!(matches!(
+            wal_execution_outcome,
+            crate::journaling::WalExecutionOutcome::Succeeded
+        ));
+
+        let recorded_approve_amount = ledger
+            .last_approve_amount
+            .borrow()
+            .clone()
+            .expect("approve amount should be recorded");
+        assert_eq!(
+            recorded_approve_amount,
+            Nat::from(EXPECTED_NET_WITHDRAW_SATS)
+        );
+
+        let recorded_retrieve_amount_sats = minter
+            .last_retrieve_amount_sats
+            .get()
+            .expect("retrieve amount should be recorded");
+        assert_eq!(recorded_retrieve_amount_sats, EXPECTED_NET_WITHDRAW_SATS);
+
+        let balance = get_balance(&principal);
+        let expected_remaining = INITIAL_BALANCE_SATS - REQUESTED_GROSS_WITHDRAW_SATS;
+        assert_eq!(balance.available, expected_remaining);
+    }
+
     /// Given: account with insufficient balance
     /// When: withdraw_ckbtc_use_case is called
     /// Then: returns insufficient balance error, balance unchanged
@@ -712,25 +802,81 @@ mod tests {
         assert_eq!(balance.available, insufficient_amount);
     }
 
-    /// Given: account balance equals the requested withdrawal amount
+    /// Given: available balance is less than the requested gross withdrawal
     /// When: withdraw_ckbtc_use_case is called
-    /// Then: it rejects the request because ledger fees still need headroom
+    /// Then: it returns insufficient balance and does not debit
     #[tokio::test]
-    async fn test_withdraw_rejects_amount_that_leaves_no_ledger_fee_reserve() {
+    async fn test_withdraw_rejects_when_gross_exceeds_available_balance() {
         // given
         setup_success();
         let principal = test_principal();
-        fund_principal(principal, WITHDRAW_AMOUNT_SATS);
+        const AVAILABLE_SATS: u64 = WITHDRAW_AMOUNT_SATS - 1;
+        fund_principal(principal, AVAILABLE_SATS);
 
         // when
-        let result = withdraw_ckbtc_use_case(principal, withdraw_params(), 21);
+        let result = withdraw_ckbtc_use_case(principal, withdraw_params(), 212);
 
         // then
-        let error = result.expect_err("withdraw should reject amount without fee reserve");
+        let error = result.expect_err("withdraw should reject when gross exceeds available");
         assert_eq!(error.code, error_codes::INSUFFICIENT_BALANCE.code);
 
         let balance = get_balance(&principal);
-        assert_eq!(balance.available, WITHDRAW_AMOUNT_SATS);
+        assert_eq!(balance.available, AVAILABLE_SATS);
+    }
+
+    /// Given: a gross withdraw amount smaller than the two-transfer ledger fee reserve
+    /// When: withdraw_ckbtc_use_case is called
+    /// Then: it rejects with insufficient balance before debiting balance
+    #[tokio::test]
+    async fn test_withdraw_rejects_gross_below_ledger_fee_reserve() {
+        // given
+        setup_success();
+        let principal = test_principal();
+        fund_principal(principal, INITIAL_BALANCE_SATS);
+        const GROSS_BELOW_LEDGER_FEE_RESERVE_SATS: u64 = 19;
+        let withdraw_params = WithdrawParams {
+            btc_address: TEST_BTC_ADDRESS.to_string(),
+            amount: GROSS_BELOW_LEDGER_FEE_RESERVE_SATS,
+        };
+
+        // when
+        let result = withdraw_ckbtc_use_case(principal, withdraw_params, 21);
+
+        // then
+        let error = result.expect_err("withdraw should reject gross below ledger fee reserve");
+        assert_eq!(error.code, error_codes::INSUFFICIENT_BALANCE.code);
+
+        let balance = get_balance(&principal);
+        assert_eq!(balance.available, INITIAL_BALANCE_SATS);
+    }
+
+    /// Given: gross covers the ledger fee reserve but net is still below the configured minimum
+    /// When: withdraw_ckbtc_use_case is called
+    /// Then: it rejects with quantity-below-minimum before debiting balance
+    #[tokio::test]
+    async fn test_withdraw_rejects_net_below_minimum_when_gross_covers_fee_reserve() {
+        // given
+        setup_success();
+        let principal = test_principal();
+        fund_principal(principal, INITIAL_BALANCE_SATS);
+        const EXPECTED_LEDGER_FEE_RESERVE_SATS: u64 = TEST_TRANSFER_FEE_SATS * 2;
+        const MINIMUM_NET_WITHDRAW_SATS: u64 = 50_000;
+        const GROSS_ONE_BELOW_MINIMUM_NET_SATS: u64 =
+            MINIMUM_NET_WITHDRAW_SATS + EXPECTED_LEDGER_FEE_RESERVE_SATS - 1;
+        let withdraw_params = WithdrawParams {
+            btc_address: TEST_BTC_ADDRESS.to_string(),
+            amount: GROSS_ONE_BELOW_MINIMUM_NET_SATS,
+        };
+
+        // when
+        let result = withdraw_ckbtc_use_case(principal, withdraw_params, 211);
+
+        // then
+        let error = result.expect_err("withdraw should reject when net is below minimum");
+        assert_eq!(error.code, error_codes::QUANTITY_BELOW_MINIMUM.code);
+
+        let balance = get_balance(&principal);
+        assert_eq!(balance.available, INITIAL_BALANCE_SATS);
     }
 
     /// Given: the transfer-fee cache is stale
@@ -765,11 +911,13 @@ mod tests {
                 Some("approve denied"),
                 None,
             )),
+            last_approve_amount: RefCell::new(None),
         }));
         ledger::set_cached_transfer_fee_for_testing(TEST_TRANSFER_FEE_SATS, TEST_NOW_NS);
         minter::set_minter(Rc::new(MockMinter {
             retrieve_block_index: Some(EXPECTED_BLOCK_INDEX),
             retrieve_error: None,
+            last_retrieve_amount_sats: Cell::new(None),
         }));
         let principal = test_principal();
         fund_principal(principal, INITIAL_BALANCE_SATS);
@@ -802,6 +950,7 @@ mod tests {
         ic::set_runtime(Box::new(MockRuntime));
         ledger::set_ledger(Rc::new(MockLedger {
             approve_result: Ok(Nat::from(0u64)),
+            last_approve_amount: RefCell::new(None),
         }));
         ledger::set_cached_transfer_fee_for_testing(TEST_TRANSFER_FEE_SATS, TEST_NOW_NS);
         minter::set_minter(Rc::new(MockMinter {
@@ -811,6 +960,7 @@ mod tests {
                 Some("retrieve failed"),
                 None,
             )),
+            last_retrieve_amount_sats: Cell::new(None),
         }));
         let principal = test_principal();
         fund_principal(principal, INITIAL_BALANCE_SATS);
@@ -846,6 +996,7 @@ mod tests {
         ic::set_runtime(Box::new(MockRuntime));
         ledger::set_ledger(Rc::new(MockLedger {
             approve_result: Ok(Nat::from(0u64)),
+            last_approve_amount: RefCell::new(None),
         }));
         ledger::set_cached_transfer_fee_for_testing(TEST_TRANSFER_FEE_SATS, TEST_NOW_NS);
         minter::set_minter(Rc::new(RetryableThenPermanentMinter {

@@ -409,7 +409,6 @@ export const idlFactory = ({ IDL }) => {
   const UserBalanceInfo = IDL.Record({
     'total' : IDL.Nat64,
     'locked' : IDL.Nat64,
-    'max_withdraw_sats' : IDL.Nat64,
     'available' : IDL.Nat64,
   });
   const Result_20 = IDL.Variant({

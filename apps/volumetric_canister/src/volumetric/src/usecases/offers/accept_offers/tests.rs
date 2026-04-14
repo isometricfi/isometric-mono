@@ -737,15 +737,9 @@ fn test_accept_fails_when_withdraw_has_already_debited_buyer_balance() {
     let writer = test_principal(41);
     let buyer = test_principal(42);
     setup_test_state(writer, buyer);
-    const WITHDRAW_LEDGER_FEE_CHARGE_COUNT: u64 = 2;
-    let withdraw_ledger_fee_reserve_sats =
-        TESTING_CKBTC_TRANSFER_FEE_SATS * WITHDRAW_LEDGER_FEE_CHARGE_COUNT;
-    let withdrawal_amount_sats =
-        TEST_BUYER_AVAILABLE_SATS.saturating_sub(withdraw_ledger_fee_reserve_sats);
-
     let withdrawal_params = WithdrawParams {
         btc_address: "tb1qwithdrawfirst".to_string(),
-        amount: withdrawal_amount_sats,
+        amount: TEST_BUYER_AVAILABLE_SATS,
     };
     let _withdraw_receipt = withdraw_ckbtc_use_case(buyer, withdrawal_params, 92)
         .expect("withdraw should enqueue and debit buyer");

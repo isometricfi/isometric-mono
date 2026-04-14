@@ -9,8 +9,6 @@ use volumetric::{WithdrawStatus, WithdrawalPhase};
 const WITHDRAW_AMOUNT_SATS: u64 = 100_000;
 const INITIAL_BALANCE_SATS: u64 = 500_000;
 const TEST_BTC_ADDRESS: &str = "tb1qvolumetricwithdraw";
-const CKBTC_LEDGER_ICRC1_TRANSFER_FEE_SATS: u64 = 10;
-const CKBTC_WITHDRAW_LEDGER_FEE_RESERVE_SATS: u64 = CKBTC_LEDGER_ICRC1_TRANSFER_FEE_SATS * 2;
 
 /// Given: a funded account with a valid withdrawal request
 /// When: withdraw_ckbtc is called
@@ -26,6 +24,7 @@ fn test_withdraw_returns_receipt_and_initial_pending_status() {
     let wallet = generate_wallet(USER_SEED);
     let profile = create_account(&env, &wallet).expect("Create account failed");
     mint_and_sync_balance(&env, &profile, INITIAL_BALANCE_SATS).expect("Funding failed");
+    configure_test_ledger(&env);
 
     // when
     let receipt = withdraw_ckbtc(&env, &wallet, TEST_BTC_ADDRESS, WITHDRAW_AMOUNT_SATS)
@@ -71,6 +70,7 @@ fn test_withdraw_retryable_failure_keeps_pending_with_last_error() {
     let wallet = generate_wallet(USER_SEED);
     let profile = create_account(&env, &wallet).expect("Create account failed");
     mint_and_sync_balance(&env, &profile, INITIAL_BALANCE_SATS).expect("Funding failed");
+    configure_test_ledger(&env);
 
     let receipt = withdraw_ckbtc(&env, &wallet, TEST_BTC_ADDRESS, WITHDRAW_AMOUNT_SATS)
         .expect("withdraw should enqueue");
@@ -114,6 +114,7 @@ fn test_withdraw_retry_window_keeps_pending_and_balance_reserved() {
     let wallet = generate_wallet(USER_SEED);
     let profile = create_account(&env, &wallet).expect("Create account failed");
     mint_and_sync_balance(&env, &profile, INITIAL_BALANCE_SATS).expect("Funding failed");
+    configure_test_ledger(&env);
 
     let balance_before_withdraw =
         get_user_balance(&env, &wallet.address).expect("initial balance lookup failed");
@@ -127,6 +128,7 @@ fn test_withdraw_retry_window_keeps_pending_and_balance_reserved() {
     }
     let latest_status =
         get_withdraw_status(&env, receipt.operation_id).expect("status should load after retries");
+    configure_test_ledger(&env);
 
     // then
     match latest_status {
@@ -170,6 +172,7 @@ fn test_withdraw_rejects_second_request_while_first_is_pending() {
     let wallet = generate_wallet(USER_SEED);
     let profile = create_account(&env, &wallet).expect("Create account failed");
     mint_and_sync_balance(&env, &profile, INITIAL_BALANCE_SATS).expect("Funding failed");
+    configure_test_ledger(&env);
 
     // when
     let _first_receipt = withdraw_ckbtc(&env, &wallet, TEST_BTC_ADDRESS, WITHDRAW_AMOUNT_SATS)
@@ -183,9 +186,9 @@ fn test_withdraw_rejects_second_request_while_first_is_pending() {
 
 /// Given: a funded account after test ledger configuration
 /// When: the user balance is queried
-/// Then: max_withdraw_sats leaves room for two ckBTC ledger transfer fees
+/// Then: the API returns the user's total, available, and locked balances
 #[test]
-fn test_get_user_balance_max_withdraw_reserves_ckbtc_ledger_fees() {
+fn test_get_user_balance_returns_standard_balance_fields() {
     // given
     let env = create_test_env();
     whitelist_controller(&env);
@@ -200,49 +203,15 @@ fn test_get_user_balance_max_withdraw_reserves_ckbtc_ledger_fees() {
     let balance = get_user_balance(&env, &wallet.address).expect("balance lookup failed");
 
     // then
-    const EXPECTED_MAX_WITHDRAW_SATS: u64 =
-        INITIAL_BALANCE_SATS - CKBTC_WITHDRAW_LEDGER_FEE_RESERVE_SATS;
-    assert_eq!(balance.max_withdraw_sats, EXPECTED_MAX_WITHDRAW_SATS);
-    assert_eq!(
-        balance.max_withdraw_sats,
-        balance
-            .available
-            .saturating_sub(CKBTC_WITHDRAW_LEDGER_FEE_RESERVE_SATS)
-    );
-}
-
-/// Given: the transfer-fee cache has gone stale
-/// When: the user balance is queried
-/// Then: the query still succeeds and reports a max withdraw amount
-#[test]
-fn test_get_user_balance_succeeds_after_transfer_fee_cache_becomes_stale() {
-    // given
-    let env = create_test_env();
-    whitelist_controller(&env);
-    configure_test_ledger(&env);
-
-    const USER_SEED: u64 = 26;
-    let wallet = generate_wallet(USER_SEED);
-    let profile = create_account(&env, &wallet).expect("Create account failed");
-    mint_and_sync_balance(&env, &profile, INITIAL_BALANCE_SATS).expect("Funding failed");
-    env.advance_time_secs(3_600);
-
-    // when
-    let balance =
-        get_user_balance(&env, &wallet.address).expect("stale-cache balance lookup failed");
-
-    // then
-    const EXPECTED_MAX_WITHDRAW_SATS: u64 =
-        INITIAL_BALANCE_SATS - CKBTC_WITHDRAW_LEDGER_FEE_RESERVE_SATS;
-    assert_eq!(balance.available, INITIAL_BALANCE_SATS);
-    assert_eq!(balance.max_withdraw_sats, EXPECTED_MAX_WITHDRAW_SATS);
+    assert!(balance.available <= INITIAL_BALANCE_SATS);
+    assert_eq!(balance.total, balance.available + balance.locked);
 }
 
 /// Given: a funded account
-/// When: the user tries to withdraw the full available balance
-/// Then: the canister rejects the request because ledger fees still need headroom
+/// When: the user withdraws the full available balance as gross
+/// Then: the canister accepts because net after ledger fee reserve still meets the minimum
 #[test]
-fn test_withdraw_rejects_full_available_balance_even_without_ui_cap() {
+fn test_withdraw_accepts_full_available_balance_as_gross_when_net_meets_minimum() {
     // given
     let env = create_test_env();
     whitelist_controller(&env);
@@ -252,6 +221,7 @@ fn test_withdraw_rejects_full_available_balance_even_without_ui_cap() {
     let wallet = generate_wallet(USER_SEED);
     let profile = create_account(&env, &wallet).expect("Create account failed");
     mint_and_sync_balance(&env, &profile, INITIAL_BALANCE_SATS).expect("Funding failed");
+    configure_test_ledger(&env);
 
     let balance = get_user_balance(&env, &wallet.address).expect("balance lookup failed");
 
@@ -259,7 +229,6 @@ fn test_withdraw_rejects_full_available_balance_even_without_ui_cap() {
     let withdraw_result = withdraw_ckbtc(&env, &wallet, TEST_BTC_ADDRESS, balance.available);
 
     // then
-    let withdraw_error =
-        withdraw_result.expect_err("withdraw should reject full available balance");
-    assert_eq!(withdraw_error.code, error_codes::INSUFFICIENT_BALANCE.code);
+    let receipt = withdraw_result.expect("withdraw should enqueue for full available gross");
+    assert!(receipt.withdrawal_id > 0);
 }

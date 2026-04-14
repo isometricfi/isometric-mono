@@ -44,9 +44,20 @@ pub struct SettlementWalPayload {
 pub struct WithdrawalWalPayload {
     pub withdrawal_id: u64,
     pub principal: Principal,
+    /// Gross sats debited from internal accounting and refunded if the WAL fails.
     pub amount_sats: u64,
+    /// Sats approved for transfer and passed to the ckBTC minter (gross minus ledger fee reserve).
+    #[serde(default)]
+    pub net_ckbtc_transfer_amount_sats: Option<u64>,
     pub btc_address: String,
     pub created_at_time_ns: u64,
+}
+
+impl WithdrawalWalPayload {
+    pub(crate) fn net_ckbtc_transfer_amount_sats_for_ledger(&self) -> u64 {
+        self.net_ckbtc_transfer_amount_sats
+            .unwrap_or(self.amount_sats)
+    }
 }
 
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]

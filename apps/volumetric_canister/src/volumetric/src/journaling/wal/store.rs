@@ -216,6 +216,7 @@ mod tests {
             withdrawal_id: u64::from(seed),
             principal: Principal::anonymous(),
             amount_sats: 100 + u64::from(seed),
+            net_ckbtc_transfer_amount_sats: Some(100 + u64::from(seed)),
             btc_address: format!("tb1q{seed}"),
             created_at_time_ns: TEST_NOW_NS,
         })

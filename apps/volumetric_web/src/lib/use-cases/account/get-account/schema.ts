@@ -16,7 +16,6 @@ export interface BalanceData {
   total: bigint;
   available: bigint;
   locked: bigint;
-  maxWithdrawSats: bigint;
 }
 
 export interface Output {
