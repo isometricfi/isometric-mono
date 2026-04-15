@@ -7,7 +7,7 @@ export function mapProfile(profile: ProfileInfo): ProfileData {
     username: profile.username.length > 0 ? (profile.username[0] ?? null) : null,
     principal: profile.principal.toString(),
     inviteCode: profile.invite_code.length > 0 ? (profile.invite_code[0] ?? null) : null,
-    referralCount: profile.referral_count,
+    referralCount: profile.referral_count[0] ?? BigInt(0),
   };
 }
 

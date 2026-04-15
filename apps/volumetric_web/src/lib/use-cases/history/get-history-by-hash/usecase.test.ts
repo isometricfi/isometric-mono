@@ -34,7 +34,7 @@ describe("getHistoryByHash", () => {
             subaccount: new Uint8Array([0, 1, 2, 3]),
             address: resolvedAddress,
             invite_code: ["ABC123"],
-            referral_count: BigInt(2),
+            referral_count: [],
           },
         ],
       }),
@@ -66,7 +66,7 @@ describe("getHistoryByHash", () => {
 
     // then
     expect(actor.resolve_invite_code).toHaveBeenCalledWith("ABC123");
-    expect(actor.get_account_info).toHaveBeenCalledWith(resolvedAddress);
+    expect(actor.get_account_info).toHaveBeenCalledWith(resolvedAddress, false);
     expect(getHistoryMock).toHaveBeenCalledWith(principal.toString());
     expect(result).toEqual({
       entries: historyEntries,

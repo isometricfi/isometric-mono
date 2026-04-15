@@ -65,14 +65,18 @@ pub fn create_account_with_signature(
     Decode!(&response, Result<ProfileInfo, VolumetricError>).unwrap()
 }
 
-pub fn get_account_info(env: &TestEnv, address: &str) -> Option<ProfileInfo> {
+pub fn get_account_info(
+    env: &TestEnv,
+    address: &str,
+    include_referral_count: bool,
+) -> Option<ProfileInfo> {
     let response = env
         .pic
         .query_call(
             env.volumetric_canister,
             candid::Principal::anonymous(),
             "get_account_info",
-            candid::encode_one(address.to_string()).unwrap(),
+            candid::encode_args((address.to_string(), include_referral_count)).unwrap(),
         )
         .expect("Query failed");
     Decode!(&response, Result<Option<ProfileInfo>, VolumetricError>)

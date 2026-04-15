@@ -11,10 +11,13 @@ pub struct AccountInfo {
     pub address: String,
     pub username: Option<String>,
     pub invite_code: Option<String>,
-    pub referral_count: u64,
+    pub referral_count: Option<u64>,
 }
 
-pub fn get_account_info_use_case(address: String) -> Result<Option<AccountInfo>, VolumetricError> {
+pub fn get_account_info_use_case(
+    address: String,
+    include_referral_count: bool,
+) -> Result<Option<AccountInfo>, VolumetricError> {
     let wallet_key = WalletKey::try_from_address(&address)?;
     let Some(principal) = get_principal_for_wallet(&wallet_key) else {
         return Ok(None);
@@ -30,6 +33,6 @@ pub fn get_account_info_use_case(address: String) -> Result<Option<AccountInfo>,
         address,
         username: profile.username,
         invite_code: profile.invite_code,
-        referral_count: get_referral_count(&principal),
+        referral_count: include_referral_count.then(|| get_referral_count(&principal)),
     }))
 }

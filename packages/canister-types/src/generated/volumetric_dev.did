@@ -279,7 +279,7 @@ type PendingWithdrawal = record {
 type ProfileInfo = record {
   "principal" : principal;
   username : opt text;
-  referral_count : nat64;
+  referral_count : opt nat64;
   subaccount : blob;
   invite_code : opt text;
   address : text;
@@ -436,7 +436,7 @@ service : (opt BtcNetwork) -> {
   get_accept_by_id : (nat64) -> (Result_6) query;
   get_accept_offers_message : (text, vec AcceptOfferItem) -> (Result_7) query;
   get_accept_status : (blob) -> (Result_8) query;
-  get_account_info : (text) -> (Result_9) query;
+  get_account_info : (text, bool) -> (Result_9) query;
   get_account_nonce : (text) -> (Result_3) query;
   get_active_option_by_id : (nat64) -> (opt ActiveOption) query;
   get_all_events : (opt nat64, opt nat32) -> (vec Event) query;

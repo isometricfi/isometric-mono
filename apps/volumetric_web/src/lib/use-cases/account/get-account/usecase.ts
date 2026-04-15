@@ -11,7 +11,7 @@ export async function getAccount(address: string): Promise<Output> {
     const actor = await getCanisterActor();
 
     const [profileResult, balanceResult] = await Promise.all([
-      actor.get_account_info(address),
+      actor.get_account_info(address, true),
       actor.get_user_balance(address),
     ]);
 

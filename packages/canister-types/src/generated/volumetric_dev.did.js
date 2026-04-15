@@ -75,7 +75,7 @@ export const idlFactory = ({ IDL }) => {
   const ProfileInfo = IDL.Record({
     'principal' : IDL.Principal,
     'username' : IDL.Opt(IDL.Text),
-    'referral_count' : IDL.Nat64,
+    'referral_count' : IDL.Opt(IDL.Nat64),
     'subaccount' : IDL.Vec(IDL.Nat8),
     'invite_code' : IDL.Opt(IDL.Text),
     'address' : IDL.Text,
@@ -584,7 +584,7 @@ export const idlFactory = ({ IDL }) => {
         ['query'],
       ),
     'get_accept_status' : IDL.Func([IDL.Vec(IDL.Nat8)], [Result_8], ['query']),
-    'get_account_info' : IDL.Func([IDL.Text], [Result_9], ['query']),
+    'get_account_info' : IDL.Func([IDL.Text, IDL.Bool], [Result_9], ['query']),
     'get_account_nonce' : IDL.Func([IDL.Text], [Result_3], ['query']),
     'get_active_option_by_id' : IDL.Func(
         [IDL.Nat64],

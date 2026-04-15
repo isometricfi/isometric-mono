@@ -309,7 +309,7 @@ export interface PendingWithdrawal {
 export interface ProfileInfo {
   'principal' : Principal,
   'username' : [] | [string],
-  'referral_count' : bigint,
+  'referral_count' : [] | [bigint],
   'subaccount' : Uint8Array | number[],
   'invite_code' : [] | [string],
   'address' : string,
@@ -521,7 +521,7 @@ export interface _SERVICE {
     Result_7
   >,
   'get_accept_status' : ActorMethod<[Uint8Array | number[]], Result_8>,
-  'get_account_info' : ActorMethod<[string], Result_9>,
+  'get_account_info' : ActorMethod<[string, boolean], Result_9>,
   'get_account_nonce' : ActorMethod<[string], Result_3>,
   'get_active_option_by_id' : ActorMethod<[bigint], [] | [ActiveOption]>,
   'get_all_events' : ActorMethod<[[] | [bigint], [] | [number]], Array<Event>>,

@@ -17,7 +17,7 @@ export async function getHistoryByHash(shareId: string): Promise<HistoryByHashOu
       return { entries: [], username: null, principal: undefined };
     }
 
-    const profileResult = await actor.get_account_info(address);
+    const profileResult = await actor.get_account_info(address, false);
     const profile = profileFromGetAccountInfoResult(profileResult);
 
     span.setAttribute(ATTR_RESULT_FOUND, profile !== null);

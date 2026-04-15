@@ -19,7 +19,7 @@ pub struct ProfileInfo {
     pub address: String,
     pub username: Option<String>,
     pub invite_code: Option<String>,
-    pub referral_count: u64,
+    pub referral_count: Option<u64>,
 }
 
 #[derive(candid::CandidType, serde::Serialize, serde::Deserialize)]
@@ -65,7 +65,7 @@ pub fn create_account(
         address.clone(),
         None,
         result.invite_code,
-        0,
+        Some(0),
     ))
 }
 
@@ -76,8 +76,11 @@ pub fn get_account_nonce(address: String) -> Result<u64, VolumetricError> {
 }
 
 #[ic_cdk::query]
-pub fn get_account_info(address: String) -> Result<Option<ProfileInfo>, VolumetricError> {
-    let info = usecases::get_account_info_use_case(address)?;
+pub fn get_account_info(
+    address: String,
+    include_referral_count: bool,
+) -> Result<Option<ProfileInfo>, VolumetricError> {
+    let info = usecases::get_account_info_use_case(address, include_referral_count)?;
     Ok(info.map(|info| ProfileInfo {
         principal: info.principal,
         subaccount: info.subaccount.to_vec(),
@@ -129,7 +132,7 @@ pub fn update_username(
     let result = usecases::update_username_use_case(principal, req.data.username)
         .ok_or_else(|| VolumetricError::from_def(error_codes::PROFILE_NOT_FOUND, None, None))?;
 
-    let account_info = usecases::get_account_info_use_case(address.clone())?
+    let account_info = usecases::get_account_info_use_case(address.clone(), true)?
         .ok_or_else(|| VolumetricError::from_def(error_codes::PROFILE_NOT_FOUND, None, None))?;
 
     Ok(build_profile_info(
@@ -167,7 +170,7 @@ fn build_profile_info(
     address: String,
     username: Option<String>,
     invite_code: Option<String>,
-    referral_count: u64,
+    referral_count: Option<u64>,
 ) -> ProfileInfo {
     ProfileInfo {
         principal,

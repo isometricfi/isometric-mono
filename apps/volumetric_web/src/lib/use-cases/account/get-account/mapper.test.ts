@@ -14,7 +14,7 @@ function makeProfileInfo(overrides: Partial<ProfileInfo> = {}): ProfileInfo {
     subaccount: DEFAULT_SUBACCOUNT,
     address: DEFAULT_ADDRESS,
     invite_code: [],
-    referral_count: BigInt(0),
+    referral_count: [],
     ...overrides,
   };
 }
@@ -54,7 +54,7 @@ describe("mapProfile", () => {
     const REFERRAL_COUNT = BigInt(7);
     const profile = makeProfileInfo({
       invite_code: [INVITE_CODE],
-      referral_count: REFERRAL_COUNT,
+      referral_count: [REFERRAL_COUNT],
     });
 
     // when

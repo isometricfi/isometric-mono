@@ -23,7 +23,7 @@ export function CkbtcWallet() {
     queryKey: ["account", address],
     queryFn: async () => {
       if (!canister || !address) return null;
-      return profileFromGetAccountInfoResult(await canister.get_account_info(address));
+      return profileFromGetAccountInfoResult(await canister.get_account_info(address, false));
     },
     enabled: !!canister && !!address,
   });
