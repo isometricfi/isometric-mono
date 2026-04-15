@@ -7,6 +7,7 @@ use ic_stable_structures::storable::Bound;
 use ic_stable_structures::{StableBTreeMap, Storable};
 use sha2::{Digest, Sha256};
 
+use super::accounts::{get_profile, list_all_profiles, update_profile};
 use super::state::{Memory, MemoryIndex, MEMORY_MANAGER};
 use crate::ic;
 
@@ -17,24 +18,6 @@ thread_local! {
     pub static INVITE_CODE_REGISTRY: RefCell<StableBTreeMap<InviteCodeKey, Principal, Memory>> = RefCell::new(
         StableBTreeMap::init(
             MEMORY_MANAGER.with_borrow(|m| m.get(MemoryId::new(MemoryIndex::InviteCodeRegistryMemory as u8))),
-        )
-    );
-
-    pub static PRINCIPAL_INVITE_CODES: RefCell<StableBTreeMap<Principal, InviteCodeKey, Memory>> = RefCell::new(
-        StableBTreeMap::init(
-            MEMORY_MANAGER.with_borrow(|m| m.get(MemoryId::new(MemoryIndex::PrincipalInviteCodeMemory as u8))),
-        )
-    );
-
-    pub static REFERRAL_LINKS: RefCell<StableBTreeMap<Principal, Principal, Memory>> = RefCell::new(
-        StableBTreeMap::init(
-            MEMORY_MANAGER.with_borrow(|m| m.get(MemoryId::new(MemoryIndex::ReferralLinksMemory as u8))),
-        )
-    );
-
-    pub static REFERRAL_COUNTS: RefCell<StableBTreeMap<Principal, u64, Memory>> = RefCell::new(
-        StableBTreeMap::init(
-            MEMORY_MANAGER.with_borrow(|m| m.get(MemoryId::new(MemoryIndex::ReferralCountsMemory as u8))),
         )
     );
 }
@@ -49,10 +32,6 @@ impl InviteCodeKey {
         let mut fixed = [0u8; INVITE_CODE_LENGTH];
         fixed.copy_from_slice(bytes);
         Some(Self(fixed))
-    }
-
-    fn to_code(self) -> String {
-        String::from_utf8_lossy(&self.0).to_string()
     }
 }
 
@@ -77,37 +56,36 @@ impl Storable for InviteCodeKey {
     };
 }
 
-pub fn get_or_create_invite_code(principal: Principal, existing_code: Option<String>) -> String {
-    if let Some(existing_key) = PRINCIPAL_INVITE_CODES.with_borrow(|codes| codes.get(&principal)) {
-        return existing_key.to_code();
-    }
+pub fn get_or_create_invite_code(principal: Principal) -> Option<String> {
+    let mut profile = get_profile(&principal)?;
 
-    if let Some(existing) = existing_code {
-        if try_register_invite_code(&existing, principal) {
-            return existing.to_ascii_uppercase();
+    if let Some(existing_code) = profile.invite_code.clone() {
+        if try_register_invite_code(&existing_code, principal) {
+            let normalized_code = existing_code.trim().to_ascii_uppercase();
+            if profile.invite_code.as_deref() != Some(normalized_code.as_str()) {
+                profile.invite_code = Some(normalized_code.clone());
+                update_profile(principal, profile);
+            }
+            return Some(normalized_code);
         }
     }
 
     for attempt in 0u32..u32::MAX {
         let candidate = generate_invite_code(principal, attempt);
         if try_register_invite_code(&candidate, principal) {
-            return candidate;
+            profile.invite_code = Some(candidate.clone());
+            update_profile(principal, profile);
+            return Some(candidate);
         }
     }
 
-    ic::log("Invite code generation exhausted attempts, using deterministic fallback");
-    generate_invite_code(principal, u32::MAX)
+    ic::log("Invite code generation exhausted attempts");
+    None
 }
 
 pub fn resolve_invite_code(code: &str) -> Option<Principal> {
     let key = InviteCodeKey::from_code(code)?;
     INVITE_CODE_REGISTRY.with_borrow(|registry| registry.get(&key))
-}
-
-pub fn get_invite_code_for_principal(principal: &Principal) -> Option<String> {
-    PRINCIPAL_INVITE_CODES
-        .with_borrow(|codes| codes.get(principal))
-        .map(|key| key.to_code())
 }
 
 pub fn link_referrer_once(
@@ -126,28 +104,29 @@ pub fn link_referrer_once(
         return None;
     }
 
-    if let Some(existing_referrer) = get_referrer_for_principal(&referred_principal) {
+    let mut profile = get_profile(&referred_principal)?;
+
+    if let Some(existing_referrer) = profile.referred_by {
         return Some(existing_referrer);
     }
 
-    REFERRAL_LINKS.with_borrow_mut(|links| {
-        links.insert(referred_principal, referrer_principal);
-    });
-
-    REFERRAL_COUNTS.with_borrow_mut(|counts| {
-        let current = counts.get(&referrer_principal).unwrap_or(0);
-        counts.insert(referrer_principal, current.saturating_add(1));
-    });
+    profile.referred_by = Some(referrer_principal);
+    update_profile(referred_principal, profile);
 
     Some(referrer_principal)
 }
 
 pub fn get_referral_count(principal: &Principal) -> u64 {
-    REFERRAL_COUNTS.with_borrow(|counts| counts.get(principal).unwrap_or(0))
+    list_all_profiles()
+        .into_iter()
+        .filter(|(_, profile)| profile.referred_by.as_ref() == Some(principal))
+        .count() as u64
 }
 
-fn get_referrer_for_principal(principal: &Principal) -> Option<Principal> {
-    REFERRAL_LINKS.with_borrow(|links| links.get(principal))
+pub fn backfill_invite_codes() {
+    for (principal, _) in list_all_profiles() {
+        let _ = get_or_create_invite_code(principal);
+    }
 }
 
 fn try_register_invite_code(code: &str, principal: Principal) -> bool {
@@ -155,33 +134,12 @@ fn try_register_invite_code(code: &str, principal: Principal) -> bool {
         return false;
     };
 
-    if let Some(existing_key) = PRINCIPAL_INVITE_CODES.with_borrow(|codes| codes.get(&principal)) {
-        if existing_key != key {
-            return false;
-        }
-
-        return INVITE_CODE_REGISTRY.with_borrow_mut(|registry| {
-            if let Some(existing_principal) = registry.get(&key) {
-                return existing_principal == principal;
-            }
-            registry.insert(key, principal);
-            true
-        });
-    }
-
     INVITE_CODE_REGISTRY.with_borrow_mut(|registry| {
         if let Some(existing_principal) = registry.get(&key) {
-            if existing_principal != principal {
-                return false;
-            }
-        } else {
-            registry.insert(key, principal);
+            return existing_principal == principal;
         }
 
-        PRINCIPAL_INVITE_CODES.with_borrow_mut(|codes| {
-            codes.insert(principal, key);
-        });
-
+        registry.insert(key, principal);
         true
     })
 }

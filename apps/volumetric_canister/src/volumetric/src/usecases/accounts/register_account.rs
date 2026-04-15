@@ -17,6 +17,7 @@ pub struct RegisterAccountParams {
 pub struct RegisterAccountResult {
     pub principal: Principal,
     pub subaccount: [u8; 32],
+    pub invite_code: Option<String>,
 }
 
 pub fn register_account_use_case(
@@ -26,16 +27,17 @@ pub fn register_account_use_case(
     let subaccount = derive_subaccount(principal);
     let wallet_key = WalletKey::try_from_address(&params.wallet_address)?;
 
-    let _ = get_or_create_invite_code(principal, None);
-
     let profile = Profile {
         wallet_address: params.wallet_address.clone(),
         username: None,
         created_at: ic::time(),
+        invite_code: None,
+        referred_by: None,
     };
 
     create_profile(principal, profile);
     register_wallet(wallet_key, principal);
+    let invite_code = get_or_create_invite_code(principal);
     let referred_by = link_referrer_once(principal, params.invite_code.clone());
     if params.invite_code.is_some() && referred_by.is_none() {
         ic::log("Ignoring invalid, self, or duplicate invite code during registration");
@@ -52,5 +54,6 @@ pub fn register_account_use_case(
     Ok(RegisterAccountResult {
         principal,
         subaccount,
+        invite_code,
     })
 }

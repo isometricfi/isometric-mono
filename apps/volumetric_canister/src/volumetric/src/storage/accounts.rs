@@ -37,6 +37,10 @@ pub struct Profile {
     pub wallet_address: String,
     pub username: Option<String>,
     pub created_at: u64,
+    #[serde(default)]
+    pub invite_code: Option<String>,
+    #[serde(default)]
+    pub referred_by: Option<Principal>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

@@ -84,7 +84,7 @@ function AccountPanelContent({ onDisconnect }: { onDisconnect: () => void }) {
   const balance = accountData?.balance;
   const deposited = balance?.total ?? BigInt(0);
   const available = balance?.available ?? BigInt(0);
-  const referrals = accountData?.referrals ?? BigInt(0);
+  const referrals = profile?.referralCount ?? BigInt(0);
 
   const btcPrice = priceData?.btc ?? 0;
   const availableBtc = Number(available) / 100_000_000;

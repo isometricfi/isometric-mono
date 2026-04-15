@@ -1,5 +1,6 @@
 import { profileFromGetAccountInfoResult } from "@volumetric/canister-types";
 import { getCanisterActor } from "@/lib/canister-server";
+import { normalizeInviteCode } from "@/lib/referrals/invite-code";
 import { ATTR_RESULT_FOUND } from "@/lib/telemetry/traceConstants";
 import { withSpan } from "@/lib/telemetry/withSpan";
 import { getHistory } from "../get-history/usecase";
@@ -7,9 +8,15 @@ import type { HistoryByHashOutput } from "./schema";
 
 const GET_HISTORY_BY_HASH_SPAN_NAME = "usecase.history.get_history_by_hash";
 
-export async function getHistoryByHash(address: string): Promise<HistoryByHashOutput> {
+export async function getHistoryByHash(shareId: string): Promise<HistoryByHashOutput> {
   return withSpan(GET_HISTORY_BY_HASH_SPAN_NAME, async (span) => {
     const actor = await getCanisterActor();
+    const address = await resolveShareAddress(actor, shareId);
+    if (!address) {
+      span.setAttribute(ATTR_RESULT_FOUND, false);
+      return { entries: [], username: null, principal: undefined };
+    }
+
     const profileResult = await actor.get_account_info(address);
     const profile = profileFromGetAccountInfoResult(profileResult);
 
@@ -28,4 +35,16 @@ export async function getHistoryByHash(address: string): Promise<HistoryByHashOu
       principal,
     };
   });
+}
+
+async function resolveShareAddress(
+  actor: Awaited<ReturnType<typeof getCanisterActor>>,
+  shareId: string,
+): Promise<string | null> {
+  const inviteCode = normalizeInviteCode(shareId);
+  if (!inviteCode) {
+    return shareId;
+  }
+
+  return actor.resolve_invite_code(inviteCode).then((result) => result[0] ?? null);
 }

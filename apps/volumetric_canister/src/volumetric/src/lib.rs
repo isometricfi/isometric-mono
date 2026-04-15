@@ -67,7 +67,7 @@ pub use usecases::{
     SettlementStatus, WithdrawReceipt, WithdrawResult, WithdrawStatus,
 };
 
-use crate::storage::{Cbor, Config, CONFIG};
+use crate::storage::{backfill_invite_codes, Cbor, Config, CONFIG};
 
 #[init]
 fn init(btc_network: Option<BtcNetwork>) {
@@ -78,11 +78,13 @@ fn init(btc_network: Option<BtcNetwork>) {
         let _ = config.set(Cbor(new_config));
     });
 
+    backfill_invite_codes();
     timers::setup_timers();
 }
 
 #[post_upgrade]
 fn post_upgrade() {
+    backfill_invite_codes();
     timers::setup_timers();
 }
 

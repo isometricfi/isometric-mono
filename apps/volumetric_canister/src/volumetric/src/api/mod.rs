@@ -10,9 +10,8 @@ pub mod whitelist;
 pub mod withdrawals;
 
 pub use accounts::{
-    create_account, get_account_info, get_account_nonce, get_invite_code, get_message_to_sign,
-    get_referral_count, get_username_update_message, list_users, resolve_invite_code,
-    update_username,
+    create_account, get_account_info, get_account_nonce, get_message_to_sign,
+    get_username_update_message, list_users, resolve_invite_code, update_username,
 };
 #[cfg(feature = "testing")]
 pub use config::reset_oracle_config;

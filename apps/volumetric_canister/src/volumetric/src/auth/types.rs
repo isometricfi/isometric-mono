@@ -163,15 +163,9 @@ pub struct CreateProfileRequest {
 
 impl SignableAction for CreateProfileRequest {
     fn signing_message(&self, address: &str, context: &ChallengeContext) -> String {
-        let invite_line = self
-            .invite_code
-            .as_ref()
-            .map(|code| format!("\nInvite code: {}", code))
-            .unwrap_or_default();
-
         format!(
-            "Sign up for Volumetric\nAddress: {}{}\nCanister: {}\nNetwork: {}\nNonce: {}",
-            address, invite_line, context.canister_id, context.network, context.nonce
+            "Sign up for Volumetric\nAddress: {}\nCanister: {}\nNetwork: {}\nNonce: {}",
+            address, context.canister_id, context.network, context.nonce
         )
     }
 }

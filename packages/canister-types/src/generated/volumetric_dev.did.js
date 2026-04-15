@@ -75,7 +75,9 @@ export const idlFactory = ({ IDL }) => {
   const ProfileInfo = IDL.Record({
     'principal' : IDL.Principal,
     'username' : IDL.Opt(IDL.Text),
+    'referral_count' : IDL.Nat64,
     'subaccount' : IDL.Vec(IDL.Nat8),
+    'invite_code' : IDL.Opt(IDL.Text),
     'address' : IDL.Text,
   });
   const Result_4 = IDL.Variant({ 'Ok' : ProfileInfo, 'Err' : VolumetricError });
@@ -622,7 +624,6 @@ export const idlFactory = ({ IDL }) => {
     'get_failed_withdrawals' : IDL.Func([], [Result_14], ['query']),
     'get_feature_flags' : IDL.Func([], [FeatureFlags], ['query']),
     'get_fee_config' : IDL.Func([], [FeeConfig], ['query']),
-    'get_invite_code' : IDL.Func([IDL.Text], [IDL.Opt(IDL.Text)], ['query']),
     'get_message_to_sign' : IDL.Func([IDL.Text], [Result_7], ['query']),
     'get_my_events' : IDL.Func(
         [IDL.Opt(IDL.Nat64), IDL.Opt(IDL.Nat32)],
@@ -651,11 +652,6 @@ export const idlFactory = ({ IDL }) => {
     'get_recovery_required_wal_entries' : IDL.Func(
         [IDL.Nat32],
         [Result_17],
-        ['query'],
-      ),
-    'get_referral_count' : IDL.Func(
-        [IDL.Text],
-        [IDL.Opt(IDL.Nat64)],
         ['query'],
       ),
     'get_settlement_by_id' : IDL.Func([IDL.Nat64], [Result_18], ['query']),

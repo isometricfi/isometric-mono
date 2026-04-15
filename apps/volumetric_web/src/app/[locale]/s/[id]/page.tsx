@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Link } from "@/i18n/routing";
 import { getHistoryByHash } from "@/lib/use-cases/history/get-history-by-hash/usecase";
 import { cn, formatBtcWithSymbolBigint, getFallbackUsername } from "@/lib/utils";
+import { CaptureInviteCode } from "./_components/CaptureInviteCode";
 
 export async function generateMetadata({
   params,
@@ -84,6 +85,7 @@ export default async function SharePage({ params }: { params: { id: string; loca
 
   return (
     <div className="container mx-auto md:py-8 py-6 max-w-xl space-y-5">
+      <CaptureInviteCode id={id} />
       {/* Hero headline */}
       <div className="text-center space-y-2 px-2">
         <h1 className="md:text-3xl text-2xl font-bold tracking-tight">

@@ -11,6 +11,7 @@ export interface ProfileData {
   username: string | null;
   principal: string;
   inviteCode: string | null;
+  referralCount: bigint;
 }
 
 export interface BalanceData {
@@ -22,5 +23,4 @@ export interface BalanceData {
 export interface Output {
   profile: ProfileData | null;
   balance: BalanceData | null;
-  referrals: bigint;
 }

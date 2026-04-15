@@ -6,40 +6,12 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { unwrapResult } from "@volumetric/canister-types";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { openOnboardingModal } from "@/components/wallet/OnboardingModal";
+import { clearInviteCodeFromSession, readInviteCodeFromSession } from "@/lib/referrals/invite-code";
 import type { Output as CreateAccountOutput } from "@/lib/use-cases/account/create-account/schema";
 import { trpcClient } from "@/trpc/react";
 import { useAccount } from "./queries/use-account";
 import { useBtcAddress } from "./queries/use-btc-address";
 import { useCanister } from "./use-canister";
-
-const INVITE_CODE_STORAGE_KEY = "volumetric.inviteCode";
-const INVITE_CODE_PATTERN = /^[A-Z0-9]{6}$/;
-
-function readInviteCodeFromSession(): string | undefined {
-  if (typeof window === "undefined") {
-    return undefined;
-  }
-
-  const rawValue = window.sessionStorage.getItem(INVITE_CODE_STORAGE_KEY);
-  if (!rawValue) {
-    return undefined;
-  }
-
-  const normalizedValue = rawValue.trim().toUpperCase();
-  if (!INVITE_CODE_PATTERN.test(normalizedValue)) {
-    return undefined;
-  }
-
-  return normalizedValue;
-}
-
-function clearInviteCodeFromSession() {
-  if (typeof window === "undefined") {
-    return;
-  }
-
-  window.sessionStorage.removeItem(INVITE_CODE_STORAGE_KEY);
-}
 
 export type EnsureAccountStep =
   | "idle"

@@ -13,6 +13,8 @@ function makeProfileInfo(overrides: Partial<ProfileInfo> = {}): ProfileInfo {
     username: ["testuser"],
     subaccount: DEFAULT_SUBACCOUNT,
     address: DEFAULT_ADDRESS,
+    invite_code: [],
+    referral_count: BigInt(0),
     ...overrides,
   };
 }
@@ -31,6 +33,7 @@ describe("mapProfile", () => {
       username: "testuser",
       principal: DEFAULT_PRINCIPAL.toString(),
       inviteCode: null,
+      referralCount: BigInt(0),
     });
   });
 
@@ -43,6 +46,23 @@ describe("mapProfile", () => {
 
     // then
     expect(result.username).toBeNull();
+  });
+
+  test("should map invite code and referral count from the canister response", () => {
+    // given
+    const INVITE_CODE = "ABC123";
+    const REFERRAL_COUNT = BigInt(7);
+    const profile = makeProfileInfo({
+      invite_code: [INVITE_CODE],
+      referral_count: REFERRAL_COUNT,
+    });
+
+    // when
+    const result = mapProfile(profile);
+
+    // then
+    expect(result.inviteCode).toBe(INVITE_CODE);
+    expect(result.referralCount).toBe(REFERRAL_COUNT);
   });
 });
 

@@ -7,8 +7,7 @@ use crate::auth::{build_challenge_context, verify_btc_signature};
 use crate::errors::{error_codes, VolumetricError};
 use crate::guards::is_whitelisted;
 use crate::storage::{
-    get_invite_code_for_principal, get_nonce, get_principal_for_wallet, get_profile,
-    get_referral_count as get_referrals_for_principal, increment_nonce, is_wallet_registered,
+    get_nonce, get_principal_for_wallet, get_profile, increment_nonce, is_wallet_registered,
     resolve_invite_code as resolve_invite_to_principal,
 };
 use crate::usecases;
@@ -19,6 +18,8 @@ pub struct ProfileInfo {
     pub subaccount: Vec<u8>,
     pub address: String,
     pub username: Option<String>,
+    pub invite_code: Option<String>,
+    pub referral_count: u64,
 }
 
 #[derive(candid::CandidType, serde::Serialize, serde::Deserialize)]
@@ -58,12 +59,14 @@ pub fn create_account(
     };
     let result = usecases::register_account_use_case(params)?;
 
-    Ok(ProfileInfo {
-        principal: result.principal,
-        subaccount: result.subaccount.to_vec(),
-        address: address.clone(),
-        username: None,
-    })
+    Ok(build_profile_info(
+        result.principal,
+        result.subaccount.to_vec(),
+        address.clone(),
+        None,
+        result.invite_code,
+        0,
+    ))
 }
 
 #[ic_cdk::query]
@@ -80,6 +83,8 @@ pub fn get_account_info(address: String) -> Result<Option<ProfileInfo>, Volumetr
         subaccount: info.subaccount.to_vec(),
         address: info.address,
         username: info.username,
+        invite_code: info.invite_code,
+        referral_count: info.referral_count,
     }))
 }
 
@@ -124,12 +129,17 @@ pub fn update_username(
     let result = usecases::update_username_use_case(principal, req.data.username)
         .ok_or_else(|| VolumetricError::from_def(error_codes::PROFILE_NOT_FOUND, None, None))?;
 
-    Ok(ProfileInfo {
-        principal: result.principal,
-        subaccount: result.subaccount.to_vec(),
-        address: address.clone(),
-        username: result.username,
-    })
+    let account_info = usecases::get_account_info_use_case(address.clone())?
+        .ok_or_else(|| VolumetricError::from_def(error_codes::PROFILE_NOT_FOUND, None, None))?;
+
+    Ok(build_profile_info(
+        result.principal,
+        result.subaccount.to_vec(),
+        address.clone(),
+        result.username,
+        account_info.invite_code,
+        account_info.referral_count,
+    ))
 }
 
 #[ic_cdk::query]
@@ -145,22 +155,26 @@ pub fn list_users() -> Vec<UserInfo> {
 }
 
 #[ic_cdk::query]
-pub fn get_invite_code(address: String) -> Option<String> {
-    let wallet_key = WalletKey::try_from_address(&address).ok()?;
-    let principal = get_principal_for_wallet(&wallet_key)?;
-    get_invite_code_for_principal(&principal)
-}
-
-#[ic_cdk::query]
 pub fn resolve_invite_code(code: String) -> Option<String> {
     let principal = resolve_invite_to_principal(&code)?;
     let profile = get_profile(&principal)?;
     Some(profile.wallet_address)
 }
 
-#[ic_cdk::query]
-pub fn get_referral_count(address: String) -> Option<u64> {
-    let wallet_key = WalletKey::try_from_address(&address).ok()?;
-    let principal = get_principal_for_wallet(&wallet_key)?;
-    Some(get_referrals_for_principal(&principal))
+fn build_profile_info(
+    principal: Principal,
+    subaccount: Vec<u8>,
+    address: String,
+    username: Option<String>,
+    invite_code: Option<String>,
+    referral_count: u64,
+) -> ProfileInfo {
+    ProfileInfo {
+        principal,
+        subaccount,
+        address,
+        username,
+        invite_code,
+        referral_count,
+    }
 }

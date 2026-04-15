@@ -309,7 +309,9 @@ export interface PendingWithdrawal {
 export interface ProfileInfo {
   'principal' : Principal,
   'username' : [] | [string],
+  'referral_count' : bigint,
   'subaccount' : Uint8Array | number[],
+  'invite_code' : [] | [string],
   'address' : string,
 }
 export interface Range { 'max' : bigint, 'min' : bigint }
@@ -541,7 +543,6 @@ export interface _SERVICE {
   'get_failed_withdrawals' : ActorMethod<[], Result_14>,
   'get_feature_flags' : ActorMethod<[], FeatureFlags>,
   'get_fee_config' : ActorMethod<[], FeeConfig>,
-  'get_invite_code' : ActorMethod<[string], [] | [string]>,
   'get_message_to_sign' : ActorMethod<[string], Result_7>,
   'get_my_events' : ActorMethod<[[] | [bigint], [] | [number]], Array<Event>>,
   'get_my_offers' : ActorMethod<[string], Result_15>,
@@ -559,7 +560,6 @@ export interface _SERVICE {
   'get_pending_withdrawals' : ActorMethod<[], Result_14>,
   'get_platform_fees_collected_total' : ActorMethod<[], bigint>,
   'get_recovery_required_wal_entries' : ActorMethod<[number], Result_17>,
-  'get_referral_count' : ActorMethod<[string], [] | [bigint]>,
   'get_settlement_by_id' : ActorMethod<[bigint], Result_18>,
   'get_settlement_status' : ActorMethod<[Uint8Array | number[]], Result_19>,
   'get_trading_limits' : ActorMethod<[], TradingLimits>,
