@@ -452,6 +452,7 @@ service : (opt BtcNetwork) -> {
   get_failed_withdrawals : () -> (Result_14) query;
   get_feature_flags : () -> (FeatureFlags) query;
   get_fee_config : () -> (FeeConfig) query;
+  get_invite_code : (text) -> (opt text) query;
   get_message_to_sign : (text) -> (Result_7) query;
   get_my_events : (opt nat64, opt nat32) -> (vec Event) query;
   get_my_offers : (text) -> (Result_15) query;
@@ -466,6 +467,7 @@ service : (opt BtcNetwork) -> {
   get_pending_withdrawals : () -> (Result_14) query;
   get_platform_fees_collected_total : () -> (nat64) query;
   get_recovery_required_wal_entries : (nat32) -> (Result_17) query;
+  get_referral_count : (text) -> (opt nat64) query;
   get_settlement_by_id : (nat64) -> (Result_18) query;
   get_settlement_status : (blob) -> (Result_19) query;
   get_trading_limits : () -> (TradingLimits) query;
@@ -481,6 +483,7 @@ service : (opt BtcNetwork) -> {
   observability_get_metrics : () -> (ObservabilityMetrics) query;
   recover_wal_operation : (blob) -> (Result_23);
   remove_whitelisted : (principal) -> (Result_1);
+  resolve_invite_code : (text) -> (opt text) query;
   set_accept_offer_quantity_sats_range_config : (nat64, nat64) -> (Result_1);
   set_create_offer_quantity_sats_range_config : (nat64, nat64) -> (Result_1);
   set_deposit_amount_sats_config : (nat64) -> (Result_1);

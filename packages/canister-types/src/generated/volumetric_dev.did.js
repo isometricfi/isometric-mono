@@ -622,6 +622,7 @@ export const idlFactory = ({ IDL }) => {
     'get_failed_withdrawals' : IDL.Func([], [Result_14], ['query']),
     'get_feature_flags' : IDL.Func([], [FeatureFlags], ['query']),
     'get_fee_config' : IDL.Func([], [FeeConfig], ['query']),
+    'get_invite_code' : IDL.Func([IDL.Text], [IDL.Opt(IDL.Text)], ['query']),
     'get_message_to_sign' : IDL.Func([IDL.Text], [Result_7], ['query']),
     'get_my_events' : IDL.Func(
         [IDL.Opt(IDL.Nat64), IDL.Opt(IDL.Nat32)],
@@ -650,6 +651,11 @@ export const idlFactory = ({ IDL }) => {
     'get_recovery_required_wal_entries' : IDL.Func(
         [IDL.Nat32],
         [Result_17],
+        ['query'],
+      ),
+    'get_referral_count' : IDL.Func(
+        [IDL.Text],
+        [IDL.Opt(IDL.Nat64)],
         ['query'],
       ),
     'get_settlement_by_id' : IDL.Func([IDL.Nat64], [Result_18], ['query']),
@@ -688,6 +694,11 @@ export const idlFactory = ({ IDL }) => {
     'recover_wal_operation' : IDL.Func([IDL.Vec(IDL.Nat8)], [Result_23], []),
     'remove_whitelisted' : IDL.Func([IDL.Principal], [Result_1], []),
     'reset_oracle_config' : IDL.Func([], [Result_1], []),
+    'resolve_invite_code' : IDL.Func(
+        [IDL.Text],
+        [IDL.Opt(IDL.Text)],
+        ['query'],
+      ),
     'set_accept_offer_quantity_sats_range_config' : IDL.Func(
         [IDL.Nat64, IDL.Nat64],
         [Result_1],
