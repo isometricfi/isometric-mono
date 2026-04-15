@@ -87,7 +87,7 @@ pub fn get_account_info(address: String) -> Result<Option<ProfileInfo>, Volumetr
 pub fn get_message_to_sign(address: String) -> Result<String, VolumetricError> {
     let wallet_key = WalletKey::try_from_address(&address)?;
     let context = build_challenge_context(&wallet_key);
-    let req = CreateProfileRequest {};
+    let req = CreateProfileRequest { invite_code: None };
     Ok(req.signing_message(&address, &context))
 }
 
@@ -146,7 +146,7 @@ pub fn list_users() -> Vec<UserInfo> {
 
 #[ic_cdk::query]
 pub fn get_invite_code(address: String) -> Option<String> {
-    let wallet_key = WalletKey::from_address(&address);
+    let wallet_key = WalletKey::try_from_address(&address).ok()?;
     let principal = get_principal_for_wallet(&wallet_key)?;
     get_invite_code_for_principal(&principal)
 }
@@ -160,7 +160,7 @@ pub fn resolve_invite_code(code: String) -> Option<String> {
 
 #[ic_cdk::query]
 pub fn get_referral_count(address: String) -> Option<u64> {
-    let wallet_key = WalletKey::from_address(&address);
+    let wallet_key = WalletKey::try_from_address(&address).ok()?;
     let principal = get_principal_for_wallet(&wallet_key)?;
     Some(get_referrals_for_principal(&principal))
 }

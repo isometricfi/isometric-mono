@@ -10,21 +10,18 @@ import {
   History,
   LogOut,
   Settings,
-  Sparkles,
 } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
 import { useMediaQuery } from "react-responsive";
-import { ShareSummaryModal } from "@/app/[locale]/history/_components/ShareSummaryModal";
 import { ThemeToggle } from "@/components/layout/ThemeToggle";
 import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Drawer, DrawerClose, DrawerContent, DrawerTitle } from "@/components/ui/drawer";
+import { Drawer, DrawerContent, DrawerTitle } from "@/components/ui/drawer";
 import { DepositModal } from "@/components/wallet/DepositModal";
 import { PendingDeposits } from "@/components/wallet/PendingDeposits";
 import { WithdrawModal } from "@/components/wallet/WithdrawModal";
 import { useAccount, usePrices, useUpdateUsername } from "@/hooks";
-import { useModal } from "@/hooks/use-modal";
 import { Link, usePathname, useRouter } from "@/i18n/routing";
 import { cn, formatBtcWithSymbolBigint, roundToN } from "@/lib/utils";
 import { Badge } from "../ui/badge";
@@ -70,7 +67,6 @@ function AccountPanelContent({ onDisconnect }: { onDisconnect: () => void }) {
   const { data: priceData } = usePrices();
   const { data: accountData, isLoading: isLoadingBalance } = useAccount();
   const updateUsername = useUpdateUsername();
-  const { openModal } = useModal();
   const router = useRouter();
   const pathname = usePathname();
   const locale = useLocale();
@@ -209,10 +205,12 @@ function AccountPanelContent({ onDisconnect }: { onDisconnect: () => void }) {
                 </Button>
               </div>
               <PendingDeposits />
-              <Link href="/history" className="md:absolute right-0 w-full">
-                <Button variant="outline" size="sm" className="w-full">
-                  <History className="size-4 " /> {t("tradeHistory")}
-                </Button>
+              <div className="space-y-2 md:absolute right-0 w-full">
+                <Link href="/history" className="block w-full">
+                  <Button variant="outline" size="sm" className="w-full">
+                    <History className="size-4 " /> {t("tradeHistory")}
+                  </Button>
+                </Link>
                 <p className="text-sm text-muted-foreground">
                   {t("referred")}:{" "}
                   <span className="font-semibold text-foreground">
