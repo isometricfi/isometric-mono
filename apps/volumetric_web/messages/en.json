@@ -368,129 +368,54 @@
   "Onboarding": {
     "welcome": {
       "title": "Isometric",
-      "subtitle": "The simplest way to trade Bitcoin options on-chain.",
-      "leverage": "Leverage",
-      "leverageDesc": "your Bitcoin exposure",
-      "earnYield": "Earn yield",
-      "earnYieldDesc": "on your holdings",
-      "fullyOnChain": "Fully on-chain",
-      "fullyOnChainDesc": "and trustless",
-      "startTutorial": "Start tutorial",
+      "tagline": "OnBitcoin options. Made simple.",
+      "benefit1": "Leverage your conviction",
+      "benefit2": "Earn yield on BTC",
+      "benefit3": "Fully on-chain",
+      "showMe": "Show me how",
       "skipToApp": "Skip to app"
     },
-    "concept": {
-      "title": "What is an option?",
-      "description": "It's simply an",
-      "agreement": "agreement",
-      "agreementDesc": "to buy Bitcoin later, at a price set today.",
-      "keyTerms": "Every option has 4 key terms..."
+    "strategies": {
+      "title": "Pick your strategy",
+      "predictTitle": "Predict",
+      "predictDesc": "BTC will be above $X in Y days. If I'm right, I win big.",
+      "predictBadge": "Up to 100x leverage",
+      "earnTitle": "Earn",
+      "earnDesc": "I lock BTC and collect premium. Price can stay anywhere below my target.",
+      "earnBadge": "Up to 1000% APY",
+      "footnote": "Most traders do both"
     },
-    "strike": {
-      "title": "1. Strike price",
-      "description": "The target price Bitcoin must reach for the contract to be valuable.",
-      "buyerWants": "Buyer wants",
-      "buyerWantsDesc": "Price above strike",
-      "writerWants": "Writer wants",
-      "writerWantsDesc": "Price below strike"
+    "buying": {
+      "title": "Your conviction, amplified",
+      "youPutIn": "You put in",
+      "yourBet": "Your bet",
+      "betValue": "BTC above $105k in 7 days",
+      "btcNow": "BTC now",
+      "netGain": "Net gain",
+      "keyFact": "Asymmetric risk: small bet, outsized reward.",
+      "btcPrice": "BTC price"
     },
-    "amount": {
-      "title": "2. Amount",
-      "description": "The quantity of Bitcoin this contract controls.",
-      "buyer": "Buyer",
-      "buyerDesc": "Gains exposure",
-      "writer": "Writer",
-      "writerDesc": "Locks as collateral"
-    },
-    "premium": {
-      "title": "3. Premium",
-      "description": "The upfront price paid to enter the contract.",
-      "buyer": "Buyer",
-      "buyerDesc": "Pays premium",
-      "writer": "Writer",
-      "writerDesc": "Collects premium"
-    },
-    "expiry": {
-      "title": "4. Term",
-      "description": "How long the contract lasts before it settles.",
-      "autoSettlement": "Auto-settlement",
-      "autoSettlementDesc": "At expiry, the contract settles automatically",
-      "exampleDays": "7 Days"
-    },
-    "mechanics": {
-      "title": "The exchange",
-      "subtitle": "How the lifecycle works",
-      "step1": "1. Writer creates offer",
-      "step1Desc": "Sets terms: strike, premium, expiry.",
-      "step2": "2. Buyer accepts",
-      "step2Desc": "Pays premium. Collateral locks instantly.",
-      "step3": "3. Active contract",
-      "step3Desc": "Collateral secured until expiry.",
-      "step4": "4. Auto-Settlement",
-      "step4Desc": "Payout calculated at expiry."
-    },
-    "itm": {
-      "scenario": "Scenario A",
-      "title": "Price rises",
-      "subtitle": "BTC goes above the strike price",
-      "buyerWins": "Buyer wins",
-      "buyerWinsDesc": "Profits from the price difference",
-      "writerCaps": "Writer caps",
-      "writerCapsDesc": "Keeps premium, pays out excess",
-      "strikeLabel": "Strike $100,000"
-    },
-    "itmPayout": {
-      "scenario": "Scenario A",
-      "title": "Example payout",
-      "subtitle": "Strike: $100k → Settles: $105k (+5%)",
-      "buyer": "Buyer",
-      "premiumPaid": "Premium paid",
-      "payoutReceived": "Payout received",
-      "netProfit": "Net profit",
-      "writer": "Writer",
-      "collateralLocked": "Collateral locked",
-      "premiumEarned": "Premium earned",
-      "paidToBuyer": "Paid to buyer",
-      "netResult": "Net result"
-    },
-    "otm": {
-      "scenario": "Scenario B",
-      "title": "Price stays low",
-      "subtitle": "BTC stays below the strike price",
-      "buyerLoses": "Buyer loses",
-      "buyerLosesDesc": "Premium is lost. Option expires.",
-      "writerWins": "Writer wins",
-      "writerWinsDesc": "Keeps premium + 100% collateral",
-      "strikeLabel": "Strike $100,000"
-    },
-    "otmPayout": {
-      "scenario": "Scenario B",
-      "title": "Example payout",
-      "subtitle": "Strike: $100k → Settles: $95k (-5%)",
-      "buyer": "Buyer",
-      "premiumPaid": "Premium paid",
-      "payoutReceived": "Payout received",
-      "netLoss": "Net loss",
-      "writer": "Writer",
-      "collateralLocked": "Collateral locked",
-      "premiumEarned": "Premium earned",
-      "paidToBuyer": "Paid to buyer",
-      "returned": "Returned"
-    },
-    "vault": {
-      "title": "Fund your account",
-      "description": "Deposit BTC to make offers and buy options. Withdraw anytime",
-      "selfCustody": "Self custody",
-      "step1": "Deposit BTC",
-      "step2": "Trade"
+    "writing": {
+      "title": "Your BTC works for you",
+      "youLock": "You lock",
+      "youEarnUpfront": "You earn upfront",
+      "netReturn": "Net return",
+      "keyFact": "Your maximum risk is already priced in.",
+      "condition": "If BTC stays below $105k",
+      "conditionValue": "Keep everything"
     },
     "ready": {
-      "title": "You're Ready",
-      "description": "Explore the markets, check the yields, and make your first move."
+      "title": "Ready to trade",
+      "step1": "Deposit BTC",
+      "step2": "Make your move",
+      "linkX": "Follow us",
+      "linkDocs": "Read docs"
     },
     "navigation": {
       "skip": "Skip",
       "continue": "Continue",
-      "getStarted": "Get started"
+      "getStarted": "Get started",
+      "showMe": "Show me how"
     }
   },
   "OptionCard": {

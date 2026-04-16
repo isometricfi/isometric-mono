@@ -14,7 +14,13 @@ export function ModalProvider() {
   if (isMobile) {
     return (
       <Drawer open={isOpen} onOpenChange={(open) => !open && closeModal()}>
-        <DrawerContent className={fullscreen ? "h-dvh! max-h-dvh! rounded-t-none!" : "px-4 pb-6"}>
+        <DrawerContent
+          className={
+            fullscreen
+              ? "h-dvh! max-h-dvh! rounded-t-none!"
+              : `px-4 pb-6 flex flex-col${minHeight ? " h-[90dvh]" : ""}`
+          }
+        >
           {content}
         </DrawerContent>
       </Drawer>

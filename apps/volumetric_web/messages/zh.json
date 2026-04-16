@@ -367,129 +367,53 @@
   "Onboarding": {
     "welcome": {
       "title": "Isometric",
-      "subtitle": "链上交易比特币期权的最简单方式。",
-      "leverage": "杠杆",
-      "leverageDesc": "您的比特币敞口",
-      "earnYield": "赚取收益",
-      "earnYieldDesc": "在您的持仓上",
-      "fullyOnChain": "完全链上",
-      "fullyOnChainDesc": "且无需信任",
-      "startTutorial": "开始教程",
+      "tagline": "比特币期权，简单易懂。",
+      "benefit1": "放大你的判断",
+      "benefit2": "赚取BTC收益",
+      "benefit3": "完全链上",
+      "showMe": "带我了解",
       "skipToApp": "跳过到应用"
     },
-    "concept": {
-      "title": "什么是期权？",
-      "description": "它只是一个",
-      "agreement": "协议",
-      "agreementDesc": "以今天设定的价格稍后购买比特币。",
-      "keyTerms": "每个期权都有 4 个关键条款..."
+    "strategies": {
+      "title": "选择你的策略",
+      "predictTitle": "预测",
+      "predictDesc": "我认为BTC在Y天内将超过$X。如果我对了，收益巨大。",
+      "predictBadge": "最高100倍杠杆",
+      "earnTitle": "赚取",
+      "earnDesc": "我锁定BTC并收取权利金。价格可以在目标以下任何位置。",
+      "earnBadge": "最高1000% APY",
+      "footnote": "大多数交易者两者都做"
     },
-    "strike": {
-      "title": "1. 行权价",
-      "description": "比特币必须达到的目标价格，合约才有价值。",
-      "buyerWants": "买方希望",
-      "buyerWantsDesc": "价格高于行权价",
-      "writerWants": "卖方希望",
-      "writerWantsDesc": "价格低于行权价"
+    "buying": {
+      "title": "你的判断，被放大",
+      "youPutIn": "你投入",
+      "yourBet": "你的预测",
+      "betValue": "BTC在7天内超过$105k",
+      "btcPrice": "BTC价格",
+      "netGain": "净收益",
+      "keyFact": "非对称风险：小投入，大回报。"
     },
-    "amount": {
-      "title": "2. 数量",
-      "description": "此合约控制的比特币数量。",
-      "buyer": "买方",
-      "buyerDesc": "获得敞口",
-      "writer": "卖方",
-      "writerDesc": "锁定作为抵押品"
-    },
-    "premium": {
-      "title": "3. 溢价",
-      "description": "进入合约时预付的价格。",
-      "buyer": "买方",
-      "buyerDesc": "支付溢价",
-      "writer": "卖方",
-      "writerDesc": "收取溢价"
-    },
-    "expiry": {
-      "title": "4. 期限",
-      "description": "合约在结算前持续的时间。",
-      "autoSettlement": "自动结算",
-      "autoSettlementDesc": "到期时，合约自动结算",
-      "exampleDays": "7 天"
-    },
-    "mechanics": {
-      "title": "交易所",
-      "subtitle": "生命周期如何运作",
-      "step1": "1. 卖方创建报价",
-      "step1Desc": "设置条款：行权价、溢价、到期日。",
-      "step2": "2. 买方接受",
-      "step2Desc": "支付溢价。抵押品立即锁定。",
-      "step3": "3. 活跃合约",
-      "step3Desc": "抵押品在到期前保持安全。",
-      "step4": "4. 自动结算",
-      "step4Desc": "在到期时计算支付。"
-    },
-    "itm": {
-      "scenario": "场景 A",
-      "title": "价格上涨",
-      "subtitle": "BTC 超过行权价",
-      "buyerWins": "买方获胜",
-      "buyerWinsDesc": "从价格差异中获利",
-      "writerCaps": "卖方封顶",
-      "writerCapsDesc": "保留溢价，支付超额部分",
-      "strikeLabel": "行权价 $100,000"
-    },
-    "itmPayout": {
-      "scenario": "场景 A",
-      "title": "示例支付",
-      "subtitle": "行权价：$100k → 结算：$105k (+5%)",
-      "buyer": "买方",
-      "premiumPaid": "已付溢价",
-      "payoutReceived": "收到的支付",
-      "netProfit": "净利润",
-      "writer": "卖方",
-      "collateralLocked": "锁定的抵押品",
-      "premiumEarned": "赚取的溢价",
-      "paidToBuyer": "支付给买方",
-      "netResult": "净结果"
-    },
-    "otm": {
-      "scenario": "场景 B",
-      "title": "价格保持低位",
-      "subtitle": "BTC 保持在行权价以下",
-      "buyerLoses": "买方亏损",
-      "buyerLosesDesc": "溢价损失。期权到期。",
-      "writerWins": "卖方获胜",
-      "writerWinsDesc": "保留溢价 + 100% 抵押品",
-      "strikeLabel": "行权价 $100,000"
-    },
-    "otmPayout": {
-      "scenario": "场景 B",
-      "title": "示例支付",
-      "subtitle": "行权价：$100k → 结算：$95k (-5%)",
-      "buyer": "买方",
-      "premiumPaid": "已付溢价",
-      "payoutReceived": "收到的支付",
-      "netLoss": "净亏损",
-      "writer": "卖方",
-      "collateralLocked": "锁定的抵押品",
-      "premiumEarned": "赚取的溢价",
-      "paidToBuyer": "支付给买方",
-      "returned": "返还"
-    },
-    "vault": {
-      "title": "为您的账户充值",
-      "description": "存入 BTC 以创建报价和购买期权。随时可以提取",
-      "selfCustody": "自我托管",
-      "step1": "存入 BTC",
-      "step2": "交易"
+    "writing": {
+      "title": "让你的BTC为你工作",
+      "youLock": "你锁定",
+      "youEarnUpfront": "你预先赚取",
+      "condition": "如果BTC保持在$105k以下",
+      "conditionValue": "全部保留",
+      "netReturn": "净回报",
+      "keyFact": "你的最大风险已经定价。"
     },
     "ready": {
-      "title": "您已准备就绪",
-      "description": "探索市场，查看收益率，并采取您的第一步行动。"
+      "title": "准备交易",
+      "step1": "存入BTC",
+      "step2": "开始行动",
+      "linkX": "关注我们",
+      "linkDocs": "阅读文档"
     },
     "navigation": {
       "skip": "跳过",
       "continue": "继续",
-      "getStarted": "开始使用"
+      "getStarted": "开始使用",
+      "showMe": "带我了解"
     }
   },
   "OptionCard": {
