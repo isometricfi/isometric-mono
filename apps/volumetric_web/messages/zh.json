@@ -254,7 +254,7 @@
     "earnYieldDescription": "锁定BTC并立即赚取收益。当时间到期时，如果BTC低于您的目标价格，您保留一切。",
     "forTraders": "适合交易者",
     "leverageTitle": "小注押入，收益放大",
-    "leverageDescription": "选择价格和时间。如果到期时BTC高于你的目标价格，你赢得大奖。最大亏损：你投入的金额。",
+    "leverageDescription": "选择价格和时间。如果到期时BTC高于您的目标价格，您赢得大奖。最大亏损：您投入的金额。",
     "btcNative": "原生比特币",
     "instantSettlement": "即时结算",
     "gettingStarted": "入门指南",
