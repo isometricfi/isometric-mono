@@ -110,7 +110,7 @@ export function PayoffVisualization() {
         <div className="relative">
           <div className="flex items-center justify-end mb-4">
             <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-muted text-muted-foreground">
-              7 days
+              7 {t("dayTimeframe")}
             </span>
           </div>
 
