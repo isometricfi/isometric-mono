@@ -1,6 +1,6 @@
 "use client";
 
-import { animate, motion } from "framer-motion";
+import { animate } from "framer-motion";
 import { useTranslations } from "next-intl";
 import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
@@ -40,7 +40,6 @@ export function PayoffVisualization() {
 
   const currentPnLBTC = calculatePnL(spotPrice);
   const roi = (currentPnLBTC / premiumBTC) * 100;
-  const inTheMoney = spotPrice > strikePrice;
 
   // Scales (0 to 100 percentage)
   const xScale = (price: number) => ((price - priceMin) / (priceMax - priceMin)) * 100;
@@ -109,19 +108,9 @@ export function PayoffVisualization() {
     <div className="relative">
       <div className="relative">
         <div className="relative">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2">
-              <motion.div
-                className={cn("w-2 h-2 rounded-full", inTheMoney ? "bg-green-500" : "bg-red-400")}
-                animate={{ opacity: [1, 0.5, 1] }}
-                transition={{ duration: 1.5, repeat: Infinity }}
-              />
-              <span className="text-[10px] font-mono text-muted-foreground uppercase tracking-widest">
-                {inTheMoney ? t("inTheMoney") : t("outOfMoney")}
-              </span>
-            </div>
+          <div className="flex items-center justify-end mb-4">
             <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-muted text-muted-foreground">
-              7 {t("dayExpiry")}
+              7 {t("dayTimeframe")}
             </span>
           </div>
 
@@ -231,13 +220,13 @@ export function PayoffVisualization() {
 
           <div className="grid grid-cols-3 gap-2 -mt-3">
             <div className="text-center">
-              <div className="text-[9px] font-mono text-muted-foreground">{t("spot")}</div>
+              <div className="text-[9px] font-mono text-muted-foreground">{t("price")}</div>
               <div className="text-sm font-mono font-semibold tabular-nums">
                 ${(spotPrice / 1000).toFixed(0)}K
               </div>
             </div>
             <div className="text-center">
-              <div className="text-[9px] font-mono text-muted-foreground">{t("pnl")}</div>
+              <div className="text-[9px] font-mono text-muted-foreground">{t("profit")}</div>
               <div
                 className={cn(
                   "text-sm font-mono font-semibold tabular-nums",

@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { ArrowRight, Clock, TrendingUp, Zap } from "lucide-react";
+import { ArrowRight, TrendingUp, Zap } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { AnimatedToggle } from "@/components/navigation/AnimatedToggle";
@@ -60,18 +60,14 @@ export function HowItWorksSection() {
           viewport={{ once: true }}
           className="text-center mb-12"
         >
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-lg bg-muted text-muted-foreground text-xs font-medium mb-6">
-            <Clock className="size-3" />
-            {t("gettingStarted")}
-          </div>
           <h2 className="text-3xl md:text-4xl font-bold tracking-tight mb-8">
             {t("threeStepsTitle")}
           </h2>
 
           <AnimatedToggle
             options={[
-              { value: "writer", label: t("writers"), icon: TrendingUp },
-              { value: "buyer", label: t("buyers"), icon: Zap },
+              { value: "writer", label: t("earn"), icon: TrendingUp },
+              { value: "buyer", label: t("bet"), icon: Zap },
             ]}
             value={activeTab}
             onChange={setActiveTab}
@@ -109,7 +105,7 @@ export function HowItWorksSection() {
           className="flex justify-center mt-16"
         >
           <Button size="lg" className="gap-2">
-            {activeTab === "writer" ? t("startEarning") : t("startTrading")}
+            {activeTab === "writer" ? t("startEarning") : t("makeABet")}
             <ArrowRight className="size-4" />
           </Button>
         </motion.div>
