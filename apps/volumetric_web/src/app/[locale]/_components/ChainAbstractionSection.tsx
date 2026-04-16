@@ -32,9 +32,15 @@ export function ChainAbstractionSection() {
               {t("chainAbstractionDescription")}
             </p>
             <div className="flex items-center gap-4">
-              <Button variant="outline" size="sm" className="gap-2">
-                {t("learnMore")}
-                <ArrowRight className="size-3" />
+              <Button variant="outline" size="sm" className="gap-2" asChild>
+                <a
+                  href="https://wiki.internetcomputer.org/wiki/Chain-key_Bitcoin"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  {t("learnMore")}
+                  <ArrowRight className="size-3" />
+                </a>
               </Button>
             </div>
           </motion.div>
