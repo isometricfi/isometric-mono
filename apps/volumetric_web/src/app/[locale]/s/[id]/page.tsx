@@ -8,12 +8,10 @@ import { getHistoryByHash } from "@/lib/use-cases/history/get-history-by-hash/us
 import { cn, formatBtcWithSymbolBigint, getFallbackUsername } from "@/lib/utils";
 import { CaptureInviteCode } from "./_components/CaptureInviteCode";
 
-export async function generateMetadata({
-  params,
-}: {
-  params: { id: string; locale: string };
-}): Promise<Metadata> {
-  const { id, locale } = params;
+type SharePageParams = Promise<{ id: string; locale: string }>;
+
+export async function generateMetadata({ params }: { params: SharePageParams }): Promise<Metadata> {
+  const { id, locale } = await params;
   const t = await getTranslations({ locale, namespace: "Metadata.share" });
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://isometric.fi";
   const ogImageUrl = `${baseUrl}/api/og/${id}?locale=${locale}`;
@@ -45,8 +43,8 @@ export async function generateMetadata({
   };
 }
 
-export default async function SharePage({ params }: { params: { id: string; locale: string } }) {
-  const { id, locale } = params;
+export default async function SharePage({ params }: { params: SharePageParams }) {
+  const { id, locale } = await params;
   const t = await getTranslations({ locale, namespace: "SharePage" });
   const history = await getHistoryByHash(id);
   const entries = history?.entries ?? [];
