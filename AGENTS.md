@@ -42,6 +42,25 @@ Monorepo using pnpm workspaces and Turborepo.
 - Preserve existing comments unless they are outdated or incorrect
 - No emojis in logs or code
 
+## Implementation Workflow
+
+- State assumptions explicitly before coding when requirements are ambiguous
+- If something is unclear, stop and ask instead of guessing
+- If multiple reasonable interpretations exist, surface them instead of choosing silently
+- If a simpler approach exists, call it out and push back on unnecessary complexity
+- Prefer the simplest implementation that fully solves the requested problem
+- Do not add speculative abstractions, configurability, or features that were not requested
+- Avoid single-use abstractions unless they materially improve clarity
+- Do not add defensive error handling for impossible scenarios
+- If a solution feels overcomplicated, simplify it before shipping
+- Keep changes surgical; every changed line should trace directly to the task
+- Match the existing local style when making targeted edits
+- Do not refactor, reformat, or clean up unrelated code, comments, or formatting while making a targeted change
+- Remove imports, variables, and helpers made unused by your own changes, but leave unrelated dead code alone unless asked
+- Turn tasks into verifiable success criteria before implementing
+- For bug fixes, start with a failing test that reproduces the bug, then make it pass
+- For multi-step work, define a brief plan with a verification step for each stage
+
 ## Code Quality
 
 - Always use guard clauses and early returns
@@ -158,6 +177,7 @@ src/
 Use the **given/when/then** pattern for all tests.
 
 Each comment (`// given`, `// when`, `// then`) must be:
+
 - On its own line (never combined like `// given/when`)
 - Separated by a blank line from the previous section
 
@@ -212,3 +232,4 @@ test("should return expected result for valid input", () => {
 - Add focused unit tests for arithmetic-heavy, scaling-heavy, and boundary-sensitive functions
 - Test boundary conditions explicitly: zero, minimum, maximum, underflow, overflow, rounding edges, and mismatched decimal scales
 - Add regression tests for previously identified bugs before refactoring bug-prone logic
+
