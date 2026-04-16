@@ -3,12 +3,12 @@ use candid::Principal;
 use crate::auth::types::{
     AuthenticatedPayload, CreateProfileRequest, SignableAction, UpdateUsernameRequest, WalletKey,
 };
-use crate::auth::{build_challenge_context, verify_btc_signature};
+use crate::auth::{build_challenge_context, derive_principal, verify_btc_signature};
 use crate::errors::{error_codes, VolumetricError};
 use crate::guards::is_whitelisted;
 use crate::storage::{
     get_nonce, get_principal_for_wallet, get_profile, increment_nonce, is_wallet_registered,
-    resolve_invite_code as resolve_invite_to_principal,
+    resolve_invite_code as resolve_invite_to_principal, validate_invite_code_for_principal,
 };
 use crate::usecases;
 
@@ -51,6 +51,7 @@ pub fn create_account(
 
     verify_btc_signature(address, &reconstructed_message, &req.wallet_proof.signature)?;
 
+    validate_invite_code_for_account_creation(req.data.invite_code.as_deref(), address)?;
     increment_nonce(&wallet_key);
 
     let params = usecases::RegisterAccountParams {
@@ -164,6 +165,11 @@ pub fn resolve_invite_code(code: String) -> Option<String> {
     Some(profile.wallet_address)
 }
 
+#[ic_cdk::query]
+pub fn validate_invite_code(code: String, address: String) -> bool {
+    validate_invite_code_for_account_creation(Some(&code), &address).is_ok()
+}
+
 fn build_profile_info(
     principal: Principal,
     subaccount: Vec<u8>,
@@ -180,4 +186,18 @@ fn build_profile_info(
         invite_code,
         referral_count,
     }
+}
+
+fn validate_invite_code_for_account_creation(
+    invite_code: Option<&str>,
+    wallet_address: &str,
+) -> Result<(), VolumetricError> {
+    let Some(invite_code) = invite_code else {
+        return Ok(());
+    };
+
+    let _ = WalletKey::try_from_address(wallet_address)?;
+    let referred_principal = derive_principal(wallet_address);
+    validate_invite_code_for_principal(Some(invite_code), referred_principal)?;
+    Ok(())
 }

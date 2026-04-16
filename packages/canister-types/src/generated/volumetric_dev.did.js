@@ -762,6 +762,11 @@ export const idlFactory = ({ IDL }) => {
     'testing_sync_balance_from_ledger' : IDL.Func([IDL.Text], [Result_3], []),
     'update_ckbtc_balance' : IDL.Func([IDL.Text], [Result_28], []),
     'update_username' : IDL.Func([AuthenticatedPayload_5], [Result_4], []),
+    'validate_invite_code' : IDL.Func(
+        [IDL.Text, IDL.Text],
+        [IDL.Bool],
+        ['query'],
+      ),
     'withdraw_ckbtc' : IDL.Func([AuthenticatedPayload_6], [Result_29], []),
   });
 };

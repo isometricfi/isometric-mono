@@ -623,6 +623,7 @@ export interface _SERVICE {
   'testing_sync_balance_from_ledger' : ActorMethod<[string], Result_3>,
   'update_ckbtc_balance' : ActorMethod<[string], Result_28>,
   'update_username' : ActorMethod<[AuthenticatedPayload_5], Result_4>,
+  'validate_invite_code' : ActorMethod<[string, string], boolean>,
   'withdraw_ckbtc' : ActorMethod<[AuthenticatedPayload_6], Result_29>,
 }
 export declare const idlFactory: IDL.InterfaceFactory;

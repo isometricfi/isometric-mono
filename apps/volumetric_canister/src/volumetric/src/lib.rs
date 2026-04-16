@@ -46,8 +46,8 @@ pub use api::{
     get_user_balance, get_username_update_message, get_withdraw_message, get_withdraw_status,
     get_withdrawal_by_id, list_users, list_whitelisted, remove_whitelisted,
     set_feature_flags_config, set_trading_limits_config, testing_set_ckbtc_ledger,
-    testing_sync_balance_from_ledger, update_ckbtc_balance, update_username, withdraw_ckbtc,
-    UserBalanceInfo,
+    testing_sync_balance_from_ledger, update_ckbtc_balance, update_username, validate_invite_code,
+    withdraw_ckbtc, UserBalanceInfo,
 };
 pub use auth::types::{
     AuthenticatedPayload, CreateProfileRequest, UpdateUsernameRequest, WithdrawCkbtcRequest,

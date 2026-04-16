@@ -96,3 +96,16 @@ pub fn resolve_invite_code(env: &TestEnv, invite_code: &str) -> Option<String> {
         .expect("Query failed");
     Decode!(&response, Option<String>).unwrap()
 }
+
+pub fn validate_invite_code(env: &TestEnv, invite_code: &str, address: &str) -> bool {
+    let response = env
+        .pic
+        .query_call(
+            env.volumetric_canister,
+            candid::Principal::anonymous(),
+            "validate_invite_code",
+            candid::encode_args((invite_code.to_string(), address.to_string())).unwrap(),
+        )
+        .expect("Query failed");
+    Decode!(&response, bool).unwrap()
+}

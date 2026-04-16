@@ -9,7 +9,7 @@ pub mod withdrawals;
 
 pub use accounts::{
     create_account, create_account_with_invite, create_account_with_signature, get_account_info,
-    resolve_invite_code,
+    resolve_invite_code, validate_invite_code,
 };
 pub use balances::{get_user_balance, mint_and_sync_balance};
 pub use config::{

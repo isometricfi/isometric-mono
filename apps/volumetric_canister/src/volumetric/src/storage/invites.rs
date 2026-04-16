@@ -9,10 +9,12 @@ use sha2::{Digest, Sha256};
 
 use super::accounts::{get_profile, list_all_profiles, update_profile};
 use super::state::{Memory, MemoryIndex, MEMORY_MANAGER};
+use crate::errors::{error_codes, VolumetricError};
 use crate::ic;
 
 const INVITE_CODE_LENGTH: usize = 6;
 const INVITE_ALPHABET: &[u8; 36] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+const MAX_INVITE_CODE_GENERATION_ATTEMPTS: u32 = 32;
 
 thread_local! {
     pub static INVITE_CODE_REGISTRY: RefCell<StableBTreeMap<InviteCodeKey, Principal, Memory>> = RefCell::new(
@@ -70,7 +72,7 @@ pub fn get_or_create_invite_code(principal: Principal) -> Option<String> {
         }
     }
 
-    for attempt in 0u32..u32::MAX {
+    for attempt in 0..MAX_INVITE_CODE_GENERATION_ATTEMPTS {
         let candidate = generate_invite_code(principal, attempt);
         if try_register_invite_code(&candidate, principal) {
             profile.invite_code = Some(candidate.clone());
@@ -79,13 +81,48 @@ pub fn get_or_create_invite_code(principal: Principal) -> Option<String> {
         }
     }
 
-    ic::log("Invite code generation exhausted attempts");
+    ic::log("Invite code generation exhausted bounded attempts");
     None
 }
 
 pub fn resolve_invite_code(code: &str) -> Option<Principal> {
     let key = InviteCodeKey::from_code(code)?;
     INVITE_CODE_REGISTRY.with_borrow(|registry| registry.get(&key))
+}
+
+pub fn validate_invite_code_for_principal(
+    invite_code: Option<&str>,
+    referred_principal: Principal,
+) -> Result<Option<Principal>, VolumetricError> {
+    let Some(invite_code) = invite_code else {
+        return Ok(None);
+    };
+
+    let Some(referrer_principal) = resolve_invite_code(invite_code) else {
+        return Err(VolumetricError::from_def(
+            error_codes::INVALID_INVITE_CODE,
+            Some("Invite code does not resolve to an account"),
+            None,
+        ));
+    };
+
+    if referrer_principal == referred_principal {
+        return Err(VolumetricError::from_def(
+            error_codes::INVALID_INVITE_CODE,
+            Some("Invite code cannot refer the registering account"),
+            None,
+        ));
+    }
+
+    if get_profile(&referrer_principal).is_none() {
+        return Err(VolumetricError::from_def(
+            error_codes::INVALID_INVITE_CODE,
+            Some("Invite code owner profile is missing"),
+            None,
+        ));
+    }
+
+    Ok(Some(referrer_principal))
 }
 
 pub fn link_referrer_once(

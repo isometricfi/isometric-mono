@@ -50,6 +50,11 @@ pub mod error_codes {
         name: "PROFILE_ALREADY_REGISTERED",
         message: "Profile already registered for this wallet",
     };
+    pub const INVALID_INVITE_CODE: ErrorDef = ErrorDef {
+        code: 2003,
+        name: "INVALID_INVITE_CODE",
+        message: "Invalid invite code",
+    };
 
     // 3xxx: Inter-canister call errors
     pub const INTER_CANISTER_CALL_FAILED: ErrorDef = ErrorDef {

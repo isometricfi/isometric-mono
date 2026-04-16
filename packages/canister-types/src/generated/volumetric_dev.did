@@ -514,5 +514,6 @@ service : (opt BtcNetwork) -> {
   testing_sync_balance_from_ledger : (text) -> (Result_3);
   update_ckbtc_balance : (text) -> (Result_28);
   update_username : (AuthenticatedPayload_5) -> (Result_4);
+  validate_invite_code : (text, text) -> (bool) query;
   withdraw_ckbtc : (AuthenticatedPayload_6) -> (Result_29);
 }
