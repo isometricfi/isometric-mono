@@ -4,6 +4,7 @@ pub mod balances;
 pub mod cbor;
 pub mod config;
 pub mod events;
+pub mod invites;
 pub mod options;
 pub mod settlements;
 pub mod state;
@@ -30,6 +31,10 @@ pub use config::{BtcNetwork, Config, FeatureFlags, FeeConfig, Range, TradingLimi
 pub use events::{
     clear_events, delete_events_before, emit_event, get_all_events, get_event_count,
     get_events_by_principal, get_events_since, Event, EventData, EventType, TradeRole,
+};
+pub use invites::{
+    backfill_invite_codes, get_or_create_invite_code, get_referral_count, link_referrer_once,
+    resolve_invite_code, validate_invite_code_for_principal,
 };
 pub use options::{
     calculate_call_option_payout, calculate_premium_in_sats, calculate_strike_price_in_cents,

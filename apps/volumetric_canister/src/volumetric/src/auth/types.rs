@@ -157,7 +157,9 @@ pub struct ChallengeContext {
 }
 
 #[derive(Debug, Clone, CandidType, Serialize, Deserialize)]
-pub struct CreateProfileRequest {}
+pub struct CreateProfileRequest {
+    pub invite_code: Option<String>,
+}
 
 impl SignableAction for CreateProfileRequest {
     fn signing_message(&self, address: &str, context: &ChallengeContext) -> String {

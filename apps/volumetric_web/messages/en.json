@@ -32,7 +32,9 @@
     "save": "Save",
     "saving": "Saving...",
     "saved": "Saved",
-    "system": "System"
+    "system": "System",
+    "referred": "Referred",
+    "inviteUsers": "Invite users"
   },
   "PendingDeposits": {
     "pending": "pending",

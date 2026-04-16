@@ -13,6 +13,8 @@ function makeProfileInfo(overrides: Partial<ProfileInfo> = {}): ProfileInfo {
     username: ["newuser"],
     subaccount: DEFAULT_SUBACCOUNT,
     address: DEFAULT_ADDRESS,
+    invite_code: [],
+    referral_count: [],
     ...overrides,
   };
 }

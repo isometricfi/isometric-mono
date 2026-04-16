@@ -10,6 +10,8 @@ export interface ProfileData {
   address: string;
   username: string | null;
   principal: string;
+  inviteCode: string | null;
+  referralCount: bigint;
 }
 
 export interface BalanceData {

@@ -86,7 +86,7 @@ export interface AuthenticatedPayload_1 {
   'wallet_proof' : WalletProof,
 }
 export interface AuthenticatedPayload_2 {
-  'data' : {},
+  'data' : CreateProfileRequest,
   'wallet_proof' : WalletProof,
 }
 export interface AuthenticatedPayload_3 {
@@ -130,6 +130,7 @@ export interface CreateOfferRequest {
   'option_duration_seconds' : bigint,
 }
 export interface CreateOfferResponse { 'offer' : Offer }
+export interface CreateProfileRequest { 'invite_code' : [] | [string] }
 export interface DepositInfo { 'account' : Account, 'btc_address' : string }
 export interface ErrorDetails { 'caller' : [] | [string] }
 export interface Event {
@@ -308,7 +309,9 @@ export interface PendingWithdrawal {
 export interface ProfileInfo {
   'principal' : Principal,
   'username' : [] | [string],
+  'referral_count' : [] | [bigint],
   'subaccount' : Uint8Array | number[],
+  'invite_code' : [] | [string],
   'address' : string,
 }
 export interface Range { 'max' : bigint, 'min' : bigint }
@@ -518,7 +521,7 @@ export interface _SERVICE {
     Result_7
   >,
   'get_accept_status' : ActorMethod<[Uint8Array | number[]], Result_8>,
-  'get_account_info' : ActorMethod<[string], Result_9>,
+  'get_account_info' : ActorMethod<[string, boolean], Result_9>,
   'get_account_nonce' : ActorMethod<[string], Result_3>,
   'get_active_option_by_id' : ActorMethod<[bigint], [] | [ActiveOption]>,
   'get_all_events' : ActorMethod<[[] | [bigint], [] | [number]], Array<Event>>,
@@ -573,6 +576,7 @@ export interface _SERVICE {
   'recover_wal_operation' : ActorMethod<[Uint8Array | number[]], Result_23>,
   'remove_whitelisted' : ActorMethod<[Principal], Result_1>,
   'reset_oracle_config' : ActorMethod<[], Result_1>,
+  'resolve_invite_code' : ActorMethod<[string], [] | [string]>,
   'set_accept_offer_quantity_sats_range_config' : ActorMethod<
     [bigint, bigint],
     Result_1
@@ -619,6 +623,7 @@ export interface _SERVICE {
   'testing_sync_balance_from_ledger' : ActorMethod<[string], Result_3>,
   'update_ckbtc_balance' : ActorMethod<[string], Result_28>,
   'update_username' : ActorMethod<[AuthenticatedPayload_5], Result_4>,
+  'validate_invite_code' : ActorMethod<[string, string], boolean>,
   'withdraw_ckbtc' : ActorMethod<[AuthenticatedPayload_6], Result_29>,
 }
 export declare const idlFactory: IDL.InterfaceFactory;

@@ -84,6 +84,7 @@ function AccountPanelContent({ onDisconnect }: { onDisconnect: () => void }) {
   const balance = accountData?.balance;
   const deposited = balance?.total ?? BigInt(0);
   const available = balance?.available ?? BigInt(0);
+  const referrals = profile?.referralCount ?? BigInt(0);
 
   const btcPrice = priceData?.btc ?? 0;
   const availableBtc = Number(available) / 100_000_000;
@@ -204,11 +205,19 @@ function AccountPanelContent({ onDisconnect }: { onDisconnect: () => void }) {
                 </Button>
               </div>
               <PendingDeposits />
-              <Link href="/history" className="md:absolute right-0 w-full">
-                <Button variant="outline" size="sm" className="w-full">
-                  <History className="size-4 " /> {t("tradeHistory")}
-                </Button>
-              </Link>
+              <div className="space-y-2 md:absolute right-0 w-full">
+                <Link href="/history" className="block w-full">
+                  <Button variant="outline" size="sm" className="w-full">
+                    <History className="size-4 " /> {t("tradeHistory")}
+                  </Button>
+                </Link>
+                <p className="text-sm text-muted-foreground">
+                  {t("referred")}:{" "}
+                  <span className="font-semibold text-foreground">
+                    {referrals.toLocaleString()}
+                  </span>
+                </p>
+              </div>
             </motion.div>
           ) : null}
 

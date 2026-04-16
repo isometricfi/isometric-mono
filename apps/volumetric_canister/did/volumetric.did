@@ -72,7 +72,7 @@ type AuthenticatedPayload_1 = record {
   wallet_proof : WalletProof;
 };
 type AuthenticatedPayload_2 = record {
-  data : record {};
+  data : CreateProfileRequest;
   wallet_proof : WalletProof;
 };
 type AuthenticatedPayload_3 = record {
@@ -115,6 +115,7 @@ type CreateOfferRequest = record {
   option_duration_seconds : nat64;
 };
 type CreateOfferResponse = record { offer : Offer };
+type CreateProfileRequest = record { invite_code : opt text };
 type DepositInfo = record { account : Account; btc_address : text };
 type ErrorDetails = record { caller : opt text };
 type Event = record {
@@ -278,7 +279,9 @@ type PendingWithdrawal = record {
 type ProfileInfo = record {
   "principal" : principal;
   username : opt text;
+  referral_count : opt nat64;
   subaccount : blob;
+  invite_code : opt text;
   address : text;
 };
 type Range = record { max : nat64; min : nat64 };
@@ -433,7 +436,7 @@ service : (opt BtcNetwork) -> {
   get_accept_by_id : (nat64) -> (Result_6) query;
   get_accept_offers_message : (text, vec AcceptOfferItem) -> (Result_7) query;
   get_accept_status : (blob) -> (Result_8) query;
-  get_account_info : (text) -> (Result_9) query;
+  get_account_info : (text, bool) -> (Result_9) query;
   get_account_nonce : (text) -> (Result_3) query;
   get_active_option_by_id : (nat64) -> (opt ActiveOption) query;
   get_all_events : (opt nat64, opt nat32) -> (vec Event) query;
@@ -480,6 +483,8 @@ service : (opt BtcNetwork) -> {
   observability_get_metrics : () -> (ObservabilityMetrics) query;
   recover_wal_operation : (blob) -> (Result_23);
   remove_whitelisted : (principal) -> (Result_1);
+  reset_oracle_config : () -> (Result_1);
+  resolve_invite_code : (text) -> (opt text) query;
   set_accept_offer_quantity_sats_range_config : (nat64, nat64) -> (Result_1);
   set_create_offer_quantity_sats_range_config : (nat64, nat64) -> (Result_1);
   set_deposit_amount_sats_config : (nat64) -> (Result_1);
@@ -488,6 +493,7 @@ service : (opt BtcNetwork) -> {
   set_fee_recipient_config : (principal) -> (Result_1);
   set_max_offers_per_term_config : (nat64) -> (Result_1);
   set_option_duration_seconds_range_config : (nat64, nat64) -> (Result_1);
+  set_oracle_price_config : (nat64) -> (Result_1);
   set_premium_basis_points_range_config : (nat16, nat16) -> (Result_1);
   set_premium_fee_basis_points_config : (nat64) -> (Result_1);
   set_profit_fee_basis_points_config : (nat64) -> (Result_1);
@@ -508,5 +514,6 @@ service : (opt BtcNetwork) -> {
   testing_sync_balance_from_ledger : (text) -> (Result_3);
   update_ckbtc_balance : (text) -> (Result_28);
   update_username : (AuthenticatedPayload_5) -> (Result_4);
+  validate_invite_code : (text, text) -> (bool) query;
   withdraw_ckbtc : (AuthenticatedPayload_6) -> (Result_29);
 }

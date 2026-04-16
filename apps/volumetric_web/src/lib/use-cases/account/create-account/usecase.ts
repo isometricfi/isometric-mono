@@ -13,7 +13,9 @@ export async function createAccount(input: Input): Promise<Output> {
     const repository = getDepositSyncRepository();
 
     const result = await actor.create_account({
-      data: {},
+      data: {
+        invite_code: input.inviteCode ? [input.inviteCode] : [],
+      },
       wallet_proof: { address: input.address, signature: input.signature },
     });
 

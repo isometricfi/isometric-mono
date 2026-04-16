@@ -7,6 +7,9 @@ mod helpers;
 #[path = "e2e/test_accounts.rs"]
 mod test_accounts;
 
+#[path = "e2e/test_invites.rs"]
+mod test_invites;
+
 #[path = "e2e/test_offers.rs"]
 mod test_offers;
 

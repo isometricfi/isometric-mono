@@ -6,6 +6,8 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { unwrapResult } from "@volumetric/canister-types";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { openOnboardingModal } from "@/components/wallet/OnboardingModal";
+import { clearInviteCodeFromSession, readInviteCodeFromSession } from "@/lib/referrals/invite-code";
+import { validateInviteCode } from "@/lib/referrals/validate-invite-code";
 import type { Output as CreateAccountOutput } from "@/lib/use-cases/account/create-account/schema";
 import { trpcClient } from "@/trpc/react";
 import { useAccount } from "./queries/use-account";
@@ -56,6 +58,14 @@ export function useEnsureAccount() {
         throw new Error("Not ready");
       }
 
+      const inviteCode = readInviteCodeFromSession();
+      try {
+        await validateInviteCode(canister, inviteCode, address);
+      } catch (error) {
+        clearInviteCodeFromSession();
+        throw error;
+      }
+
       setStep("awaiting_signature");
       const message = unwrapResult(await canister.get_message_to_sign(address));
       const signature = await primaryWallet.signMessage(message, { addressType: "payment" });
@@ -65,10 +75,11 @@ export function useEnsureAccount() {
       }
 
       setStep("creating");
-      return trpcClient.account.createAccount.mutate({ address, signature });
+      return trpcClient.account.createAccount.mutate({ address, signature, inviteCode });
     },
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: [["account"]] });
+      clearInviteCodeFromSession();
       setStep("done");
       setTimeout(() => openOnboardingModal(), 500);
     },
