@@ -278,7 +278,7 @@
     "chainAbstraction": "链抽象",
     "nativeBitcoin": "原生比特币。",
     "smartContractPower": "智能合约功能。",
-    "chainAbstractionDescription": "您的BTC永远不会离开比特币网络。ICP的链密钥技术将其1:1在链上表示，无需跨链桥或封装即可解锁智能合约。",
+    "chainAbstractionDescription": "您的BTC永远不会离开比特币网络。ICP的链密钥技术将其1:1在链上表示，解锁智能合约——无需中心化跨链桥或封装。",
     "learnMore": "了解更多",
     "bitcoin": "比特币",
     "yourBtc": "您的 BTC",
