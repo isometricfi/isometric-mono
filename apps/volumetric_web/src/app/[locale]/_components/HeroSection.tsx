@@ -1,4 +1,4 @@
-import { Sparkles, TrendingUp, Zap } from "lucide-react";
+import { Blocks, Sparkles, TrendingUp, Zap } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { PayoffVisualization } from "./PayoffVisualization";
 import { YieldDisplay } from "./YieldDisplay";
@@ -21,7 +21,7 @@ export function HeroSection() {
           <span className="text-primary block sm:inline">{t("headlineHighlight")}</span>
         </h1>
 
-        <h2 className="text-center text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-20">
+        <h2 className="text-center text-base md:text-xl text-muted-foreground max-w-2xl mx-auto mb-20">
           {t("subheadline")}
         </h2>
 
@@ -47,45 +47,6 @@ export function HeroSection() {
               }}
             />
           </div>
-
-          {/* writers / yield side */}
-          <div>
-            <div className="mb-8">
-              {/* mobile horizontal divider */}
-              <div className="md:hidden relative w-full h-px mb-6">
-                {/* radial gradient mask */}
-                <div
-                  className="absolute -left-12 top-1/2 -translate-y-1/2 w-24 h-24 pointer-events-none z-10"
-                  style={{
-                    background:
-                      "radial-gradient(circle, hsl(var(--background)) 30%, transparent 70%)",
-                  }}
-                />
-                {/* the line */}
-                <div
-                  className="absolute inset-0 bg-border"
-                  style={{
-                    maskImage:
-                      "linear-gradient(to right, transparent 0%, black 8%, black 92%, transparent 100%)",
-                    WebkitMaskImage:
-                      "linear-gradient(to right, transparent 0%, black 8%, black 92%, transparent 100%)",
-                  }}
-                />
-              </div>
-
-              <div className="inline-flex items-center gap-2 text-xs font-mono uppercase tracking-widest text-muted-foreground mb-3">
-                <TrendingUp className="size-3" />
-                {t("forHodlers")}
-              </div>
-              <h2 className="text-2xl md:text-3xl font-bold mb-3">{t("earnYieldTitle")}</h2>
-              <p className="text-muted-foreground text-sm md:text-base">
-                {t("earnYieldDescription")}
-              </p>
-            </div>
-
-            <YieldDisplay />
-          </div>
-
           {/* buyers / leverage side */}
           <div>
             <div className="mb-8">
@@ -121,12 +82,50 @@ export function HeroSection() {
 
             <PayoffVisualization />
           </div>
+
+          {/* writers / yield side */}
+          <div>
+            <div className="mb-8">
+              {/* mobile horizontal divider */}
+              <div className="md:hidden relative w-full h-px mb-6">
+                {/* radial gradient mask */}
+                <div
+                  className="absolute -left-12 top-1/2 -translate-y-1/2 w-24 h-24 pointer-events-none z-10"
+                  style={{
+                    background:
+                      "radial-gradient(circle, hsl(var(--background)) 30%, transparent 70%)",
+                  }}
+                />
+                {/* the line */}
+                <div
+                  className="absolute inset-0 bg-border"
+                  style={{
+                    maskImage:
+                      "linear-gradient(to right, transparent 0%, black 8%, black 92%, transparent 100%)",
+                    WebkitMaskImage:
+                      "linear-gradient(to right, transparent 0%, black 8%, black 92%, transparent 100%)",
+                  }}
+                />
+              </div>
+
+              <div className="inline-flex items-center gap-2 text-xs font-mono uppercase tracking-widest text-muted-foreground mb-3">
+                <TrendingUp className="size-3" />
+                {t("forHodlers")}
+              </div>
+              <h2 className="text-xl md:text-3xl font-bold mb-3">{t("earnYieldTitle")}</h2>
+              <p className="text-muted-foreground text-sm md:text-base">
+                {t("earnYieldDescription")}
+              </p>
+            </div>
+
+            <YieldDisplay />
+          </div>
         </div>
 
         {/* trust badges */}
         <div className="flex flex-wrap items-center justify-center gap-6 md:gap-10 mt-12 text-sm text-muted-foreground">
           <div className="flex items-center gap-2">
-            <span className="text-xl">₿</span>
+            <Blocks className="size-5 text-primary" />
             <span>{t("btcNative")}</span>
           </div>
           <div className="flex items-center gap-2">
