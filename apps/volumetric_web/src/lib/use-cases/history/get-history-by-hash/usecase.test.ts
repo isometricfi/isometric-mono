@@ -72,6 +72,7 @@ describe("getHistoryByHash", () => {
       entries: historyEntries,
       username: "alice",
       principal: principal.toString(),
+      address: resolvedAddress,
     });
   });
 
