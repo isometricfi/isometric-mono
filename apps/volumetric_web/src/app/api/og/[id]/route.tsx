@@ -34,7 +34,8 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     const entries = history?.entries ?? [];
     const username = history?.username || getFallbackUsername(id, locale);
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://isometric.fi";
-    const avatarUrl = `${baseUrl}/api/avatar?name=${encodeURIComponent(id)}`;
+    const avatarSeed = history?.address ?? id;
+    const avatarUrl = `${baseUrl}/api/avatar?name=${encodeURIComponent(avatarSeed)}`;
 
     const totalPnlSats = entries.reduce(
       (sum: bigint, e: HistoryEntry) => sum + e.pnlSats,
@@ -132,7 +133,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
               <img src={avatarUrl} alt="" width={76} height={76} style={{ borderRadius: 999 }} />
               <span
                 style={{
-                  fontSize: 70,
+                  fontSize: 64,
                   fontWeight: 700,
                   color: TEXT_COLOR,
                   lineHeight: 1,

@@ -48,6 +48,7 @@ export default async function SharePage({ params }: { params: SharePageParams })
   const history = await getHistoryByHash(id);
   const entries = history?.entries ?? [];
   const username = history?.username ?? getFallbackUsername(id, locale);
+  const avatarSeed = history?.address ?? id;
 
   const hasHistory = entries.length > 0;
 
@@ -101,7 +102,7 @@ export default async function SharePage({ params }: { params: SharePageParams })
         {/* Profile row */}
         <div className="flex items-center gap-3">
           <Image
-            src={`/api/avatar?name=${id}`}
+            src={`/api/avatar?name=${avatarSeed}`}
             alt="Avatar"
             width={44}
             height={44}
