@@ -296,7 +296,7 @@
     "earned": "EARNED",
     "aboveTarget": "Above Target",
     "belowTarget": "Below Target",
-    "dayTimeframe": "Day Timeframe",
+    "dayTimeframe": "Days",
     "price": "PRICE",
     "profit": "PROFIT",
     "roi": "ROI"
@@ -507,59 +507,59 @@
     "copyright": "© {year} Isometric. All rights reserved."
   },
   "Metadata": {
-    "title": "Isometric | On-Chain Bitcoin Options",
+    "title": "BTC Options · 100x Leverage or 1000% APY",
     "siteName": "Isometric",
-    "description": "The simplest way to trade Bitcoin options on-chain. Earn high APY writing calls or get up to 100x leverage as a buyer. Fully trustless, self-custody, no liquidations.",
-    "keywords": "Bitcoin options, on-chain options, BTC leverage, BTC yield, decentralized options, trustless trading, self custody",
-    "ogImageAlt": "Isometric - On-Chain Bitcoin Options",
+    "description": "Bet on BTC with up to 100x leverage — max loss is what you put in. Or earn up to 1000% APY writing covered calls. Fully on-chain, self-custody, no KYC, no liquidations.",
+    "keywords": "Bitcoin options, BTC leverage, 100x leverage, BTC yield, BTC APY, 1000% APY, on-chain options, no liquidation, self-custody Bitcoin, no KYC, crypto leverage, Bitcoin trading",
+    "ogImageAlt": "Isometric — up to 100x BTC leverage or 1000% APY, on-chain",
     "privacy": {
       "title": "Privacy Policy",
-      "description": "Privacy policy for Isometric Bitcoin options trading platform. Learn how we collect, use, and protect your information.",
-      "keywords": "privacy policy, data protection, Bitcoin privacy, on-chain privacy, user data",
-      "ogTitle": "Privacy Policy | Isometric",
+      "description": "How Isometric handles your data on our on-chain, self-custody BTC options platform.",
+      "keywords": "privacy policy, data protection, on-chain privacy, Bitcoin privacy",
+      "ogTitle": "Privacy Policy",
       "ogImageAlt": "Isometric Privacy Policy"
     },
     "terms": {
       "title": "Terms of Service",
-      "description": "Terms of service for Isometric Bitcoin options trading platform. Understand your rights and responsibilities when using our platform.",
-      "keywords": "terms of service, user agreement, trading terms, Bitcoin options terms, platform rules",
-      "ogTitle": "Terms of Service | Isometric",
+      "description": "Terms for trading BTC options on Isometric — self-custody, on-chain, no KYC.",
+      "keywords": "terms of service, user agreement, Bitcoin options terms, on-chain trading terms",
+      "ogTitle": "Terms of Service",
       "ogImageAlt": "Isometric Terms of Service"
     },
     "buy": {
-      "title": "Buy Bitcoin Options",
-      "description": "Get up to 100x leverage on Bitcoin with no liquidation risk. Your max loss is the premium paid. Fully on-chain and trustless.",
-      "keywords": "buy Bitcoin options, BTC leverage, no liquidation, on-chain options, trustless leverage",
-      "ogTitle": "Buy Bitcoin Options | Isometric",
-      "ogImageAlt": "Buy Bitcoin Options on Isometric"
+      "title": "Buy BTC Options · Up to 100x Leverage",
+      "description": "Bet on BTC with up to 100x leverage and zero liquidation risk. Max loss is what you put in — nothing more. Fully on-chain, self-custody, no KYC.",
+      "keywords": "buy Bitcoin options, BTC leverage, 100x leverage, no liquidation, Bitcoin call options, crypto leverage, asymmetric BTC bet, on-chain options",
+      "ogTitle": "Bet on BTC with up to 100x leverage",
+      "ogImageAlt": "Buy BTC options with up to 100x leverage — Isometric"
     },
     "write": {
-      "title": "Write Bitcoin Options",
-      "description": "Earn high APY on your Bitcoin by writing call options. Collect premium instantly and let your BTC work for you. Fully on-chain and trustless.",
-      "keywords": "write Bitcoin options, BTC APY, BTC yield, earn on Bitcoin, on-chain yield, trustless yield",
-      "ogTitle": "Write Bitcoin Options | Isometric",
-      "ogImageAlt": "Write Bitcoin Options on Isometric"
+      "title": "Earn Up to 1000% APY on Your BTC",
+      "description": "Put your BTC to work. Earn yield upfront by writing covered calls — up to 1000% APY. Fully on-chain, self-custody, your keys, no KYC.",
+      "keywords": "BTC yield, BTC APY, 1000% APY, earn on Bitcoin, covered calls, write Bitcoin options, on-chain yield, self-custody yield, passive Bitcoin income",
+      "ogTitle": "Earn up to 1000% APY on your BTC",
+      "ogImageAlt": "Earn up to 1000% APY writing BTC options — Isometric"
     },
     "portfolio": {
       "title": "Portfolio",
-      "description": "Track your on-chain Bitcoin options positions. View active contracts, pending offers, and performance. Auto-settlement at expiry.",
-      "keywords": "Bitcoin portfolio, options positions, on-chain portfolio, BTC options tracking",
-      "ogTitle": "Portfolio | Isometric",
-      "ogImageAlt": "Isometric Portfolio"
+      "description": "Track every BTC bet and yield position live. Auto-settled on-chain at expiry. Self-custody, no KYC.",
+      "keywords": "BTC portfolio, Bitcoin options tracking, on-chain positions, BTC yield dashboard, covered calls dashboard",
+      "ogTitle": "My BTC portfolio on Isometric",
+      "ogImageAlt": "Live on-chain BTC options portfolio — Isometric"
     },
     "history": {
-      "title": "History",
-      "description": "View your complete on-chain Bitcoin options history. All trades and settlements are verifiable on-chain with full transparency.",
-      "keywords": "Bitcoin trading history, on-chain history, options settlements, verifiable trades",
-      "ogTitle": "History | Isometric",
-      "ogImageAlt": "Isometric Trade History"
+      "title": "Trade History",
+      "description": "Every BTC options trade and settlement, verifiable on-chain. Your full track record — no blind trust required.",
+      "keywords": "BTC trading history, on-chain trade history, verifiable Bitcoin trades, options settlement history, trade record",
+      "ogTitle": "My BTC trading history on Isometric",
+      "ogImageAlt": "Verifiable on-chain BTC trading history — Isometric"
     },
     "share": {
-      "title": "Trading Stats | Isometric",
-      "description": "Check out my Bitcoin options trading performance on Isometric",
-      "keywords": "Bitcoin options trading, trading stats, Isometric, on-chain trading",
-      "ogTitle": "My Trading Stats on Isometric",
-      "ogImageAlt": "Trading Stats on Isometric"
+      "title": "Trade BTC options with me on Isometric",
+      "description": "Up to 100x leverage on BTC or 1000% APY writing calls. Fully on-chain, self-custody, no KYC. See my stats and start your own.",
+      "keywords": "Bitcoin options trading, BTC leverage, BTC APY, on-chain trading, trader stats, join Isometric",
+      "ogTitle": "Join me trading BTC options on Isometric",
+      "ogImageAlt": "Join me trading BTC options on Isometric"
     }
   },
   "SharePage": {

@@ -132,7 +132,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
               <img src={avatarUrl} alt="" width={76} height={76} style={{ borderRadius: 999 }} />
               <span
                 style={{
-                  fontSize: 72,
+                  fontSize: 70,
                   fontWeight: 700,
                   color: TEXT_COLOR,
                   lineHeight: 1,
@@ -144,7 +144,14 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
           </div>
 
           {/* Line 2: trading Bitcoin options */}
-          <div style={{ display: "flex", alignItems: "center", gap: 24, marginTop: 18 }}>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 24,
+              marginTop: 18,
+            }}
+          >
             <span
               style={{
                 fontSize: 80,
@@ -251,7 +258,14 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
         }}
       >
         <div style={{ fontSize: 64, fontWeight: 700 }}>Isometric.fi</div>
-        <div style={{ fontSize: 28, fontWeight: 500, marginTop: 16, color: MUTED_TEXT }}>
+        <div
+          style={{
+            fontSize: 28,
+            fontWeight: 500,
+            marginTop: 16,
+            color: MUTED_TEXT,
+          }}
+        >
           {isZh ? "加载统计数据出错" : "Error loading stats"}
         </div>
       </div>,

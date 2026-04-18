@@ -505,59 +505,59 @@
     "copyright": "© {year} Isometric。保留所有权利。"
   },
   "Metadata": {
-    "title": "Isometric | 链上比特币期权",
+    "title": "链上BTC期权 · 100倍杠杆或1000%年化",
     "siteName": "Isometric",
-    "description": "最简单的链上比特币期权交易方式。卖出看涨期权赚取高年化收益，或作为买家获得高达100倍杠杆。完全去信任化、自托管、无清算风险。",
-    "keywords": "比特币期权, 链上期权, BTC杠杆, BTC收益, 去中心化期权, 去信任化交易, 自托管",
-    "ogImageAlt": "Isometric - 链上比特币期权",
+    "description": "BTC期权最高100倍杠杆 — 最大损失仅为投入金额。或卖出备兑看涨期权赚取高达1000%年化收益。完全链上、自托管、无KYC、无清算。",
+    "keywords": "比特币期权, BTC杠杆, 100倍杠杆, BTC收益, BTC年化, 1000% APY, 链上期权, 无清算, 自托管, 无KYC, 加密货币杠杆, 比特币交易",
+    "ogImageAlt": "Isometric — 最高100倍BTC杠杆或1000%年化收益 · 链上",
     "privacy": {
       "title": "隐私政策",
-      "description": "Isometric 比特币期权交易平台的隐私政策。了解我们如何收集、使用和保护您的信息。",
-      "keywords": "隐私政策, 数据保护, 比特币隐私, 链上隐私, 用户数据",
-      "ogTitle": "隐私政策 | Isometric",
+      "description": "Isometric 如何在链上自托管BTC期权平台上处理您的数据。",
+      "keywords": "隐私政策, 数据保护, 链上隐私, 比特币隐私",
+      "ogTitle": "隐私政策",
       "ogImageAlt": "Isometric 隐私政策"
     },
     "terms": {
       "title": "服务条款",
-      "description": "Isometric 比特币期权交易平台的服务条款。了解您在使用我们平台时的权利和责任。",
-      "keywords": "服务条款, 用户协议, 交易条款, 比特币期权条款, 平台规则",
-      "ogTitle": "服务条款 | Isometric",
+      "description": "在 Isometric 交易BTC期权的条款 — 自托管、链上、无KYC。",
+      "keywords": "服务条款, 用户协议, 比特币期权条款, 链上交易条款",
+      "ogTitle": "服务条款",
       "ogImageAlt": "Isometric 服务条款"
     },
     "buy": {
-      "title": "购买比特币期权",
-      "description": "在比特币上获得高达100倍杠杆，无清算风险。您的最大损失是已付溢价。完全链上且去信任化。",
-      "keywords": "购买比特币期权, BTC杠杆, 无清算, 链上期权, 去信任化杠杆",
-      "ogTitle": "购买比特币期权 | Isometric",
-      "ogImageAlt": "在 Isometric 上购买比特币期权"
+      "title": "购买BTC期权 · 最高100倍杠杆",
+      "description": "BTC期权最高100倍杠杆，零清算风险。最大损失仅为投入金额，绝不更多。完全链上、自托管、无KYC。",
+      "keywords": "购买比特币期权, BTC杠杆, 100倍杠杆, 无清算, 比特币看涨期权, 加密货币杠杆, 不对称下注, 链上期权",
+      "ogTitle": "BTC期权 · 最高100倍杠杆",
+      "ogImageAlt": "在 Isometric 购买BTC期权 · 最高100倍杠杆"
     },
     "write": {
-      "title": "卖出比特币期权",
-      "description": "通过卖出看涨期权在您的比特币上赚取高年化收益。立即收取溢价，让您的 BTC 为您工作。完全链上且去信任化。",
-      "keywords": "卖出比特币期权, BTC年化收益, BTC收益, 比特币赚取, 链上收益, 去信任化收益",
-      "ogTitle": "卖出比特币期权 | Isometric",
-      "ogImageAlt": "在 Isometric 上卖出比特币期权"
+      "title": "BTC赚取高达1000%年化收益",
+      "description": "让您的BTC为您工作。通过卖出备兑看涨期权，预先赚取高达1000%年化收益。完全链上、自托管、掌握私钥、无KYC。",
+      "keywords": "BTC收益, BTC年化, 1000% APY, 比特币赚取, 备兑看涨期权, 卖出比特币期权, 链上收益, 自托管收益, 被动比特币收入",
+      "ogTitle": "BTC赚取最高1000%年化收益",
+      "ogImageAlt": "通过BTC期权赚取最高1000%年化 — Isometric"
     },
     "portfolio": {
       "title": "投资组合",
-      "description": "跟踪您的链上比特币期权持仓。查看活跃合约、待处理报价和表现。到期时自动结算。",
-      "keywords": "比特币投资组合, 期权持仓, 链上投资组合, BTC期权跟踪",
-      "ogTitle": "投资组合 | Isometric",
-      "ogImageAlt": "Isometric 投资组合"
+      "description": "实时跟踪每笔BTC下注和收益持仓。到期时自动链上结算。自托管、无KYC。",
+      "keywords": "BTC投资组合, 比特币期权跟踪, 链上持仓, BTC收益仪表板, 备兑看涨仪表板",
+      "ogTitle": "我在 Isometric 的BTC投资组合",
+      "ogImageAlt": "实时链上BTC期权投资组合 — Isometric"
     },
     "history": {
-      "title": "历史记录",
-      "description": "查看您完整的链上比特币期权历史。所有交易和结算都可在链上验证，完全透明。",
-      "keywords": "比特币交易历史, 链上历史, 期权结算, 可验证交易",
-      "ogTitle": "历史记录 | Isometric",
-      "ogImageAlt": "Isometric 交易历史"
+      "title": "交易历史",
+      "description": "所有BTC期权交易和结算，链上可验证。您完整的交易记录 — 无需盲目信任。",
+      "keywords": "BTC交易历史, 链上交易历史, 可验证比特币交易, 期权结算历史, 交易记录",
+      "ogTitle": "我在 Isometric 的BTC交易历史",
+      "ogImageAlt": "链上可验证BTC交易历史 — Isometric"
     },
     "share": {
-      "title": "交易数据 | Isometric",
-      "description": "查看我在 Isometric 上的比特币期权交易表现",
-      "keywords": "比特币期权交易, 交易数据, Isometric, 链上交易",
-      "ogTitle": "我在 Isometric 的交易数据",
-      "ogImageAlt": "Isometric 交易数据"
+      "title": "和我一起在 Isometric 交易BTC期权",
+      "description": "BTC最高100倍杠杆，或卖出看涨期权赚取高达1000%年化。完全链上、自托管、无KYC。查看我的数据，开始你的交易。",
+      "keywords": "比特币期权交易, BTC杠杆, BTC年化, 链上交易, 交易者数据, 加入 Isometric",
+      "ogTitle": "加入我在 Isometric 交易BTC期权",
+      "ogImageAlt": "加入我在 Isometric 交易BTC期权"
     }
   },
   "SharePage": {
