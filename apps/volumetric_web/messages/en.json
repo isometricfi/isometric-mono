@@ -34,7 +34,8 @@
     "saved": "Saved",
     "system": "System",
     "referred": "Referred",
-    "inviteUsers": "Invite users"
+    "inviteUsers": "Invite users",
+    "referralLink": "Invite"
   },
   "PendingDeposits": {
     "pending": "pending",
@@ -329,11 +330,11 @@
     "daysShort": "d"
   },
   "ShareSummary": {
-    "title": "Share Your Stats",
+    "title": "Invite others",
     "tradingStats": "Trading Stats",
-    "shareOnX": "Share on X",
-    "copyLink": "Copy Link",
-    "copyImage": "Copy Image",
+    "shareOnX": "Share",
+    "copyLink": "Link",
+    "copyImage": "Image",
     "twitterText": "Check out my trading stats on Isometric! 📈\n\n{pnl} BTC P&L | {winRate}% Win Rate | {trades} Trades"
   },
   "HowItWorks": {
@@ -577,8 +578,9 @@
     "leverageDesc": "Amplify exposure on BTC price movements",
     "yieldTitle": "Earn yield on BTC",
     "yieldDesc": "Generate income on your holdings without selling",
-    "custodialTitle": "Self-custodial, no KYC",
+    "custodialTitle": "No KYC",
     "custodialDesc": "Trustless and fully on-chain",
-    "startTrading": "Start Trading"
+    "startTrading": "Start Trading",
+    "joinNow": "Join Now"
   }
 }

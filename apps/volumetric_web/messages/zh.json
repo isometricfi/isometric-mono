@@ -34,7 +34,8 @@
     "saved": "已保存",
     "system": "系统",
     "referred": "邀请人数",
-    "inviteUsers": "邀请用户"
+    "inviteUsers": "邀请用户",
+    "referralLink": "邀请"
   },
   "PendingDeposits": {
     "pending": "待确认",
@@ -328,11 +329,11 @@
     "daysShort": "天"
   },
   "ShareSummary": {
-    "title": "分享您的统计",
+    "title": "邀请他人",
     "tradingStats": "交易统计",
-    "shareOnX": "在 X 上分享",
-    "copyLink": "复制链接",
-    "copyImage": "复制图片",
+    "shareOnX": "分享",
+    "copyLink": "链接",
+    "copyImage": "图片",
     "twitterText": "查看我在 Isometric 上的交易统计！📈\n\n{pnl} BTC 盈亏 | {winRate}% 胜率 | {trades} 交易"
   },
   "HowItWorks": {
@@ -577,6 +578,7 @@
     "yieldDesc": "无需出售即可从持仓中获得收益",
     "custodialTitle": "自托管，无需 KYC",
     "custodialDesc": "去信任化，完全链上",
-    "startTrading": "开始交易"
+    "startTrading": "开始交易",
+    "joinNow": "立即加入"
   }
 }
