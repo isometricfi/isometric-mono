@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 import { generatePageMetadata } from "@/lib/metadata";
 import { ChainAbstractionSection } from "./_components/ChainAbstractionSection";
-import { ConcentricCircles } from "./_components/ConcentricCircles";
 import { HeroSection } from "./_components/HeroSection";
 import { HowItWorksSection } from "./_components/HowItWorksSection";
+import { TwoPathsSection } from "./_components/TwoPathsSection";
 
 export async function generateMetadata({
   params,
@@ -15,9 +15,9 @@ export async function generateMetadata({
 
 export default function Home() {
   return (
-    <div className="relative min-h-screen overflow-hidden">
-      <ConcentricCircles />
+    <div className="relative overflow-hidden">
       <HeroSection />
+      <TwoPathsSection />
       <ChainAbstractionSection />
       <HowItWorksSection />
     </div>
