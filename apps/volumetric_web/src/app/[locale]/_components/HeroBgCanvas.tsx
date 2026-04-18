@@ -208,7 +208,7 @@ export function HeroBgCanvas() {
         top: 0,
         left: 0,
         width: "100vw",
-        height: "94vh",
+        height: "90vh",
         zIndex: 0,
         opacity: 0,
         transition: "opacity 500ms ease-out",
