@@ -259,6 +259,7 @@
     "leverageDescription": "选择价格和时间。如果到期时BTC高于您的目标价格，您赢得大奖。最大亏损：您投入的金额。",
     "btcNative": "原生比特币",
     "instantSettlement": "即时结算",
+    "permissionless": "无需许可",
     "gettingStarted": "入门指南",
     "threeStepsTitle": "三步即可开始",
     "earn": "赚取",

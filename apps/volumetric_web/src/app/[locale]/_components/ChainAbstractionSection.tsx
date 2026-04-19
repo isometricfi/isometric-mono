@@ -19,10 +19,6 @@ export function ChainAbstractionSection() {
             viewport={{ once: true }}
             className=""
           >
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-md bg-primary/10 text-primary text-xs font-medium mb-6">
-              <Layers className="size-3" />
-              {t("chainAbstraction")}
-            </div>
             <h2 className="text-3xl md:text-4xl font-bold tracking-tight mb-6">
               {t("nativeBitcoin")}
               <br />
