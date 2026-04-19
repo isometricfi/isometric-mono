@@ -16,6 +16,7 @@ import { useTranslations } from "next-intl";
 import { useMemo, useState } from "react";
 import QRCodeSVG from "react-qr-code";
 import { useMediaQuery } from "react-responsive";
+import { AnimatedToggle } from "@/components/navigation/AnimatedToggle";
 import { AmountInput } from "@/components/options/AmountInput";
 import { AlertDialog, AlertDialogContent, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
@@ -24,7 +25,6 @@ import { Drawer, DrawerContent, DrawerTitle } from "@/components/ui/drawer";
 import { useConfig, useDepositAddress, useSyncDeposit, useWalletBalance } from "@/hooks";
 import { Link } from "@/i18n/routing";
 import {
-  cn,
   DEFAULT_MIN_DEPOSIT_SATS,
   formatBtc,
   formatBtcWithSymbol,
@@ -66,7 +66,10 @@ export function DepositModal({
 
   const enteredAmountSats = useMemo(() => {
     const sats = parseBtcToSatsBigint(amountBtc);
-    console.log("[DepositModal] Parsed amount:", { amountBtc, sats: sats.toString() });
+    console.log("[DepositModal] Parsed amount:", {
+      amountBtc,
+      sats: sats.toString(),
+    });
     return sats;
   }, [amountBtc]);
 
@@ -153,7 +156,7 @@ export function DepositModal({
   };
 
   const content = (
-    <div className="space-y-6 md:pt-0 pt-3">
+    <div className="flex flex-col space-y-6 md:pt-0 pt-3 min-h-[380px]">
       <AnimatePresence mode="wait">
         {step === "input" && (
           <motion.div
@@ -161,7 +164,7 @@ export function DepositModal({
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
-            className="space-y-5"
+            className="flex flex-col flex-1 space-y-5"
           >
             <div className="flex items-center gap-3">
               <div className="size-10 rounded-full bg-primary/10 flex items-center justify-center">
@@ -173,32 +176,16 @@ export function DepositModal({
               </div>
             </div>
 
-            <div className="flex gap-2 p-1 rounded-md bg-muted/50">
-              <button
-                type="button"
-                onClick={() => setTab("wallet")}
-                className={cn(
-                  "flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-colors",
-                  tab === "wallet"
-                    ? "bg-background text-foreground shadow-sm"
-                    : "text-muted-foreground hover:text-foreground",
-                )}
-              >
-                {t("wallet")}
-              </button>
-              <button
-                type="button"
-                onClick={() => setTab("address")}
-                className={cn(
-                  "flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-colors",
-                  tab === "address"
-                    ? "bg-background text-foreground shadow-sm"
-                    : "text-muted-foreground hover:text-foreground",
-                )}
-              >
-                {t("depositAddress")}
-              </button>
-            </div>
+            <AnimatedToggle
+              layoutId="depositTab"
+              className="w-full"
+              options={[
+                { value: "wallet", label: t("wallet") },
+                { value: "address", label: t("depositAddress") },
+              ]}
+              value={tab}
+              onChange={(v) => setTab(v as DepositTab)}
+            />
 
             {isLoadingDepositAddress ? (
               <div className=" space-y-4">
@@ -208,9 +195,9 @@ export function DepositModal({
                 <Skeleton className="w-full h-10" />
               </div>
             ) : depositAddress ? (
-              <>
+              <div className="flex flex-col flex-1">
                 {tab === "wallet" && (
-                  <>
+                  <div className="flex flex-col flex-1 gap-5">
                     <AmountInput
                       value={amountBtc}
                       onChange={setAmountBtc}
@@ -222,11 +209,11 @@ export function DepositModal({
                           : undefined
                       }
                     />
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 ">
                       <ClockCheck className="size-5" />
                       <p className="text-sm text-muted-foreground">{t("requiresConfirmations")}</p>
                     </div>
-                    <div className="flex gap-3">
+                    <div className="flex gap-3 mt-auto">
                       <Button
                         variant="outline"
                         className="flex-1"
@@ -252,11 +239,11 @@ export function DepositModal({
                           : t("title")}
                       </Button>
                     </div>
-                  </>
+                  </div>
                 )}
 
                 {tab === "address" && (
-                  <>
+                  <div className="flex flex-col flex-1 gap-5">
                     <div className="flex flex-col items-center space-y-4">
                       <div className=" gap-4 flex w-full">
                         <QRCodeSVG value={depositAddress} size={80} />
@@ -293,12 +280,16 @@ export function DepositModal({
                         </div>
                       </div>
                     </div>
-                    <Button variant="outline" className="w-full" onClick={() => handleClose(false)}>
+                    <Button
+                      variant="outline"
+                      className="w-full mt-auto"
+                      onClick={() => handleClose(false)}
+                    >
                       {tCommon("close")}
                     </Button>
-                  </>
+                  </div>
                 )}
-              </>
+              </div>
             ) : null}
           </motion.div>
         )}

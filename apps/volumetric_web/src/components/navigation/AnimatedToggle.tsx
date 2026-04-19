@@ -19,6 +19,14 @@ interface AnimatedToggleProps<T extends string | number> {
   className?: string;
 }
 
+/**
+ * Isometric animated toggle — warm-dark track with a coral-glowing thumb that
+ * slides between options. The active pill picks up a subtle gradient + inner
+ * highlight + soft coral glow so it visually "lifts" out of the track.
+ *
+ * Pairs naturally with the landing's pills, segmented controls, and the
+ * "7 Days" timeframe selector in the traders card.
+ */
 export function AnimatedToggle<T extends string | number>({
   options,
   value,
@@ -28,7 +36,18 @@ export function AnimatedToggle<T extends string | number>({
   className,
 }: AnimatedToggleProps<T>) {
   return (
-    <div className={cn("inline-flex items-center p-1 rounded-xl bg-muted", className)}>
+    <div
+      className={cn(
+        // track — coral-tinted recess. Warm peach in light, deep coral-black in dark.
+        "inline-flex items-center p-1 rounded-[10px]",
+        "bg-[color-mix(in_oklch,var(--primary)_8%,var(--muted))]",
+        "dark:bg-[color-mix(in_oklch,var(--primary)_10%,oklch(0_0_0/0.45))]",
+        "border border-border/70",
+        "shadow-[inset_0_1px_2px_color-mix(in_oklch,var(--primary)_15%,rgba(0,0,0,0.18))]",
+        "dark:shadow-[inset_0_1px_2px_rgba(0,0,0,0.45)]",
+        className,
+      )}
+    >
       {options.map((option) => {
         const Icon = option.icon;
         const isActive = value === option.value;
@@ -39,18 +58,30 @@ export function AnimatedToggle<T extends string | number>({
             key={option.value}
             onClick={() => onChange(option.value)}
             className={cn(
-              "relative font-medium rounded-lg transition-all w-full",
+              // base
+              "relative font-semibold tracking-tight rounded-[7px] w-full",
+              "transition-colors duration-150 outline-none",
+              "focus-visible:ring-2 focus-visible:ring-primary/50",
+              // sizing
               size === "sm"
                 ? "px-3 py-1 text-xs"
-                : "md:px-5 h-full md:py-1 px-3 py-2 md:text-sm text-xs ",
-              isActive ? "text-foreground" : "text-muted-foreground hover:text-foreground",
+                : "md:px-5 h-full md:py-1.5 px-3 py-2 md:text-sm text-xs",
+              // text color
+              isActive ? "text-primary-foreground" : "text-muted-foreground hover:text-foreground",
             )}
           >
             {isActive && (
               <motion.div
                 layoutId={layoutId}
-                className="absolute inset-0 bg-background shadow-sm rounded-lg"
-                transition={{ type: "spring", duration: 0.5 }}
+                className={cn(
+                  "absolute inset-0 rounded-[7px]",
+                  // coral surface with subtle top-light gradient
+                  "bg-[linear-gradient(180deg,color-mix(in_oklch,var(--primary)_100%,white_8%),var(--primary))]",
+                  "border border-white/10",
+                  // inner highlight + coral glow
+                  "shadow-[inset_0_1px_0_rgba(255,255,255,0.28),0_6px_18px_-8px_color-mix(in_oklch,var(--primary)_70%,transparent),0_2px_4px_-1px_rgba(0,0,0,0.35)]",
+                )}
+                transition={{ type: "spring", stiffness: 380, damping: 32 }}
               />
             )}
             <span className="relative z-10 flex items-center gap-2 justify-center whitespace-nowrap">

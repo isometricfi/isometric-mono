@@ -260,6 +260,7 @@
     "btcNative": "On-chain",
     "openApp": "Open App",
     "instantSettlement": "Instant settlement",
+    "permissionless": "Permissionless",
     "gettingStarted": "Getting Started",
     "threeStepsTitle": "Three steps to get started",
     "earn": "Earn",

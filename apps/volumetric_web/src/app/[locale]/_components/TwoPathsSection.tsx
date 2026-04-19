@@ -1,4 +1,4 @@
-import { Blocks, TrendingUp, Zap } from "lucide-react";
+import { Blocks, Globe, TrendingUp, Zap } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { PayoffVisualization } from "./PayoffVisualization";
 import { YieldDisplay } from "./YieldDisplay";
@@ -93,6 +93,10 @@ export function TwoPathsSection() {
           <div className="flex items-center gap-2">
             <Zap className="size-5 text-primary" />
             <span>{t("instantSettlement")}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Globe className="size-5 text-primary" />
+            <span>{t("permissionless")}</span>
           </div>
         </div>
       </div>
