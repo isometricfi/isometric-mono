@@ -9,12 +9,12 @@ export function PayoffVisualization() {
   const t = useTranslations("Landing");
 
   // Configuration
-  const strikePrice = 100000;
+  const strikePrice = 90000;
   const sizeBTC = 0.3;
-  const premiumBTC = 0.003;
+  const premiumBTC = 0.01;
   const primaryColor = "#e86c3a";
   const priceMin = 80000;
-  const priceMax = 140000;
+  const priceMax = 120000;
 
   // Animation State
   const [progress, setProgress] = useState(0);
@@ -114,7 +114,7 @@ export function PayoffVisualization() {
             </span>
           </div>
 
-          <div ref={containerRef} className="h-[140px] relative mb-4 w-full">
+          <div ref={containerRef} className="h-[120px] relative mb-4 w-full">
             <svg
               className="w-full h-full overflow-visible"
               preserveAspectRatio="none"
