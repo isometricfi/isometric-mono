@@ -8,9 +8,9 @@ export function HeroSection() {
   const t = useTranslations("Landing");
 
   return (
-    <div className="relative flex min-h-[75vh] flex-col items-center justify-center">
+    <div className="relative flex min-h-[94vh] flex-col items-center justify-center">
       <HeroBgCanvas />
-      <div className="relative z-10 max-w-5xl w-full text-center px-4">
+      <div className="relative z-10 max-w-5xl w-full text-center px-4 -mt-24">
         <div className="flex justify-center mb-6">
           <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-md bg-primary/10 text-primary text-sm font-medium tracking-wide">
             <Sparkles className="size-4" />
@@ -19,7 +19,7 @@ export function HeroSection() {
         </div>
 
         <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight leading-[1.1] mb-6">
-          {t("headline")}{" "}
+          {t("headline")} <br />
           <span className="text-primary block sm:inline">{t("headlineHighlight")}</span>
         </h1>
 
