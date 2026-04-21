@@ -2,13 +2,14 @@
 
 import { useDynamicContext } from "@dynamic-labs/sdk-react-core";
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, ArrowRight } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { BTCPriceChart } from "@/components/options/BTCPriceChart";
 import { MobileAmountInput } from "@/components/options/MobileAmountInput";
 import {
   FlowInfoPanel,
+  FlowOfferStatus,
   FlowScenariosCard,
   FlowStepHeading,
   FlowStepperPicker,
@@ -18,7 +19,6 @@ import {
   type Scenario,
   type SummaryRow,
 } from "@/components/options/MobileFlowParts";
-import { OfferResultModal } from "@/components/options/OfferResultModal";
 import { Button } from "@/components/ui/button";
 import { DockSlider } from "@/components/ui/dock-slider";
 import { Drawer, DrawerContent, DrawerDescription, DrawerTitle } from "@/components/ui/drawer";
@@ -26,6 +26,7 @@ import { ProgressDots } from "@/components/ui/progress-dots";
 import { SlideToConfirm } from "@/components/ui/slide-to-confirm";
 import { DepositModal } from "@/components/wallet/DepositModal";
 import { useConfig } from "@/hooks";
+import { Link } from "@/i18n/routing";
 import { basisPointsToPercent, cn, formatBtc, roundToN, satsToBtc } from "@/lib/utils";
 import { useCallWriteOptionFormModel } from "./_internal/use-call-write-option-form-model";
 
@@ -41,7 +42,8 @@ type WriteModel = ReturnType<typeof useCallWriteOptionFormModel>;
 
 export function MobileWriteCallFlow({ open, onOpenChange }: MobileWriteCallFlowProps) {
   const t = useTranslations("WriteFlow");
-  const tForms = useTranslations("Forms");
+  const tCommon = useTranslations("Common");
+  const tOfferResult = useTranslations("OfferResult");
   const [stepIndex, setStepIndex] = useState(0);
   const [depositModalOpen, setDepositModalOpen] = useState(false);
   const { primaryWallet, setShowAuthFlow } = useDynamicContext();
@@ -51,6 +53,11 @@ export function MobileWriteCallFlow({ open, onOpenChange }: MobileWriteCallFlowP
   const step: StepName = STEPS[stepIndex];
   const isFirstStep = stepIndex === 0;
   const isReview = step === "review";
+  const offerStep = model.acceptOffer.step;
+  const isOfferProcessing = offerStep === "signing" || offerStep === "submitting";
+  const isOfferSuccess = offerStep === "success";
+  const isOfferError = offerStep === "error";
+  const isOfferActive = isOfferProcessing || isOfferSuccess || isOfferError;
 
   const apyPercent = roundToN(
     model.amountSats > 0 && model.selectedTermDay > 0
@@ -80,12 +87,14 @@ export function MobileWriteCallFlow({ open, onOpenChange }: MobileWriteCallFlowP
     model.handleSubmit();
   };
 
-  const handleResultClose = (nextOpen: boolean) => {
-    model.handleModalClose(nextOpen);
-    if (!nextOpen && model.acceptOffer.step === "success") {
-      setStepIndex(0);
-      onOpenChange(false);
-    }
+  const closeFlow = () => {
+    model.handleModalClose(false);
+    setStepIndex(0);
+    onOpenChange(false);
+  };
+
+  const tryAgain = () => {
+    model.handleModalClose(false);
   };
 
   return (
@@ -93,9 +102,9 @@ export function MobileWriteCallFlow({ open, onOpenChange }: MobileWriteCallFlowP
       <Drawer
         open={open}
         onOpenChange={(next) => {
-          if (!next && model.acceptOffer.isPending) return;
-          if (!next) setStepIndex(0);
-          onOpenChange(next);
+          if (!next && isOfferProcessing) return;
+          if (!next) closeFlow();
+          else onOpenChange(next);
         }}
       >
         <DrawerContent className="min-h-[95dvh] p-0 flex flex-col">
@@ -105,7 +114,7 @@ export function MobileWriteCallFlow({ open, onOpenChange }: MobileWriteCallFlowP
           <div className="flex-1 overflow-y-auto overflow-x-hidden ">
             <AnimatePresence mode="wait" initial={false}>
               <motion.div
-                key={step}
+                key={isReview && isOfferActive ? `review-${offerStep}` : step}
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
@@ -115,15 +124,22 @@ export function MobileWriteCallFlow({ open, onOpenChange }: MobileWriteCallFlowP
                 {step === "termStrike" && <TermStrikeStep model={model} />}
                 {step === "collateral" && <CollateralStep model={model} />}
                 {step === "premium" && <PremiumStep model={model} apy={apyPercent} />}
-                {step === "review" && (
-                  <ReviewStep
-                    model={model}
-                    apy={apyPercent}
-                    feePercent={basisPointsToPercent(
-                      Number(config?.fees.premiumFeeBasisPoints ?? BigInt(0)),
-                    )}
-                  />
-                )}
+                {step === "review" &&
+                  (isOfferActive ? (
+                    <FlowOfferStatus
+                      type="create"
+                      step={offerStep}
+                      errorMessage={model.acceptOffer.error?.message}
+                    />
+                  ) : (
+                    <ReviewStep
+                      model={model}
+                      apy={apyPercent}
+                      feePercent={basisPointsToPercent(
+                        Number(config?.fees.premiumFeeBasisPoints ?? BigInt(0)),
+                      )}
+                    />
+                  ))}
               </motion.div>
             </AnimatePresence>
           </div>
@@ -132,23 +148,54 @@ export function MobileWriteCallFlow({ open, onOpenChange }: MobileWriteCallFlowP
             <ProgressDots
               keys={STEPS}
               current={stepIndex}
-              onDotClick={(i) => i < stepIndex && setStepIndex(i)}
-              isClickable={(i) => i < stepIndex}
+              onDotClick={(i) => i < stepIndex && !isOfferActive && setStepIndex(i)}
+              isClickable={(i) => i < stepIndex && !isOfferActive}
             />
 
             <div className="flex gap-3">
-              {!isFirstStep && (
+              {!isFirstStep && !isOfferActive && (
                 <Button variant="outline" size="icon" onClick={goBack} className="shrink-0 size-12">
                   <ArrowLeft className="size-5" />
                 </Button>
               )}
-              {isReview ? (
+              {isReview && isOfferSuccess ? (
+                <>
+                  <Button asChild className="flex-1 h-12 text-base font-semibold">
+                    <Link href="/portfolio" onClick={closeFlow}>
+                      {tOfferResult("viewPortfolio")}
+                      <ArrowRight className="size-4" />
+                    </Link>
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="flex-1 h-12 text-base font-semibold"
+                    onClick={closeFlow}
+                  >
+                    {tCommon("close")}
+                  </Button>
+                </>
+              ) : isReview && isOfferError ? (
+                <>
+                  <Button
+                    variant="outline"
+                    className="flex-1 h-12 text-base font-semibold"
+                    onClick={closeFlow}
+                  >
+                    {tCommon("close")}
+                  </Button>
+                  <Button
+                    className="flex-1 h-12 text-base font-semibold shadow-lg shadow-primary/20"
+                    onClick={tryAgain}
+                  >
+                    {tCommon("tryAgain")}
+                  </Button>
+                </>
+              ) : isReview ? (
                 <div className="flex-1">
                   <SlideToConfirm
                     label={model.getButtonText()}
-                    processingLabel={tForms("creatingOffer")}
                     disabled={!!primaryWallet && !model.needDepositMore && model.isSubmitDisabled}
-                    isProcessing={model.acceptOffer.isPending}
+                    isProcessing={isOfferProcessing}
                     onConfirm={handleSlideConfirm}
                   />
                 </div>
@@ -167,15 +214,6 @@ export function MobileWriteCallFlow({ open, onOpenChange }: MobileWriteCallFlowP
       </Drawer>
 
       <DepositModal open={depositModalOpen} onOpenChange={setDepositModalOpen} />
-
-      <OfferResultModal
-        open={model.showModal}
-        onOpenChange={handleResultClose}
-        type="create"
-        step={model.acceptOffer.step}
-        offerId={model.acceptOffer.data?.offerId}
-        errorMessage={model.acceptOffer.error?.message}
-      />
     </>
   );
 }

@@ -146,7 +146,7 @@ export function useCallOptionBuyFormModel() {
       return;
     }
 
-    const defaultAmountSats = Math.floor(maxPremiumAmountSats / 2);
+    const defaultAmountSats = Math.floor(maxPremiumAmountSats * 0.75);
     if (defaultAmountSats <= 0) {
       setAmountSats(0);
       return;

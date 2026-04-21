@@ -127,6 +127,21 @@ export function useCallWriteOptionFormModel() {
     setPremiumPercentLocal(getClosestPremiumPercent(premiumPercent, premiumValues));
   }, [premiumPercent, premiumValues]);
 
+  useEffect(() => {
+    if (maxCreateOfferAmountSats <= 0) {
+      setAmountSats(0);
+      return;
+    }
+
+    const defaultAmountSats = Math.floor(maxCreateOfferAmountSats * 0.75);
+    if (defaultAmountSats < minCreateOfferAmountSats) {
+      setAmountSats(0);
+      return;
+    }
+
+    setAmountSats(defaultAmountSats);
+  }, [maxCreateOfferAmountSats, minCreateOfferAmountSats]);
+
   const setTerm = (value: number) => {
     setTermLocal(value);
     setChartTermDays(value);

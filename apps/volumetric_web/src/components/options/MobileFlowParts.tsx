@@ -1,10 +1,21 @@
 "use client";
 
-import { ChevronLeft, ChevronRight, SparklesIcon } from "lucide-react";
+import { AnimatePresence, motion } from "framer-motion";
+import {
+  CheckCircle2,
+  ChevronLeft,
+  ChevronRight,
+  FileSignature,
+  type LucideIcon,
+  Send,
+  SparklesIcon,
+  XCircle,
+} from "lucide-react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import type { ReactNode } from "react";
 import { Button } from "@/components/ui/button";
+import type { AcceptOfferStep, CreateOfferStep } from "@/hooks";
 import { RESOURCE_LINKS } from "@/lib/site-links";
 import { cn } from "@/lib/utils";
 
@@ -151,12 +162,171 @@ export interface Scenario {
   outcome: string;
 }
 
+type OfferFlowStep = CreateOfferStep | AcceptOfferStep;
+
+export type FlowStepTone = "progress" | "success" | "error";
+
+export interface FlowStepperStep {
+  id: string;
+  icon: LucideIcon;
+  title: string;
+  description?: ReactNode;
+  tone?: FlowStepTone;
+}
+
+export function FlowStepper({ step }: { step: FlowStepperStep }) {
+  const tone = step.tone ?? "progress";
+  const Icon = step.icon;
+  const isProgress = tone === "progress";
+
+  return (
+    <div className="flex-1 flex flex-col items-center justify-center py-6 min-h-[260px]">
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={step.id}
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -12 }}
+          transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+          className="flex flex-col items-center gap-5 w-full"
+        >
+          <div className="relative size-16 flex items-center justify-center">
+            {isProgress && (
+              <motion.svg
+                role="presentation"
+                viewBox="0 0 100 100"
+                className="absolute -inset-2 size-20 text-primary"
+                animate={{ rotate: 360 }}
+                transition={{ duration: 1.2, repeat: Infinity, ease: "linear" }}
+              >
+                <circle
+                  cx="50"
+                  cy="50"
+                  r="48"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="3"
+                  strokeOpacity="0.12"
+                />
+                <circle
+                  cx="50"
+                  cy="50"
+                  r="48"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="3"
+                  strokeLinecap="round"
+                  strokeDasharray="70 230"
+                />
+              </motion.svg>
+            )}
+            <motion.div
+              initial={{ scale: 0.5, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ type: "spring", stiffness: 220, damping: 18 }}
+              className={cn(
+                "relative size-16 rounded-full flex items-center justify-center",
+                tone === "progress" && "bg-primary/10",
+                tone === "success" && "bg-green-500/10",
+                tone === "error" && "bg-destructive/10",
+              )}
+            >
+              <Icon
+                className={cn(
+                  "size-7",
+                  tone === "progress" && "text-primary",
+                  tone === "success" && "size-8 text-green-500",
+                  tone === "error" && "size-8 text-destructive",
+                )}
+              />
+            </motion.div>
+          </div>
+
+          <div className="text-center space-y-1.5 max-w-xs">
+            <h3 className="text-xl font-semibold leading-tight">{step.title}</h3>
+            {step.description && (
+              <p
+                className={cn(
+                  "text-sm leading-relaxed",
+                  tone === "error" ? "text-destructive" : "text-muted-foreground",
+                )}
+              >
+                {step.description}
+              </p>
+            )}
+          </div>
+        </motion.div>
+      </AnimatePresence>
+    </div>
+  );
+}
+
+export function FlowOfferStatus({
+  type,
+  step,
+  errorMessage,
+}: {
+  type: "create" | "buy";
+  step: OfferFlowStep;
+  errorMessage?: string;
+}) {
+  const t = useTranslations();
+  const tCommon = useTranslations("Common");
+
+  const stage: FlowStepperStep | null =
+    step === "signing"
+      ? {
+          id: "signing",
+          icon: FileSignature,
+          tone: "progress",
+          title: type === "create" ? t("OfferResult.signOffer") : t("OfferResult.signPurchase"),
+          description:
+            type === "create" ? t("OfferResult.approveOffer") : t("OfferResult.approvePurchase"),
+        }
+      : step === "submitting"
+        ? {
+            id: "submitting",
+            icon: Send,
+            tone: "progress",
+            title: type === "create" ? t("OfferResult.creatingOffer") : t("OfferResult.processing"),
+            description:
+              type === "create"
+                ? t("OfferResult.submittingOffer")
+                : t("OfferResult.confirmingPurchase"),
+          }
+        : step === "success"
+          ? {
+              id: "success",
+              icon: CheckCircle2,
+              tone: "success",
+              title:
+                type === "create"
+                  ? t("OfferResult.offerCreated")
+                  : t("OfferResult.optionPurchased"),
+              description:
+                type === "create" ? t("OfferResult.offerLive") : t("OfferResult.optionActive"),
+            }
+          : step === "error"
+            ? {
+                id: "error",
+                icon: XCircle,
+                tone: "error",
+                title: tCommon("somethingWentWrong"),
+                description: errorMessage || tCommon("somethingWentWrong"),
+              }
+            : null;
+
+  if (!stage) return null;
+
+  return <FlowStepper step={stage} />;
+}
+
 export function FlowScenariosCard({ scenarios }: { scenarios: Scenario[] }) {
   const tCommon = useTranslations("Common");
   return (
     <div className="rounded-lg border bg-muted/20 px-3 py-3 space-y-2">
       <div className="flex gap-2.5">
-        <div className="space-y-1.5 text-[13px] leading-relaxed text-muted-foreground flex-1 min-w-0">
+        <div className="space-y-1.5 text-xs leading-relaxed text-muted-foreground flex-1 min-w-0">
           {scenarios.map((scenario) => (
             <p key={scenario.condition}>
               <span className="font-medium text-foreground">{scenario.condition}</span>{" "}

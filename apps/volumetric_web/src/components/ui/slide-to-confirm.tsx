@@ -1,7 +1,7 @@
 "use client";
 
 import { motion, useMotionValue, useTransform } from "framer-motion";
-import { ChevronRight, Loader2 } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -10,7 +10,6 @@ const MotionButton = motion.create(Button);
 
 interface SlideToConfirmProps {
   label: string;
-  processingLabel?: string;
   disabled?: boolean;
   isProcessing?: boolean;
   onConfirm: () => void;
@@ -23,7 +22,6 @@ const CONFIRM_THRESHOLD = 0.9;
 
 export function SlideToConfirm({
   label,
-  processingLabel,
   disabled = false,
   isProcessing = false,
   onConfirm,
@@ -52,7 +50,7 @@ export function SlideToConfirm({
 
   const labelOpacity = useTransform(x, [0, maxX * 0.3], [1, 0]);
   const labelScale = useTransform(x, [0, maxX * 0.3], [1, 0.85]);
-  const fillWidth = useTransform(x, (value) => value + THUMB_SIZE + TRACK_PADDING + 4);
+  const fillWidth = useTransform(x, (value) => value + THUMB_SIZE + TRACK_PADDING + 7);
   const arrowOpacity = useTransform(x, [0, maxX * 0.4], [1, 0.3]);
 
   const handleDragEnd = () => {
@@ -68,11 +66,15 @@ export function SlideToConfirm({
   const isDraggable = !disabled && !isProcessing && maxX > 0;
   const isDestructive = variant === "destructive";
 
+  if (isProcessing) {
+    return <div className="h-12 w-full rounded-xl bg-muted" />;
+  }
+
   return (
     <div
       ref={trackRef}
       className={cn(
-        "relative h-12 w-full rounded-lg overflow-hidden select-none touch-none shadow-lg shadow-primary/20",
+        "relative h-12 w-full rounded-xl overflow-hidden select-none touch-none shadow-lg shadow-primary/20",
         disabled ? "bg-muted" : "bg-muted/70 border border-border",
       )}
     >
@@ -80,7 +82,7 @@ export function SlideToConfirm({
         <motion.div
           aria-hidden
           className={cn(
-            "absolute top-0 left-0 h-full pointer-events-none rounded-r-md",
+            "absolute top-0 left-0 h-full pointer-events-none rounded-r-xl",
             isDestructive ? "bg-destructive/20" : "bg-primary/20",
           )}
           style={{ width: fillWidth }}
@@ -97,7 +99,7 @@ export function SlideToConfirm({
             disabled ? "text-muted-foreground" : "text-foreground",
           )}
         >
-          {isProcessing ? (processingLabel ?? label) : label}
+          {label}
         </span>
       </motion.div>
 
@@ -114,17 +116,13 @@ export function SlideToConfirm({
         onDragEnd={handleDragEnd}
         whileTap={isDraggable ? { scale: 0.96 } : undefined}
         className={cn(
-          "absolute top-[3px] left-[3px] shadow-md transition-none",
+          "absolute top-[3px] left-[3px] shadow-md transition-none h-10",
           isDraggable && "cursor-grab active:cursor-grabbing",
         )}
       >
-        {isProcessing ? (
-          <Loader2 className="size-5 animate-spin" />
-        ) : (
-          <motion.span style={{ opacity: arrowOpacity }} className="inline-flex">
-            <ChevronRight className="size-6" />
-          </motion.span>
-        )}
+        <motion.span style={{ opacity: arrowOpacity }} className="inline-flex">
+          <ChevronRight className="size-6" />
+        </motion.span>
       </MotionButton>
     </div>
   );
