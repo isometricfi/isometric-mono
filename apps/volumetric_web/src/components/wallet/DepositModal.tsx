@@ -66,10 +66,6 @@ export function DepositModal({
 
   const enteredAmountSats = useMemo(() => {
     const sats = parseBtcToSatsBigint(amountBtc);
-    console.log("[DepositModal] Parsed amount:", {
-      amountBtc,
-      sats: sats.toString(),
-    });
     return sats;
   }, [amountBtc]);
 
