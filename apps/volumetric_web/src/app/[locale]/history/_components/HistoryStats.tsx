@@ -44,11 +44,11 @@ export function HistoryStats() {
     };
   }, [history?.entries]);
 
-  if (isHistoryLoading || isAccountLoading || !account?.profile) {
+  if (isHistoryLoading || isAccountLoading) {
     return <Skeleton className="h-[102px] w-full lg:h-[58px]" />;
   }
 
-  if (!stats) return null;
+  if (!account?.profile) return null;
 
   const statSection = (
     <div className="grid grid-cols-3 lg:grid-cols-4 gap-2">

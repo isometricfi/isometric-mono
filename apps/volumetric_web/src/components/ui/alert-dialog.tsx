@@ -27,7 +27,11 @@ function AlertDialogOverlay({
     <AlertDialogPrimitive.Overlay
       data-slot="alert-dialog-overlay"
       className={cn(
-        "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 fixed inset-0 z-50 bg-black/50",
+        "fixed inset-0 z-50",
+        // warm-tinted scrim + backdrop blur for depth
+        "bg-[rgba(14,9,7,0.65)] backdrop-blur-sm",
+        "data-[state=open]:animate-in data-[state=closed]:animate-out",
+        "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
         className,
       )}
       {...props}
@@ -45,7 +49,20 @@ function AlertDialogContent({
       <AlertDialogPrimitive.Content
         data-slot="alert-dialog-content"
         className={cn(
-          "bg-background data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 fixed top-[50%] left-[50%] z-50 grid w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] gap-4 rounded-lg border p-6 shadow-lg duration-200 sm:max-w-lg",
+          "fixed top-[50%] left-[50%] z-50 grid w-full max-w-[calc(100%-2rem)] sm:max-w-lg",
+          "translate-x-[-50%] translate-y-[-50%] gap-5 p-6",
+          // surface — same gradient recipe as Card
+          "rounded-[14px] text-foreground",
+          "bg-[linear-gradient(180deg,color-mix(in_oklch,var(--card)_100%,white_3%),var(--card))]",
+          "border border-border",
+          // light: soft warm shadow / dark: deeper warm shadow + inner highlight
+          "shadow-[0_4px_12px_-4px_rgba(24,16,12,0.08),0_20px_50px_-16px_rgba(24,16,12,0.18)]",
+          "dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_24px_60px_-16px_rgba(0,0,0,0.7),0_8px_20px_-8px_rgba(0,0,0,0.5)]",
+          // animations
+          "duration-200",
+          "data-[state=open]:animate-in data-[state=closed]:animate-out",
+          "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
+          "data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
           className,
         )}
         {...props}
@@ -68,7 +85,12 @@ function AlertDialogFooter({ className, ...props }: React.ComponentProps<"div">)
   return (
     <div
       data-slot="alert-dialog-footer"
-      className={cn("flex flex-col-reverse gap-2 sm:flex-row sm:justify-end", className)}
+      className={cn(
+        "flex flex-col-reverse gap-2 sm:flex-row sm:justify-end",
+        // subtle divider above footer
+        "sm:pt-2",
+        className,
+      )}
       {...props}
     />
   );
@@ -81,7 +103,7 @@ function AlertDialogTitle({
   return (
     <AlertDialogPrimitive.Title
       data-slot="alert-dialog-title"
-      className={cn("text-lg font-semibold", className)}
+      className={cn("text-xl font-bold tracking-tight leading-tight text-foreground", className)}
       {...props}
     />
   );
@@ -94,7 +116,7 @@ function AlertDialogDescription({
   return (
     <AlertDialogPrimitive.Description
       data-slot="alert-dialog-description"
-      className={cn("text-muted-foreground text-sm", className)}
+      className={cn("text-muted-foreground text-sm leading-relaxed", className)}
       {...props}
     />
   );

@@ -92,7 +92,10 @@ export function BTCPriceChart({ mode, compact = false, termDaysOverride }: BTCPr
       .sort((a, b) => a.timestamp - b.timestamp)
       .filter((point) => Number.isFinite(point.timestamp) && Number.isFinite(point.price))
       .map((point) => ({
-        date: point.date.toLocaleDateString("en-US", { month: "short", day: "numeric" }),
+        date: point.date.toLocaleDateString("en-US", {
+          month: "short",
+          day: "numeric",
+        }),
         price: point.price,
         timestamp: point.timestamp,
       }));
@@ -107,7 +110,10 @@ export function BTCPriceChart({ mode, compact = false, termDaysOverride }: BTCPr
     for (let i = 1; i <= futureDays; i++) {
       const futureDate = new Date(lastPoint.timestamp + i * 24 * 60 * 60 * 1000);
       futurePoints.push({
-        date: futureDate.toLocaleDateString("en-US", { month: "short", day: "numeric" }),
+        date: futureDate.toLocaleDateString("en-US", {
+          month: "short",
+          day: "numeric",
+        }),
         price: null,
         timestamp: futureDate.getTime(),
       });
@@ -487,7 +493,10 @@ export function BTCPriceChart({ mode, compact = false, termDaysOverride }: BTCPr
           </div>
           {currentPrice > 0 && (
             <span className="text-lg font-semibold">
-              ${currentPrice.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+              $
+              {currentPrice.toLocaleString(undefined, {
+                maximumFractionDigits: 0,
+              })}
             </span>
           )}
         </div>
