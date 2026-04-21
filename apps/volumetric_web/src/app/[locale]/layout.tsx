@@ -113,10 +113,16 @@ export default async function LocaleLayout({
           <>
             <Script id="tawk-api-init" strategy="lazyOnload" nonce={nonce}>
               {`window.Tawk_API = window.Tawk_API || {};
-window.Tawk_API.onLoad = function () {
-  window.Tawk_API.minimize();
-};
-window.Tawk_LoadStart = new Date();`}
+              window.Tawk_API.onLoad = function () {
+                window.Tawk_API.hideWidget();
+              };
+              window.Tawk_API.onChatMinimized = function () {
+                window.Tawk_API.hideWidget();
+              };
+              window.Tawk_API.onChatMessageAgent = function () {
+                window.Tawk_API.showWidget();
+              };
+              window.Tawk_LoadStart = new Date();`}
             </Script>
             <Script
               id="tawk-embed"

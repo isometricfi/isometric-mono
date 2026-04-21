@@ -1,6 +1,6 @@
 "use client";
 
-import { Book, FileText, Mail, Shield } from "lucide-react";
+import { Book, FileText, Mail, MessageCircleQuestionMark, Shield } from "lucide-react";
 import Image from "next/image";
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/routing";
@@ -9,6 +9,15 @@ import { LEGAL_LINKS, RESOURCE_LINKS, SOCIAL_LINKS, TelegramIcon, XIcon } from "
 export function Footer() {
   const t = useTranslations("Footer");
   const currentYear = new Date().getFullYear();
+
+  const openSupportChat = () => {
+    const tawk = (
+      window as unknown as { Tawk_API?: { showWidget?: () => void; maximize?: () => void } }
+    ).Tawk_API;
+    if (!tawk) return;
+    tawk.showWidget?.();
+    tawk.maximize?.();
+  };
 
   return (
     <footer className="mx-auto mt-auto w-full max-w-5xl px-0 pb-6 pt-16">
@@ -44,6 +53,16 @@ export function Footer() {
                     <Book className="size-4" />
                     {t("documentation")}
                   </a>
+                </li>
+                <li>
+                  <button
+                    type="button"
+                    onClick={openSupportChat}
+                    className="text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center gap-2"
+                  >
+                    <MessageCircleQuestionMark className="size-4" />
+                    {t("support")}
+                  </button>
                 </li>
               </ul>
             </div>

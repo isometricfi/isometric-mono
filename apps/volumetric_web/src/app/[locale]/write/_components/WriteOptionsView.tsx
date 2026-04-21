@@ -48,35 +48,32 @@ export function WriteOptionsView() {
         </div>
       )}
 
-      {!isPutDisabled && (
-        <>
-          {isMobile ? (
-            <>
-              <div className="mb-6">
-                <Button
-                  onClick={() => setFlowOpen(true)}
-                  className="w-full h-12 text-base font-semibold shadow-lg shadow-primary/20"
-                >
-                  <Plus className="size-5" />
-                  {t("writeCta")}
-                </Button>
-              </div>
-
-              <OptionsViewer mode="writer" />
-
-              {flowOpen && <MobileWriteCallFlow open={flowOpen} onOpenChange={setFlowOpen} />}
-            </>
-          ) : (
-            <div className="space-y-6">
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <CallWriteOptionForm />
-                <BTCPriceChart mode="writer" />
-              </div>
-              <OptionsViewer mode="writer" />
+      {!isPutDisabled &&
+        (isMobile ? (
+          <>
+            <div className="mb-6">
+              <Button
+                onClick={() => setFlowOpen(true)}
+                className="w-full h-12 text-base font-semibold shadow-lg shadow-primary/20"
+              >
+                <Plus className="size-5" />
+                {t("writeCta")}
+              </Button>
             </div>
-          )}
-        </>
-      )}
+
+            <OptionsViewer mode="writer" />
+
+            {flowOpen && <MobileWriteCallFlow open={flowOpen} onOpenChange={setFlowOpen} />}
+          </>
+        ) : (
+          <div className="space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <CallWriteOptionForm />
+              <BTCPriceChart mode="writer" />
+            </div>
+            <OptionsViewer mode="writer" />
+          </div>
+        ))}
     </>
   );
 }
