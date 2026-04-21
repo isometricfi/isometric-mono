@@ -1,0 +1,311 @@
+"use client";
+
+import { useDynamicContext } from "@dynamic-labs/sdk-react-core";
+import { AnimatePresence, motion } from "framer-motion";
+import { ArrowLeft } from "lucide-react";
+import { useTranslations } from "next-intl";
+import { useState } from "react";
+import { BTCPriceChart } from "@/components/options/BTCPriceChart";
+import { MobileAmountInput } from "@/components/options/MobileAmountInput";
+import {
+  FlowInfoPanel,
+  FlowScenariosCard,
+  FlowStepHeading,
+  FlowStepperPicker,
+  FlowSummaryCard,
+  FlowTermGrid,
+  highlightTags,
+  type Scenario,
+  type SummaryRow,
+} from "@/components/options/MobileFlowParts";
+import { OfferResultModal } from "@/components/options/OfferResultModal";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Drawer, DrawerContent, DrawerDescription, DrawerTitle } from "@/components/ui/drawer";
+import { ProgressDots } from "@/components/ui/progress-dots";
+import { SlideToConfirm } from "@/components/ui/slide-to-confirm";
+import { DepositModal } from "@/components/wallet/DepositModal";
+import { useConfig } from "@/hooks";
+import { basisPointsToPercent, cn, formatBtc, roundToN, satsToBtc } from "@/lib/utils";
+import { useCallOptionBuyFormModel } from "./_internal/use-call-option-buy-form-model";
+
+interface MobileBuyCallFlowProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}
+
+const STEPS = ["termStrike", "amount", "review"] as const;
+type StepName = (typeof STEPS)[number];
+
+type BuyModel = ReturnType<typeof useCallOptionBuyFormModel>;
+
+export function MobileBuyCallFlow({ open, onOpenChange }: MobileBuyCallFlowProps) {
+  const t = useTranslations("BuyFlow");
+  const tForms = useTranslations("Forms");
+  const [stepIndex, setStepIndex] = useState(0);
+  const [depositModalOpen, setDepositModalOpen] = useState(false);
+  const { primaryWallet, setShowAuthFlow } = useDynamicContext();
+  const { data: config } = useConfig();
+  const model = useCallOptionBuyFormModel();
+
+  const step: StepName = STEPS[stepIndex];
+  const isFirstStep = stepIndex === 0;
+  const isReview = step === "review";
+
+  const goBack = () => setStepIndex((i) => Math.max(0, i - 1));
+  const goNext = () => setStepIndex((i) => Math.min(STEPS.length - 1, i + 1));
+
+  const canAdvance =
+    step === "amount"
+      ? model.amountSats > 0
+      : step === "termStrike"
+        ? model.strikeUsdValues.length > 0
+        : true;
+
+  const handleSlideConfirm = () => {
+    if (!primaryWallet) {
+      setShowAuthFlow(true);
+      return;
+    }
+    if (model.needDepositMore) {
+      setDepositModalOpen(true);
+      return;
+    }
+    model.handleSubmit();
+  };
+
+  const handleResultClose = (nextOpen: boolean) => {
+    model.handleModalClose(nextOpen);
+    if (!nextOpen && model.acceptOffer.step === "success") {
+      setStepIndex(0);
+      onOpenChange(false);
+    }
+  };
+
+  return (
+    <>
+      <Drawer
+        open={open}
+        onOpenChange={(next) => {
+          if (!next && model.acceptOffer.isPending) return;
+          if (!next) setStepIndex(0);
+          onOpenChange(next);
+        }}
+      >
+        <DrawerContent className="min-h-[95dvh] p-0 flex flex-col">
+          <DrawerTitle className="sr-only">{t("title")}</DrawerTitle>
+          <DrawerDescription className="sr-only">{t("description")}</DrawerDescription>
+
+          <div className="flex-1 overflow-y-auto overflow-x-hidden">
+            <AnimatePresence mode="wait" initial={false}>
+              <motion.div
+                key={step}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.15, ease: "easeOut" }}
+                className="px-5 py-4 min-h-full flex flex-col"
+              >
+                {step === "termStrike" && <TermStrikeStep model={model} />}
+                {step === "amount" && <AmountStep model={model} />}
+                {step === "review" && (
+                  <ReviewStep
+                    model={model}
+                    feePercent={basisPointsToPercent(
+                      Number(config?.fees.profitFeeBasisPoints ?? BigInt(0)),
+                    )}
+                  />
+                )}
+              </motion.div>
+            </AnimatePresence>
+          </div>
+
+          <div className="pt-6 pb-6 px-5 space-y-6 mt-auto shrink-0">
+            <ProgressDots
+              keys={STEPS}
+              current={stepIndex}
+              onDotClick={(i) => i < stepIndex && setStepIndex(i)}
+              isClickable={(i) => i < stepIndex}
+            />
+
+            <div className="flex gap-3">
+              {!isFirstStep && (
+                <Button variant="outline" size="icon" onClick={goBack} className="shrink-0 size-12">
+                  <ArrowLeft className="size-5" />
+                </Button>
+              )}
+              {isReview ? (
+                <div className="flex-1">
+                  <SlideToConfirm
+                    label={model.getButtonText()}
+                    processingLabel={tForms("buyingOption")}
+                    disabled={!!primaryWallet && !model.needDepositMore && model.isSubmitDisabled}
+                    isProcessing={model.acceptOffer.isPending}
+                    onConfirm={handleSlideConfirm}
+                  />
+                </div>
+              ) : (
+                <Button
+                  onClick={goNext}
+                  disabled={!canAdvance}
+                  className="flex-1 h-12 text-base font-semibold shadow-lg shadow-primary/20"
+                >
+                  {t("continue")}
+                </Button>
+              )}
+            </div>
+          </div>
+        </DrawerContent>
+      </Drawer>
+
+      <DepositModal open={depositModalOpen} onOpenChange={setDepositModalOpen} />
+
+      <OfferResultModal
+        open={model.showModal}
+        onOpenChange={handleResultClose}
+        type="buy"
+        step={model.acceptOffer.step}
+        fillGroupId={model.acceptOffer.data?.fillGroupId}
+        errorMessage={model.acceptOffer.error?.message}
+      />
+    </>
+  );
+}
+
+function TermStrikeStep({ model }: { model: BuyModel }) {
+  const t = useTranslations("BuyFlow");
+  const index = model.strikeUsdValues.indexOf(model.selectedStrikeUsd);
+  const canPrev = index > 0;
+  const canNext = index >= 0 && index < model.strikeUsdValues.length - 1;
+  const hasStrikes = model.strikeUsdValues.length > 0;
+
+  return (
+    <>
+      <FlowStepHeading
+        eyebrow={t("termStrike.stepLabel")}
+        title={t.rich("termStrike.title", highlightTags)}
+      />
+      <div className="mb-5 -mt-4">
+        <BTCPriceChart mode="buyer" compact />
+      </div>
+      <div className="mb-5">
+        <FlowTermGrid
+          termDays={model.termDays}
+          selectedTerm={model.selectedTermDay}
+          onSelect={model.setTerm}
+        />
+      </div>
+      {hasStrikes ? (
+        <FlowStepperPicker
+          value={`$${model.selectedStrikeUsd.toLocaleString()}`}
+          caption={t("termStrike.percentAbove", {
+            percent: model.strikePercent,
+          })}
+          canPrev={canPrev}
+          canNext={canNext}
+          onPrev={() => canPrev && model.handleStrikeUsdChange(model.strikeUsdValues[index - 1])}
+          onNext={() => canNext && model.handleStrikeUsdChange(model.strikeUsdValues[index + 1])}
+        />
+      ) : (
+        <p className="text-center text-muted-foreground text-sm">{t("termStrike.noLiquidity")}</p>
+      )}
+      <div className="mt-6">
+        <FlowInfoPanel>{t("termStrike.explain")}</FlowInfoPanel>
+      </div>
+    </>
+  );
+}
+
+function AmountStep({ model }: { model: BuyModel }) {
+  const t = useTranslations("BuyFlow");
+  const tForms = useTranslations("Forms");
+  return (
+    <>
+      <FlowStepHeading
+        eyebrow={t("amount.stepLabel")}
+        title={t.rich("amount.title", highlightTags)}
+      />
+      <MobileAmountInput
+        eyebrow={tForms("amount")}
+        amountSats={model.amountSats}
+        btcPrice={model.btcPrice}
+        maxAmountSats={model.maxPremiumAmountSats}
+        minAmountSats={model.depositMinSats}
+        onAmountSatsChange={model.setAmountSats}
+      />
+
+      <Badge
+        className={cn(
+          "w-full flex justify-between px-4 mt-4",
+          model.leverage === 0 && "opacity-20",
+        )}
+      >
+        <span className="text-sm">{t("amount.leverage")}</span>
+        <span className="text-lg font-bold tabular-nums">{roundToN(model.leverage, 0)}x</span>
+      </Badge>
+
+      <div className="mt-3">
+        <FlowInfoPanel>{t("amount.explain")}</FlowInfoPanel>
+      </div>
+    </>
+  );
+}
+
+function ReviewStep({ model, feePercent }: { model: BuyModel; feePercent: number }) {
+  const t = useTranslations("BuyFlow");
+  const tForms = useTranslations("Forms");
+  const tSummary = useTranslations("Summary");
+  const termLabel = tForms(model.selectedTermDay === 1 ? "day" : "days").toLowerCase();
+  const premiumBtc = satsToBtc(model.amountSats);
+  const premiumUsd = Math.round(premiumBtc * model.btcPrice);
+  const maxProfitSats = Math.max(model.quantitySats - model.amountSats, 0);
+  const maxProfitBtc = satsToBtc(maxProfitSats);
+  const maxProfitUsd = Math.round(maxProfitBtc * model.btcPrice);
+  const strikeDisplay = `$${model.selectedStrikeUsd.toLocaleString()}`;
+  const maxProfitDisplay = `₿${maxProfitBtc.toFixed(6)}`;
+
+  const rows: SummaryRow[] = [
+    { label: t("review.strike"), value: strikeDisplay },
+    { label: t("review.term"), value: `${model.selectedTermDay} ${termLabel}` },
+    {
+      label: t("review.premium"),
+      value: `₿${formatBtc(model.amountSats, 6)} · $${premiumUsd.toLocaleString()}`,
+    },
+    { label: t("review.leverage"), value: `${model.leverage.toFixed(1)}x` },
+    {
+      label: t("review.maxProfit"),
+      value: `${maxProfitDisplay} · $${maxProfitUsd.toLocaleString()}`,
+      accent: true,
+    },
+    {
+      label: t("review.platformFee"),
+      value: tSummary("buyExplainer.platformFeeDesc", { fee: feePercent }),
+    },
+  ];
+
+  const scenarios: Scenario[] = [
+    {
+      condition: tSummary("buyExplainer.ifRises"),
+      outcome: tSummary("buyExplainer.ifRisesDesc", {
+        maxProfit: maxProfitDisplay,
+      }),
+    },
+    {
+      condition: tSummary("buyExplainer.ifBelow"),
+      outcome: tSummary("buyExplainer.ifBelowDesc"),
+    },
+  ];
+
+  return (
+    <>
+      <FlowStepHeading
+        eyebrow={t("review.stepLabel")}
+        title={t.rich("review.title", highlightTags)}
+      />
+      <FlowSummaryCard rows={rows} />
+      <div className="mt-3">
+        <FlowScenariosCard scenarios={scenarios} />
+      </div>
+    </>
+  );
+}

@@ -52,7 +52,8 @@
     "somethingWentWrong": "Something went wrong",
     "min": "Min",
     "max": "Max",
-    "clear": "Clear"
+    "clear": "Clear",
+    "learnMore": "Learn more"
   },
   "ConnectButton": {
     "connect": "Connect"
@@ -306,7 +307,75 @@
   "Pages": {
     "buyOptions": "Buy options",
     "writeOptions": "Write options",
-    "putsComingSoon": "Puts coming soon"
+    "putsComingSoon": "Puts coming soon",
+    "writeCta": "Write an option",
+    "buyCta": "Buy an option"
+  },
+  "WriteFlow": {
+    "title": "Write an option",
+    "description": "Create a call option offer",
+    "continue": "Continue",
+    "termStrike": {
+      "stepLabel": "Step 1 · Contract",
+      "title": "<line>Pick when, and the price</line><line>BTC should <highlight>stay below</highlight>.</line>",
+      "percentAbove": "{percent}% above current",
+      "explain": "Starts when accepted, BTC is locked for the term. Higher prices & terms tend to earn more."
+    },
+    "collateral": {
+      "stepLabel": "Step 2 · Collateral",
+      "title": "<line>Amount of <highlight>BTC</highlight> to back</line><line>the contract.</line>",
+      "explain": "Offers can be partially filled by multiple buyers."
+    },
+    "premium": {
+      "stepLabel": "Step 3 · Earnings",
+      "title": "<line>How much do you want</line><line>to <highlight>earn</highlight>?</line>",
+      "eyebrow": "Earnings",
+      "apy": "{apy}% APY",
+      "bestOffer": "Best offer",
+      "underBest": "Under best offer of {best}%",
+      "explain": "Lower earnings will get accepted first. You get paid when the option is accepted"
+    },
+    "review": {
+      "stepLabel": "Step 4 · Review",
+      "title": "<line>Here's your <highlight>offer</highlight>.</line><line>Slide to confirm.</line>",
+      "strike": "Strike",
+      "term": "Term",
+      "collateral": "Collateral",
+      "earnings": "You earn",
+      "apy": "APY",
+      "competitiveness": "Competitiveness",
+      "bestOffer": "Best offer",
+      "underBest": "Under best offer of {best}%",
+      "platformFee": "Platform fee"
+    }
+  },
+  "BuyFlow": {
+    "title": "Buy an option",
+    "description": "Purchase a call option",
+    "continue": "Continue",
+    "termStrike": {
+      "stepLabel": "Step 1 · Contract",
+      "title": "<line>Pick when, and the price</line><line>BTC should <highlight>go above</highlight>.</line>",
+      "percentAbove": "{percent}% above current",
+      "explain": "If BTC doesn't cross your target before the window closes, the option expires worthless.",
+      "noLiquidity": "No options available — try a different term."
+    },
+    "amount": {
+      "stepLabel": "Step 2 · Amount",
+      "title": "<line>How much do you</line><line>want to <highlight>put in</highlight>?</line>",
+      "leverage": "Leverage",
+      "explain": "This is your max loss. If BTC exceeds the target, profit is auto-paid to you in BTC."
+    },
+    "review": {
+      "stepLabel": "Step 3 · Review",
+      "title": "<line>Here's your <highlight>position</highlight>.</line><line>Slide to confirm.</line>",
+      "strike": "Strike",
+      "term": "Term",
+      "premium": "You pay",
+      "leverage": "Leverage",
+      "maxProfit": "Max profit",
+      "platformFee": "Platform fee"
+    }
   },
   "Components": {
     "btcUsdPriceChart": "BTC/USD Price Chart",

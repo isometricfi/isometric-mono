@@ -1,8 +1,9 @@
 "use client";
 
-import { HelpCircle } from "lucide-react";
+import { HelpCircle, TrendingUp } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
+import { useMediaQuery } from "react-responsive";
 import { BTCPriceChart } from "@/components/options/BTCPriceChart";
 import { OptionsViewer } from "@/components/options/OptionsViewer";
 import { OptionTypeToggle } from "@/components/options/OptionTypeToggle";
@@ -11,11 +12,14 @@ import { OnboardingContent } from "@/components/wallet/OnboardingModal";
 import { useModal } from "@/hooks";
 import type { OptionType } from "@/types/ui";
 import { CallOptionBuyForm } from "./call/CallOptionBuyForm";
+import { MobileBuyCallFlow } from "./call/MobileBuyCallFlow";
 
 export function BuyOptionsView() {
   const t = useTranslations("Pages");
   const [optionType, setOptionType] = useState<OptionType>("call");
+  const [flowOpen, setFlowOpen] = useState(false);
   const { openModal } = useModal();
+  const isMobile = useMediaQuery({ query: "(max-width: 768px)" });
 
   const isPutDisabled = optionType === "put";
 
@@ -45,13 +49,33 @@ export function BuyOptionsView() {
       )}
 
       {!isPutDisabled && (
-        <div className="space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <CallOptionBuyForm />
-            <BTCPriceChart mode="buyer" />
-          </div>
-          <OptionsViewer mode="buyer" />
-        </div>
+        <>
+          {isMobile ? (
+            <>
+              <div className="mb-6">
+                <Button
+                  onClick={() => setFlowOpen(true)}
+                  className="w-full h-12 text-base font-semibold shadow-lg shadow-primary/20"
+                >
+                  <TrendingUp className="size-5" />
+                  {t("buyCta")}
+                </Button>
+              </div>
+
+              <OptionsViewer mode="buyer" />
+
+              {flowOpen && <MobileBuyCallFlow open={flowOpen} onOpenChange={setFlowOpen} />}
+            </>
+          ) : (
+            <div className="space-y-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <CallOptionBuyForm />
+                <BTCPriceChart mode="buyer" />
+              </div>
+              <OptionsViewer mode="buyer" />
+            </div>
+          )}
+        </>
       )}
     </>
   );
