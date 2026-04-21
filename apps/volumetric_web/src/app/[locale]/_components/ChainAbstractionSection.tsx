@@ -88,7 +88,7 @@ function ChainAbstractionVisual() {
           </div>
           <div>
             <div className="text-xs text-muted-foreground">{t("chainKey")}</div>
-            <div className="text-sm font-semibold">{t("oneToOneVerified")}</div>
+            <div className="text-sm font-semibold whitespace-nowrap">{t("oneToOneVerified")}</div>
           </div>
         </div>
 

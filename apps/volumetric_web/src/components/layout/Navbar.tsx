@@ -8,7 +8,7 @@ import { useState } from "react";
 import { useDynamicConfig } from "@/app/providers/dynamic-provider";
 import { SettingsDropdown } from "@/components/layout/SettingsDropdown";
 import { Button } from "@/components/ui/button";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Drawer, DrawerContent, DrawerTitle, DrawerTrigger } from "@/components/ui/drawer";
 import { ConnectButton } from "@/components/wallet/ConnectButton";
 import { Link, usePathname } from "@/i18n/routing";
 import { cn } from "@/lib/utils";
@@ -36,15 +36,16 @@ export function Navbar() {
               />
               <span className="md:block hidden">Isometric</span>
             </Link>
-            <Sheet open={open} onOpenChange={setOpen}>
-              <SheetTrigger asChild>
+            <Drawer open={open} onOpenChange={setOpen}>
+              <DrawerTrigger asChild>
                 <Button variant="ghost" size="icon" className="md:hidden">
                   <MenuIcon className="size-5" />
                   <span className="sr-only">Toggle menu</span>
                 </Button>
-              </SheetTrigger>
-              <SheetContent side="left" className="w-64">
-                <div className="flex flex-col gap-4 mt-8">
+              </DrawerTrigger>
+              <DrawerContent className="px-5 pb-8">
+                <DrawerTitle className="sr-only">Navigation</DrawerTitle>
+                <div className="flex flex-col gap-2 mt-2">
                   <Link href="/write" onClick={() => setOpen(false)}>
                     <Button
                       variant="ghost"
@@ -83,32 +84,23 @@ export function Navbar() {
                     </div>
                   )}
                 </div>
-              </SheetContent>
-            </Sheet>
+              </DrawerContent>
+            </Drawer>
           </div>
-          <div className="hidden md:flex items-center gap-3 justify-center">
+          <div className="hidden md:flex items-center gap-0.5 justify-center">
             <Link href="/write">
-              <Button
-                variant="ghost"
-                size="sm"
-                className={cn(pathname === "/write" && "font-bold")}
-              >
+              <Button variant="ghost" className={cn(pathname === "/write" && "font-bold")}>
                 {t("write")}
               </Button>
             </Link>
-
             <Link href="/buy">
-              <Button variant="ghost" size="sm" className={cn(pathname === "/buy" && "font-bold")}>
+              <Button variant="ghost" className={cn(pathname === "/buy" && "font-bold")}>
                 {t("buy")}
               </Button>
             </Link>
             {primaryWallet && (
               <Link href="/portfolio">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className={cn(pathname === "/portfolio" && "font-bold")}
-                >
+                <Button variant="ghost" className={cn(pathname === "/portfolio" && "font-bold")}>
                   {t("portfolio")}
                 </Button>
               </Link>
