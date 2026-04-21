@@ -29,6 +29,10 @@ vi.mock("./_components/CaptureInviteCode", () => ({
   CaptureInviteCode: () => null,
 }));
 
+vi.mock("./_components/ShareCta", () => ({
+  ShareCta: () => null,
+}));
+
 import SharePage, { generateMetadata } from "./page";
 
 function createTranslationMock(translate: (key: string) => string = (key) => key) {

@@ -34,7 +34,8 @@
     "saved": "Saved",
     "system": "System",
     "referred": "Referred",
-    "inviteUsers": "Invite users"
+    "inviteUsers": "Invite users",
+    "referralLink": "Invite"
   },
   "PendingDeposits": {
     "pending": "pending",
@@ -248,32 +249,34 @@
   "Landing": {
     "publicBeta": "Public Beta",
     "headline": "Bitcoin options.",
-    "headlineHighlight": "For Everyone.",
-    "subheadline": "No intermediaries, no counterparty risk.",
+    "headlineHighlight": "For everyone.",
+    "subheadline": "Earn yield on your Bitcoin, or bet on where it's heading.",
     "forHodlers": "for hodlers",
     "earnYieldTitle": "Your BTC earns while you hold",
     "earnYieldDescription": "Lock BTC and earn income upfront. If BTC stays below your target when time is up, you keep everything.",
     "forTraders": "for traders",
     "leverageTitle": "Small bet, big upside",
-    "leverageDescription": "Pick a price and timeframe. If BTC is above your target when time is up, you win big. Max loss: what you put in.",
-    "btcNative": "Native Bitcoin",
+    "leverageDescription": "Pick a price and timeframe. If BTC is above your target when time is up, you win big. Up to 100x leverage",
+    "btcNative": "On-chain",
+    "openApp": "Open App",
     "instantSettlement": "Instant settlement",
+    "permissionless": "Permissionless",
     "gettingStarted": "Getting Started",
     "threeStepsTitle": "Three steps to get started",
     "earn": "Earn",
     "bet": "Bet",
     "writerStep1Title": "Deposit BTC",
-    "writerStep1Desc": "Connect your wallet and deposit BTC. Your funds are held in non-custodial smart contracts — you stay in control.",
-    "writerStep2Title": "Pick your target price",
-    "writerStep2Desc": "Choose a price you think BTC won't reach. The higher your target, the more you can earn.",
-    "writerStep3Title": "Collect your earnings",
-    "writerStep3Desc": "Earn instantly when someone takes the other side. If BTC stays below your target, you keep everything.",
+    "writerStep1Desc": "Connect a wallet and deposit BTC to your account.",
+    "writerStep2Title": "Create your offer",
+    "writerStep2Desc": "Pick a price BTC won't reach by a chosen date. Lock BTC as collateral and set the premium you want to earn.",
+    "writerStep3Title": "Earn premium, unlock collateral",
+    "writerStep3Desc": "Premium hits your account the moment a buyer accepts. If BTC stays below your strike at expiry, your collateral unlocks automatically.",
     "buyerStep1Title": "Deposit BTC",
-    "buyerStep1Desc": "Connect your wallet and deposit a small amount of BTC. This is all you can ever lose.",
-    "buyerStep2Title": "Pick price and timeframe",
-    "buyerStep2Desc": "Choose where you think BTC is headed and by when. A small upfront amount locks in your bet.",
-    "buyerStep3Title": "Collect your winnings",
-    "buyerStep3Desc": "If BTC hits your target, winnings land in your account automatically. No action needed.",
+    "buyerStep1Desc": "Connect a wallet and deposit BTC to your account.",
+    "buyerStep2Title": "Take a position",
+    "buyerStep2Desc": "Pick a price target and date, then accept an offer. Pay a small premium for leveraged upside — your max loss is the premium.",
+    "buyerStep3Title": "Auto-payout at expiry",
+    "buyerStep3Desc": "If BTC closes above your strike, profit settles to your account on-chain. No exit timing. No liquidations.",
     "startEarning": "Start Earning",
     "makeABet": "Make a Bet",
     "chainAbstraction": "Chain Abstraction",
@@ -295,7 +298,7 @@
     "earned": "EARNED",
     "aboveTarget": "Above Target",
     "belowTarget": "Below Target",
-    "dayTimeframe": "Day Timeframe",
+    "dayTimeframe": "Days",
     "price": "PRICE",
     "profit": "PROFIT",
     "roi": "ROI"
@@ -329,11 +332,11 @@
     "daysShort": "d"
   },
   "ShareSummary": {
-    "title": "Share Your Stats",
+    "title": "Invite others",
     "tradingStats": "Trading Stats",
-    "shareOnX": "Share on X",
-    "copyLink": "Copy Link",
-    "copyImage": "Copy Image",
+    "shareOnX": "Share",
+    "copyLink": "Link",
+    "copyImage": "Image",
     "twitterText": "Check out my trading stats on Isometric! 📈\n\n{pnl} BTC P&L | {winRate}% Win Rate | {trades} Trades"
   },
   "HowItWorks": {
@@ -506,59 +509,59 @@
     "copyright": "© {year} Isometric. All rights reserved."
   },
   "Metadata": {
-    "title": "Isometric | On-Chain Bitcoin Options",
+    "title": "BTC Options · 100x Leverage or 1000% APY",
     "siteName": "Isometric",
-    "description": "The simplest way to trade Bitcoin options on-chain. Earn high APY writing calls or get up to 100x leverage as a buyer. Fully trustless, self-custody, no liquidations.",
-    "keywords": "Bitcoin options, on-chain options, BTC leverage, BTC yield, decentralized options, trustless trading, self custody",
-    "ogImageAlt": "Isometric - On-Chain Bitcoin Options",
+    "description": "Bet on BTC with up to 100x leverage — max loss is what you put in. Or earn up to 1000% APY writing covered calls. Fully on-chain, self-custody, no KYC, no liquidations.",
+    "keywords": "Bitcoin options, BTC leverage, 100x leverage, BTC yield, BTC APY, 1000% APY, on-chain options, no liquidation, self-custody Bitcoin, no KYC, crypto leverage, Bitcoin trading",
+    "ogImageAlt": "Isometric — up to 100x BTC leverage or 1000% APY, on-chain",
     "privacy": {
       "title": "Privacy Policy",
-      "description": "Privacy policy for Isometric Bitcoin options trading platform. Learn how we collect, use, and protect your information.",
-      "keywords": "privacy policy, data protection, Bitcoin privacy, on-chain privacy, user data",
-      "ogTitle": "Privacy Policy | Isometric",
+      "description": "How Isometric handles your data on our on-chain, self-custody BTC options platform.",
+      "keywords": "privacy policy, data protection, on-chain privacy, Bitcoin privacy",
+      "ogTitle": "Privacy Policy",
       "ogImageAlt": "Isometric Privacy Policy"
     },
     "terms": {
       "title": "Terms of Service",
-      "description": "Terms of service for Isometric Bitcoin options trading platform. Understand your rights and responsibilities when using our platform.",
-      "keywords": "terms of service, user agreement, trading terms, Bitcoin options terms, platform rules",
-      "ogTitle": "Terms of Service | Isometric",
+      "description": "Terms for trading BTC options on Isometric — self-custody, on-chain, no KYC.",
+      "keywords": "terms of service, user agreement, Bitcoin options terms, on-chain trading terms",
+      "ogTitle": "Terms of Service",
       "ogImageAlt": "Isometric Terms of Service"
     },
     "buy": {
-      "title": "Buy Bitcoin Options",
-      "description": "Get up to 100x leverage on Bitcoin with no liquidation risk. Your max loss is the premium paid. Fully on-chain and trustless.",
-      "keywords": "buy Bitcoin options, BTC leverage, no liquidation, on-chain options, trustless leverage",
-      "ogTitle": "Buy Bitcoin Options | Isometric",
-      "ogImageAlt": "Buy Bitcoin Options on Isometric"
+      "title": "Buy BTC Options · Up to 100x Leverage",
+      "description": "Bet on BTC with up to 100x leverage and zero liquidation risk. Max loss is what you put in — nothing more. Fully on-chain, self-custody, no KYC.",
+      "keywords": "buy Bitcoin options, BTC leverage, 100x leverage, no liquidation, Bitcoin call options, crypto leverage, asymmetric BTC bet, on-chain options",
+      "ogTitle": "Bet on BTC with up to 100x leverage",
+      "ogImageAlt": "Buy BTC options with up to 100x leverage — Isometric"
     },
     "write": {
-      "title": "Write Bitcoin Options",
-      "description": "Earn high APY on your Bitcoin by writing call options. Collect premium instantly and let your BTC work for you. Fully on-chain and trustless.",
-      "keywords": "write Bitcoin options, BTC APY, BTC yield, earn on Bitcoin, on-chain yield, trustless yield",
-      "ogTitle": "Write Bitcoin Options | Isometric",
-      "ogImageAlt": "Write Bitcoin Options on Isometric"
+      "title": "Earn Up to 1000% APY on Your BTC",
+      "description": "Put your BTC to work. Earn yield upfront by writing covered calls — up to 1000% APY. Fully on-chain, self-custody, your keys, no KYC.",
+      "keywords": "BTC yield, BTC APY, 1000% APY, earn on Bitcoin, covered calls, write Bitcoin options, on-chain yield, self-custody yield, passive Bitcoin income",
+      "ogTitle": "Earn up to 1000% APY on your BTC",
+      "ogImageAlt": "Earn up to 1000% APY writing BTC options — Isometric"
     },
     "portfolio": {
       "title": "Portfolio",
-      "description": "Track your on-chain Bitcoin options positions. View active contracts, pending offers, and performance. Auto-settlement at expiry.",
-      "keywords": "Bitcoin portfolio, options positions, on-chain portfolio, BTC options tracking",
-      "ogTitle": "Portfolio | Isometric",
-      "ogImageAlt": "Isometric Portfolio"
+      "description": "Track every BTC bet and yield position live. Auto-settled on-chain at expiry. Self-custody, no KYC.",
+      "keywords": "BTC portfolio, Bitcoin options tracking, on-chain positions, BTC yield dashboard, covered calls dashboard",
+      "ogTitle": "My BTC portfolio on Isometric",
+      "ogImageAlt": "Live on-chain BTC options portfolio — Isometric"
     },
     "history": {
-      "title": "History",
-      "description": "View your complete on-chain Bitcoin options history. All trades and settlements are verifiable on-chain with full transparency.",
-      "keywords": "Bitcoin trading history, on-chain history, options settlements, verifiable trades",
-      "ogTitle": "History | Isometric",
-      "ogImageAlt": "Isometric Trade History"
+      "title": "Trade History",
+      "description": "Every BTC options trade and settlement, verifiable on-chain. Your full track record — no blind trust required.",
+      "keywords": "BTC trading history, on-chain trade history, verifiable Bitcoin trades, options settlement history, trade record",
+      "ogTitle": "My BTC trading history on Isometric",
+      "ogImageAlt": "Verifiable on-chain BTC trading history — Isometric"
     },
     "share": {
-      "title": "Trading Stats | Isometric",
-      "description": "Check out my Bitcoin options trading performance on Isometric",
-      "keywords": "Bitcoin options trading, trading stats, Isometric, on-chain trading",
-      "ogTitle": "My Trading Stats on Isometric",
-      "ogImageAlt": "Trading Stats on Isometric"
+      "title": "Trade BTC options with me on Isometric",
+      "description": "Up to 100x leverage on BTC or 1000% APY writing calls. Fully on-chain, self-custody, no KYC. See my stats and start your own.",
+      "keywords": "Bitcoin options trading, BTC leverage, BTC APY, on-chain trading, trader stats, join Isometric",
+      "ogTitle": "Join me trading BTC options on Isometric",
+      "ogImageAlt": "Join me trading BTC options on Isometric"
     }
   },
   "SharePage": {
@@ -577,8 +580,9 @@
     "leverageDesc": "Amplify exposure on BTC price movements",
     "yieldTitle": "Earn yield on BTC",
     "yieldDesc": "Generate income on your holdings without selling",
-    "custodialTitle": "Self-custodial, no KYC",
+    "custodialTitle": "No KYC",
     "custodialDesc": "Trustless and fully on-chain",
-    "startTrading": "Start Trading"
+    "startTrading": "Start Trading",
+    "joinNow": "Join Now"
   }
 }

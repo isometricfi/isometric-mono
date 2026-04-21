@@ -1,12 +1,11 @@
-import { ArrowRight, Lock, TrendingUp, Zap } from "lucide-react";
+import { Lock, TrendingUp, Zap } from "lucide-react";
 import type { Metadata } from "next";
 import Image from "next/image";
 import { getTranslations } from "next-intl/server";
-import { Button } from "@/components/ui/button";
-import { Link } from "@/i18n/routing";
 import { getHistoryByHash } from "@/lib/use-cases/history/get-history-by-hash/usecase";
 import { cn, formatBtcWithSymbolBigint, getFallbackUsername } from "@/lib/utils";
 import { CaptureInviteCode } from "./_components/CaptureInviteCode";
+import { ShareCta } from "./_components/ShareCta";
 
 type SharePageParams = Promise<{ id: string; locale: string }>;
 
@@ -49,6 +48,7 @@ export default async function SharePage({ params }: { params: SharePageParams })
   const history = await getHistoryByHash(id);
   const entries = history?.entries ?? [];
   const username = history?.username ?? getFallbackUsername(id, locale);
+  const avatarSeed = history?.address ?? id;
 
   const hasHistory = entries.length > 0;
 
@@ -102,7 +102,7 @@ export default async function SharePage({ params }: { params: SharePageParams })
         {/* Profile row */}
         <div className="flex items-center gap-3">
           <Image
-            src={`/api/avatar?name=${id}`}
+            src={`/api/avatar?name=${avatarSeed}`}
             alt="Avatar"
             width={44}
             height={44}
@@ -183,12 +183,7 @@ export default async function SharePage({ params }: { params: SharePageParams })
         </div>
 
         <div className="space-y-2">
-          <Button asChild size="lg" className="w-full">
-            <Link href="/write">
-              {t("startTrading")}
-              <ArrowRight className="size-4 ml-1" />
-            </Link>
-          </Button>
+          <ShareCta />
         </div>
       </div>
     </div>

@@ -11,6 +11,7 @@ export interface HistoryByHashOutput {
   entries: HistoryEntry[];
   username?: string | null;
   principal?: string;
+  address?: string;
 }
 
 export type { HistoryEntry };

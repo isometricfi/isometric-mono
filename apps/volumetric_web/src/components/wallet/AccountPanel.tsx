@@ -10,10 +10,12 @@ import {
   History,
   LogOut,
   Settings,
+  Sparkles,
 } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
 import { useMediaQuery } from "react-responsive";
+import { ShareSummaryModal } from "@/app/[locale]/history/_components/ShareSummaryModal";
 import { ThemeToggle } from "@/components/layout/ThemeToggle";
 import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -21,7 +23,7 @@ import { Drawer, DrawerContent, DrawerTitle } from "@/components/ui/drawer";
 import { DepositModal } from "@/components/wallet/DepositModal";
 import { PendingDeposits } from "@/components/wallet/PendingDeposits";
 import { WithdrawModal } from "@/components/wallet/WithdrawModal";
-import { useAccount, usePrices, useUpdateUsername } from "@/hooks";
+import { useAccount, useModal, usePrices, useUpdateUsername } from "@/hooks";
 import { Link, usePathname, useRouter } from "@/i18n/routing";
 import { cn, formatBtcWithSymbolBigint, roundToN } from "@/lib/utils";
 import { Badge } from "../ui/badge";
@@ -73,6 +75,7 @@ function AccountPanelContent({ onDisconnect }: { onDisconnect: () => void }) {
   const t = useTranslations("AccountPanel");
   const tCommon = useTranslations("Common");
   const tSettings = useTranslations("Settings");
+  const { openModal } = useModal();
   const [isPending, startTransition] = useTransition();
 
   const [showSettings, setShowSettings] = useState(false);
@@ -161,7 +164,11 @@ function AccountPanelContent({ onDisconnect }: { onDisconnect: () => void }) {
               animate={{
                 scale: 1,
                 opacity: 1,
-                transition: { delay: 0.2, duration: 0.4, ease: [0.32, 0.72, 0, 1] },
+                transition: {
+                  delay: 0.2,
+                  duration: 0.4,
+                  ease: [0.32, 0.72, 0, 1],
+                },
               }}
               exit={{
                 scale: 0.9,
@@ -205,18 +212,28 @@ function AccountPanelContent({ onDisconnect }: { onDisconnect: () => void }) {
                 </Button>
               </div>
               <PendingDeposits />
-              <div className="space-y-2 md:absolute right-0 w-full">
+              <div className="space-y-5 md:absolute right-0 w-full">
                 <Link href="/history" className="block w-full">
                   <Button variant="outline" size="sm" className="w-full">
                     <History className="size-4 " /> {t("tradeHistory")}
                   </Button>
                 </Link>
-                <p className="text-sm text-muted-foreground">
-                  {t("referred")}:{" "}
-                  <span className="font-semibold text-foreground">
-                    {referrals.toLocaleString()}
-                  </span>
-                </p>
+                <div className="flex items-center justify-between gap-3 rounded-lg border bg-muted/40 px-2 py-1.5">
+                  <div className="min-w-0">
+                    <p className="text-xs text-muted-foreground">{t("referred")}</p>
+                    <p className="text-base font-semibold leading-tight">
+                      {referrals.toLocaleString()}
+                    </p>
+                  </div>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => openModal(<ShareSummaryModal />, false)}
+                  >
+                    <Sparkles className="size-3" />
+                    {t("referralLink")}
+                  </Button>
+                </div>
               </div>
             </motion.div>
           ) : null}
@@ -228,9 +245,17 @@ function AccountPanelContent({ onDisconnect }: { onDisconnect: () => void }) {
               animate={{
                 y: 0,
                 opacity: 1,
-                transition: { delay: 0.1, duration: 0.5, ease: [0.32, 0.72, 0, 1] },
+                transition: {
+                  delay: 0.1,
+                  duration: 0.5,
+                  ease: [0.32, 0.72, 0, 1],
+                },
               }}
-              exit={{ y: 70, opacity: 0, transition: { duration: 0.5, ease: [0.32, 0.72, 0, 1] } }}
+              exit={{
+                y: 70,
+                opacity: 0,
+                transition: { duration: 0.5, ease: [0.32, 0.72, 0, 1] },
+              }}
               className="absolute inset-0 space-y-4  h-fit"
             >
               <div className="font-semibold text-lg">{tSettings("title")}</div>
@@ -239,7 +264,9 @@ function AccountPanelContent({ onDisconnect }: { onDisconnect: () => void }) {
                 <div className="flex items-center justify-between">
                   <div className="text-sm text-muted-foreground">{t("username")}</div>
                   <div className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded-sm">
-                    {t("charactersRemaining", { count: 20 - usernameDraft.length })}
+                    {t("charactersRemaining", {
+                      count: 16 - usernameDraft.length,
+                    })}
                   </div>
                 </div>
                 <input
@@ -247,12 +274,12 @@ function AccountPanelContent({ onDisconnect }: { onDisconnect: () => void }) {
                   onChange={(e) => {
                     updateUsername.reset();
                     const value = e.target.value;
-                    if (value.length <= 20) {
+                    if (value.length <= 16) {
                       setUsernameDraft(value);
                     }
                   }}
                   placeholder={t("enterUsername")}
-                  maxLength={25}
+                  maxLength={16}
                   className="w-full py-3 px-4 bg-secondary/50 rounded-md text-sm font-medium placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                 />
               </div>

@@ -22,7 +22,7 @@ export function Navbar() {
   const [open, setOpen] = useState(false);
 
   return (
-    <nav className="mx-auto mt-4 w-full max-w-5xl px-0">
+    <nav className="relative z-20 mx-auto mt-4 w-full max-w-5xl px-0">
       <div className="border rounded-xl bg-background/80 backdrop-blur-sm overflow-visible">
         <div className="mx-auto flex md:h-14 h-12 max-w-7xl items-center justify-between  px-2 md:px-3 md:grid md:grid-cols-3">
           <div className="flex items-center gap-2">
@@ -102,7 +102,7 @@ export function Navbar() {
                 {t("buy")}
               </Button>
             </Link>
-            {!isLandingPage && (
+            {primaryWallet && (
               <Link href="/portfolio">
                 <Button
                   variant="ghost"

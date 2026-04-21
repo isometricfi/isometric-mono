@@ -10,8 +10,8 @@ import { formatBtcWithSymbolBigint, getFallbackUsername } from "@/lib/utils";
 import { ShareSummaryModal } from "./ShareSummaryModal";
 
 export function HistoryStats() {
-  const { data: history, isLoading } = useHistory();
-  const { data: account } = useAccount();
+  const { data: history, isLoading: isHistoryLoading } = useHistory();
+  const { data: account, isLoading: isAccountLoading } = useAccount();
   const { openModal } = useModal();
   const t = useTranslations("History");
 
@@ -44,11 +44,11 @@ export function HistoryStats() {
     };
   }, [history?.entries]);
 
-  if (isLoading) {
+  if (isHistoryLoading || isAccountLoading) {
     return <Skeleton className="h-[102px] w-full lg:h-[58px]" />;
   }
 
-  if (!stats) return null;
+  if (!account?.profile) return null;
 
   const statSection = (
     <div className="grid grid-cols-3 lg:grid-cols-4 gap-2">

@@ -1,12 +1,13 @@
 "use client";
 
-import { Check, Download, X as XIcon } from "lucide-react";
+import { Check, X as CloseIcon, Copy } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { CopyButton } from "@/components/ui/copy-button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAccount, useHistory, useModal } from "@/hooks";
+import { XIcon } from "@/lib/site-links";
 export function ShareSummaryModal() {
   const t = useTranslations("ShareSummary");
   const { closeModal } = useModal();
@@ -61,11 +62,11 @@ export function ShareSummaryModal() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-semibold">{t("title")}</h2>
         <Button variant="ghost" size="icon" onClick={closeModal}>
-          <XIcon className="size-4" />
+          <CloseIcon className="size-4" />
         </Button>
       </div>
 
@@ -80,21 +81,20 @@ export function ShareSummaryModal() {
         />
       </div>
 
-      <div className="space-y-3">
-        <Button className="w-full" size="lg" onClick={handleShareOnX}>
+      <div className="grid grid-cols-3 gap-3">
+        <Button variant="outline" size="lg" onClick={handleShareOnX}>
+          <XIcon className="size-4" />
           {t("shareOnX")}
         </Button>
 
-        <div className="grid grid-cols-2 gap-3">
-          <CopyButton text={absoluteShareUrl} className="w-full h-full">
-            {t("copyLink")}
-          </CopyButton>
+        <CopyButton text={absoluteShareUrl} size="lg" className="w-full">
+          {t("copyLink")}
+        </CopyButton>
 
-          <Button variant="outline" size="lg" onClick={handleCopyImage}>
-            {copiedImage ? <Check className="size-4" /> : <Download className="size-4" />}
-            {t("copyImage")}
-          </Button>
-        </div>
+        <Button variant="outline" size="lg" onClick={handleCopyImage}>
+          {copiedImage ? <Check className="size-4" /> : <Copy className="size-4" />}
+          {t("copyImage")}
+        </Button>
       </div>
     </div>
   );
