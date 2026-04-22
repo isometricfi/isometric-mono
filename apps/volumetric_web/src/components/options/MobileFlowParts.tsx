@@ -120,7 +120,7 @@ export function FlowTermGrid({
             key={days}
             variant="outline"
             onClick={() => onSelect(days)}
-            className={cn(selected && "ring-1")}
+            className={cn(selected && "ring-2 ring-primary")}
           >
             <p className="text-md leading-none font-bold text-card-foreground">{days}</p>
             <p className="text-sm text-muted-foreground capitalize">{label}</p>

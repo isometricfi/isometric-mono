@@ -16,7 +16,11 @@
     "dark": "深色",
     "system": "系统",
     "english": "English",
-    "chinese": "中文"
+    "chinese": "中文",
+    "advanced": "高级",
+    "proMode": "专业模式",
+    "on": "开",
+    "off": "关"
   },
   "AccountPanel": {
     "account": "账户",
@@ -308,7 +312,9 @@
     "writeOptions": "卖出期权",
     "putsComingSoon": "看跌期权即将推出",
     "writeCta": "卖出一个期权",
-    "buyCta": "购买一个期权"
+    "buyCta": "购买一个期权",
+    "connectToWriteCta": "连接钱包以卖出期权",
+    "connectToBuyCta": "连接钱包以购买期权"
   },
   "WriteFlow": {
     "title": "卖出期权",
@@ -380,6 +386,7 @@
     "btcUsdPriceChart": "BTC/USD 价格图表",
     "chartComingSoon": "图表即将推出",
     "btcUsd": "BTC/USD",
+    "bitcoin": "比特币",
     "strike": "行权价",
     "days": "{count} 天"
   },

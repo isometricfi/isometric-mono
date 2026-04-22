@@ -5,9 +5,11 @@ import { Monitor, Moon, Settings, Sun } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import { useTheme } from "next-themes";
 import { useEffect, useState, useTransition } from "react";
+import { useProMode } from "@/components/layout/ProModeProvider";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
+  DropdownMenuCheckboxItem,
   DropdownMenuContent,
   DropdownMenuLabel,
   DropdownMenuRadioGroup,
@@ -25,6 +27,7 @@ export function SettingsDropdown() {
   const pathname = usePathname();
   const t = useTranslations("Settings");
   const [isPending, startTransition] = useTransition();
+  const { isProMode, setProMode } = useProMode();
 
   useEffect(() => {
     setMounted(true);
@@ -89,6 +92,13 @@ export function SettingsDropdown() {
             {t("chinese")}
           </DropdownMenuRadioItem>
         </DropdownMenuRadioGroup>
+
+        <DropdownMenuSeparator />
+
+        <DropdownMenuLabel>{t("advanced")}</DropdownMenuLabel>
+        <DropdownMenuCheckboxItem checked={isProMode} onCheckedChange={setProMode}>
+          {t("proMode")}
+        </DropdownMenuCheckboxItem>
       </DropdownMenuContent>
     </DropdownMenu>
   );

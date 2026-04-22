@@ -24,6 +24,7 @@ interface BTCPriceChartProps {
   mode: "buyer" | "writer";
   compact?: boolean;
   termDaysOverride?: number;
+  showStrikeOverlay?: boolean;
 }
 
 interface DataPoint {
@@ -32,7 +33,12 @@ interface DataPoint {
   timestamp: number;
 }
 
-export function BTCPriceChart({ mode, compact = false, termDaysOverride }: BTCPriceChartProps) {
+export function BTCPriceChart({
+  mode,
+  compact = false,
+  termDaysOverride,
+  showStrikeOverlay = true,
+}: BTCPriceChartProps) {
   const t = useTranslations("Components");
   const containerRef = useRef<HTMLDivElement>(null);
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
@@ -104,7 +110,7 @@ export function BTCPriceChart({ mode, compact = false, termDaysOverride }: BTCPr
     if (!lastPoint) {
       return { chartData: [], expiryIndex: -1 };
     }
-    const futureDays = termDays > 0 ? termDays + EXTRA_DAYS_AFTER_EXPIRY : 0;
+    const futureDays = showStrikeOverlay && termDays > 0 ? termDays + EXTRA_DAYS_AFTER_EXPIRY : 0;
     const futurePoints: DataPoint[] = [];
 
     for (let i = 1; i <= futureDays; i++) {
@@ -121,13 +127,16 @@ export function BTCPriceChart({ mode, compact = false, termDaysOverride }: BTCPr
 
     const expiryTimestamp = lastPoint.timestamp + termDays * 24 * 60 * 60 * 1000;
     const allData = [...historicalPoints, ...futurePoints];
-    const expIdx = termDays > 0 ? allData.findIndex((d) => d.timestamp === expiryTimestamp) : -1;
+    const expIdx =
+      showStrikeOverlay && termDays > 0
+        ? allData.findIndex((d) => d.timestamp === expiryTimestamp)
+        : -1;
 
     return {
       chartData: allData,
       expiryIndex: expIdx,
     };
-  }, [historyData, termDays]);
+  }, [historyData, termDays, showStrikeOverlay]);
 
   const { minPrice, maxPrice } = useMemo(() => {
     if (chartData.length === 0) return { minPrice: 0, maxPrice: 100000 };
@@ -366,7 +375,7 @@ export function BTCPriceChart({ mode, compact = false, termDaysOverride }: BTCPr
             filter="url(#historyAreaSoftBlur)"
           />
 
-          {expiryIndex >= 0 && (
+          {showStrikeOverlay && expiryIndex >= 0 && (
             <>
               <rect
                 x={expiryX}
@@ -435,7 +444,7 @@ export function BTCPriceChart({ mode, compact = false, termDaysOverride }: BTCPr
             </>
           )}
 
-          {expiryIndex < 0 && Number.isFinite(strikeY) && (
+          {showStrikeOverlay && expiryIndex < 0 && Number.isFinite(strikeY) && (
             <>
               <line
                 x1={CHART_PADDING.left}

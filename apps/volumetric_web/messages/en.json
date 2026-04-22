@@ -16,7 +16,11 @@
     "dark": "Dark",
     "system": "System",
     "english": "English",
-    "chinese": "中文"
+    "chinese": "中文",
+    "advanced": "Advanced",
+    "proMode": "Pro mode",
+    "on": "On",
+    "off": "Off"
   },
   "AccountPanel": {
     "account": "Account",
@@ -308,8 +312,10 @@
     "buyOptions": "Buy options",
     "writeOptions": "Write options",
     "putsComingSoon": "Puts coming soon",
-    "writeCta": "Write an option",
-    "buyCta": "Buy an option"
+    "writeCta": "Create an offer",
+    "buyCta": "Buy an option",
+    "connectToWriteCta": "Connect to create offer",
+    "connectToBuyCta": "Connect to buy option"
   },
   "WriteFlow": {
     "title": "Write an option",
@@ -381,6 +387,7 @@
     "btcUsdPriceChart": "BTC/USD Price Chart",
     "chartComingSoon": "Chart coming soon",
     "btcUsd": "BTC/USD",
+    "bitcoin": "Bitcoin",
     "strike": "Strike",
     "days": "{count} Days"
   },

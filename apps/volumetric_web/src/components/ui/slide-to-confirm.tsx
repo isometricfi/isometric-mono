@@ -74,7 +74,7 @@ export function SlideToConfirm({
     <div
       ref={trackRef}
       className={cn(
-        "relative h-12 w-full rounded-xl overflow-hidden select-none touch-none shadow-lg shadow-primary/20",
+        "relative h-12 w-full rounded-xl overflow-hidden select-none touch-none",
         disabled ? "bg-muted" : "bg-muted/70 border border-border",
       )}
     >
@@ -116,7 +116,7 @@ export function SlideToConfirm({
         onDragEnd={handleDragEnd}
         whileTap={isDraggable ? { scale: 0.96 } : undefined}
         className={cn(
-          "absolute top-[3px] left-[3px] shadow-md transition-none h-10",
+          "absolute top-[2.5px] left-[3px] shadow-md transition-none h-10",
           isDraggable && "cursor-grab active:cursor-grabbing",
         )}
       >

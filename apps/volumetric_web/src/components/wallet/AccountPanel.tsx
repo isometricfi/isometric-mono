@@ -16,6 +16,7 @@ import { useLocale, useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
 import { useMediaQuery } from "react-responsive";
 import { ShareSummaryModal } from "@/app/[locale]/history/_components/ShareSummaryModal";
+import { useProMode } from "@/components/layout/ProModeProvider";
 import { ThemeToggle } from "@/components/layout/ThemeToggle";
 import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -77,6 +78,7 @@ function AccountPanelContent({ onDisconnect }: { onDisconnect: () => void }) {
   const tSettings = useTranslations("Settings");
   const { openModal } = useModal();
   const [isPending, startTransition] = useTransition();
+  const { isProMode, setProMode } = useProMode();
 
   const [showSettings, setShowSettings] = useState(false);
   const [showDepositModal, setShowDepositModal] = useState(false);
@@ -337,6 +339,27 @@ function AccountPanelContent({ onDisconnect }: { onDisconnect: () => void }) {
                       className="h-8 px-3"
                     >
                       中文
+                    </Button>
+                  </div>
+                </div>
+                <div className="flex items-center justify-between bg-secondary/50 rounded-lg px-4 py-3">
+                  <span className="text-sm font-medium">{tSettings("proMode")}</span>
+                  <div className="flex gap-2">
+                    <Button
+                      variant={!isProMode ? "default" : "ghost"}
+                      size="sm"
+                      onClick={() => setProMode(false)}
+                      className="h-8 px-3"
+                    >
+                      {tSettings("off")}
+                    </Button>
+                    <Button
+                      variant={isProMode ? "default" : "ghost"}
+                      size="sm"
+                      onClick={() => setProMode(true)}
+                      className="h-8 px-3"
+                    >
+                      {tSettings("on")}
                     </Button>
                   </div>
                 </div>

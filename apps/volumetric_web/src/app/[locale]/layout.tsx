@@ -1,12 +1,13 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import { headers } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { notFound } from "next/navigation";
 import Script from "next/script";
 import { NextIntlClientProvider } from "next-intl";
 import { getMessages, getTranslations, setRequestLocale } from "next-intl/server";
 import { Footer } from "@/components/layout/Footer";
 import { Navbar } from "@/components/layout/Navbar";
+import { PRO_MODE_COOKIE, ProModeProvider } from "@/components/layout/ProModeProvider";
 import { ThemeProvider } from "@/components/layout/ThemeProvider";
 import { routing } from "@/i18n/routing";
 import Providers from "../providers";
@@ -105,6 +106,8 @@ export default async function LocaleLayout({
 
   const messages = await getMessages();
   const nonce = (await headers()).get("x-nonce") ?? undefined;
+  const cookieStore = await cookies();
+  const initialProMode = cookieStore.get(PRO_MODE_COOKIE)?.value === "1";
 
   return (
     <html lang={locale} suppressHydrationWarning>
@@ -135,13 +138,15 @@ export default async function LocaleLayout({
         )}
         <NextIntlClientProvider messages={messages}>
           <ThemeProvider nonce={nonce}>
-            <Providers>
-              <div className="flex min-h-screen flex-col px-4">
-                <Navbar />
-                <main className="flex-1">{children}</main>
-                <Footer />
-              </div>
-            </Providers>
+            <ProModeProvider initial={initialProMode}>
+              <Providers>
+                <div className="flex min-h-screen flex-col px-4">
+                  <Navbar />
+                  <main className="flex-1">{children}</main>
+                  <Footer />
+                </div>
+              </Providers>
+            </ProModeProvider>
           </ThemeProvider>
         </NextIntlClientProvider>
       </body>

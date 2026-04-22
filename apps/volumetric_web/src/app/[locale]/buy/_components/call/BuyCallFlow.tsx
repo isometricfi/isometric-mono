@@ -5,6 +5,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
+import { useMediaQuery } from "react-responsive";
 import { BTCPriceChart } from "@/components/options/BTCPriceChart";
 import { MobileAmountInput } from "@/components/options/MobileAmountInput";
 import {
@@ -21,6 +22,7 @@ import {
 } from "@/components/options/MobileFlowParts";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Drawer, DrawerContent, DrawerDescription, DrawerTitle } from "@/components/ui/drawer";
 import { ProgressDots } from "@/components/ui/progress-dots";
 import { SlideToConfirm } from "@/components/ui/slide-to-confirm";
@@ -30,7 +32,7 @@ import { Link } from "@/i18n/routing";
 import { basisPointsToPercent, cn, formatBtc, roundToN, satsToBtc } from "@/lib/utils";
 import { useCallOptionBuyFormModel } from "./_internal/use-call-option-buy-form-model";
 
-interface MobileBuyCallFlowProps {
+interface BuyCallFlowProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
@@ -40,7 +42,8 @@ type StepName = (typeof STEPS)[number];
 
 type BuyModel = ReturnType<typeof useCallOptionBuyFormModel>;
 
-export function MobileBuyCallFlow({ open, onOpenChange }: MobileBuyCallFlowProps) {
+export function BuyCallFlow({ open, onOpenChange }: BuyCallFlowProps) {
+  const isMobile = useMediaQuery({ query: "(max-width: 768px)" });
   const t = useTranslations("BuyFlow");
   const tCommon = useTranslations("Common");
   const tOfferResult = useTranslations("OfferResult");
@@ -91,119 +94,120 @@ export function MobileBuyCallFlow({ open, onOpenChange }: MobileBuyCallFlowProps
     model.handleModalClose(false);
   };
 
+  const handleContainerOpenChange = (next: boolean) => {
+    if (!next && isOfferProcessing) return;
+    if (!next) closeFlow();
+    else onOpenChange(next);
+  };
+
+  const body = (
+    <>
+      <div className="flex-1 overflow-y-auto overflow-x-hidden">
+        <AnimatePresence mode="wait" initial={false}>
+          <motion.div
+            key={isReview && isOfferActive ? `review-${offerStep}` : step}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.15, ease: "easeOut" }}
+            className="px-5 py-4 min-h-full flex flex-col"
+          >
+            {step === "termStrike" && <TermStrikeStep model={model} />}
+            {step === "amount" && <AmountStep model={model} />}
+            {step === "review" &&
+              (isOfferActive ? (
+                <FlowOfferStatus
+                  type="buy"
+                  step={offerStep}
+                  errorMessage={model.acceptOffer.error?.message}
+                />
+              ) : (
+                <ReviewStep
+                  model={model}
+                  feePercent={basisPointsToPercent(
+                    Number(config?.fees.profitFeeBasisPoints ?? BigInt(0)),
+                  )}
+                />
+              ))}
+          </motion.div>
+        </AnimatePresence>
+      </div>
+
+      <div className="pt-6 pb-6 px-5 space-y-6 mt-auto shrink-0">
+        <ProgressDots
+          keys={STEPS}
+          current={stepIndex}
+          onDotClick={(i) => i < stepIndex && !isOfferActive && setStepIndex(i)}
+          isClickable={(i) => i < stepIndex && !isOfferActive}
+        />
+
+        <div className="flex gap-3">
+          {!isFirstStep && !isOfferActive && (
+            <Button variant="outline" onClick={goBack} className="shrink-0 w-12" size={"xl"}>
+              <ArrowLeft className="size-5" />
+            </Button>
+          )}
+          {isReview && isOfferSuccess ? (
+            <>
+              <Button asChild className="flex-1" size={"xl"}>
+                <Link href="/portfolio" onClick={closeFlow}>
+                  {tOfferResult("viewPortfolio")}
+                  <ArrowRight className="size-4" />
+                </Link>
+              </Button>
+              <Button variant="outline" className="flex-1" size={"xl"} onClick={closeFlow}>
+                {tOfferResult("buyAnother")}
+              </Button>
+            </>
+          ) : isReview && isOfferError ? (
+            <>
+              <Button variant="outline" className="flex-1" size={"xl"} onClick={closeFlow}>
+                {tCommon("close")}
+              </Button>
+              <Button className="flex-1" size={"xl"} onClick={tryAgain}>
+                {tCommon("tryAgain")}
+              </Button>
+            </>
+          ) : isReview ? (
+            <div className="flex-1">
+              <SlideToConfirm
+                label={model.getButtonText()}
+                disabled={!!primaryWallet && !model.needDepositMore && model.isSubmitDisabled}
+                isProcessing={isOfferProcessing}
+                onConfirm={handleSlideConfirm}
+              />
+            </div>
+          ) : (
+            <Button onClick={goNext} disabled={!canAdvance} size="xl" className="flex-1">
+              {t("continue")}
+            </Button>
+          )}
+        </div>
+      </div>
+    </>
+  );
+
   return (
     <>
-      <Drawer
-        open={open}
-        onOpenChange={(next) => {
-          if (!next && isOfferProcessing) return;
-          if (!next) closeFlow();
-          else onOpenChange(next);
-        }}
-      >
-        <DrawerContent className="min-h-[95dvh] p-0 flex flex-col">
-          <DrawerTitle className="sr-only">{t("title")}</DrawerTitle>
-          <DrawerDescription className="sr-only">{t("description")}</DrawerDescription>
-
-          <div className="flex-1 overflow-y-auto overflow-x-hidden">
-            <AnimatePresence mode="wait" initial={false}>
-              <motion.div
-                key={isReview && isOfferActive ? `review-${offerStep}` : step}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.15, ease: "easeOut" }}
-                className="px-5 py-4 min-h-full flex flex-col"
-              >
-                {step === "termStrike" && <TermStrikeStep model={model} />}
-                {step === "amount" && <AmountStep model={model} />}
-                {step === "review" &&
-                  (isOfferActive ? (
-                    <FlowOfferStatus
-                      type="buy"
-                      step={offerStep}
-                      errorMessage={model.acceptOffer.error?.message}
-                    />
-                  ) : (
-                    <ReviewStep
-                      model={model}
-                      feePercent={basisPointsToPercent(
-                        Number(config?.fees.profitFeeBasisPoints ?? BigInt(0)),
-                      )}
-                    />
-                  ))}
-              </motion.div>
-            </AnimatePresence>
-          </div>
-
-          <div className="pt-6 pb-6 px-5 space-y-6 mt-auto shrink-0">
-            <ProgressDots
-              keys={STEPS}
-              current={stepIndex}
-              onDotClick={(i) => i < stepIndex && !isOfferActive && setStepIndex(i)}
-              isClickable={(i) => i < stepIndex && !isOfferActive}
-            />
-
-            <div className="flex gap-3">
-              {!isFirstStep && !isOfferActive && (
-                <Button variant="outline" size="icon" onClick={goBack} className="shrink-0 size-12">
-                  <ArrowLeft className="size-5" />
-                </Button>
-              )}
-              {isReview && isOfferSuccess ? (
-                <>
-                  <Button asChild className="flex-1 h-12 text-base font-semibold">
-                    <Link href="/portfolio" onClick={closeFlow}>
-                      {tOfferResult("viewPortfolio")}
-                      <ArrowRight className="size-4" />
-                    </Link>
-                  </Button>
-                  <Button
-                    variant="outline"
-                    className="flex-1 h-12 text-base font-semibold"
-                    onClick={closeFlow}
-                  >
-                    {tOfferResult("buyAnother")}
-                  </Button>
-                </>
-              ) : isReview && isOfferError ? (
-                <>
-                  <Button
-                    variant="outline"
-                    className="flex-1 h-12 text-base font-semibold"
-                    onClick={closeFlow}
-                  >
-                    {tCommon("close")}
-                  </Button>
-                  <Button
-                    className="flex-1 h-12 text-base font-semibold shadow-lg shadow-primary/20"
-                    onClick={tryAgain}
-                  >
-                    {tCommon("tryAgain")}
-                  </Button>
-                </>
-              ) : isReview ? (
-                <div className="flex-1">
-                  <SlideToConfirm
-                    label={model.getButtonText()}
-                    disabled={!!primaryWallet && !model.needDepositMore && model.isSubmitDisabled}
-                    isProcessing={isOfferProcessing}
-                    onConfirm={handleSlideConfirm}
-                  />
-                </div>
-              ) : (
-                <Button
-                  onClick={goNext}
-                  disabled={!canAdvance}
-                  className="flex-1 h-12 text-base font-semibold shadow-lg shadow-primary/20"
-                >
-                  {t("continue")}
-                </Button>
-              )}
-            </div>
-          </div>
-        </DrawerContent>
-      </Drawer>
+      {isMobile ? (
+        <Drawer open={open} onOpenChange={handleContainerOpenChange}>
+          <DrawerContent className="min-h-[95dvh] p-0 flex flex-col">
+            <DrawerTitle className="sr-only">{t("title")}</DrawerTitle>
+            <DrawerDescription className="sr-only">{t("description")}</DrawerDescription>
+            {body}
+          </DrawerContent>
+        </Drawer>
+      ) : (
+        <Dialog open={open} onOpenChange={handleContainerOpenChange}>
+          <DialogContent
+            showCloseButton={false}
+            className="sm:max-w-[500px] p-0 gap-0 h-[min(85dvh,680px)] flex flex-col overflow-hidden"
+          >
+            <DialogTitle className="sr-only">{t("title")}</DialogTitle>
+            {body}
+          </DialogContent>
+        </Dialog>
+      )}
 
       <DepositModal open={depositModalOpen} onOpenChange={setDepositModalOpen} />
     </>

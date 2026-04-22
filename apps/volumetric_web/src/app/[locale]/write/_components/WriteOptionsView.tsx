@@ -1,9 +1,10 @@
 "use client";
 
-import { HelpCircle, Plus } from "lucide-react";
+import { useDynamicContext } from "@dynamic-labs/sdk-react-core";
+import { HelpCircle, PencilLine, Wallet } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
-import { useMediaQuery } from "react-responsive";
+import { useProMode } from "@/components/layout/ProModeProvider";
 import { BTCPriceChart } from "@/components/options/BTCPriceChart";
 import { OptionsViewer } from "@/components/options/OptionsViewer";
 import { OptionTypeToggle } from "@/components/options/OptionTypeToggle";
@@ -12,14 +13,18 @@ import { OnboardingContent } from "@/components/wallet/OnboardingModal";
 import { useModal } from "@/hooks";
 import type { OptionType } from "@/types/ui";
 import { CallWriteOptionForm } from "./call/CallWriteOptionForm";
-import { MobileWriteCallFlow } from "./call/MobileWriteCallFlow";
+import { WriteCallFlow } from "./call/WriteCallFlow";
 
 export function WriteOptionsView() {
   const t = useTranslations("Pages");
   const [optionType, setOptionType] = useState<OptionType>("call");
   const [flowOpen, setFlowOpen] = useState(false);
   const { openModal } = useModal();
-  const isMobile = useMediaQuery({ query: "(max-width: 768px)" });
+  const { isProMode } = useProMode();
+  const { primaryWallet, setShowAuthFlow } = useDynamicContext();
+  const isConnected = !!primaryWallet;
+  const handleCtaClick = () => (isConnected ? setFlowOpen(true) : setShowAuthFlow(true));
+  const ctaLabel = isConnected ? t("writeCta") : t("connectToWriteCta");
 
   const isPutDisabled = optionType === "put";
 
@@ -49,29 +54,33 @@ export function WriteOptionsView() {
       )}
 
       {!isPutDisabled &&
-        (isMobile ? (
-          <>
-            <div className="mb-6">
-              <Button
-                onClick={() => setFlowOpen(true)}
-                className="w-full h-12 text-base font-semibold shadow-lg shadow-primary/20"
-              >
-                <Plus className="size-5" />
-                {t("writeCta")}
-              </Button>
-            </div>
-
-            <OptionsViewer mode="writer" />
-
-            {flowOpen && <MobileWriteCallFlow open={flowOpen} onOpenChange={setFlowOpen} />}
-          </>
-        ) : (
+        (isProMode ? (
           <div className="space-y-6">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <CallWriteOptionForm />
               <BTCPriceChart mode="writer" />
             </div>
             <OptionsViewer mode="writer" />
+          </div>
+        ) : (
+          <div className="space-y-6">
+            <div className="relative">
+              <BTCPriceChart mode="writer" showStrikeOverlay={false} termDaysOverride={14} />
+              <Button
+                onClick={handleCtaClick}
+                size={"lg"}
+                className="absolute bottom-5 right-4.5 md:flex hidden"
+              >
+                {isConnected ? <PencilLine className="size-4" /> : <Wallet className="size-4" />}
+                {ctaLabel}
+              </Button>
+              <Button onClick={handleCtaClick} className="w-full mt-5 md:hidden">
+                {isConnected ? <PencilLine className="size-4" /> : <Wallet className="size-4" />}
+                {ctaLabel}
+              </Button>
+            </div>
+            <OptionsViewer mode="writer" />
+            {flowOpen && <WriteCallFlow open={flowOpen} onOpenChange={setFlowOpen} />}
           </div>
         ))}
     </>

@@ -181,7 +181,7 @@ export function MobileAmountInput({
               key={fraction}
               variant="outline"
               onClick={() => handlePreset(fraction)}
-              className={cn("tabular-nums", active && "ring-1")}
+              className={cn("tabular-nums", active && "ring-2 ring-primary")}
             >
               {isMax ? tForms("max") : `${Math.round(fraction * 100)}%`}
             </Button>
