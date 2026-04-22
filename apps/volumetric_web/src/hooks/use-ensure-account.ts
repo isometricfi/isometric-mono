@@ -68,20 +68,26 @@ export function useEnsureAccount() {
 
       setStep("awaiting_signature");
       const message = unwrapResult(await canister.get_message_to_sign(address));
-      const signature = await primaryWallet.signMessage(message, { addressType: "payment" });
+      const signature = await primaryWallet.signMessage(message, {
+        addressType: "payment",
+      });
 
       if (!signature) {
         throw new Error("Signature declined");
       }
 
       setStep("creating");
-      return trpcClient.account.createAccount.mutate({ address, signature, inviteCode });
+      return trpcClient.account.createAccount.mutate({
+        address,
+        signature,
+        inviteCode,
+      });
     },
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: [["account"]] });
       clearInviteCodeFromSession();
       setStep("done");
-      setTimeout(() => openOnboardingModal(), 500);
+      openOnboardingModal();
     },
     onError: (err) => {
       setStep("error");
@@ -90,11 +96,7 @@ export function useEnsureAccount() {
   });
 
   useEffect(() => {
-    if (isLoadingAccount) {
-      return;
-    }
-
-    if (!primaryWallet || !address) {
+    if (!primaryWallet || !isBitcoinWallet(primaryWallet)) {
       attemptedAddressRef.current = null;
       setStep("idle");
       setError(null);
@@ -108,12 +110,13 @@ export function useEnsureAccount() {
       return;
     }
 
+    setStep((current) => (current === "idle" ? "checking" : current));
+
     if (shouldCreate) {
       attemptedAddressRef.current = address;
-      setStep("checking");
       createAccountMutation.mutate();
     }
-  }, [isLoadingAccount, primaryWallet, address, accountData, shouldCreate, createAccountMutation]);
+  }, [primaryWallet, address, accountData, shouldCreate, createAccountMutation]);
 
   const isOpen = step !== "idle" && step !== "done";
 
