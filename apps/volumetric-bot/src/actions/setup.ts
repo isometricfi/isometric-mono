@@ -1,5 +1,5 @@
 import type { _SERVICE } from "@volumetric/canister-types";
-import { getCreateAccountMessage } from "../canister-client.js";
+import { computeExpiresAtSeconds, getCreateAccountMessage } from "../canister-client.js";
 import { log, withSpan } from "../telemetry.js";
 import type { TRPCClient } from "../trpc-client.js";
 import type { BotWallet } from "../wallet.js";
@@ -27,12 +27,14 @@ export async function setup(actor: _SERVICE, trpc: TRPCClient, wallet: BotWallet
 
     log("info", "Creating new account", { address: wallet.address });
 
-    const message = await getCreateAccountMessage(actor, wallet.address);
+    const expiresAtSeconds = computeExpiresAtSeconds();
+    const message = await getCreateAccountMessage(actor, wallet.address, null, expiresAtSeconds);
     const signature = wallet.signMessage(message);
 
     const result = await trpc.account.createAccount.mutate({
       address: wallet.address,
       signature,
+      expiresAtSeconds: expiresAtSeconds.toString(),
     });
 
     const depositInfo = await trpc.account.getDepositAddress.query({

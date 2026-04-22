@@ -4,6 +4,7 @@ import { isBitcoinWallet } from "@dynamic-labs/bitcoin";
 import { useDynamicContext } from "@dynamic-labs/sdk-react-core";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { unwrapResult } from "@volumetric/canister-types";
+import { computeExpiresAtSeconds } from "@/lib/use-cases/_shared/wallet-proof";
 import type { Output as WithdrawOutput } from "@/lib/use-cases/account/withdraw/schema";
 import { trpcClient } from "@/trpc/react";
 import { useBtcAddress } from "../queries/use-btc-address";
@@ -35,8 +36,9 @@ export function useWithdraw() {
         throw new Error("Enter an amount");
       }
 
+      const expiresAtSeconds = computeExpiresAtSeconds();
       const message = unwrapResult(
-        await canister.get_withdraw_message(address, btcAddress, amountSats),
+        await canister.get_withdraw_message(address, btcAddress, amountSats, expiresAtSeconds),
       );
       const signature = await primaryWallet.signMessage(message, { addressType: "payment" });
 
@@ -47,6 +49,7 @@ export function useWithdraw() {
       return trpcClient.account.withdraw.mutate({
         address,
         signature,
+        expiresAtSeconds: expiresAtSeconds.toString(),
         btcAddress,
         amount: amountSats.toString(),
       });

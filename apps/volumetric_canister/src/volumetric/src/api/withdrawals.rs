@@ -1,5 +1,7 @@
-use crate::auth::types::{AuthenticatedPayload, SignableAction, WalletKey, WithdrawCkbtcRequest};
-use crate::auth::{build_challenge_context, verify_btc_signature};
+use crate::auth::types::{AuthenticatedPayload, WalletKey, WithdrawCkbtcRequest};
+use crate::auth::{
+    build_challenge_context, build_challenge_message, ensure_challenge_fresh, verify_btc_signature,
+};
 use crate::errors::{error_codes, VolumetricError};
 use crate::guards::{is_controller, is_whitelisted, no_replicated_call};
 use crate::journaling::OperationId;
@@ -14,14 +16,16 @@ pub fn get_withdraw_message(
     address: String,
     btc_address: String,
     amount: u64,
+    expires_at_seconds: u64,
 ) -> Result<String, VolumetricError> {
     let wallet_key = WalletKey::try_from_address(&address)?;
-    let context = build_challenge_context(&wallet_key);
+    let context = build_challenge_context(&wallet_key, expires_at_seconds);
     let req = WithdrawCkbtcRequest {
         btc_address,
         amount,
+        expires_at_seconds,
     };
-    Ok(req.signing_message(&address, &context))
+    build_challenge_message(&req, &address, &context)
 }
 
 #[ic_cdk::update]
@@ -33,8 +37,10 @@ pub fn withdraw_ckbtc(
     let address = &req.wallet_proof.address;
     let wallet_key = WalletKey::try_from_address(address)?;
 
-    let context = build_challenge_context(&wallet_key);
-    let reconstructed_message = req.data.signing_message(address, &context);
+    ensure_challenge_fresh(req.data.expires_at_seconds)?;
+
+    let context = build_challenge_context(&wallet_key, req.data.expires_at_seconds);
+    let reconstructed_message = build_challenge_message(&req.data, address, &context)?;
 
     verify_btc_signature(address, &reconstructed_message, &req.wallet_proof.signature)?;
 

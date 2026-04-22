@@ -3,6 +3,7 @@ import { unwrapResult } from "@volumetric/canister-types";
 import { getCanisterActor } from "@/lib/canister-server";
 import { withSpan } from "@/lib/telemetry/withSpan";
 import { pollOperationStatusUntilTerminal } from "../../_shared/poll-operation-status";
+import { toCanisterWalletProof } from "../../_shared/wallet-proof";
 import { mapResult } from "./mapper";
 import type { Input, Output } from "./schema";
 
@@ -13,12 +14,13 @@ export async function acceptOffers(input: Input): Promise<Output> {
     const actor = await getCanisterActor();
 
     const result = await actor.accept_offers({
-      wallet_proof: { address: input.address, signature: input.signature },
+      wallet_proof: toCanisterWalletProof(input),
       data: {
         items: input.items.map((item) => ({
           offer_id: BigInt(item.offerId),
           quantity: BigInt(item.quantity),
         })),
+        expires_at_seconds: BigInt(input.expiresAtSeconds),
       },
     });
 

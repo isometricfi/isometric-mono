@@ -1,9 +1,8 @@
 import { z } from "zod";
 import { INVITE_CODE_PATTERN } from "@/lib/referrals/invite-code";
+import { walletProofInputSchema } from "../../_shared/wallet-proof";
 
-export const inputSchema = z.object({
-  address: z.string().min(1),
-  signature: z.string().min(1),
+export const inputSchema = walletProofInputSchema.extend({
   inviteCode: z.string().trim().toUpperCase().regex(INVITE_CODE_PATTERN).optional(),
 });
 

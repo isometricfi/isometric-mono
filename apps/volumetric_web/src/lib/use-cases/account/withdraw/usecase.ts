@@ -3,6 +3,7 @@ import { unwrapResult } from "@volumetric/canister-types";
 import { getCanisterActor } from "@/lib/canister-server";
 import { withSpan } from "@/lib/telemetry/withSpan";
 import { pollOperationStatusUntilTerminal } from "../../_shared/poll-operation-status";
+import { toCanisterWalletProof } from "../../_shared/wallet-proof";
 import { mapResult } from "./mapper";
 import type { Input, Output } from "./schema";
 
@@ -16,8 +17,9 @@ export async function withdraw(input: Input): Promise<Output> {
       data: {
         btc_address: input.btcAddress,
         amount: BigInt(input.amount),
+        expires_at_seconds: BigInt(input.expiresAtSeconds),
       },
-      wallet_proof: { address: input.address, signature: input.signature },
+      wallet_proof: toCanisterWalletProof(input),
     });
 
     const receipt = unwrapResult(result);

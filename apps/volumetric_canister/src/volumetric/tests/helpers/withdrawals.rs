@@ -8,11 +8,18 @@ use volumetric::{
 
 use crate::common::{wallets, TestEnv, TestWallet};
 
+const SIGNING_WINDOW_SECONDS: u64 = 300;
+
+fn expires_at_seconds(env: &TestEnv) -> u64 {
+    env.get_time_ns() / 1_000_000_000 + SIGNING_WINDOW_SECONDS
+}
+
 pub fn get_withdraw_message(
     env: &TestEnv,
     address: &str,
     btc_address: &str,
     amount_sats: u64,
+    expires_at_seconds: u64,
 ) -> String {
     let response = env
         .pic
@@ -20,13 +27,15 @@ pub fn get_withdraw_message(
             env.volumetric_canister,
             candid::Principal::anonymous(),
             "get_withdraw_message",
-            candid::encode_args((address.to_string(), btc_address.to_string(), amount_sats))
-                .unwrap(),
+            candid::encode_args((
+                address.to_string(),
+                btc_address.to_string(),
+                amount_sats,
+                expires_at_seconds,
+            ))
+            .unwrap(),
         )
         .expect("Query failed");
-    if let Ok(message) = Decode!(&response, String) {
-        return message;
-    }
 
     let result_message: Result<String, VolumetricError> =
         Decode!(&response, Result<String, VolumetricError>).unwrap();
@@ -39,13 +48,15 @@ pub fn withdraw_ckbtc(
     btc_address: &str,
     amount_sats: u64,
 ) -> Result<WithdrawReceipt, VolumetricError> {
-    let message = get_withdraw_message(env, &wallet.address, btc_address, amount_sats);
+    let expires_at = expires_at_seconds(env);
+    let message = get_withdraw_message(env, &wallet.address, btc_address, amount_sats, expires_at);
     let signature = wallets::sign_message(wallet, &message);
 
     let payload = AuthenticatedPayload {
         data: WithdrawCkbtcRequest {
             btc_address: btc_address.to_string(),
             amount: amount_sats,
+            expires_at_seconds: expires_at,
         },
         wallet_proof: WalletProof {
             address: wallet.address.clone(),

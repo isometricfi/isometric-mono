@@ -38,6 +38,7 @@ interface MockAcceptOfferTrpc {
 
 vi.mock("../canister-client.js", () => ({
   getAcceptOffersMessage: vi.fn().mockResolvedValue("mock-accept-message"),
+  computeExpiresAtSeconds: vi.fn().mockReturnValue(BigInt(1_700_000_000)),
 }));
 
 vi.mock("../telemetry.js", () => ({

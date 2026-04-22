@@ -35,6 +35,7 @@ interface MockCreateOfferTrpc {
 // Mock dependencies
 vi.mock("../canister-client.js", () => ({
   getCreateOfferMessage: vi.fn().mockResolvedValue("mock-message-to-sign"),
+  computeExpiresAtSeconds: vi.fn().mockReturnValue(BigInt(1_700_000_000)),
 }));
 
 vi.mock("../telemetry.js", () => ({

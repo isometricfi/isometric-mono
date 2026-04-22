@@ -8,7 +8,10 @@ export interface AcceptOffersReceipt {
   'fill_group_id' : bigint,
   'operation_id' : Uint8Array | number[],
 }
-export interface AcceptOffersRequest { 'items' : Array<AcceptOfferItem> }
+export interface AcceptOffersRequest {
+  'expires_at_seconds' : bigint,
+  'items' : Array<AcceptOfferItem>,
+}
 export interface AcceptOffersResult {
   'fill_group_id' : bigint,
   'active_options' : Array<ActiveOption>,
@@ -107,7 +110,10 @@ export interface AuthenticatedPayload_6 {
 }
 export type BtcNetwork = { 'Mainnet' : null } |
   { 'Testnet' : null };
-export interface CancelOfferRequest { 'offer_id' : bigint }
+export interface CancelOfferRequest {
+  'expires_at_seconds' : bigint,
+  'offer_id' : bigint,
+}
 export interface ClearStorageResponse {
   'options_cleared' : bigint,
   'offers_cleared' : bigint,
@@ -124,13 +130,17 @@ export interface CreateOfferRequest {
   'option_type' : OptionType,
   'asset' : Asset,
   'offer_valid_until' : bigint,
+  'expires_at_seconds' : bigint,
   'strike_basis_points' : number,
   'premium_basis_points' : number,
   'quantity' : bigint,
   'option_duration_seconds' : bigint,
 }
 export interface CreateOfferResponse { 'offer' : Offer }
-export interface CreateProfileRequest { 'invite_code' : [] | [string] }
+export interface CreateProfileRequest {
+  'invite_code' : [] | [string],
+  'expires_at_seconds' : bigint,
+}
 export interface DepositInfo { 'account' : Account, 'btc_address' : string }
 export interface ErrorDetails { 'caller' : [] | [string] }
 export interface Event {
@@ -433,7 +443,10 @@ export interface TradingLimits {
   'premium_basis_points' : Range_1,
   'option_duration_seconds' : Range,
 }
-export interface UpdateUsernameRequest { 'username' : string }
+export interface UpdateUsernameRequest {
+  'username' : string,
+  'expires_at_seconds' : bigint,
+}
 export interface UserBalanceInfo {
   'total' : bigint,
   'locked' : bigint,
@@ -476,6 +489,7 @@ export type WalExecutionOutcome = { 'SucceededAlready' : null } |
   { 'SkippedAlreadyInFlight' : null };
 export interface WalletProof { 'signature' : string, 'address' : string }
 export interface WithdrawCkbtcRequest {
+  'expires_at_seconds' : bigint,
   'amount' : bigint,
   'btc_address' : string,
 }
@@ -517,7 +531,7 @@ export interface _SERVICE {
   'create_offer' : ActorMethod<[AuthenticatedPayload_3], Result_5>,
   'get_accept_by_id' : ActorMethod<[bigint], Result_6>,
   'get_accept_offers_message' : ActorMethod<
-    [string, Array<AcceptOfferItem>],
+    [string, Array<AcceptOfferItem>, bigint],
     Result_7
   >,
   'get_accept_status' : ActorMethod<[Uint8Array | number[]], Result_8>,
@@ -525,11 +539,11 @@ export interface _SERVICE {
   'get_account_nonce' : ActorMethod<[string], Result_3>,
   'get_active_option_by_id' : ActorMethod<[bigint], [] | [ActiveOption]>,
   'get_all_events' : ActorMethod<[[] | [bigint], [] | [number]], Array<Event>>,
-  'get_cancel_offer_message' : ActorMethod<[string, bigint], Result_7>,
+  'get_cancel_offer_message' : ActorMethod<[string, bigint, bigint], Result_7>,
   'get_ckbtc_balance' : ActorMethod<[string], Result_10>,
   'get_config' : ActorMethod<[], Config>,
   'get_create_offer_message' : ActorMethod<
-    [string, bigint, number, number],
+    [string, bigint, number, number, bigint, bigint, bigint],
     Result_7
   >,
   'get_deposit_address' : ActorMethod<[string], Result_11>,
@@ -543,7 +557,10 @@ export interface _SERVICE {
   'get_failed_withdrawals' : ActorMethod<[], Result_14>,
   'get_feature_flags' : ActorMethod<[], FeatureFlags>,
   'get_fee_config' : ActorMethod<[], FeeConfig>,
-  'get_message_to_sign' : ActorMethod<[string], Result_7>,
+  'get_message_to_sign' : ActorMethod<
+    [string, [] | [string], bigint],
+    Result_7
+  >,
   'get_my_events' : ActorMethod<[[] | [bigint], [] | [number]], Array<Event>>,
   'get_my_offers' : ActorMethod<[string], Result_15>,
   'get_my_options' : ActorMethod<[string], Result_16>,
@@ -564,8 +581,14 @@ export interface _SERVICE {
   'get_settlement_status' : ActorMethod<[Uint8Array | number[]], Result_19>,
   'get_trading_limits' : ActorMethod<[], TradingLimits>,
   'get_user_balance' : ActorMethod<[string], Result_20>,
-  'get_username_update_message' : ActorMethod<[string, string], Result_7>,
-  'get_withdraw_message' : ActorMethod<[string, string, bigint], Result_7>,
+  'get_username_update_message' : ActorMethod<
+    [string, string, bigint],
+    Result_7
+  >,
+  'get_withdraw_message' : ActorMethod<
+    [string, string, bigint, bigint],
+    Result_7
+  >,
   'get_withdraw_status' : ActorMethod<[Uint8Array | number[]], Result_21>,
   'get_withdrawal_by_id' : ActorMethod<[bigint], Result_22>,
   'greet' : ActorMethod<[string], string>,

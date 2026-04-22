@@ -12,7 +12,12 @@ use volumetric::{
 use crate::common::{wallets, TestEnv, TestWallet};
 
 const ONE_HOUR_NS: u64 = 3_600_000_000_000;
+const SIGNING_WINDOW_SECONDS: u64 = 300;
 const MAX_ACCEPT_STATUS_POLLS: usize = 20;
+
+fn expires_at_seconds(env: &TestEnv) -> u64 {
+    env.get_time_ns() / 1_000_000_000 + SIGNING_WINDOW_SECONDS
+}
 
 pub fn get_create_offer_message(
     env: &TestEnv,
@@ -20,6 +25,9 @@ pub fn get_create_offer_message(
     quantity: u64,
     strike_bps: u16,
     premium_bps: u16,
+    option_duration_seconds: u64,
+    offer_valid_until: u64,
+    expires_at_seconds: u64,
 ) -> String {
     let response = env
         .pic
@@ -27,7 +35,16 @@ pub fn get_create_offer_message(
             env.volumetric_canister,
             candid::Principal::anonymous(),
             "get_create_offer_message",
-            candid::encode_args((address.to_string(), quantity, strike_bps, premium_bps)).unwrap(),
+            candid::encode_args((
+                address.to_string(),
+                quantity,
+                strike_bps,
+                premium_bps,
+                option_duration_seconds,
+                offer_valid_until,
+                expires_at_seconds,
+            ))
+            .unwrap(),
         )
         .expect("Query failed");
     Decode!(&response, Result<String, VolumetricError>)
@@ -39,6 +56,7 @@ pub fn get_accept_offers_message(
     env: &TestEnv,
     address: &str,
     items: Vec<AcceptOfferItem>,
+    expires_at_seconds: u64,
 ) -> String {
     let response = env
         .pic
@@ -46,7 +64,7 @@ pub fn get_accept_offers_message(
             env.volumetric_canister,
             candid::Principal::anonymous(),
             "get_accept_offers_message",
-            candid::encode_args((address.to_string(), items)).unwrap(),
+            candid::encode_args((address.to_string(), items, expires_at_seconds)).unwrap(),
         )
         .expect("Query failed");
     Decode!(&response, Result<String, VolumetricError>)
@@ -62,11 +80,21 @@ pub fn create_offer(
     premium_bps: u16,
     duration_secs: u64,
 ) -> Result<CreateOfferResponse, VolumetricError> {
-    let message = get_create_offer_message(env, &wallet.address, quantity, strike_bps, premium_bps);
-    let signature = wallets::sign_message(wallet, &message);
-
-    let now = env.pic.get_time().as_nanos_since_unix_epoch();
+    let now = env.get_time_ns();
     let valid_until = now + ONE_HOUR_NS;
+    let expires_at = expires_at_seconds(env);
+
+    let message = get_create_offer_message(
+        env,
+        &wallet.address,
+        quantity,
+        strike_bps,
+        premium_bps,
+        duration_secs,
+        valid_until,
+        expires_at,
+    );
+    let signature = wallets::sign_message(wallet, &message);
 
     let payload = AuthenticatedPayload {
         data: CreateOfferRequest {
@@ -77,6 +105,7 @@ pub fn create_offer(
             quantity,
             offer_valid_until: valid_until,
             option_duration_seconds: duration_secs,
+            expires_at_seconds: expires_at,
         },
         wallet_proof: WalletProof {
             address: wallet.address.clone(),
@@ -102,11 +131,15 @@ pub fn accept_offers(
     wallet: &TestWallet,
     items: Vec<AcceptOfferItem>,
 ) -> Result<AcceptOffersResult, VolumetricError> {
-    let message = get_accept_offers_message(env, &wallet.address, items.clone());
+    let expires_at = expires_at_seconds(env);
+    let message = get_accept_offers_message(env, &wallet.address, items.clone(), expires_at);
     let signature = wallets::sign_message(wallet, &message);
 
     let payload = AuthenticatedPayload {
-        data: AcceptOffersRequest { items },
+        data: AcceptOffersRequest {
+            items,
+            expires_at_seconds: expires_at,
+        },
         wallet_proof: WalletProof {
             address: wallet.address.clone(),
             signature,
@@ -181,14 +214,19 @@ pub fn get_open_offers(env: &TestEnv) -> Vec<Offer> {
     Decode!(&response, Vec<Offer>).unwrap()
 }
 
-pub fn get_cancel_offer_message(env: &TestEnv, address: &str, offer_id: u64) -> String {
+pub fn get_cancel_offer_message(
+    env: &TestEnv,
+    address: &str,
+    offer_id: u64,
+    expires_at_seconds: u64,
+) -> String {
     let response = env
         .pic
         .query_call(
             env.volumetric_canister,
             candid::Principal::anonymous(),
             "get_cancel_offer_message",
-            candid::encode_args((address.to_string(), offer_id)).unwrap(),
+            candid::encode_args((address.to_string(), offer_id, expires_at_seconds)).unwrap(),
         )
         .expect("Query failed");
     Decode!(&response, Result<String, VolumetricError>)
@@ -201,11 +239,15 @@ pub fn cancel_offer(
     wallet: &TestWallet,
     offer_id: u64,
 ) -> Result<Offer, VolumetricError> {
-    let message = get_cancel_offer_message(env, &wallet.address, offer_id);
+    let expires_at = expires_at_seconds(env);
+    let message = get_cancel_offer_message(env, &wallet.address, offer_id, expires_at);
     let signature = wallets::sign_message(wallet, &message);
 
     let payload = AuthenticatedPayload {
-        data: CancelOfferRequest { offer_id },
+        data: CancelOfferRequest {
+            offer_id,
+            expires_at_seconds: expires_at,
+        },
         wallet_proof: WalletProof {
             address: wallet.address.clone(),
             signature,

@@ -5,6 +5,7 @@ import { useDynamicContext } from "@dynamic-labs/sdk-react-core";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { unwrapResult } from "@volumetric/canister-types";
 import { useState } from "react";
+import { computeExpiresAtSeconds } from "@/lib/use-cases/_shared/wallet-proof";
 import type { Output as CreateOfferOutput } from "@/lib/use-cases/options/create-offer/schema";
 import { trpcClient } from "@/trpc/react";
 import { useBtcAddress } from "../queries/use-btc-address";
@@ -52,12 +53,19 @@ export function useCreateOffer() {
       const premiumBasisPoints = Math.round(premiumPercent * PERCENT_TO_BASIS_POINTS);
       const optionDurationSeconds = BigInt(termDays * SECONDS_PER_DAY);
 
+      const now = BigInt(Date.now()) * BigInt(1_000_000);
+      const offerValidUntil = now + TEN_YEARS_NS;
+      const expiresAtSeconds = computeExpiresAtSeconds();
+
       const message = unwrapResult(
         await canister.get_create_offer_message(
           address,
           quantity,
           strikeBasisPoints,
           premiumBasisPoints,
+          optionDurationSeconds,
+          offerValidUntil,
+          expiresAtSeconds,
         ),
       );
       const signature = await primaryWallet.signMessage(message, { addressType: "payment" });
@@ -68,12 +76,10 @@ export function useCreateOffer() {
 
       setStep("submitting");
 
-      const now = BigInt(Date.now()) * BigInt(1_000_000);
-      const offerValidUntil = now + TEN_YEARS_NS;
-
       return trpcClient.options.createOffer.mutate({
         address,
         signature,
+        expiresAtSeconds: expiresAtSeconds.toString(),
         quantity: quantity.toString(),
         strikeBasisPoints,
         premiumBasisPoints,

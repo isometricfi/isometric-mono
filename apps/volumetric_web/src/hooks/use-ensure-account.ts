@@ -8,6 +8,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { openOnboardingModal } from "@/components/wallet/OnboardingModal";
 import { clearInviteCodeFromSession, readInviteCodeFromSession } from "@/lib/referrals/invite-code";
 import { validateInviteCode } from "@/lib/referrals/validate-invite-code";
+import { computeExpiresAtSeconds } from "@/lib/use-cases/_shared/wallet-proof";
 import type { Output as CreateAccountOutput } from "@/lib/use-cases/account/create-account/schema";
 import { trpcClient } from "@/trpc/react";
 import { useAccount } from "./queries/use-account";
@@ -67,7 +68,14 @@ export function useEnsureAccount() {
       }
 
       setStep("awaiting_signature");
-      const message = unwrapResult(await canister.get_message_to_sign(address));
+      const expiresAtSeconds = computeExpiresAtSeconds();
+      const message = unwrapResult(
+        await canister.get_message_to_sign(
+          address,
+          inviteCode ? [inviteCode] : [],
+          expiresAtSeconds,
+        ),
+      );
       const signature = await primaryWallet.signMessage(message, { addressType: "payment" });
 
       if (!signature) {
@@ -75,7 +83,12 @@ export function useEnsureAccount() {
       }
 
       setStep("creating");
-      return trpcClient.account.createAccount.mutate({ address, signature, inviteCode });
+      return trpcClient.account.createAccount.mutate({
+        address,
+        signature,
+        expiresAtSeconds: expiresAtSeconds.toString(),
+        inviteCode,
+      });
     },
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: [["account"]] });

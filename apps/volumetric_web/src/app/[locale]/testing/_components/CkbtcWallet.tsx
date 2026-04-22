@@ -6,6 +6,7 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { profileFromGetAccountInfoResult, unwrapResult } from "@volumetric/canister-types";
 import { useState } from "react";
 import { useBtcAddress, useCanister } from "@/hooks";
+import { computeExpiresAtSeconds } from "@/lib/use-cases/_shared/wallet-proof";
 import type { Output as WithdrawOutput } from "@/lib/use-cases/account/withdraw/schema";
 import { trpcClient, useTRPC } from "@/trpc/react";
 
@@ -92,8 +93,9 @@ export function CkbtcWallet() {
       if (!withdrawAmount || !withdrawBtcAddress) throw new Error("Missing fields");
 
       const amount = BigInt(withdrawAmount);
+      const expiresAtSeconds = computeExpiresAtSeconds();
       const message = unwrapResult(
-        await canister.get_withdraw_message(address, withdrawBtcAddress, amount),
+        await canister.get_withdraw_message(address, withdrawBtcAddress, amount, expiresAtSeconds),
       );
       const signature = await primaryWallet.signMessage(message, { addressType: "payment" });
 
@@ -104,6 +106,7 @@ export function CkbtcWallet() {
       return trpcClient.account.withdraw.mutate({
         address,
         signature,
+        expiresAtSeconds: expiresAtSeconds.toString(),
         btcAddress: withdrawBtcAddress,
         amount: amount.toString(),
       });

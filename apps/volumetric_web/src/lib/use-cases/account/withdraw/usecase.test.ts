@@ -56,6 +56,7 @@ describe("withdraw usecase", () => {
     const result = await withdraw({
       address: "tb1quser",
       signature: "signature",
+      expiresAtSeconds: "1700000000",
       btcAddress: "tb1qdest",
       amount: "1000",
     });
@@ -93,6 +94,7 @@ describe("withdraw usecase", () => {
     const run = withdraw({
       address: "tb1quser",
       signature: "signature",
+      expiresAtSeconds: "1700000000",
       btcAddress: "tb1qdest",
       amount: "1000",
     });
@@ -131,6 +133,7 @@ describe("withdraw usecase", () => {
     const run = withdraw({
       address: "tb1quser",
       signature: "signature",
+      expiresAtSeconds: "1700000000",
       btcAddress: "tb1qdest",
       amount: "1000",
     });

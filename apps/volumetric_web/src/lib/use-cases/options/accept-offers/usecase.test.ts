@@ -62,6 +62,7 @@ describe("acceptOffers usecase", () => {
     const result = await acceptOffers({
       address: "tb1qbuyer",
       signature: "signature",
+      expiresAtSeconds: "1700000000",
       items: [{ offerId: "1", quantity: "1000" }],
     });
 
@@ -103,6 +104,7 @@ describe("acceptOffers usecase", () => {
     const run = acceptOffers({
       address: "tb1qbuyer",
       signature: "signature",
+      expiresAtSeconds: "1700000000",
       items: [{ offerId: "1", quantity: "1000" }],
     });
 
@@ -142,6 +144,7 @@ describe("acceptOffers usecase", () => {
     const run = acceptOffers({
       address: "tb1qbuyer",
       signature: "signature",
+      expiresAtSeconds: "1700000000",
       items: [{ offerId: "1", quantity: "1000" }],
     });
     const timeoutExpectation = expect(run).rejects.toThrow("terminal state");

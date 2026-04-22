@@ -1,8 +1,7 @@
 import { z } from "zod";
+import { walletProofInputSchema } from "../../_shared/wallet-proof";
 
-export const inputSchema = z.object({
-  address: z.string().min(1),
-  signature: z.string().min(1),
+export const inputSchema = walletProofInputSchema.extend({
   offerId: z.string(),
 });
 

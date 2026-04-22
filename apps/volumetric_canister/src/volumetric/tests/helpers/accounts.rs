@@ -5,19 +5,27 @@ use volumetric::{AuthenticatedPayload, CreateProfileRequest, ProfileInfo, Volume
 
 use crate::common::{wallets, TestEnv, TestWallet};
 
-pub fn get_signing_message(env: &TestEnv, address: &str) -> String {
+const SIGNING_WINDOW_SECONDS: u64 = 300;
+
+fn expires_at_seconds(env: &TestEnv) -> u64 {
+    env.get_time_ns() / 1_000_000_000 + SIGNING_WINDOW_SECONDS
+}
+
+pub fn get_signing_message(
+    env: &TestEnv,
+    address: &str,
+    invite_code: Option<String>,
+    expires_at_seconds: u64,
+) -> String {
     let response = env
         .pic
         .query_call(
             env.volumetric_canister,
             candid::Principal::anonymous(),
             "get_message_to_sign",
-            candid::encode_one(address.to_string()).unwrap(),
+            candid::encode_args((address.to_string(), invite_code, expires_at_seconds)).unwrap(),
         )
         .expect("Query failed");
-    if let Ok(message) = Decode!(&response, String) {
-        return message;
-    }
 
     let result_message: Result<String, VolumetricError> =
         Decode!(&response, Result<String, VolumetricError>).unwrap();
@@ -33,21 +41,26 @@ pub fn create_account_with_invite(
     wallet: &TestWallet,
     invite_code: Option<String>,
 ) -> Result<ProfileInfo, VolumetricError> {
-    let message = get_signing_message(env, &wallet.address);
+    let expires_at = expires_at_seconds(env);
+    let message = get_signing_message(env, &wallet.address, invite_code.clone(), expires_at);
     let signature = wallets::sign_message(wallet, &message);
-    create_account_with_signature(env, &wallet.address, &signature, invite_code)
+    create_account_with_signature(env, wallet, &signature, invite_code, expires_at)
 }
 
 pub fn create_account_with_signature(
     env: &TestEnv,
-    address: &str,
+    wallet: &TestWallet,
     signature: &str,
     invite_code: Option<String>,
+    expires_at_seconds: u64,
 ) -> Result<ProfileInfo, VolumetricError> {
     let payload = AuthenticatedPayload {
-        data: CreateProfileRequest { invite_code },
+        data: CreateProfileRequest {
+            invite_code,
+            expires_at_seconds,
+        },
         wallet_proof: WalletProof {
-            address: address.to_string(),
+            address: wallet.address.clone(),
             signature: signature.to_string(),
         },
     };

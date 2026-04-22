@@ -1,6 +1,7 @@
 import { unwrapResult } from "@volumetric/canister-types";
 import { getCanisterActor } from "@/lib/canister-server";
 import { withSpan } from "@/lib/telemetry/withSpan";
+import { toCanisterWalletProof } from "../../_shared/wallet-proof";
 import type { Input, Output } from "./schema";
 
 const CANCEL_OFFER_SPAN_NAME = "usecase.options.cancel_offer";
@@ -10,8 +11,11 @@ export async function cancelOffer(input: Input): Promise<Output> {
     const actor = await getCanisterActor();
 
     const result = await actor.cancel_offer({
-      wallet_proof: { address: input.address, signature: input.signature },
-      data: { offer_id: BigInt(input.offerId) },
+      wallet_proof: toCanisterWalletProof(input),
+      data: {
+        offer_id: BigInt(input.offerId),
+        expires_at_seconds: BigInt(input.expiresAtSeconds),
+      },
     });
 
     unwrapResult(result);

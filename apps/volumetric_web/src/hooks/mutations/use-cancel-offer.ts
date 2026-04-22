@@ -6,6 +6,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { unwrapResult } from "@volumetric/canister-types";
 import { useState } from "react";
 import { toast } from "sonner";
+import { computeExpiresAtSeconds } from "@/lib/use-cases/_shared/wallet-proof";
 import type { Output as CancelOfferOutput } from "@/lib/use-cases/options/cancel-offer/schema";
 import { trpcClient } from "@/trpc/react";
 import { useBtcAddress } from "../queries/use-btc-address";
@@ -36,8 +37,9 @@ export function useCancelOffer() {
         setStep("signing");
         toastId = toast.loading(`Approve deletion of offer #${offerId}`);
 
+        const expiresAtSeconds = computeExpiresAtSeconds();
         const message = unwrapResult(
-          await canister.get_cancel_offer_message(address, BigInt(offerId)),
+          await canister.get_cancel_offer_message(address, BigInt(offerId), expiresAtSeconds),
         );
         const signature = await primaryWallet.signMessage(message, { addressType: "payment" });
 
@@ -51,6 +53,7 @@ export function useCancelOffer() {
         const result = await trpcClient.options.cancelOffer.mutate({
           address,
           signature,
+          expiresAtSeconds: expiresAtSeconds.toString(),
           offerId: offerId.toString(),
         });
 
