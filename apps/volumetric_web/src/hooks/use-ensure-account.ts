@@ -96,7 +96,9 @@ export function useEnsureAccount() {
   });
 
   useEffect(() => {
-    if (!primaryWallet || !isBitcoinWallet(primaryWallet)) {
+    if (isLoadingAccount) return;
+
+    if (!primaryWallet || !isBitcoinWallet(primaryWallet) || !address) {
       attemptedAddressRef.current = null;
       setStep("idle");
       setError(null);
@@ -110,13 +112,12 @@ export function useEnsureAccount() {
       return;
     }
 
-    setStep((current) => (current === "idle" ? "checking" : current));
-
     if (shouldCreate) {
       attemptedAddressRef.current = address;
+      setStep("checking");
       createAccountMutation.mutate();
     }
-  }, [primaryWallet, address, accountData, shouldCreate, createAccountMutation]);
+  }, [isLoadingAccount, primaryWallet, address, accountData, shouldCreate, createAccountMutation]);
 
   const isOpen = step !== "idle" && step !== "done";
 
