@@ -17,6 +17,7 @@ import Image from "next/image";
 import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { ProgressDots } from "@/components/ui/progress-dots";
 import { SlidingNumber } from "@/components/ui/sliding-number";
 import { useModal } from "@/hooks/use-modal";
 import { RESOURCE_LINKS, SOCIAL_LINKS, XIcon } from "@/lib/site-links";
@@ -368,32 +369,6 @@ const SLIDES = [WelcomeSlide, StrategiesSlide, BuyingSlide, WritingSlide, ReadyS
 
 const SLIDE_KEYS = ["welcome", "strategies", "buying", "writing", "ready"] as const;
 
-function ProgressDots({
-  current,
-  onDotClick,
-}: {
-  current: number;
-  onDotClick: (index: number) => void;
-}) {
-  return (
-    <div className="flex items-center justify-center gap-2">
-      {SLIDE_KEYS.map((key, i) => (
-        <button
-          key={key}
-          type="button"
-          onClick={() => onDotClick(i)}
-          className={cn(
-            "transition-all duration-500 rounded-sm h-1.5",
-            i === current
-              ? "w-8 bg-foreground"
-              : "w-1.5 bg-muted-foreground/30 hover:bg-muted-foreground/50",
-          )}
-        />
-      ))}
-    </div>
-  );
-}
-
 export function OnboardingContent() {
   const t = useTranslations("Onboarding.navigation");
   const [currentSlide, setCurrentSlide] = useState(0);
@@ -451,7 +426,7 @@ export function OnboardingContent() {
       </div>
 
       <div className="pt-6 space-y-6 mt-auto shrink-0">
-        <ProgressDots current={currentSlide} onDotClick={goToSlide} />
+        <ProgressDots keys={SLIDE_KEYS} current={currentSlide} onDotClick={goToSlide} />
 
         <div className="flex gap-3">
           {!isFirstSlide && (

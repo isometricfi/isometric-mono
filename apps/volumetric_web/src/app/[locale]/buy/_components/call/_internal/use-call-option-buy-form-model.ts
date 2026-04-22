@@ -141,12 +141,16 @@ export function useCallOptionBuyFormModel() {
   }, [strikePercents, strikePercent, setChartStrikePercent]);
 
   useEffect(() => {
+    setChartStrikePercent(strikePercent);
+  }, [strikePercent, setChartStrikePercent]);
+
+  useEffect(() => {
     if (maxPremiumAmountSats <= 0) {
       setAmountSats(0);
       return;
     }
 
-    const defaultAmountSats = Math.floor(maxPremiumAmountSats / 2);
+    const defaultAmountSats = Math.floor(maxPremiumAmountSats * 0.75);
     if (defaultAmountSats <= 0) {
       setAmountSats(0);
       return;

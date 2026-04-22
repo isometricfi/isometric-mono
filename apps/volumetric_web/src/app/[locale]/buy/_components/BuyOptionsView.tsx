@@ -1,8 +1,10 @@
 "use client";
 
-import { HelpCircle } from "lucide-react";
+import { useDynamicContext } from "@dynamic-labs/sdk-react-core";
+import { HelpCircle, TrendingUp, Wallet } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
+import { useProMode } from "@/components/layout/ProModeProvider";
 import { BTCPriceChart } from "@/components/options/BTCPriceChart";
 import { OptionsViewer } from "@/components/options/OptionsViewer";
 import { OptionTypeToggle } from "@/components/options/OptionTypeToggle";
@@ -10,12 +12,17 @@ import { Button } from "@/components/ui/button";
 import { OnboardingContent } from "@/components/wallet/OnboardingModal";
 import { useModal } from "@/hooks";
 import type { OptionType } from "@/types/ui";
+import { BuyCallFlow } from "./call/BuyCallFlow";
 import { CallOptionBuyForm } from "./call/CallOptionBuyForm";
 
 export function BuyOptionsView() {
   const t = useTranslations("Pages");
   const [optionType, setOptionType] = useState<OptionType>("call");
+  const [flowOpen, setFlowOpen] = useState(false);
   const { openModal } = useModal();
+  const { isProMode } = useProMode();
+  const { primaryWallet, setShowAuthFlow } = useDynamicContext();
+  const isConnected = !!primaryWallet;
 
   const isPutDisabled = optionType === "put";
 
@@ -44,15 +51,39 @@ export function BuyOptionsView() {
         </div>
       )}
 
-      {!isPutDisabled && (
-        <div className="space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <CallOptionBuyForm />
-            <BTCPriceChart mode="buyer" />
+      {!isPutDisabled &&
+        (isProMode ? (
+          <div className="space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <CallOptionBuyForm />
+              <BTCPriceChart mode="buyer" />
+            </div>
+            <OptionsViewer mode="buyer" />
           </div>
-          <OptionsViewer mode="buyer" />
-        </div>
-      )}
+        ) : (
+          <div className="space-y-6">
+            <div className="relative">
+              <BTCPriceChart mode="buyer" showStrikeOverlay={false} termDaysOverride={14} />
+              <Button
+                onClick={() => (isConnected ? setFlowOpen(true) : setShowAuthFlow(true))}
+                size={"lg"}
+                className="absolute bottom-5 right-4.5 md:flex hidden"
+              >
+                {isConnected ? <TrendingUp className="size-5" /> : <Wallet className="size-5" />}
+                {isConnected ? t("buyCta") : t("connectToBuyCta")}
+              </Button>
+              <Button
+                onClick={() => (isConnected ? setFlowOpen(true) : setShowAuthFlow(true))}
+                className="w-full mt-5 md:hidden"
+              >
+                {isConnected ? <TrendingUp className="size-5" /> : <Wallet className="size-5" />}
+                {isConnected ? t("buyCta") : t("connectToBuyCta")}
+              </Button>
+            </div>
+            <OptionsViewer mode="buyer" />
+            {flowOpen && <BuyCallFlow open={flowOpen} onOpenChange={setFlowOpen} />}
+          </div>
+        ))}
     </>
   );
 }

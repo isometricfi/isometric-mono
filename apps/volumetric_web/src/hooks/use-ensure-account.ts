@@ -68,20 +68,26 @@ export function useEnsureAccount() {
 
       setStep("awaiting_signature");
       const message = unwrapResult(await canister.get_message_to_sign(address));
-      const signature = await primaryWallet.signMessage(message, { addressType: "payment" });
+      const signature = await primaryWallet.signMessage(message, {
+        addressType: "payment",
+      });
 
       if (!signature) {
         throw new Error("Signature declined");
       }
 
       setStep("creating");
-      return trpcClient.account.createAccount.mutate({ address, signature, inviteCode });
+      return trpcClient.account.createAccount.mutate({
+        address,
+        signature,
+        inviteCode,
+      });
     },
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: [["account"]] });
       clearInviteCodeFromSession();
       setStep("done");
-      setTimeout(() => openOnboardingModal(), 500);
+      openOnboardingModal();
     },
     onError: (err) => {
       setStep("error");
@@ -90,11 +96,9 @@ export function useEnsureAccount() {
   });
 
   useEffect(() => {
-    if (isLoadingAccount) {
-      return;
-    }
+    if (isLoadingAccount) return;
 
-    if (!primaryWallet || !address) {
+    if (!primaryWallet || !isBitcoinWallet(primaryWallet) || !address) {
       attemptedAddressRef.current = null;
       setStep("idle");
       setError(null);

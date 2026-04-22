@@ -122,10 +122,33 @@ export function useCallWriteOptionFormModel() {
   }, [strikePercentOptions, strikePercent, setChartStrikePercent]);
 
   useEffect(() => {
+    setChartTermDays(selectedTermDay);
+  }, [selectedTermDay, setChartTermDays]);
+
+  useEffect(() => {
+    setChartStrikePercent(selectedStrikePercent);
+  }, [selectedStrikePercent, setChartStrikePercent]);
+
+  useEffect(() => {
     if (premiumValues.length === 0) return;
     if (premiumValues.includes(premiumPercent)) return;
     setPremiumPercentLocal(getClosestPremiumPercent(premiumPercent, premiumValues));
   }, [premiumPercent, premiumValues]);
+
+  useEffect(() => {
+    if (maxCreateOfferAmountSats <= 0) {
+      setAmountSats(0);
+      return;
+    }
+
+    const defaultAmountSats = Math.floor(maxCreateOfferAmountSats * 0.75);
+    if (defaultAmountSats < minCreateOfferAmountSats) {
+      setAmountSats(0);
+      return;
+    }
+
+    setAmountSats(defaultAmountSats);
+  }, [maxCreateOfferAmountSats, minCreateOfferAmountSats]);
 
   const setTerm = (value: number) => {
     setTermLocal(value);
