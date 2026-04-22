@@ -9,6 +9,9 @@ const nextConfig: NextConfig = {
       {
         pathname: "/api/avatar",
       },
+      {
+        pathname: "/landing/**",
+      },
     ],
   },
 };
