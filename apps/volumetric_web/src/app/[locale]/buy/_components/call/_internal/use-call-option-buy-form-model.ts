@@ -141,6 +141,10 @@ export function useCallOptionBuyFormModel() {
   }, [strikePercents, strikePercent, setChartStrikePercent]);
 
   useEffect(() => {
+    setChartStrikePercent(strikePercent);
+  }, [strikePercent, setChartStrikePercent]);
+
+  useEffect(() => {
     if (maxPremiumAmountSats <= 0) {
       setAmountSats(0);
       return;

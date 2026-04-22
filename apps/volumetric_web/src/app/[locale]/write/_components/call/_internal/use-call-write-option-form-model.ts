@@ -122,6 +122,14 @@ export function useCallWriteOptionFormModel() {
   }, [strikePercentOptions, strikePercent, setChartStrikePercent]);
 
   useEffect(() => {
+    setChartTermDays(selectedTermDay);
+  }, [selectedTermDay, setChartTermDays]);
+
+  useEffect(() => {
+    setChartStrikePercent(selectedStrikePercent);
+  }, [selectedStrikePercent, setChartStrikePercent]);
+
+  useEffect(() => {
     if (premiumValues.length === 0) return;
     if (premiumValues.includes(premiumPercent)) return;
     setPremiumPercentLocal(getClosestPremiumPercent(premiumPercent, premiumValues));

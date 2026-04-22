@@ -201,7 +201,7 @@ export function BuyCallFlow({ open, onOpenChange }: BuyCallFlowProps) {
         <Dialog open={open} onOpenChange={handleContainerOpenChange}>
           <DialogContent
             showCloseButton={false}
-            className="sm:max-w-[500px] p-0 gap-0 h-[min(85dvh,680px)] flex flex-col overflow-hidden"
+            className="sm:max-w-[500px] p-0 gap-0 min-h-[630px] max-h-[630px] flex flex-col overflow-hidden"
           >
             <DialogTitle className="sr-only">{t("title")}</DialogTitle>
             {body}
