@@ -41,7 +41,7 @@ export function HeroSection() {
                 src="/landing/demo-light.png"
                 alt={t("headline")}
                 width={896}
-                height={1240}
+                height={1120}
                 priority
                 sizes="(min-width: 768px) 40vw, 80vw"
                 className="block dark:hidden w-full h-auto drop-shadow-2xl rounded-lg md:rounded-xl overflow-clip"
@@ -50,7 +50,7 @@ export function HeroSection() {
                 src="/landing/demo-dark.png"
                 alt={t("headline")}
                 width={896}
-                height={1240}
+                height={1120}
                 priority
                 sizes="(min-width: 768px) 40vw, 80vw"
                 className="hidden dark:block w-full h-auto drop-shadow-2xl rounded-lg md:rounded-xl overflow-clip"
