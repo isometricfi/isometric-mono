@@ -218,10 +218,13 @@ pub fn build_challenge_message<A: SignableAction>(
 }
 
 fn validate_signable_field(key: &str, value: &str) -> Result<(), VolumetricError> {
-    if value.contains('\n') || value.contains('\r') {
+    if value.contains('\n') || value.contains('\r') || value.contains('=') {
         return Err(VolumetricError::from_def(
             error_codes::INVALID_SIGNING_FIELD,
-            Some(&format!("field '{}' contains a newline", key)),
+            Some(&format!(
+                "field '{}' contains a disallowed character (newline or '=')",
+                key
+            )),
             None,
         ));
     }
@@ -386,6 +389,25 @@ mod tests {
         let context = test_context();
         let malicious = UpdateUsernameRequest {
             username: "foo\nnonce=9999".to_string(),
+            expires_at_seconds: context.expires_at_seconds,
+        };
+
+        // when
+        let result = build_challenge_message(&malicious, VALID_ADDRESS, &context);
+
+        // then
+        assert!(result.is_err());
+    }
+
+    /// Given: an action field whose value contains the '=' delimiter character
+    /// When: build_challenge_message runs
+    /// Then: validate_signable_field rejects it before hashing, matching the documented invariant
+    #[test]
+    fn build_challenge_message_rejects_equals_in_action_field() {
+        // given
+        let context = test_context();
+        let malicious = UpdateUsernameRequest {
+            username: "foo=attacker_controlled".to_string(),
             expires_at_seconds: context.expires_at_seconds,
         };
 
