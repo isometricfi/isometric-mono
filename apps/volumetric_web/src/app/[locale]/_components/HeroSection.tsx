@@ -34,15 +34,16 @@ export function HeroSection() {
             </Link>
           </div>
 
-          <div className="relative mx-auto w-full max-w-[300px] sm:max-w-[340px] md:max-w-[400px]">
+          <div className="relative mx-auto w-full max-w-[300px] sm:max-w-[340px] md:max-w-[380px]">
             <div className="pointer-events-none absolute -inset-8 bg-primary/10 blur-3xl rounded-full" />
-            <div className="relative">
+            <div className="relative ">
               <Image
                 src="/landing/demo-light.png"
                 alt={t("headline")}
                 width={896}
                 height={1120}
                 priority
+                fetchPriority="high"
                 sizes="(min-width: 768px) 40vw, 80vw"
                 className="block dark:hidden w-full h-auto drop-shadow-2xl rounded-lg md:rounded-xl overflow-clip"
               />
@@ -52,8 +53,9 @@ export function HeroSection() {
                 width={896}
                 height={1120}
                 priority
+                fetchPriority="high"
                 sizes="(min-width: 768px) 40vw, 80vw"
-                className="hidden dark:block w-full h-auto drop-shadow-2xl rounded-lg md:rounded-xl overflow-clip"
+                className="hidden dark:block w-full h-auto drop-shadow-2xl rounded-lg md:rounded-xl overflow-clip "
               />
             </div>
           </div>
