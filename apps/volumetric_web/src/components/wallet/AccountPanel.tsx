@@ -12,12 +12,11 @@ import {
   Settings,
   Sparkles,
 } from "lucide-react";
-import { useLocale, useTranslations } from "next-intl";
-import { useState, useTransition } from "react";
+import { useTranslations } from "next-intl";
+import { useState } from "react";
 import { useMediaQuery } from "react-responsive";
 import { ShareSummaryModal } from "@/app/[locale]/history/_components/ShareSummaryModal";
-import { useProMode } from "@/components/layout/ProModeProvider";
-import { ThemeToggle } from "@/components/layout/ThemeToggle";
+import { SystemSettings } from "@/components/layout/SystemSettings";
 import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Drawer, DrawerContent, DrawerTitle } from "@/components/ui/drawer";
@@ -25,7 +24,7 @@ import { DepositModal } from "@/components/wallet/DepositModal";
 import { PendingDeposits } from "@/components/wallet/PendingDeposits";
 import { WithdrawModal } from "@/components/wallet/WithdrawModal";
 import { useAccount, useModal, usePrices, useUpdateUsername } from "@/hooks";
-import { Link, usePathname, useRouter } from "@/i18n/routing";
+import { Link } from "@/i18n/routing";
 import { cn, formatBtcWithSymbolBigint, roundToN } from "@/lib/utils";
 import { Badge } from "../ui/badge";
 
@@ -55,7 +54,7 @@ export function AccountPanel({
       <DrawerContent
         className={cn(
           "flex flex-col",
-          isMobile ? "px-4 pb-4 min-h-[75vh]" : "px-5 py-4 mt-4 mb-4 mr-0  rounded-l-xl ",
+          isMobile ? "px-4 pb-4 min-h-[95vh]" : "px-5 py-4 mt-4 mb-4 mr-0  rounded-l-xl ",
         )}
       >
         <DrawerTitle className="sr-only">Account</DrawerTitle>
@@ -70,15 +69,9 @@ function AccountPanelContent({ onDisconnect }: { onDisconnect: () => void }) {
   const { data: priceData } = usePrices();
   const { data: accountData, isLoading: isLoadingBalance } = useAccount();
   const updateUsername = useUpdateUsername();
-  const router = useRouter();
-  const pathname = usePathname();
-  const locale = useLocale();
   const t = useTranslations("AccountPanel");
   const tCommon = useTranslations("Common");
-  const tSettings = useTranslations("Settings");
   const { openModal } = useModal();
-  const [isPending, startTransition] = useTransition();
-  const { isProMode, setProMode } = useProMode();
 
   const [showSettings, setShowSettings] = useState(false);
   const [showDepositModal, setShowDepositModal] = useState(false);
@@ -99,12 +92,6 @@ function AccountPanelContent({ onDisconnect }: { onDisconnect: () => void }) {
   const addressLabel = connectedAddress ? shortenAddress(connectedAddress) : null;
   const displayName = profile?.username ?? tCommon("wallet");
   const avatarSeed = connectedAddress ?? displayName;
-
-  const handleLocaleChange = (newLocale: string) => {
-    startTransition(() => {
-      router.replace(pathname, { locale: newLocale });
-    });
-  };
 
   return (
     <div className="flex flex-col gap-6 flex-1  ">
@@ -260,8 +247,6 @@ function AccountPanelContent({ onDisconnect }: { onDisconnect: () => void }) {
               }}
               className="absolute inset-0 space-y-4  h-fit"
             >
-              <div className="font-semibold text-lg">{tSettings("title")}</div>
-
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <div className="text-sm text-muted-foreground">{t("username")}</div>
@@ -313,70 +298,24 @@ function AccountPanelContent({ onDisconnect }: { onDisconnect: () => void }) {
                 </Badge>
               )}
 
-              <div className="space-y-2 pt-2">
-                <div className="text-sm text-muted-foreground">{t("system")}</div>
-                <div className="flex items-center justify-between bg-secondary/50 rounded-lg px-4 py-3">
-                  <span className="text-sm font-medium">{tSettings("appearance")}</span>
-                  <ThemeToggle />
-                </div>
-                <div className="flex items-center justify-between bg-secondary/50 rounded-lg px-4 py-3">
-                  <span className="text-sm font-medium">{tSettings("language")}</span>
-                  <div className="flex gap-2">
-                    <Button
-                      variant={locale === "en" ? "default" : "ghost"}
-                      size="sm"
-                      onClick={() => handleLocaleChange("en")}
-                      disabled={isPending}
-                      className="h-8 px-3"
-                    >
-                      EN
-                    </Button>
-                    <Button
-                      variant={locale === "zh" ? "default" : "ghost"}
-                      size="sm"
-                      onClick={() => handleLocaleChange("zh")}
-                      disabled={isPending}
-                      className="h-8 px-3"
-                    >
-                      中文
-                    </Button>
-                  </div>
-                </div>
-                <div className="flex items-center justify-between bg-secondary/50 rounded-lg px-4 py-3">
-                  <span className="text-sm font-medium">{tSettings("proMode")}</span>
-                  <div className="flex gap-2">
-                    <Button
-                      variant={!isProMode ? "default" : "ghost"}
-                      size="sm"
-                      onClick={() => setProMode(false)}
-                      className="h-8 px-3"
-                    >
-                      {tSettings("off")}
-                    </Button>
-                    <Button
-                      variant={isProMode ? "default" : "ghost"}
-                      size="sm"
-                      onClick={() => setProMode(true)}
-                      className="h-8 px-3"
-                    >
-                      {tSettings("on")}
-                    </Button>
-                  </div>
-                </div>
+              <div className="pt-2">
+                <SystemSettings />
               </div>
             </motion.div>
           ) : null}
         </AnimatePresence>
       </div>
 
-      <Button
-        variant="outline"
-        className="w-full mt-auto"
-        onClick={onDisconnect}
-        aria-label={t("disconnect")}
-      >
-        {t("disconnect")} <LogOut className="size-4" />
-      </Button>
+      {!showSettings && (
+        <Button
+          variant="outline"
+          className="w-full mt-auto"
+          onClick={onDisconnect}
+          aria-label={t("disconnect")}
+        >
+          {t("disconnect")} <LogOut className="size-4" />
+        </Button>
+      )}
 
       <DepositModal open={showDepositModal} onOpenChange={setShowDepositModal} />
 

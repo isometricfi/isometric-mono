@@ -169,6 +169,8 @@ export function HeroBgCanvas() {
 
     const onResize = () => {
       const size = getSize();
+      // ignore height-only changes — on mobile these are just the URL bar showing/hiding while scrolling, and resizing the shader causes the grid to visibly jump
+      if (size.width === w) return;
       w = size.width;
       h = size.height;
       renderer.setSize(w, h, false);

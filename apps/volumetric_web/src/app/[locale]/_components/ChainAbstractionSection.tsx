@@ -9,7 +9,7 @@ export function ChainAbstractionSection() {
   const t = useTranslations("Landing");
 
   return (
-    <section className="relative py-24 md:py-32 bg-muted/30">
+    <section className="relative -mx-4 px-4 py-24 md:py-32 bg-muted/30">
       <div className="max-w-5xl mx-auto">
         <div className="flex md:flex-row flex-col gap-5 md:gap-10 w-full">
           <motion.div
