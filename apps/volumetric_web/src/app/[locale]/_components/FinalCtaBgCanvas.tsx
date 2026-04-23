@@ -118,13 +118,36 @@ export function FinalCtaBgCanvas() {
     scene.add(new THREE.Mesh(geo, mat));
 
     const clock = new THREE.Clock();
-    let rafId: number;
+    let elapsed = 0;
+    let rafId: number | null = null;
     function animate() {
-      mat.uniforms.uTime.value = clock.getElapsedTime();
+      elapsed += clock.getDelta();
+      mat.uniforms.uTime.value = elapsed;
       renderer.render(scene, camera);
       rafId = requestAnimationFrame(animate);
     }
-    animate();
+    const startLoop = () => {
+      if (rafId !== null) return;
+      clock.getDelta();
+      animate();
+    };
+    const stopLoop = () => {
+      if (rafId === null) return;
+      cancelAnimationFrame(rafId);
+      rafId = null;
+    };
+    startLoop();
+
+    const visibilityObserver = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) startLoop();
+          else stopLoop();
+        }
+      },
+      { threshold: 0 },
+    );
+    visibilityObserver.observe(container);
 
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
@@ -155,7 +178,8 @@ export function FinalCtaBgCanvas() {
     });
 
     return () => {
-      cancelAnimationFrame(rafId);
+      stopLoop();
+      visibilityObserver.disconnect();
       resizeObserver.disconnect();
       themeObserver.disconnect();
       mat.dispose();
