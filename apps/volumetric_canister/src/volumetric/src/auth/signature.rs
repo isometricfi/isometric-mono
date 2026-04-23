@@ -3,7 +3,7 @@ use bitcoin::address::{AddressData, NetworkUnchecked};
 use bitcoin::hashes::{hash160, sha256, Hash, HashEngine};
 use bitcoin::secp256k1::ecdsa::{RecoverableSignature, RecoveryId};
 use bitcoin::secp256k1::{Message, Secp256k1};
-use bitcoin::{Address, Network, PublicKey, ScriptBuf};
+use bitcoin::{Address, Network, ScriptBuf};
 
 use crate::errors::{error_codes, VolumetricError};
 use crate::storage::{BtcNetwork, Config};
@@ -13,14 +13,15 @@ const BTC_MESSAGE_PREFIX: &[u8] = b"\x18Bitcoin Signed Message:\n";
 
 /// BIP-137 legacy "Bitcoin signed message" header byte ranges.
 ///
-/// Each range encodes `(recovery_id, address_kind)` and is strictly bound to
-/// one address type. See Bitcoin Core `src/key.cpp` `CPubKey::RecoverCompact`
-/// and the BIP-137 / Trezor / Electrum conventions for segwit extensions.
-const LEGACY_HEADER_P2PKH_UNCOMPRESSED_BASE: u8 = 27; // 27..=30 → P2PKH uncompressed
-const LEGACY_HEADER_P2PKH_COMPRESSED_BASE: u8 = 31; // 31..=34 → P2PKH compressed
-const LEGACY_HEADER_P2SH_P2WPKH_BASE: u8 = 35; // 35..=38 → P2SH-P2WPKH
-const LEGACY_HEADER_P2WPKH_BASE: u8 = 39; // 39..=42 → P2WPKH native segwit
-const LEGACY_HEADER_MAX_PLUS_ONE: u8 = 43;
+/// The header always carries `(recovery_id, is_compressed)`. The sub-ranges
+/// 35..=38 and 39..=42 were later added by Trezor/Electrum as optional
+/// address-type hints, but wallets in the wild (notably UniSat) routinely
+/// emit headers 31..=34 for segwit addresses too. The hint is therefore
+/// treated as non-authoritative — verification binds the recovered pubkey to
+/// the caller's *actual* address type, regardless of what the header claimed.
+const LEGACY_HEADER_MIN: u8 = 27;
+const LEGACY_HEADER_UNCOMPRESSED_MAX_PLUS_ONE: u8 = 31; // 27..=30 → uncompressed
+const LEGACY_HEADER_MAX_PLUS_ONE: u8 = 43; // 31..=42 → compressed (any address-type hint)
 
 fn configured_network() -> Network {
     match Config::btc_network() {
@@ -113,10 +114,11 @@ fn try_verify_bip322_simple(
 
 /// BIP-137 legacy signed-message verification.
 ///
-/// The header byte simultaneously encodes the recovery id and the intended
-/// address kind. We require the caller's address to match that kind; if not,
-/// this scheme simply doesn't apply to this input and the outer verifier can
-/// try another scheme.
+/// The header byte encodes `(recovery_id, is_compressed)`. Ranges 35..=42 add
+/// an optional address-type hint that some wallets emit and others don't —
+/// we ignore the hint and instead match the recovered pubkey against the
+/// caller's actual address type. This is what UniSat's default `signMessage`
+/// needs: header 31–34 paired with a native segwit address.
 fn try_verify_bip137(
     btc_address: &Address,
     message: &str,
@@ -135,8 +137,7 @@ fn try_verify_bip137(
     }
 
     let header = signature_bytes[0];
-    let kind = classify_bip137_header(header)?;
-    let recovery_offset = header - kind.base();
+    let (recovery_offset, is_compressed) = decode_bip137_header(header)?;
 
     let recovery_id = RecoveryId::from_i32(recovery_offset as i32)
         .map_err(|e| format!("invalid recovery id: {}", e))?;
@@ -152,28 +153,27 @@ fn try_verify_bip137(
         .recover_ecdsa(&msg, &recoverable_sig)
         .map_err(|e| format!("recovery failed: {}", e))?;
 
-    let is_compressed = kind.is_compressed();
-    let recovered_pubkey = PublicKey {
-        compressed: is_compressed,
-        inner: recovered_key,
-    };
     let serialized_pubkey = if is_compressed {
-        recovered_pubkey.inner.serialize().to_vec()
+        recovered_key.serialize().to_vec()
     } else {
-        recovered_pubkey.inner.serialize_uncompressed().to_vec()
+        recovered_key.serialize_uncompressed().to_vec()
     };
     let recovered_pubkey_hash = hash160::Hash::hash(&serialized_pubkey);
 
-    match (kind, btc_address.to_address_data()) {
-        (Bip137Kind::P2pkhUncompressed, AddressData::P2pkh { pubkey_hash })
-        | (Bip137Kind::P2pkhCompressed, AddressData::P2pkh { pubkey_hash }) => ensure_hash_matches(
+    match btc_address.to_address_data() {
+        AddressData::P2pkh { pubkey_hash } => ensure_hash_matches(
             "P2PKH pubkey hash",
             recovered_pubkey_hash,
             *pubkey_hash.as_raw_hash(),
         ),
-        (Bip137Kind::P2wpkh, AddressData::Segwit { witness_program })
+        AddressData::Segwit { witness_program }
             if witness_program.version().to_num() == 0 && witness_program.program().len() == 20 =>
         {
+            if !is_compressed {
+                return Err(
+                    "P2WPKH addresses require a compressed-key signature (header 31–42)".into(),
+                );
+            }
             let expected =
                 <[u8; 20]>::try_from(witness_program.program().as_bytes()).expect("len==20");
             if recovered_pubkey_hash.to_byte_array() != expected {
@@ -181,7 +181,13 @@ fn try_verify_bip137(
             }
             Ok(())
         }
-        (Bip137Kind::P2shP2wpkh, AddressData::P2sh { script_hash }) => {
+        AddressData::P2sh { script_hash } => {
+            if !is_compressed {
+                return Err(
+                    "P2SH-P2WPKH addresses require a compressed-key signature (header 31–42)"
+                        .into(),
+                );
+            }
             let recovered_pubkey_hash_bytes = recovered_pubkey_hash.to_byte_array();
             let redeem_script = ScriptBuf::new_p2wpkh(
                 &bitcoin::WPubkeyHash::from_slice(&recovered_pubkey_hash_bytes)
@@ -194,10 +200,9 @@ fn try_verify_bip137(
                 *script_hash.as_raw_hash(),
             )
         }
-        (kind, _) => Err(format!(
-            "header byte {} declares {:?} but address is a different type",
-            header, kind
-        )),
+        _ => {
+            Err("address type is not supported for BIP-137 (taproot / P2WSH / unrecognized)".into())
+        }
     }
 }
 
@@ -212,45 +217,15 @@ fn ensure_hash_matches(
     Ok(())
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum Bip137Kind {
-    P2pkhUncompressed,
-    P2pkhCompressed,
-    P2shP2wpkh,
-    P2wpkh,
-}
+const BIP137_RECOVERY_IDS_PER_RANGE: u8 = 4;
 
-impl Bip137Kind {
-    fn base(self) -> u8 {
-        match self {
-            Bip137Kind::P2pkhUncompressed => LEGACY_HEADER_P2PKH_UNCOMPRESSED_BASE,
-            Bip137Kind::P2pkhCompressed => LEGACY_HEADER_P2PKH_COMPRESSED_BASE,
-            Bip137Kind::P2shP2wpkh => LEGACY_HEADER_P2SH_P2WPKH_BASE,
-            Bip137Kind::P2wpkh => LEGACY_HEADER_P2WPKH_BASE,
-        }
+fn decode_bip137_header(header: u8) -> Result<(u8, bool), String> {
+    if !(LEGACY_HEADER_MIN..LEGACY_HEADER_MAX_PLUS_ONE).contains(&header) {
+        return Err(format!("header byte {} is outside BIP-137 range", header));
     }
-
-    fn is_compressed(self) -> bool {
-        !matches!(self, Bip137Kind::P2pkhUncompressed)
-    }
-}
-
-fn classify_bip137_header(header: u8) -> Result<Bip137Kind, String> {
-    if (LEGACY_HEADER_P2PKH_UNCOMPRESSED_BASE..LEGACY_HEADER_P2PKH_COMPRESSED_BASE)
-        .contains(&header)
-    {
-        return Ok(Bip137Kind::P2pkhUncompressed);
-    }
-    if (LEGACY_HEADER_P2PKH_COMPRESSED_BASE..LEGACY_HEADER_P2SH_P2WPKH_BASE).contains(&header) {
-        return Ok(Bip137Kind::P2pkhCompressed);
-    }
-    if (LEGACY_HEADER_P2SH_P2WPKH_BASE..LEGACY_HEADER_P2WPKH_BASE).contains(&header) {
-        return Ok(Bip137Kind::P2shP2wpkh);
-    }
-    if (LEGACY_HEADER_P2WPKH_BASE..LEGACY_HEADER_MAX_PLUS_ONE).contains(&header) {
-        return Ok(Bip137Kind::P2wpkh);
-    }
-    Err(format!("header byte {} is outside BIP-137 range", header))
+    let recovery_offset = (header - LEGACY_HEADER_MIN) % BIP137_RECOVERY_IDS_PER_RANGE;
+    let is_compressed = header >= LEGACY_HEADER_UNCOMPRESSED_MAX_PLUS_ONE;
+    Ok((recovery_offset, is_compressed))
 }
 
 fn legacy_message_hash(message: &[u8]) -> [u8; 32] {
@@ -290,12 +265,34 @@ mod tests {
     use super::*;
     use base64::engine::general_purpose;
     use bitcoin::secp256k1::{Secp256k1, SecretKey};
-    use bitcoin::{CompressedPublicKey, PrivateKey, PubkeyHash};
+    use bitcoin::{CompressedPublicKey, PrivateKey, PubkeyHash, PublicKey};
 
-    fn sign_bip137(secret_bytes: [u8; 32], message: &str, kind: Bip137Kind) -> (String, String) {
+    const HEADER_BASE_UNCOMPRESSED: u8 = 27;
+    const HEADER_BASE_COMPRESSED: u8 = 31;
+    const HEADER_BASE_P2SH_P2WPKH_HINT: u8 = 35;
+    const HEADER_BASE_P2WPKH_HINT: u8 = 39;
+
+    #[derive(Debug, Clone, Copy)]
+    enum WalletAddressType {
+        P2pkh,
+        P2wpkh,
+        P2shP2wpkh,
+    }
+
+    /// Signs `message` with the BIP-137 / Satoshi legacy format and returns
+    /// `(address, base64 signature)`. `header_base` chooses which of the four
+    /// header-byte ranges the signature advertises — this lets tests replicate
+    /// real-world wallet quirks (UniSat emitting header 31 on a bech32
+    /// address, Trezor emitting 39, etc.).
+    fn sign_bip137(
+        secret_bytes: [u8; 32],
+        message: &str,
+        address_type: WalletAddressType,
+        header_base: u8,
+    ) -> (String, String) {
+        let is_compressed = header_base >= HEADER_BASE_COMPRESSED;
         let secp = Secp256k1::new();
         let secret_key = SecretKey::from_slice(&secret_bytes).unwrap();
-        let is_compressed = kind.is_compressed();
         let private_key = PrivateKey {
             compressed: is_compressed,
             network: Network::Bitcoin.into(),
@@ -309,17 +306,17 @@ mod tests {
             hash160::Hash::hash(&pubkey.inner.serialize_uncompressed())
         };
 
-        let address = match kind {
-            Bip137Kind::P2pkhUncompressed | Bip137Kind::P2pkhCompressed => {
+        let address = match address_type {
+            WalletAddressType::P2pkh => {
                 let pubkey_hash = PubkeyHash::from_raw_hash(pubkey_hash_bytes);
                 Address::p2pkh(pubkey_hash, Network::Bitcoin)
             }
-            Bip137Kind::P2wpkh => {
+            WalletAddressType::P2wpkh => {
                 let compressed =
                     CompressedPublicKey::from_private_key(&secp, &private_key).unwrap();
                 Address::p2wpkh(&compressed, Network::Bitcoin)
             }
-            Bip137Kind::P2shP2wpkh => {
+            WalletAddressType::P2shP2wpkh => {
                 let compressed =
                     CompressedPublicKey::from_private_key(&secp, &private_key).unwrap();
                 Address::p2shwpkh(&compressed, Network::Bitcoin)
@@ -332,7 +329,7 @@ mod tests {
             .sign_ecdsa_recoverable(&msg, &secret_key)
             .serialize_compact();
 
-        let header = kind.base() + recovery_id.to_i32() as u8;
+        let header = header_base + recovery_id.to_i32() as u8;
         let mut bytes = vec![header];
         bytes.extend_from_slice(&sig);
         (address.to_string(), general_purpose::STANDARD.encode(bytes))
@@ -343,18 +340,19 @@ mod tests {
         // given
         let secret = [1u8; 32];
         let message = "btc-auth-v1\naction=withdraw_ckbtc\namount_sats=1";
-        let (address, signature) = sign_bip137(secret, message, Bip137Kind::P2pkhCompressed);
+        let (address, signature) = sign_bip137(
+            secret,
+            message,
+            WalletAddressType::P2pkh,
+            HEADER_BASE_COMPRESSED,
+        );
 
         // when
         let result =
             verify_btc_signature_on_network(&address, message, &signature, Network::Bitcoin);
 
         // then
-        assert!(
-            result.is_ok(),
-            "verifier rejected own signature: {:?}",
-            result
-        );
+        assert!(result.is_ok(), "verifier rejected: {:?}", result);
     }
 
     #[test]
@@ -362,63 +360,115 @@ mod tests {
         // given
         let secret = [2u8; 32];
         let message = "hello world";
-        let (address, signature) = sign_bip137(secret, message, Bip137Kind::P2pkhUncompressed);
+        let (address, signature) = sign_bip137(
+            secret,
+            message,
+            WalletAddressType::P2pkh,
+            HEADER_BASE_UNCOMPRESSED,
+        );
 
         // when
         let result =
             verify_btc_signature_on_network(&address, message, &signature, Network::Bitcoin);
 
         // then
-        assert!(
-            result.is_ok(),
-            "verifier rejected own signature: {:?}",
-            result
-        );
+        assert!(result.is_ok(), "verifier rejected: {:?}", result);
     }
 
+    /// UniSat's default `signMessage` emits header bytes 31–34 even for a
+    /// native segwit (bech32) address. This is the real-world case we must
+    /// accept.
     #[test]
-    fn verify_accepts_round_trip_p2wpkh_bip137() {
+    fn verify_accepts_unisat_style_compressed_header_on_p2wpkh_address() {
         // given
         let secret = [3u8; 32];
-        let message = "native segwit signed the old way";
-        let (address, signature) = sign_bip137(secret, message, Bip137Kind::P2wpkh);
+        let message = "native segwit signed with compressed P2PKH header";
+        let (address, signature) = sign_bip137(
+            secret,
+            message,
+            WalletAddressType::P2wpkh,
+            HEADER_BASE_COMPRESSED,
+        );
 
         // when
         let result =
             verify_btc_signature_on_network(&address, message, &signature, Network::Bitcoin);
 
         // then
-        assert!(
-            result.is_ok(),
-            "verifier rejected own signature: {:?}",
-            result
+        assert!(result.is_ok(), "verifier rejected: {:?}", result);
+    }
+
+    /// Trezor / Electrum convention: header 39–42 with a P2WPKH address.
+    #[test]
+    fn verify_accepts_trezor_style_p2wpkh_hint_header() {
+        // given
+        let secret = [4u8; 32];
+        let message = "native segwit signed with the segwit-hint header";
+        let (address, signature) = sign_bip137(
+            secret,
+            message,
+            WalletAddressType::P2wpkh,
+            HEADER_BASE_P2WPKH_HINT,
         );
+
+        // when
+        let result =
+            verify_btc_signature_on_network(&address, message, &signature, Network::Bitcoin);
+
+        // then
+        assert!(result.is_ok(), "verifier rejected: {:?}", result);
     }
 
     #[test]
-    fn verify_accepts_round_trip_p2sh_p2wpkh_bip137() {
+    fn verify_accepts_compressed_header_on_p2sh_p2wpkh_address() {
         // given
-        let secret = [4u8; 32];
-        let message = "nested segwit";
-        let (address, signature) = sign_bip137(secret, message, Bip137Kind::P2shP2wpkh);
+        let secret = [5u8; 32];
+        let message = "nested segwit with plain compressed header";
+        let (address, signature) = sign_bip137(
+            secret,
+            message,
+            WalletAddressType::P2shP2wpkh,
+            HEADER_BASE_COMPRESSED,
+        );
 
         // when
         let result =
             verify_btc_signature_on_network(&address, message, &signature, Network::Bitcoin);
 
         // then
-        assert!(
-            result.is_ok(),
-            "verifier rejected own signature: {:?}",
-            result
+        assert!(result.is_ok(), "verifier rejected: {:?}", result);
+    }
+
+    #[test]
+    fn verify_accepts_p2sh_hint_header_on_p2sh_p2wpkh_address() {
+        // given
+        let secret = [6u8; 32];
+        let message = "nested segwit with the p2sh-hint header";
+        let (address, signature) = sign_bip137(
+            secret,
+            message,
+            WalletAddressType::P2shP2wpkh,
+            HEADER_BASE_P2SH_P2WPKH_HINT,
         );
+
+        // when
+        let result =
+            verify_btc_signature_on_network(&address, message, &signature, Network::Bitcoin);
+
+        // then
+        assert!(result.is_ok(), "verifier rejected: {:?}", result);
     }
 
     #[test]
     fn verify_rejects_tampered_message() {
         // given
-        let secret = [5u8; 32];
-        let (address, signature) = sign_bip137(secret, "real message", Bip137Kind::P2wpkh);
+        let secret = [7u8; 32];
+        let (address, signature) = sign_bip137(
+            secret,
+            "real message",
+            WalletAddressType::P2wpkh,
+            HEADER_BASE_COMPRESSED,
+        );
 
         // when
         let result = verify_btc_signature_on_network(
@@ -433,17 +483,28 @@ mod tests {
     }
 
     #[test]
-    fn verify_rejects_p2wpkh_header_against_p2pkh_address() {
+    fn verify_rejects_signature_from_a_different_key() {
         // given
-        let secret = [6u8; 32];
-        let (p2pkh_address, _sig) = sign_bip137(secret, "msg", Bip137Kind::P2pkhCompressed);
-        let (_p2wpkh_address, p2wpkh_signature) = sign_bip137(secret, "msg", Bip137Kind::P2wpkh);
+        let signer_secret = [8u8; 32];
+        let victim_secret = [9u8; 32];
+        let (_signer_address, signer_signature) = sign_bip137(
+            signer_secret,
+            "msg",
+            WalletAddressType::P2wpkh,
+            HEADER_BASE_COMPRESSED,
+        );
+        let (victim_address, _victim_signature) = sign_bip137(
+            victim_secret,
+            "msg",
+            WalletAddressType::P2wpkh,
+            HEADER_BASE_COMPRESSED,
+        );
 
         // when
         let result = verify_btc_signature_on_network(
-            &p2pkh_address,
+            &victim_address,
             "msg",
-            &p2wpkh_signature,
+            &signer_signature,
             Network::Bitcoin,
         );
 
@@ -452,18 +513,27 @@ mod tests {
     }
 
     #[test]
-    fn verify_rejects_p2pkh_header_against_p2wpkh_address() {
+    fn verify_rejects_uncompressed_header_against_p2wpkh_address() {
         // given
-        let secret = [7u8; 32];
-        let (_p2pkh_address, p2pkh_signature) =
-            sign_bip137(secret, "msg", Bip137Kind::P2pkhCompressed);
-        let (p2wpkh_address, _sig) = sign_bip137(secret, "msg", Bip137Kind::P2wpkh);
+        let secret = [10u8; 32];
+        let (_p2pkh_address, uncompressed_signature) = sign_bip137(
+            secret,
+            "msg",
+            WalletAddressType::P2pkh,
+            HEADER_BASE_UNCOMPRESSED,
+        );
+        let (p2wpkh_address, _) = sign_bip137(
+            secret,
+            "msg",
+            WalletAddressType::P2wpkh,
+            HEADER_BASE_COMPRESSED,
+        );
 
         // when
         let result = verify_btc_signature_on_network(
             &p2wpkh_address,
             "msg",
-            &p2pkh_signature,
+            &uncompressed_signature,
             Network::Bitcoin,
         );
 
@@ -515,14 +585,27 @@ mod tests {
     }
 
     #[test]
-    fn classify_bip137_header_rejects_out_of_range_values() {
+    fn decode_bip137_header_rejects_out_of_range_values() {
         // given
         let too_low = 26u8;
         let too_high = 43u8;
 
         // when / then
-        assert!(classify_bip137_header(too_low).is_err());
-        assert!(classify_bip137_header(too_high).is_err());
+        assert!(decode_bip137_header(too_low).is_err());
+        assert!(decode_bip137_header(too_high).is_err());
+    }
+
+    #[test]
+    fn decode_bip137_header_classifies_ranges_correctly() {
+        // given / when / then
+        assert_eq!(decode_bip137_header(27).unwrap(), (0, false));
+        assert_eq!(decode_bip137_header(30).unwrap(), (3, false));
+        assert_eq!(decode_bip137_header(31).unwrap(), (0, true));
+        assert_eq!(decode_bip137_header(34).unwrap(), (3, true));
+        assert_eq!(decode_bip137_header(35).unwrap(), (0, true));
+        assert_eq!(decode_bip137_header(38).unwrap(), (3, true));
+        assert_eq!(decode_bip137_header(39).unwrap(), (0, true));
+        assert_eq!(decode_bip137_header(42).unwrap(), (3, true));
     }
 
     #[test]
