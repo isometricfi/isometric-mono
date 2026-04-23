@@ -16,7 +16,11 @@
     "dark": "深色",
     "system": "系统",
     "english": "English",
-    "chinese": "中文"
+    "chinese": "中文",
+    "advanced": "高级",
+    "proMode": "专业模式",
+    "on": "开",
+    "off": "关"
   },
   "AccountPanel": {
     "account": "账户",
@@ -52,7 +56,8 @@
     "somethingWentWrong": "出错了",
     "min": "最小",
     "max": "最大",
-    "clear": "清除"
+    "clear": "清除",
+    "learnMore": "了解更多"
   },
   "ConnectButton": {
     "connect": "连接"
@@ -305,12 +310,83 @@
   "Pages": {
     "buyOptions": "购买期权",
     "writeOptions": "卖出期权",
-    "putsComingSoon": "看跌期权即将推出"
+    "putsComingSoon": "看跌期权即将推出",
+    "writeCta": "卖出一个期权",
+    "buyCta": "购买一个期权",
+    "connectToWriteCta": "连接钱包以卖出期权",
+    "connectToBuyCta": "连接钱包以购买期权"
+  },
+  "WriteFlow": {
+    "title": "卖出期权",
+    "description": "创建一个看涨期权",
+    "continue": "继续",
+    "termStrike": {
+      "stepLabel": "第 1 步 · 合约",
+      "title": "<line>选择时间,以及 BTC</line><line>应 <highlight>保持低于</highlight> 的价格。</line>",
+      "percentAbove": "比当前价高 {percent}%",
+      "explain": "期限越长收益越高,但你的 BTC 会被锁定整个期间。"
+    },
+    "collateral": {
+      "stepLabel": "第 2 步 · 抵押",
+      "title": "<line>用多少 <highlight>BTC</highlight></line><line>作为合约抵押。</line>",
+      "explain": "一份报价可以由多个买家分别部分成交。"
+    },
+    "premium": {
+      "stepLabel": "第 3 步 · 收益",
+      "title": "<line>你想 <highlight>赚</highlight></line><line>多少?</line>",
+      "eyebrow": "收益",
+      "apy": "{apy}% 年化",
+      "bestOffer": "最优报价",
+      "underBest": "低于最优报价 {best}%",
+      "explain": "收益越低越有竞争力 — 会被买家优先匹配。"
+    },
+    "review": {
+      "stepLabel": "第 4 步 · 确认",
+      "title": "<line>这是你的 <highlight>报价</highlight>。</line><line>滑动确认。</line>",
+      "strike": "行权价",
+      "term": "期限",
+      "collateral": "抵押品",
+      "earnings": "你将赚取",
+      "apy": "年化收益",
+      "competitiveness": "竞争力",
+      "bestOffer": "最优报价",
+      "underBest": "低于最优报价 {best}%",
+      "platformFee": "平台费用"
+    }
+  },
+  "BuyFlow": {
+    "title": "购买期权",
+    "description": "购买看涨期权",
+    "continue": "继续",
+    "termStrike": {
+      "stepLabel": "第 1 步 · 合约",
+      "title": "<line>选择时间,以及 BTC</line><line>应 <highlight>超过</highlight> 的价格。</line>",
+      "percentAbove": "比当前价高 {percent}%",
+      "explain": "如果在窗口关闭前 BTC 未能越过目标价,期权将无价值到期。",
+      "noLiquidity": "当前没有可购期权 — 试试其他期限。"
+    },
+    "amount": {
+      "stepLabel": "第 2 步 · 金额",
+      "title": "<line>你想 <highlight>投入</highlight></line><line>多少?</line>",
+      "leverage": "杠杆",
+      "explain": "这是你的最大损失。如果 BTC 超过目标,利润将自动以 BTC 支付给你。"
+    },
+    "review": {
+      "stepLabel": "第 3 步 · 确认",
+      "title": "<line>这是你的 <highlight>仓位</highlight>。</line><line>滑动确认。</line>",
+      "strike": "行权价",
+      "term": "期限",
+      "premium": "你支付",
+      "leverage": "杠杆",
+      "maxProfit": "最大利润",
+      "platformFee": "平台费用"
+    }
   },
   "Components": {
     "btcUsdPriceChart": "BTC/USD 价格图表",
     "chartComingSoon": "图表即将推出",
     "btcUsd": "BTC/USD",
+    "bitcoin": "比特币",
     "strike": "行权价",
     "days": "{count} 天"
   },
@@ -497,6 +573,7 @@
     "tagline": "链上比特币期权。无中介，无交易对手风险。",
     "resources": "资源",
     "documentation": "文档",
+    "support": "客服支持",
     "legal": "法律",
     "privacyPolicy": "隐私政策",
     "termsOfService": "服务条款",

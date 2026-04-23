@@ -16,7 +16,11 @@
     "dark": "Dark",
     "system": "System",
     "english": "English",
-    "chinese": "中文"
+    "chinese": "中文",
+    "advanced": "Advanced",
+    "proMode": "Pro mode",
+    "on": "On",
+    "off": "Off"
   },
   "AccountPanel": {
     "account": "Account",
@@ -52,7 +56,8 @@
     "somethingWentWrong": "Something went wrong",
     "min": "Min",
     "max": "Max",
-    "clear": "Clear"
+    "clear": "Clear",
+    "learnMore": "Learn more"
   },
   "ConnectButton": {
     "connect": "Connect"
@@ -266,17 +271,17 @@
     "earn": "Earn",
     "bet": "Bet",
     "writerStep1Title": "Deposit BTC",
-    "writerStep1Desc": "Connect your wallet and deposit BTC. Your funds are held in non-custodial smart contracts — you stay in control.",
-    "writerStep2Title": "Pick your target price",
-    "writerStep2Desc": "Choose a price you think BTC won't reach. The higher your target, the more you can earn.",
-    "writerStep3Title": "Collect your earnings",
-    "writerStep3Desc": "Earn instantly when someone takes the other side. If BTC stays below your target, you keep everything.",
+    "writerStep1Desc": "Connect a wallet and deposit BTC to your account.",
+    "writerStep2Title": "Create your offer",
+    "writerStep2Desc": "Pick a price BTC won't reach by a chosen date. Lock BTC as collateral and set the premium you want to earn.",
+    "writerStep3Title": "Earn premium, unlock collateral",
+    "writerStep3Desc": "Premium hits your account the moment a buyer accepts. If BTC stays below your strike at expiry, your collateral unlocks automatically.",
     "buyerStep1Title": "Deposit BTC",
-    "buyerStep1Desc": "Connect your wallet and deposit a small amount of BTC. This is all you can ever lose.",
-    "buyerStep2Title": "Pick price and timeframe",
-    "buyerStep2Desc": "Choose where you think BTC is headed and by when. A small upfront amount locks in your bet.",
-    "buyerStep3Title": "Collect your winnings",
-    "buyerStep3Desc": "If BTC hits your target, winnings land in your account automatically. No action needed.",
+    "buyerStep1Desc": "Connect a wallet and deposit BTC to your account.",
+    "buyerStep2Title": "Take a position",
+    "buyerStep2Desc": "Pick a price target and date, then accept an offer. Pay a small premium for leveraged upside — your max loss is the premium.",
+    "buyerStep3Title": "Auto-payout at expiry",
+    "buyerStep3Desc": "If BTC closes above your strike, profit settles to your account on-chain. No exit timing. No liquidations.",
     "startEarning": "Start Earning",
     "makeABet": "Make a Bet",
     "chainAbstraction": "Chain Abstraction",
@@ -306,12 +311,83 @@
   "Pages": {
     "buyOptions": "Buy options",
     "writeOptions": "Write options",
-    "putsComingSoon": "Puts coming soon"
+    "putsComingSoon": "Puts coming soon",
+    "writeCta": "Create an offer",
+    "buyCta": "Buy an option",
+    "connectToWriteCta": "Connect to create offer",
+    "connectToBuyCta": "Connect to buy option"
+  },
+  "WriteFlow": {
+    "title": "Write an option",
+    "description": "Create a call option offer",
+    "continue": "Continue",
+    "termStrike": {
+      "stepLabel": "Step 1 · Contract",
+      "title": "<line>Pick when, and the price</line><line>BTC should <highlight>stay below</highlight>.</line>",
+      "percentAbove": "{percent}% above current",
+      "explain": "Starts when accepted, BTC is locked for the term. Higher prices & terms tend to earn more."
+    },
+    "collateral": {
+      "stepLabel": "Step 2 · Collateral",
+      "title": "<line>Amount of <highlight>BTC</highlight> to back</line><line>the contract.</line>",
+      "explain": "Offers can be partially filled by multiple buyers."
+    },
+    "premium": {
+      "stepLabel": "Step 3 · Earnings",
+      "title": "<line>How much do you want</line><line>to <highlight>earn</highlight>?</line>",
+      "eyebrow": "Earnings",
+      "apy": "{apy}% APY",
+      "bestOffer": "Best offer",
+      "underBest": "Under best offer of {best}%",
+      "explain": "Lower earnings will get accepted first. You get paid when the option is accepted"
+    },
+    "review": {
+      "stepLabel": "Step 4 · Review",
+      "title": "<line>Here's your <highlight>offer</highlight>.</line><line>Slide to confirm.</line>",
+      "strike": "Strike",
+      "term": "Term",
+      "collateral": "Collateral",
+      "earnings": "You earn",
+      "apy": "APY",
+      "competitiveness": "Competitiveness",
+      "bestOffer": "Best offer",
+      "underBest": "Under best offer of {best}%",
+      "platformFee": "Platform fee"
+    }
+  },
+  "BuyFlow": {
+    "title": "Buy an option",
+    "description": "Purchase a call option",
+    "continue": "Continue",
+    "termStrike": {
+      "stepLabel": "Step 1 · Contract",
+      "title": "<line>Pick when, and the price</line><line>BTC should <highlight>go above</highlight>.</line>",
+      "percentAbove": "{percent}% above current",
+      "explain": "If BTC doesn't cross your target before the window closes, the option expires worthless.",
+      "noLiquidity": "No options available — try a different term."
+    },
+    "amount": {
+      "stepLabel": "Step 2 · Amount",
+      "title": "<line>How much do you</line><line>want to <highlight>put in</highlight>?</line>",
+      "leverage": "Leverage",
+      "explain": "This is your max loss. If BTC exceeds the target, profit is auto-paid to you in BTC."
+    },
+    "review": {
+      "stepLabel": "Step 3 · Review",
+      "title": "<line>Here's your <highlight>position</highlight>.</line><line>Slide to confirm.</line>",
+      "strike": "Strike",
+      "term": "Term",
+      "premium": "You pay",
+      "leverage": "Leverage",
+      "maxProfit": "Max profit",
+      "platformFee": "Platform fee"
+    }
   },
   "Components": {
     "btcUsdPriceChart": "BTC/USD Price Chart",
     "chartComingSoon": "Chart coming soon",
     "btcUsd": "BTC/USD",
+    "bitcoin": "Bitcoin",
     "strike": "Strike",
     "days": "{count} Days"
   },
@@ -499,6 +575,7 @@
     "tagline": "On-chain Bitcoin options.",
     "resources": "Resources",
     "documentation": "Documentation",
+    "support": "Support",
     "legal": "Legal",
     "privacyPolicy": "Privacy Policy",
     "termsOfService": "Terms of Service",

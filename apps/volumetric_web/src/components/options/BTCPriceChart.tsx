@@ -22,6 +22,9 @@ const MIN_HISTORY_DAYS = 7;
 
 interface BTCPriceChartProps {
   mode: "buyer" | "writer";
+  compact?: boolean;
+  termDaysOverride?: number;
+  showStrikeOverlay?: boolean;
 }
 
 interface DataPoint {
@@ -30,12 +33,18 @@ interface DataPoint {
   timestamp: number;
 }
 
-export function BTCPriceChart({ mode }: BTCPriceChartProps) {
+export function BTCPriceChart({
+  mode,
+  compact = false,
+  termDaysOverride,
+  showStrikeOverlay = true,
+}: BTCPriceChartProps) {
   const t = useTranslations("Components");
   const containerRef = useRef<HTMLDivElement>(null);
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
 
-  const { strikePercent, termDays } = useChartOptionsStore();
+  const { strikePercent, termDays: storeTermDays } = useChartOptionsStore();
+  const termDays = termDaysOverride ?? storeTermDays;
   const historyDays = Math.max(MIN_HISTORY_DAYS, Math.ceil(termDays * HISTORY_LOOKBACK_MULTIPLIER));
 
   const { data: historyData, isLoading: historyLoading } = useBTCHistory(historyDays);
@@ -101,7 +110,7 @@ export function BTCPriceChart({ mode }: BTCPriceChartProps) {
     if (!lastPoint) {
       return { chartData: [], expiryIndex: -1 };
     }
-    const futureDays = termDays + EXTRA_DAYS_AFTER_EXPIRY;
+    const futureDays = showStrikeOverlay && termDays > 0 ? termDays + EXTRA_DAYS_AFTER_EXPIRY : 0;
     const futurePoints: DataPoint[] = [];
 
     for (let i = 1; i <= futureDays; i++) {
@@ -118,13 +127,16 @@ export function BTCPriceChart({ mode }: BTCPriceChartProps) {
 
     const expiryTimestamp = lastPoint.timestamp + termDays * 24 * 60 * 60 * 1000;
     const allData = [...historicalPoints, ...futurePoints];
-    const expIdx = allData.findIndex((d) => d.timestamp === expiryTimestamp);
+    const expIdx =
+      showStrikeOverlay && termDays > 0
+        ? allData.findIndex((d) => d.timestamp === expiryTimestamp)
+        : -1;
 
     return {
       chartData: allData,
       expiryIndex: expIdx,
     };
-  }, [historyData, termDays]);
+  }, [historyData, termDays, showStrikeOverlay]);
 
   const { minPrice, maxPrice } = useMemo(() => {
     if (chartData.length === 0) return { minPrice: 0, maxPrice: 100000 };
@@ -256,7 +268,222 @@ export function BTCPriceChart({ mode }: BTCPriceChartProps) {
   }, [chartData]);
 
   if (historyLoading) {
-    return <Skeleton className="w-full  rounded-xl h-full min-h-64 md:max-h-none max-h-64" />;
+    return (
+      <Skeleton
+        className={
+          compact
+            ? "w-full rounded-xl h-40"
+            : "w-full  rounded-xl h-full min-h-64 md:max-h-none max-h-64"
+        }
+      />
+    );
+  }
+
+  const chartBody = (
+    <div ref={containerRef} className={compact ? "w-full h-40 min-h-0" : "w-full flex-1 min-h-0"}>
+      {dimensions.width > 0 && dimensions.height > 0 && chartData.length > 0 && (
+        <svg
+          width={dimensions.width}
+          height={dimensions.height}
+          className="overflow-visible"
+          role="img"
+          aria-labelledby="btc-chart-title"
+        >
+          <title id="btc-chart-title">BTC/USD price chart with strike price projection</title>
+          <defs>
+            <linearGradient id="historyAreaGradient" x1="0" y1="0" x2="0" y2="1">
+              <stop
+                offset="0%"
+                stopColor="hsl(var(--foreground))"
+                stopOpacity={HISTORY_AREA_TOP_OPACITY}
+              />
+              <stop
+                offset={HISTORY_AREA_FADE_OUT_AT}
+                stopColor="hsl(var(--foreground))"
+                stopOpacity={HISTORY_AREA_BOTTOM_OPACITY}
+              />
+              <stop
+                offset="100%"
+                stopColor="hsl(var(--foreground))"
+                stopOpacity={HISTORY_AREA_BOTTOM_OPACITY}
+              />
+            </linearGradient>
+            <filter
+              id="historyAreaSoftBlur"
+              x={CHART_PADDING.left - 8}
+              y={CHART_PADDING.top}
+              width={chartWidth + 16}
+              height={chartHeight}
+              filterUnits="userSpaceOnUse"
+            >
+              <feGaussianBlur in="SourceGraphic" stdDeviation={`${HISTORY_AREA_BLUR_STD_DEV} 0`} />
+            </filter>
+            <linearGradient id="strikeLineGradient" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0%" stopColor="#71717a" stopOpacity={0.8} />
+              <stop offset="100%" stopColor="#71717a" stopOpacity={0} />
+            </linearGradient>
+            <radialGradient id="profitZoneGradient" cx="0%" cy="100%" r="100%">
+              <stop offset="0%" stopColor={`rgb(${profitColor})`} stopOpacity={0.4} />
+              <stop offset="60%" stopColor={`rgb(${profitColor})`} stopOpacity={0.1} />
+              <stop offset="100%" stopColor={`rgb(${profitColor})`} stopOpacity={0} />
+            </radialGradient>
+            <radialGradient id="lossZoneGradient" cx="0%" cy="0%" r="100%">
+              <stop offset="0%" stopColor={`rgb(${lossColor})`} stopOpacity={0.4} />
+              <stop offset="60%" stopColor={`rgb(${lossColor})`} stopOpacity={0.1} />
+              <stop offset="100%" stopColor={`rgb(${lossColor})`} stopOpacity={0} />
+            </radialGradient>
+          </defs>
+
+          {yTicks.map((tick) => (
+            <g key={tick}>
+              <line
+                x1={CHART_PADDING.left}
+                y1={scaleY(tick)}
+                x2={CHART_PADDING.left + chartWidth}
+                y2={scaleY(tick)}
+                stroke="hsl(var(--border))"
+                strokeOpacity={0.5}
+                strokeWidth={1}
+              />
+              <text
+                x={CHART_PADDING.left - 8}
+                y={scaleY(tick)}
+                textAnchor="end"
+                dominantBaseline="middle"
+                className="fill-muted-foreground text-[11px]"
+              >
+                ${(tick / 1000).toFixed(0)}k
+              </text>
+            </g>
+          ))}
+
+          {xTicks.map(({ timestamp, label }) => (
+            <text
+              key={timestamp}
+              x={scaleX(timestamp)}
+              y={CHART_PADDING.top + chartHeight + 18}
+              textAnchor="middle"
+              className="fill-muted-foreground text-[11px]"
+            >
+              {label}
+            </text>
+          ))}
+
+          <polygon
+            points={historyAreaPolygonPoints}
+            fill="url(#historyAreaGradient)"
+            filter="url(#historyAreaSoftBlur)"
+          />
+
+          {showStrikeOverlay && expiryIndex >= 0 && (
+            <>
+              <rect
+                x={expiryX}
+                y={CHART_PADDING.top}
+                width={zoneEndX - expiryX}
+                height={strikeY - CHART_PADDING.top}
+                fill="url(#profitZoneGradient)"
+              />
+              <rect
+                x={expiryX}
+                y={strikeY}
+                width={zoneEndX - expiryX}
+                height={CHART_PADDING.top + chartHeight - strikeY}
+                fill="url(#lossZoneGradient)"
+              />
+
+              <line
+                x1={todayX}
+                y1={currentPriceY}
+                x2={expiryX}
+                y2={currentPriceY}
+                stroke="#71717a"
+                strokeWidth={1}
+                strokeOpacity={0.4}
+                strokeDasharray="4 4"
+              />
+              <text
+                x={(todayX + expiryX) / 2}
+                y={currentPriceY - 8}
+                textAnchor="middle"
+                className="fill-muted-foreground text-[10px]"
+              >
+                {t("days", { count: termDays })}
+              </text>
+
+              <line
+                x1={expiryX}
+                y1={CHART_PADDING.top}
+                x2={expiryX}
+                y2={CHART_PADDING.top + chartHeight}
+                stroke="#71717a"
+                strokeWidth={1}
+                strokeOpacity={0.5}
+              />
+
+              <line
+                x1={expiryX}
+                y1={strikeY}
+                x2={zoneEndX}
+                y2={strikeY}
+                stroke="url(#strikeLineGradient)"
+                strokeWidth={2}
+              />
+
+              <circle cx={expiryX} cy={strikeY} r={5} fill="#71717a" />
+              <text
+                x={expiryX - 10}
+                y={strikeY}
+                textAnchor="end"
+                dominantBaseline="middle"
+                className="fill-muted-foreground text-xs font-medium"
+              >
+                {t("strike")}: $
+                {strikePrice.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+              </text>
+            </>
+          )}
+
+          {showStrikeOverlay && expiryIndex < 0 && Number.isFinite(strikeY) && (
+            <>
+              <line
+                x1={CHART_PADDING.left}
+                y1={strikeY}
+                x2={CHART_PADDING.left + chartWidth}
+                y2={strikeY}
+                stroke="#71717a"
+                strokeWidth={1.5}
+                strokeOpacity={0.7}
+                strokeDasharray="4 4"
+              />
+              <text
+                x={CHART_PADDING.left + chartWidth - 6}
+                y={strikeY - 6}
+                textAnchor="end"
+                className="fill-muted-foreground text-xs font-medium"
+              >
+                {t("strike")}: $
+                {strikePrice.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+              </text>
+            </>
+          )}
+
+          <polyline
+            points={pricePolylinePoints}
+            fill="none"
+            stroke={CHART_LINE_COLOR}
+            strokeOpacity={0.95}
+            strokeWidth={CHART_LINE_STROKE_WIDTH}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+      )}
+    </div>
+  );
+
+  if (compact) {
+    return chartBody;
   }
 
   return (
@@ -283,187 +510,7 @@ export function BTCPriceChart({ mode }: BTCPriceChartProps) {
           )}
         </div>
 
-        <div ref={containerRef} className="w-full flex-1 min-h-0">
-          {dimensions.width > 0 && dimensions.height > 0 && chartData.length > 0 && (
-            <svg
-              width={dimensions.width}
-              height={dimensions.height}
-              className="overflow-visible"
-              role="img"
-              aria-labelledby="btc-chart-title"
-            >
-              <title id="btc-chart-title">BTC/USD price chart with strike price projection</title>
-              <defs>
-                <linearGradient id="historyAreaGradient" x1="0" y1="0" x2="0" y2="1">
-                  <stop
-                    offset="0%"
-                    stopColor="hsl(var(--foreground))"
-                    stopOpacity={HISTORY_AREA_TOP_OPACITY}
-                  />
-                  <stop
-                    offset={HISTORY_AREA_FADE_OUT_AT}
-                    stopColor="hsl(var(--foreground))"
-                    stopOpacity={HISTORY_AREA_BOTTOM_OPACITY}
-                  />
-                  <stop
-                    offset="100%"
-                    stopColor="hsl(var(--foreground))"
-                    stopOpacity={HISTORY_AREA_BOTTOM_OPACITY}
-                  />
-                </linearGradient>
-                <filter
-                  id="historyAreaSoftBlur"
-                  x={CHART_PADDING.left - 8}
-                  y={CHART_PADDING.top}
-                  width={chartWidth + 16}
-                  height={chartHeight}
-                  filterUnits="userSpaceOnUse"
-                >
-                  <feGaussianBlur
-                    in="SourceGraphic"
-                    stdDeviation={`${HISTORY_AREA_BLUR_STD_DEV} 0`}
-                  />
-                </filter>
-                <linearGradient id="strikeLineGradient" x1="0" y1="0" x2="1" y2="0">
-                  <stop offset="0%" stopColor="#71717a" stopOpacity={0.8} />
-                  <stop offset="100%" stopColor="#71717a" stopOpacity={0} />
-                </linearGradient>
-                <radialGradient id="profitZoneGradient" cx="0%" cy="100%" r="100%">
-                  <stop offset="0%" stopColor={`rgb(${profitColor})`} stopOpacity={0.4} />
-                  <stop offset="60%" stopColor={`rgb(${profitColor})`} stopOpacity={0.1} />
-                  <stop offset="100%" stopColor={`rgb(${profitColor})`} stopOpacity={0} />
-                </radialGradient>
-                <radialGradient id="lossZoneGradient" cx="0%" cy="0%" r="100%">
-                  <stop offset="0%" stopColor={`rgb(${lossColor})`} stopOpacity={0.4} />
-                  <stop offset="60%" stopColor={`rgb(${lossColor})`} stopOpacity={0.1} />
-                  <stop offset="100%" stopColor={`rgb(${lossColor})`} stopOpacity={0} />
-                </radialGradient>
-              </defs>
-
-              {yTicks.map((tick) => (
-                <g key={tick}>
-                  <line
-                    x1={CHART_PADDING.left}
-                    y1={scaleY(tick)}
-                    x2={CHART_PADDING.left + chartWidth}
-                    y2={scaleY(tick)}
-                    stroke="hsl(var(--border))"
-                    strokeOpacity={0.5}
-                    strokeWidth={1}
-                  />
-                  <text
-                    x={CHART_PADDING.left - 8}
-                    y={scaleY(tick)}
-                    textAnchor="end"
-                    dominantBaseline="middle"
-                    className="fill-muted-foreground text-[11px]"
-                  >
-                    ${(tick / 1000).toFixed(0)}k
-                  </text>
-                </g>
-              ))}
-
-              {xTicks.map(({ timestamp, label }) => (
-                <text
-                  key={timestamp}
-                  x={scaleX(timestamp)}
-                  y={CHART_PADDING.top + chartHeight + 18}
-                  textAnchor="middle"
-                  className="fill-muted-foreground text-[11px]"
-                >
-                  {label}
-                </text>
-              ))}
-
-              <polygon
-                points={historyAreaPolygonPoints}
-                fill="url(#historyAreaGradient)"
-                filter="url(#historyAreaSoftBlur)"
-              />
-
-              {expiryIndex >= 0 && (
-                <>
-                  <rect
-                    x={expiryX}
-                    y={CHART_PADDING.top}
-                    width={zoneEndX - expiryX}
-                    height={strikeY - CHART_PADDING.top}
-                    fill="url(#profitZoneGradient)"
-                  />
-                  <rect
-                    x={expiryX}
-                    y={strikeY}
-                    width={zoneEndX - expiryX}
-                    height={CHART_PADDING.top + chartHeight - strikeY}
-                    fill="url(#lossZoneGradient)"
-                  />
-
-                  <line
-                    x1={todayX}
-                    y1={currentPriceY}
-                    x2={expiryX}
-                    y2={currentPriceY}
-                    stroke="#71717a"
-                    strokeWidth={1}
-                    strokeOpacity={0.4}
-                    strokeDasharray="4 4"
-                  />
-                  <text
-                    x={(todayX + expiryX) / 2}
-                    y={currentPriceY - 8}
-                    textAnchor="middle"
-                    className="fill-muted-foreground text-[10px]"
-                  >
-                    {t("days", { count: termDays })}
-                  </text>
-
-                  <line
-                    x1={expiryX}
-                    y1={CHART_PADDING.top}
-                    x2={expiryX}
-                    y2={CHART_PADDING.top + chartHeight}
-                    stroke="#71717a"
-                    strokeWidth={1}
-                    strokeOpacity={0.5}
-                  />
-
-                  <line
-                    x1={expiryX}
-                    y1={strikeY}
-                    x2={zoneEndX}
-                    y2={strikeY}
-                    stroke="url(#strikeLineGradient)"
-                    strokeWidth={2}
-                  />
-
-                  <circle cx={expiryX} cy={strikeY} r={5} fill="#71717a" />
-                  <text
-                    x={expiryX - 10}
-                    y={strikeY}
-                    textAnchor="end"
-                    dominantBaseline="middle"
-                    className="fill-muted-foreground text-xs font-medium"
-                  >
-                    {t("strike")}: $
-                    {strikePrice.toLocaleString(undefined, {
-                      maximumFractionDigits: 0,
-                    })}
-                  </text>
-                </>
-              )}
-
-              <polyline
-                points={pricePolylinePoints}
-                fill="none"
-                stroke={CHART_LINE_COLOR}
-                strokeOpacity={0.95}
-                strokeWidth={CHART_LINE_STROKE_WIDTH}
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-          )}
-        </div>
+        {chartBody}
       </CardContent>
     </Card>
   );
