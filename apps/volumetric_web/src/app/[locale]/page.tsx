@@ -15,7 +15,7 @@ export async function generateMetadata({
 
 export default function Home() {
   return (
-    <div className="relative overflow-hidden">
+    <div className="relative">
       <HeroSection />
       <TwoPathsSection />
       <ChainAbstractionSection />

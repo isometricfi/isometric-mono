@@ -55,7 +55,7 @@ export function AccountPanel({
       <DrawerContent
         className={cn(
           "flex flex-col",
-          isMobile ? "px-4 pb-4 min-h-[75vh]" : "px-5 py-4 mt-4 mb-4 mr-0  rounded-l-xl ",
+          isMobile ? "px-4 pb-4 min-h-[95vh]" : "px-5 py-4 mt-4 mb-4 mr-0  rounded-l-xl ",
         )}
       >
         <DrawerTitle className="sr-only">Account</DrawerTitle>
@@ -260,8 +260,6 @@ function AccountPanelContent({ onDisconnect }: { onDisconnect: () => void }) {
               }}
               className="absolute inset-0 space-y-4  h-fit"
             >
-              <div className="font-semibold text-lg">{tSettings("title")}</div>
-
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <div className="text-sm text-muted-foreground">{t("username")}</div>
@@ -369,14 +367,16 @@ function AccountPanelContent({ onDisconnect }: { onDisconnect: () => void }) {
         </AnimatePresence>
       </div>
 
-      <Button
-        variant="outline"
-        className="w-full mt-auto"
-        onClick={onDisconnect}
-        aria-label={t("disconnect")}
-      >
-        {t("disconnect")} <LogOut className="size-4" />
-      </Button>
+      {!showSettings && (
+        <Button
+          variant="outline"
+          className="w-full mt-auto"
+          onClick={onDisconnect}
+          aria-label={t("disconnect")}
+        >
+          {t("disconnect")} <LogOut className="size-4" />
+        </Button>
+      )}
 
       <DepositModal open={showDepositModal} onOpenChange={setShowDepositModal} />
 

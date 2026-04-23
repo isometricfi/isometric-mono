@@ -11,7 +11,7 @@ export function HeroSection() {
   return (
     <div className="relative flex min-h-[94vh] flex-col items-center justify-center py-20 md:py-24">
       <HeroBgCanvas />
-      <div className="relative z-10 mx-auto w-full max-w-5xl">
+      <div className="relative z-10 mx-auto w-full max-w-5xl md:-mt-20">
         <div className="grid grid-cols-1 items-center gap-12 md:grid-cols-[1.1fr_1fr] md:gap-10 lg:gap-16">
           <div className="text-center md:text-left">
             <div className="flex justify-center md:justify-start mb-6">
@@ -26,7 +26,7 @@ export function HeroSection() {
               <span className="text-primary">{t("headlineHighlight")}</span>
             </h1>
 
-            <h2 className="text-base md:text-lg lg:text-xl text-muted-foreground max-w-xl mx-auto md:mx-0">
+            <h2 className="font-semibold text-base md:text-lg lg:text-xl text-muted-foreground sm:max-w-xl mx-auto md:mx-0 max-w-[210px] ">
               {t("subheadline")}
             </h2>
             <Link href={"/buy"}>
@@ -44,7 +44,7 @@ export function HeroSection() {
                 height={1240}
                 priority
                 sizes="(min-width: 768px) 40vw, 80vw"
-                className="block dark:hidden w-full h-auto drop-shadow-2xl rounded-xl"
+                className="block dark:hidden w-full h-auto drop-shadow-2xl rounded-lg md:rounded-xl overflow-clip"
               />
               <Image
                 src="/landing/demo-dark.png"
@@ -53,7 +53,7 @@ export function HeroSection() {
                 height={1240}
                 priority
                 sizes="(min-width: 768px) 40vw, 80vw"
-                className="hidden dark:block w-full h-auto drop-shadow-2xl"
+                className="hidden dark:block w-full h-auto drop-shadow-2xl rounded-lg md:rounded-xl overflow-clip"
               />
             </div>
           </div>

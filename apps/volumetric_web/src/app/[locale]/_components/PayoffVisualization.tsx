@@ -79,8 +79,14 @@ export function PayoffVisualization() {
   const yBreakeven = yScale(breakevenPrice);
 
   const fullPathPoints = useMemo(
-    () => pricePath.map((p, i) => `${xScale(i)},${yScale(p)}`).join(" "),
-    // xScale/yScale are pure functions of pricePath length and priceMin/priceMax
+    () =>
+      pricePath
+        .map((p, i) => {
+          const x = (i / (pricePath.length - 1)) * 100;
+          const y = (1 - (p - priceMin) / (priceMax - priceMin)) * 100;
+          return `${x},${y}`;
+        })
+        .join(" "),
     [pricePath, priceMin, priceMax],
   );
 
