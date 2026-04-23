@@ -11,6 +11,10 @@ const DESKTOP_BREAKPOINT = 768;
 const DARK_GRID = new THREE.Color(0.72, 0.58, 0.5);
 const LIGHT_GRID = new THREE.Color(0.78, 0.72, 0.66);
 
+// matches --background in globals.css (oklch(0.18 0.012 40) ≈ #1a1411, oklch(0.985 0.008 65) ≈ #fbf7f2)
+const DARK_BG = new THREE.Color(0x1a1411);
+const LIGHT_BG = new THREE.Color(0xfbf7f2);
+
 const DARK_ILLUM = 1.1;
 const LIGHT_ILLUM = 1.3;
 
@@ -37,17 +41,22 @@ export function HeroBgCanvas() {
     const renderer = new THREE.WebGLRenderer({
       canvas,
       antialias: true,
-      alpha: true,
+      // opaque canvas + non-premultiplied blend: alpha:false prevents Chrome's reload paint-holding
+      // snapshot from showing gray in the transparent canvas region. premultipliedAlpha:false
+      // switches the blend func to SRC_ALPHA/ONE_MINUS_SRC_ALPHA so the shader's non-premultiplied
+      // output blends correctly against the cleared bg instead of adding a tan wash at alpha=0.
+      alpha: false,
+      premultipliedAlpha: false,
     });
+    const isDark = () => document.documentElement.classList.contains("dark");
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.setSize(w, h, false);
-    renderer.setClearColor(0x000000, 0);
+    renderer.setClearColor(isDark() ? DARK_BG : LIGHT_BG, 1);
 
     const scene = new THREE.Scene();
     const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 10);
     camera.position.z = 1;
 
-    const isDark = () => document.documentElement.classList.contains("dark");
     const cellForWidth = (width: number) =>
       width >= DESKTOP_BREAKPOINT ? DESKTOP_CELL : MOBILE_CELL;
 
@@ -183,6 +192,7 @@ export function HeroBgCanvas() {
       const dark = isDark();
       mat.uniforms.uGridColor.value.copy(dark ? DARK_GRID : LIGHT_GRID);
       mat.uniforms.uIllumStrength.value = dark ? DARK_ILLUM : LIGHT_ILLUM;
+      renderer.setClearColor(dark ? DARK_BG : LIGHT_BG, 1);
     });
     themeObserver.observe(document.documentElement, {
       attributes: true,
