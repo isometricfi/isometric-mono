@@ -1,4 +1,7 @@
-import { Blocks, Globe, TrendingUp, Zap } from "lucide-react";
+"use client";
+
+import { motion } from "framer-motion";
+import { TrendingUp, Zap } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { PayoffVisualization } from "./PayoffVisualization";
 import { YieldDisplay } from "./YieldDisplay";
@@ -7,10 +10,28 @@ export function TwoPathsSection() {
   const t = useTranslations("Landing");
 
   return (
-    <div className="relative z-10 flex flex-col items-center pb-16">
-      <div className="max-w-5xl w-full px-4">
+    <section className="relative z-10 pt-14 pb-20 md:pb-32">
+      <div className="mx-auto max-w-5xl">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
+          viewport={{ once: true }}
+          className="mb-14 md:mb-20 text-center max-w-3xl mx-auto"
+        >
+          <div className="inline-flex items-center gap-2 text-xs font-mono uppercase tracking-widest text-muted-foreground mb-3">
+            {t("twoPathsEyebrow")}
+          </div>
+          <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight leading-[1.1]">
+            {t("twoPathsTitle")}
+            <span className="text-muted-foreground block md:inline md:ml-2">
+              {t("twoPathsTitleSub")}
+            </span>
+          </h2>
+        </motion.div>
+
         {/* the two paths */}
-        <div className="relative grid md:grid-cols-2 gap-16 md:gap-24 mb-20">
+        <div className="relative grid md:grid-cols-2 gap-16 md:gap-24">
           {/* vertical divider line with fade */}
           <div className="hidden md:block absolute left-1/2 top-0 bottom-0 -translate-x-1/2 w-px">
             {/* radial gradient mask at top */}
@@ -34,12 +55,13 @@ export function TwoPathsSection() {
           {/* buyers / leverage side */}
           <div>
             <div className="mb-8">
-              <div className="inline-flex items-center gap-2 text-xs font-mono uppercase tracking-widest text-muted-foreground mb-3">
-                <Zap className="size-3" />
-                {t("forTraders")}
-              </div>
-              <h2 className="text-xl md:text-2xl font-bold mb-3">{t("leverageTitle")}</h2>
-              <p className="text-muted-foreground">{t("leverageDescription")}</p>
+              <h3 className="flex items-center gap-2.5 text-xl md:text-2xl font-bold mb-3">
+                <Zap className="size-5 text-primary" />
+                {t("leverageTitle")}
+              </h3>
+              <p className="text-muted-foreground text-sm md:text-base">
+                {t("leverageDescription")}
+              </p>
             </div>
 
             <PayoffVisualization />
@@ -70,11 +92,10 @@ export function TwoPathsSection() {
                 />
               </div>
 
-              <div className="inline-flex items-center gap-2 text-xs font-mono uppercase tracking-widest text-muted-foreground mb-3">
-                <TrendingUp className="size-3" />
-                {t("forHodlers")}
-              </div>
-              <h2 className="text-xl md:text-2xl font-bold mb-3">{t("earnYieldTitle")}</h2>
+              <h3 className="flex items-center gap-2.5 text-xl md:text-2xl font-bold mb-3">
+                <TrendingUp className="size-5 text-primary" />
+                {t("earnYieldTitle")}
+              </h3>
               <p className="text-muted-foreground text-sm md:text-base">
                 {t("earnYieldDescription")}
               </p>
@@ -83,23 +104,7 @@ export function TwoPathsSection() {
             <YieldDisplay />
           </div>
         </div>
-
-        {/* trust badges */}
-        <div className="flex flex-wrap items-center justify-center gap-6 md:gap-10 mt-12 text-sm text-muted-foreground">
-          <div className="flex items-center gap-2">
-            <Blocks className="size-5 text-primary" />
-            <span>{t("btcNative")}</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <Zap className="size-5 text-primary" />
-            <span>{t("instantSettlement")}</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <Globe className="size-5 text-primary" />
-            <span>{t("permissionless")}</span>
-          </div>
-        </div>
       </div>
-    </div>
+    </section>
   );
 }

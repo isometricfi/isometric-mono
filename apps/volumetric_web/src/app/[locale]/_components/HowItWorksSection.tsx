@@ -2,6 +2,7 @@
 
 import { motion } from "framer-motion";
 import { ArrowRight, TrendingUp, Zap } from "lucide-react";
+import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { AnimatedToggle } from "@/components/navigation/AnimatedToggle";
@@ -104,10 +105,12 @@ export function HowItWorksSection() {
           viewport={{ once: true }}
           className="flex justify-center mt-16"
         >
-          <Button size="lg" className="gap-2">
-            {activeTab === "writer" ? t("startEarning") : t("makeABet")}
-            <ArrowRight className="size-4" />
-          </Button>
+          <Link href="/buy">
+            <Button size="lg" className="gap-2">
+              {t("openApp")}
+              <ArrowRight className="size-4" />
+            </Button>
+          </Link>
         </motion.div>
       </div>
     </section>

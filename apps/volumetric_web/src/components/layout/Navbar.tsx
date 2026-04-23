@@ -7,6 +7,7 @@ import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { useDynamicConfig } from "@/app/providers/dynamic-provider";
 import { SettingsDropdown } from "@/components/layout/SettingsDropdown";
+import { SystemSettings } from "@/components/layout/SystemSettings";
 import { Button } from "@/components/ui/button";
 import { Drawer, DrawerContent, DrawerTitle, DrawerTrigger } from "@/components/ui/drawer";
 import { ConnectButton } from "@/components/wallet/ConnectButton";
@@ -79,8 +80,8 @@ export function Navbar() {
                     </Link>
                   )}
                   {!primaryWallet && (
-                    <div className="pt-4 border-t">
-                      <SettingsDropdown />
+                    <div className="mt-4 pt-4 border-t">
+                      <SystemSettings showHeading={false} />
                     </div>
                   )}
                 </div>

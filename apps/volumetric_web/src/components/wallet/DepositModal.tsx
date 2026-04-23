@@ -22,7 +22,7 @@ import { AlertDialog, AlertDialogContent, AlertDialogTitle } from "@/components/
 import { Button } from "@/components/ui/button";
 import { CopyButton } from "@/components/ui/copy-button";
 import { Drawer, DrawerContent, DrawerTitle } from "@/components/ui/drawer";
-import { useConfig, useDepositAddress, useSyncDeposit, useWalletBalance } from "@/hooks";
+import { useConfig, useDepositAddress, useWalletBalance } from "@/hooks";
 import { Link } from "@/i18n/routing";
 import {
   DEFAULT_MIN_DEPOSIT_SATS,
@@ -48,7 +48,6 @@ export function DepositModal({
   const { data: config } = useConfig();
   const { data: walletBalanceSats } = useWalletBalance();
   const { data: depositAddressData, isLoading: isLoadingDepositAddress } = useDepositAddress();
-  const syncDeposit = useSyncDeposit();
   const t = useTranslations("Deposit");
   const tCommon = useTranslations("Common");
   const mempoolBaseUrl = process.env.NEXT_PUBLIC_MEMPOOL_URL ?? "https://mempool.space";
@@ -141,18 +140,8 @@ export function DepositModal({
     }
   };
 
-  const _handleSyncDeposit = async () => {
-    try {
-      await syncDeposit.mutateAsync();
-      setStep("success");
-    } catch (err) {
-      setError(err instanceof Error ? err.message : t("failedToSync"));
-      setStep("error");
-    }
-  };
-
   const content = (
-    <div className="flex flex-col space-y-6 md:pt-0 pt-3 min-h-[380px]">
+    <div className="flex flex-col space-y-6 md:pt-0 pt-3  min-h-[500px] md:min-h-[380px]">
       <AnimatePresence mode="wait">
         {step === "input" && (
           <motion.div
@@ -241,15 +230,17 @@ export function DepositModal({
                 {tab === "address" && (
                   <div className="flex flex-col flex-1 gap-5">
                     <div className="flex flex-col items-center space-y-4">
-                      <div className=" gap-4 flex w-full">
-                        <QRCodeSVG value={depositAddress} size={80} />
+                      <div className=" gap-4 md:flex w-full">
+                        <div className="flex md:justify-start justify-center md:pb-0 pb-5">
+                          <QRCodeSVG value={depositAddress} size={80} />
+                        </div>
                         <div className="space-y-2">
                           <div className="flex items-center gap-2">
-                            <ScanSearch className="size-5" />
+                            <ScanSearch className="size-5 min-w-5" />
                             <p className="text-sm text-muted-foreground">{t("autoDetect")}</p>
                           </div>
                           <div className="flex items-center gap-2">
-                            <ClockCheck className="size-5" />
+                            <ClockCheck className="size-5 min-w-5" />
                             <p className="text-sm text-muted-foreground">
                               {t("requiresConfirmations")}
                             </p>
@@ -262,13 +253,13 @@ export function DepositModal({
                         </div>
                       </div>
 
-                      <div className="w-full rounded-lg border p-4 bg-card/50">
+                      <div className="w-full rounded-xl border md:p-4 p-2 ">
                         <div className="flex items-start justify-between gap-3">
                           <div className="min-w-0">
                             <div className="text-xs text-muted-foreground mb-1">
                               {t("depositAddressLabel")}
                             </div>
-                            <div className="font-mono text-xs break-all select-all">
+                            <div className="text-[11px] md:text-xs break-all select-all">
                               {depositAddress}
                             </div>
                           </div>
