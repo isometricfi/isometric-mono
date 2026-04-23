@@ -32,20 +32,27 @@ fn assert_replicated_query_guard_rejects<T, E: std::fmt::Debug>(result: Result<T
     );
 }
 
+const SIGNING_WINDOW_SECONDS: u64 = 300;
+
 fn accept_offers_receipt(
     env: &crate::common::TestEnv,
     buyer_wallet: &crate::common::TestWallet,
     items: Vec<AcceptOfferItem>,
 ) -> Result<AcceptOffersReceipt, VolumetricError> {
+    let expires_at_seconds = env.get_time_ns() / 1_000_000_000 + SIGNING_WINDOW_SECONDS;
     let message = crate::helpers::offers::get_accept_offers_message(
         env,
         &buyer_wallet.address,
         items.clone(),
+        expires_at_seconds,
     );
     let signature = crate::common::wallets::sign_message(buyer_wallet, &message);
 
     let payload = AuthenticatedPayload {
-        data: AcceptOffersRequest { items },
+        data: AcceptOffersRequest {
+            items,
+            expires_at_seconds,
+        },
         wallet_proof: WalletProof {
             address: buyer_wallet.address.clone(),
             signature,

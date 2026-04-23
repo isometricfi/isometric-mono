@@ -1,6 +1,7 @@
 import { unwrapResult } from "@volumetric/canister-types";
 import { getCanisterActor } from "@/lib/canister-server";
 import { withSpan } from "@/lib/telemetry/withSpan";
+import { toCanisterWalletProof } from "../../_shared/wallet-proof";
 import { mapResult } from "./mapper";
 import type { Input, Output } from "./schema";
 
@@ -11,8 +12,11 @@ export async function updateUsername(input: Input): Promise<Output> {
     const actor = await getCanisterActor();
 
     const result = await actor.update_username({
-      data: { username: input.username },
-      wallet_proof: { address: input.address, signature: input.signature },
+      data: {
+        username: input.username,
+        expires_at_seconds: BigInt(input.expiresAtSeconds),
+      },
+      wallet_proof: toCanisterWalletProof(input),
     });
 
     const data = unwrapResult(result);

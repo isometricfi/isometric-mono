@@ -4,7 +4,10 @@ type AcceptOffersReceipt = record {
   fill_group_id : nat64;
   operation_id : blob;
 };
-type AcceptOffersRequest = record { items : vec AcceptOfferItem };
+type AcceptOffersRequest = record {
+  expires_at_seconds : nat64;
+  items : vec AcceptOfferItem;
+};
 type AcceptOffersResult = record {
   fill_group_id : nat64;
   active_options : vec ActiveOption;
@@ -92,7 +95,10 @@ type AuthenticatedPayload_6 = record {
   wallet_proof : WalletProof;
 };
 type BtcNetwork = variant { Mainnet; Testnet };
-type CancelOfferRequest = record { offer_id : nat64 };
+type CancelOfferRequest = record {
+  expires_at_seconds : nat64;
+  offer_id : nat64;
+};
 type ClearStorageResponse = record {
   options_cleared : nat64;
   offers_cleared : nat64;
@@ -109,13 +115,17 @@ type CreateOfferRequest = record {
   option_type : OptionType;
   asset : Asset;
   offer_valid_until : nat64;
+  expires_at_seconds : nat64;
   strike_basis_points : nat16;
   premium_basis_points : nat16;
   quantity : nat64;
   option_duration_seconds : nat64;
 };
 type CreateOfferResponse = record { offer : Offer };
-type CreateProfileRequest = record { invite_code : opt text };
+type CreateProfileRequest = record {
+  invite_code : opt text;
+  expires_at_seconds : nat64;
+};
 type DepositInfo = record { account : Account; btc_address : text };
 type ErrorDetails = record { caller : opt text };
 type Event = record {
@@ -368,7 +378,10 @@ type TradingLimits = record {
   premium_basis_points : Range_1;
   option_duration_seconds : Range;
 };
-type UpdateUsernameRequest = record { username : text };
+type UpdateUsernameRequest = record {
+  username : text;
+  expires_at_seconds : nat64;
+};
 type UserBalanceInfo = record {
   total : nat64;
   locked : nat64;
@@ -401,7 +414,11 @@ type WalExecutionOutcome = variant {
   SkippedAlreadyInFlight;
 };
 type WalletProof = record { signature : text; address : text };
-type WithdrawCkbtcRequest = record { amount : nat64; btc_address : text };
+type WithdrawCkbtcRequest = record {
+  expires_at_seconds : nat64;
+  amount : nat64;
+  btc_address : text;
+};
 type WithdrawReceipt = record { withdrawal_id : nat64; operation_id : blob };
 type WithdrawResult = record { block_index : nat64 };
 type WithdrawStatus = variant {
@@ -434,16 +451,26 @@ service : (opt BtcNetwork) -> {
   create_account : (AuthenticatedPayload_2) -> (Result_4);
   create_offer : (AuthenticatedPayload_3) -> (Result_5);
   get_accept_by_id : (nat64) -> (Result_6) query;
-  get_accept_offers_message : (text, vec AcceptOfferItem) -> (Result_7) query;
+  get_accept_offers_message : (text, vec AcceptOfferItem, nat64) -> (
+      Result_7,
+    ) query;
   get_accept_status : (blob) -> (Result_8) query;
   get_account_info : (text, bool) -> (Result_9) query;
   get_account_nonce : (text) -> (Result_3) query;
   get_active_option_by_id : (nat64) -> (opt ActiveOption) query;
   get_all_events : (opt nat64, opt nat32) -> (vec Event) query;
-  get_cancel_offer_message : (text, nat64) -> (Result_7) query;
+  get_cancel_offer_message : (text, nat64, nat64) -> (Result_7) query;
   get_ckbtc_balance : (text) -> (Result_10);
   get_config : () -> (Config) query;
-  get_create_offer_message : (text, nat64, nat16, nat16) -> (Result_7) query;
+  get_create_offer_message : (
+      text,
+      nat64,
+      nat16,
+      nat16,
+      nat64,
+      nat64,
+      nat64,
+    ) -> (Result_7) query;
   get_deposit_address : (text) -> (Result_11);
   get_events_for_principal : (principal, opt nat64, opt nat32) -> (
       vec Event,
@@ -454,7 +481,7 @@ service : (opt BtcNetwork) -> {
   get_failed_withdrawals : () -> (Result_14) query;
   get_feature_flags : () -> (FeatureFlags) query;
   get_fee_config : () -> (FeeConfig) query;
-  get_message_to_sign : (text) -> (Result_7) query;
+  get_message_to_sign : (text, opt text, nat64) -> (Result_7) query;
   get_my_events : (opt nat64, opt nat32) -> (vec Event) query;
   get_my_offers : (text) -> (Result_15) query;
   get_my_options : (text) -> (Result_16) query;
@@ -472,8 +499,8 @@ service : (opt BtcNetwork) -> {
   get_settlement_status : (blob) -> (Result_19) query;
   get_trading_limits : () -> (TradingLimits) query;
   get_user_balance : (text) -> (Result_20) query;
-  get_username_update_message : (text, text) -> (Result_7) query;
-  get_withdraw_message : (text, text, nat64) -> (Result_7) query;
+  get_username_update_message : (text, text, nat64) -> (Result_7) query;
+  get_withdraw_message : (text, text, nat64, nat64) -> (Result_7) query;
   get_withdraw_status : (blob) -> (Result_21) query;
   get_withdrawal_by_id : (nat64) -> (Result_22) query;
   greet : (text) -> (text) query;
@@ -483,7 +510,6 @@ service : (opt BtcNetwork) -> {
   observability_get_metrics : () -> (ObservabilityMetrics) query;
   recover_wal_operation : (blob) -> (Result_23);
   remove_whitelisted : (principal) -> (Result_1);
-  reset_oracle_config : () -> (Result_1);
   resolve_invite_code : (text) -> (opt text) query;
   set_accept_offer_quantity_sats_range_config : (nat64, nat64) -> (Result_1);
   set_create_offer_quantity_sats_range_config : (nat64, nat64) -> (Result_1);
@@ -493,7 +519,6 @@ service : (opt BtcNetwork) -> {
   set_fee_recipient_config : (principal) -> (Result_1);
   set_max_offers_per_term_config : (nat64) -> (Result_1);
   set_option_duration_seconds_range_config : (nat64, nat64) -> (Result_1);
-  set_oracle_price_config : (nat64) -> (Result_1);
   set_premium_basis_points_range_config : (nat16, nat16) -> (Result_1);
   set_premium_fee_basis_points_config : (nat64) -> (Result_1);
   set_profit_fee_basis_points_config : (nat64) -> (Result_1);

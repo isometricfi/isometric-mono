@@ -1,6 +1,7 @@
 import { unwrapResult } from "@volumetric/canister-types";
 import { getCanisterActor } from "@/lib/canister-server";
 import { withSpan } from "@/lib/telemetry/withSpan";
+import { toCanisterWalletProof } from "../../_shared/wallet-proof";
 import { mapResult } from "./mapper";
 import type { Input, Output } from "./schema";
 
@@ -11,7 +12,7 @@ export async function createOffer(input: Input): Promise<Output> {
     const actor = await getCanisterActor();
 
     const result = await actor.create_offer({
-      wallet_proof: { address: input.address, signature: input.signature },
+      wallet_proof: toCanisterWalletProof(input),
       data: {
         asset: { CkBtc: null },
         option_type: { Call: null },
@@ -20,6 +21,7 @@ export async function createOffer(input: Input): Promise<Output> {
         premium_basis_points: input.premiumBasisPoints,
         offer_valid_until: BigInt(input.offerValidUntil),
         option_duration_seconds: BigInt(input.optionDurationSeconds),
+        expires_at_seconds: BigInt(input.expiresAtSeconds),
       },
     });
 

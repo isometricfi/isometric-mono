@@ -1,9 +1,12 @@
 use candid::Principal;
 
 use crate::auth::types::{
-    AuthenticatedPayload, CreateProfileRequest, SignableAction, UpdateUsernameRequest, WalletKey,
+    AuthenticatedPayload, CreateProfileRequest, UpdateUsernameRequest, WalletKey,
 };
-use crate::auth::{build_challenge_context, derive_principal, verify_btc_signature};
+use crate::auth::{
+    build_challenge_context, build_challenge_message, derive_principal, ensure_challenge_fresh,
+    verify_btc_signature,
+};
 use crate::errors::{error_codes, VolumetricError};
 use crate::guards::is_whitelisted;
 use crate::storage::{
@@ -46,8 +49,10 @@ pub fn create_account(
         ));
     }
 
-    let context = build_challenge_context(&wallet_key);
-    let reconstructed_message = req.data.signing_message(address, &context);
+    ensure_challenge_fresh(req.data.expires_at_seconds)?;
+
+    let context = build_challenge_context(&wallet_key, req.data.expires_at_seconds);
+    let reconstructed_message = build_challenge_message(&req.data, address, &context)?;
 
     verify_btc_signature(address, &reconstructed_message, &req.wallet_proof.signature)?;
 
@@ -93,22 +98,33 @@ pub fn get_account_info(
 }
 
 #[ic_cdk::query]
-pub fn get_message_to_sign(address: String) -> Result<String, VolumetricError> {
+pub fn get_message_to_sign(
+    address: String,
+    invite_code: Option<String>,
+    expires_at_seconds: u64,
+) -> Result<String, VolumetricError> {
     let wallet_key = WalletKey::try_from_address(&address)?;
-    let context = build_challenge_context(&wallet_key);
-    let req = CreateProfileRequest { invite_code: None };
-    Ok(req.signing_message(&address, &context))
+    let context = build_challenge_context(&wallet_key, expires_at_seconds);
+    let req = CreateProfileRequest {
+        invite_code,
+        expires_at_seconds,
+    };
+    build_challenge_message(&req, &address, &context)
 }
 
 #[ic_cdk::query]
 pub fn get_username_update_message(
     address: String,
     username: String,
+    expires_at_seconds: u64,
 ) -> Result<String, VolumetricError> {
     let wallet_key = WalletKey::try_from_address(&address)?;
-    let context = build_challenge_context(&wallet_key);
-    let req = UpdateUsernameRequest { username };
-    Ok(req.signing_message(&address, &context))
+    let context = build_challenge_context(&wallet_key, expires_at_seconds);
+    let req = UpdateUsernameRequest {
+        username,
+        expires_at_seconds,
+    };
+    build_challenge_message(&req, &address, &context)
 }
 
 #[ic_cdk::update]
@@ -123,8 +139,10 @@ pub fn update_username(
     let principal = get_principal_for_wallet(&wallet_key)
         .ok_or_else(|| VolumetricError::from_def(error_codes::PROFILE_NOT_FOUND, None, None))?;
 
-    let context = build_challenge_context(&wallet_key);
-    let reconstructed_message = req.data.signing_message(address, &context);
+    ensure_challenge_fresh(req.data.expires_at_seconds)?;
+
+    let context = build_challenge_context(&wallet_key, req.data.expires_at_seconds);
+    let reconstructed_message = build_challenge_message(&req.data, address, &context)?;
 
     verify_btc_signature(address, &reconstructed_message, &req.wallet_proof.signature)?;
 

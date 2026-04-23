@@ -2,6 +2,7 @@ import { unwrapResult } from "@volumetric/canister-types";
 import { getCanisterActor } from "@/lib/canister-server";
 import { getDepositSyncRepository } from "@/lib/repositories/deposit-sync/get-deposit-sync-repository";
 import { withSpan } from "@/lib/telemetry/withSpan";
+import { toCanisterWalletProof } from "../../_shared/wallet-proof";
 import { mapResult } from "./mapper";
 import type { Input, Output } from "./schema";
 
@@ -15,8 +16,9 @@ export async function createAccount(input: Input): Promise<Output> {
     const result = await actor.create_account({
       data: {
         invite_code: input.inviteCode ? [input.inviteCode] : [],
+        expires_at_seconds: BigInt(input.expiresAtSeconds),
       },
-      wallet_proof: { address: input.address, signature: input.signature },
+      wallet_proof: toCanisterWalletProof(input),
     });
 
     try {

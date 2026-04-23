@@ -1,8 +1,10 @@
 use candid::CandidType;
 use serde::{Deserialize, Serialize};
 
-use crate::auth::types::{AuthenticatedPayload, ChallengeContext, SignableAction, WalletKey};
-use crate::auth::{build_challenge_context, verify_btc_signature};
+use crate::auth::types::{AuthenticatedPayload, SignableAction, WalletKey};
+use crate::auth::{
+    build_challenge_context, build_challenge_message, ensure_challenge_fresh, verify_btc_signature,
+};
 use crate::errors::{error_codes, VolumetricError};
 use crate::guards::{is_controller, is_whitelisted, no_replicated_call};
 use crate::journaling::OperationId;
@@ -22,23 +24,20 @@ pub struct AcceptOfferItem {
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
 pub struct AcceptOffersRequest {
     pub items: Vec<AcceptOfferItem>,
+    pub expires_at_seconds: u64,
 }
 
 impl SignableAction for AcceptOffersRequest {
-    fn signing_message(&self, address: &str, context: &ChallengeContext) -> String {
-        let items_desc: Vec<String> = self
+    const ACTION_NAME: &'static str = "accept_offers";
+
+    fn action_fields(&self) -> Vec<(&'static str, String)> {
+        let items_encoded = self
             .items
             .iter()
-            .map(|item| format!("offer #{}: {} sats", item.offer_id, item.quantity))
-            .collect();
-        format!(
-            "Accept offers\n{}\nAddress: {}\nCanister: {}\nNetwork: {}\nNonce: {}",
-            items_desc.join("\n"),
-            address,
-            context.canister_id,
-            context.network,
-            context.nonce
-        )
+            .map(|item| format!("{}:{}", item.offer_id, item.quantity))
+            .collect::<Vec<_>>()
+            .join(",");
+        vec![("items", items_encoded)]
     }
 }
 
@@ -46,11 +45,15 @@ impl SignableAction for AcceptOffersRequest {
 pub fn get_accept_offers_message(
     wallet_address: String,
     items: Vec<AcceptOfferItem>,
+    expires_at_seconds: u64,
 ) -> Result<String, VolumetricError> {
     let wallet_key = WalletKey::try_from_address(&wallet_address)?;
-    let context = build_challenge_context(&wallet_key);
-    let req = AcceptOffersRequest { items };
-    Ok(req.signing_message(&wallet_address, &context))
+    let context = build_challenge_context(&wallet_key, expires_at_seconds);
+    let req = AcceptOffersRequest {
+        items,
+        expires_at_seconds,
+    };
+    build_challenge_message(&req, &wallet_address, &context)
 }
 
 #[ic_cdk::update]
@@ -62,8 +65,10 @@ pub fn accept_offers(
     let address = &req.wallet_proof.address;
     let wallet_key = WalletKey::try_from_address(address)?;
 
-    let context = build_challenge_context(&wallet_key);
-    let reconstructed_message = req.data.signing_message(address, &context);
+    ensure_challenge_fresh(req.data.expires_at_seconds)?;
+
+    let context = build_challenge_context(&wallet_key, req.data.expires_at_seconds);
+    let reconstructed_message = build_challenge_message(&req.data, address, &context)?;
 
     verify_btc_signature(address, &reconstructed_message, &req.wallet_proof.signature)?;
 

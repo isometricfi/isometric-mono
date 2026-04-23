@@ -4,6 +4,7 @@ import { isBitcoinWallet } from "@dynamic-labs/bitcoin";
 import { useDynamicContext } from "@dynamic-labs/sdk-react-core";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { unwrapResult } from "@volumetric/canister-types";
+import { computeExpiresAtSeconds } from "@/lib/use-cases/_shared/wallet-proof";
 import type { Output as UpdateUsernameOutput } from "@/lib/use-cases/account/update-username/schema";
 import { trpcClient } from "@/trpc/react";
 import { useBtcAddress } from "../queries/use-btc-address";
@@ -33,7 +34,10 @@ export function useUpdateUsername() {
         throw new Error("Enter a username");
       }
 
-      const message = unwrapResult(await canister.get_username_update_message(address, trimmed));
+      const expiresAtSeconds = computeExpiresAtSeconds();
+      const message = unwrapResult(
+        await canister.get_username_update_message(address, trimmed, expiresAtSeconds),
+      );
       const signature = await primaryWallet.signMessage(message, { addressType: "payment" });
 
       if (!signature) {
@@ -43,6 +47,7 @@ export function useUpdateUsername() {
       return trpcClient.account.updateUsername.mutate({
         address,
         signature,
+        expiresAtSeconds: expiresAtSeconds.toString(),
         username: trimmed,
       });
     },

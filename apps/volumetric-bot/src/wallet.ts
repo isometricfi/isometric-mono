@@ -1,6 +1,6 @@
 import * as ecc from "@bitcoin-js/tiny-secp256k1-asmjs";
+import { Signer } from "bip322-js";
 import * as bitcoin from "bitcoinjs-lib";
-import * as bitcoinMessage from "bitcoinjs-message";
 import { ECPairFactory } from "ecpair";
 
 let isEccInitialized = false;
@@ -40,12 +40,7 @@ export function createWallet(privateKeyWif: string, network: "mainnet" | "testne
   }
 
   const signMessage = (message: string): string => {
-    if (!keyPair.privateKey) {
-      throw new Error("Private key not available");
-    }
-
-    const signature = bitcoinMessage.sign(message, Buffer.from(keyPair.privateKey), true);
-    return signature.toString("base64");
+    return Signer.sign(privateKeyWif, address, message) as string;
   };
 
   return { address, signMessage };

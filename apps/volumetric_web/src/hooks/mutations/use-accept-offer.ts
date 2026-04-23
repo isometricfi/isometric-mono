@@ -5,6 +5,7 @@ import { useDynamicContext } from "@dynamic-labs/sdk-react-core";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { unwrapResult } from "@volumetric/canister-types";
 import { useState } from "react";
+import { computeExpiresAtSeconds } from "@/lib/use-cases/_shared/wallet-proof";
 import type { Output as AcceptOffersOutput } from "@/lib/use-cases/options/accept-offers/schema";
 import { trpcClient } from "@/trpc/react";
 import { useBtcAddress } from "../queries/use-btc-address";
@@ -40,7 +41,10 @@ export function useAcceptOffer() {
       setStep("signing");
 
       const items = [{ offer_id: BigInt(offerId), quantity: BigInt(quantitySats) }];
-      const message = unwrapResult(await canister.get_accept_offers_message(address, items));
+      const expiresAtSeconds = computeExpiresAtSeconds();
+      const message = unwrapResult(
+        await canister.get_accept_offers_message(address, items, expiresAtSeconds),
+      );
       const signature = await primaryWallet.signMessage(message, { addressType: "payment" });
 
       if (!signature) {
@@ -52,6 +56,7 @@ export function useAcceptOffer() {
       return trpcClient.options.acceptOffers.mutate({
         address,
         signature,
+        expiresAtSeconds: expiresAtSeconds.toString(),
         items: [{ offerId, quantity: quantitySats.toString() }],
       });
     },

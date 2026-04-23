@@ -33,3 +33,6 @@ mod test_platform_fees_upgrade;
 
 #[path = "e2e/test_recovery.rs"]
 mod test_recovery;
+
+#[path = "e2e/test_auth_attacks.rs"]
+mod test_auth_attacks;

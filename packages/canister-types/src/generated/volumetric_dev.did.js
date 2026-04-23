@@ -8,6 +8,7 @@ export const idlFactory = ({ IDL }) => {
     'quantity' : IDL.Nat64,
   });
   const AcceptOffersRequest = IDL.Record({
+    'expires_at_seconds' : IDL.Nat64,
     'items' : IDL.Vec(AcceptOfferItem),
   });
   const WalletProof = IDL.Record({
@@ -35,7 +36,10 @@ export const idlFactory = ({ IDL }) => {
     'Err' : VolumetricError,
   });
   const Result_1 = IDL.Variant({ 'Ok' : IDL.Null, 'Err' : VolumetricError });
-  const CancelOfferRequest = IDL.Record({ 'offer_id' : IDL.Nat64 });
+  const CancelOfferRequest = IDL.Record({
+    'expires_at_seconds' : IDL.Nat64,
+    'offer_id' : IDL.Nat64,
+  });
   const AuthenticatedPayload_1 = IDL.Record({
     'data' : CancelOfferRequest,
     'wallet_proof' : WalletProof,
@@ -67,6 +71,7 @@ export const idlFactory = ({ IDL }) => {
   const Result_3 = IDL.Variant({ 'Ok' : IDL.Nat64, 'Err' : VolumetricError });
   const CreateProfileRequest = IDL.Record({
     'invite_code' : IDL.Opt(IDL.Text),
+    'expires_at_seconds' : IDL.Nat64,
   });
   const AuthenticatedPayload_2 = IDL.Record({
     'data' : CreateProfileRequest,
@@ -85,6 +90,7 @@ export const idlFactory = ({ IDL }) => {
     'option_type' : OptionType,
     'asset' : Asset,
     'offer_valid_until' : IDL.Nat64,
+    'expires_at_seconds' : IDL.Nat64,
     'strike_basis_points' : IDL.Nat16,
     'premium_basis_points' : IDL.Nat16,
     'quantity' : IDL.Nat64,
@@ -552,12 +558,16 @@ export const idlFactory = ({ IDL }) => {
     'Ok' : IDL.Vec(UtxoStatus),
     'Err' : VolumetricError,
   });
-  const UpdateUsernameRequest = IDL.Record({ 'username' : IDL.Text });
+  const UpdateUsernameRequest = IDL.Record({
+    'username' : IDL.Text,
+    'expires_at_seconds' : IDL.Nat64,
+  });
   const AuthenticatedPayload_5 = IDL.Record({
     'data' : UpdateUsernameRequest,
     'wallet_proof' : WalletProof,
   });
   const WithdrawCkbtcRequest = IDL.Record({
+    'expires_at_seconds' : IDL.Nat64,
     'amount' : IDL.Nat64,
     'btc_address' : IDL.Text,
   });
@@ -579,7 +589,7 @@ export const idlFactory = ({ IDL }) => {
     'create_offer' : IDL.Func([AuthenticatedPayload_3], [Result_5], []),
     'get_accept_by_id' : IDL.Func([IDL.Nat64], [Result_6], ['query']),
     'get_accept_offers_message' : IDL.Func(
-        [IDL.Text, IDL.Vec(AcceptOfferItem)],
+        [IDL.Text, IDL.Vec(AcceptOfferItem), IDL.Nat64],
         [Result_7],
         ['query'],
       ),
@@ -597,14 +607,22 @@ export const idlFactory = ({ IDL }) => {
         ['query'],
       ),
     'get_cancel_offer_message' : IDL.Func(
-        [IDL.Text, IDL.Nat64],
+        [IDL.Text, IDL.Nat64, IDL.Nat64],
         [Result_7],
         ['query'],
       ),
     'get_ckbtc_balance' : IDL.Func([IDL.Text], [Result_10], []),
     'get_config' : IDL.Func([], [Config], ['query']),
     'get_create_offer_message' : IDL.Func(
-        [IDL.Text, IDL.Nat64, IDL.Nat16, IDL.Nat16],
+        [
+          IDL.Text,
+          IDL.Nat64,
+          IDL.Nat16,
+          IDL.Nat16,
+          IDL.Nat64,
+          IDL.Nat64,
+          IDL.Nat64,
+        ],
         [Result_7],
         ['query'],
       ),
@@ -624,7 +642,11 @@ export const idlFactory = ({ IDL }) => {
     'get_failed_withdrawals' : IDL.Func([], [Result_14], ['query']),
     'get_feature_flags' : IDL.Func([], [FeatureFlags], ['query']),
     'get_fee_config' : IDL.Func([], [FeeConfig], ['query']),
-    'get_message_to_sign' : IDL.Func([IDL.Text], [Result_7], ['query']),
+    'get_message_to_sign' : IDL.Func(
+        [IDL.Text, IDL.Opt(IDL.Text), IDL.Nat64],
+        [Result_7],
+        ['query'],
+      ),
     'get_my_events' : IDL.Func(
         [IDL.Opt(IDL.Nat64), IDL.Opt(IDL.Nat32)],
         [IDL.Vec(Event)],
@@ -663,12 +685,12 @@ export const idlFactory = ({ IDL }) => {
     'get_trading_limits' : IDL.Func([], [TradingLimits], ['query']),
     'get_user_balance' : IDL.Func([IDL.Text], [Result_20], ['query']),
     'get_username_update_message' : IDL.Func(
-        [IDL.Text, IDL.Text],
+        [IDL.Text, IDL.Text, IDL.Nat64],
         [Result_7],
         ['query'],
       ),
     'get_withdraw_message' : IDL.Func(
-        [IDL.Text, IDL.Text, IDL.Nat64],
+        [IDL.Text, IDL.Text, IDL.Nat64, IDL.Nat64],
         [Result_7],
         ['query'],
       ),

@@ -1,5 +1,5 @@
 import type { _SERVICE } from "@volumetric/canister-types";
-import { getAcceptOffersMessage } from "../canister-client.js";
+import { computeExpiresAtSeconds, getAcceptOffersMessage } from "../canister-client.js";
 import { log, withSpan } from "../telemetry.js";
 import type { TRPCClient } from "../trpc-client.js";
 import type { BotWallet } from "../wallet.js";
@@ -197,12 +197,14 @@ export async function acceptOffer(
       },
     ];
 
-    const message = await getAcceptOffersMessage(actor, wallet.address, items);
+    const expiresAtSeconds = computeExpiresAtSeconds();
+    const message = await getAcceptOffersMessage(actor, wallet.address, items, expiresAtSeconds);
     const signature = wallet.signMessage(message);
 
     const result = await trpc.options.acceptOffers.mutate({
       address: wallet.address,
       signature,
+      expiresAtSeconds: expiresAtSeconds.toString(),
       items: [
         {
           offerId: selectedOffer.id,

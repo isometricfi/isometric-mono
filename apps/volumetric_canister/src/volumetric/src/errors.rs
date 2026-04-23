@@ -38,6 +38,16 @@ pub mod error_codes {
         name: "INVALID_WALLET_ADDRESS",
         message: "Invalid wallet address",
     };
+    pub const CHALLENGE_EXPIRED: ErrorDef = ErrorDef {
+        code: 1005,
+        name: "CHALLENGE_EXPIRED",
+        message: "Signed challenge is expired or its expiry is outside the permitted window",
+    };
+    pub const INVALID_SIGNING_FIELD: ErrorDef = ErrorDef {
+        code: 1008,
+        name: "INVALID_SIGNING_FIELD",
+        message: "Signed field contains a disallowed character",
+    };
 
     // 2xxx: Profile/account errors
     pub const PROFILE_NOT_FOUND: ErrorDef = ErrorDef {

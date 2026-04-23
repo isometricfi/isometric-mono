@@ -4,6 +4,8 @@ use crate::helpers::{
 };
 use volumetric::{EventData, EventType};
 
+const SIGNING_WINDOW_SECONDS: u64 = 300;
+
 /// Given: Valid Bitcoin wallet with signing capability
 /// When: User registers with Bitcoin signature
 /// Then: Profile created with matching address, no username, AccountCreated event emitted
@@ -47,9 +49,10 @@ fn test_register_account_with_invalid_signature_fails() {
     const WALLET_SEED: u64 = 2;
     let wallet = generate_wallet(WALLET_SEED);
     let invalid_signature = "InvalidBase64SignatureData";
+    let expires_at = env.get_time_ns() / 1_000_000_000 + SIGNING_WINDOW_SECONDS;
 
     // when
-    let result = create_account_with_signature(&env, &wallet.address, invalid_signature, None);
+    let result = create_account_with_signature(&env, &wallet, invalid_signature, None, expires_at);
 
     // then
     let error = result.expect_err("Expected account creation to fail with invalid signature");

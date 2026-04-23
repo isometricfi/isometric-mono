@@ -1,5 +1,5 @@
 import type { _SERVICE } from "@volumetric/canister-types";
-import { getCreateOfferMessage } from "../canister-client.js";
+import { computeExpiresAtSeconds, getCreateOfferMessage } from "../canister-client.js";
 import { log, withSpan } from "../telemetry.js";
 import type { TRPCClient } from "../trpc-client.js";
 import type { BotWallet } from "../wallet.js";
@@ -294,22 +294,27 @@ export async function createOffer(
         own_open_offers: ownOpenOffers,
       });
 
+      const now = BigInt(Date.now()) * BigInt(1_000_000);
+      const offerValidUntil = now + TEN_YEARS_NS;
+      const expiresAtSeconds = computeExpiresAtSeconds();
+
       const message = await getCreateOfferMessage(
         actor,
         wallet.address,
         BigInt(params.quantitySats),
         params.strikeBasisPoints,
         params.premiumBasisPoints,
+        BigInt(params.optionDurationSeconds),
+        offerValidUntil,
+        expiresAtSeconds,
       );
 
       const signature = wallet.signMessage(message);
 
-      const now = BigInt(Date.now()) * BigInt(1_000_000);
-      const offerValidUntil = now + TEN_YEARS_NS;
-
       const result = await trpc.options.createOffer.mutate({
         address: wallet.address,
         signature,
+        expiresAtSeconds: expiresAtSeconds.toString(),
         quantity: params.quantitySats.toString(),
         strikeBasisPoints: params.strikeBasisPoints,
         premiumBasisPoints: params.premiumBasisPoints,

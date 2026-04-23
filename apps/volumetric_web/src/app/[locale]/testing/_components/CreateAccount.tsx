@@ -6,6 +6,7 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { profileFromGetAccountInfoResult, unwrapResult } from "@volumetric/canister-types";
 import { useState } from "react";
 import { useBtcAddress, useCanister } from "@/hooks";
+import { computeExpiresAtSeconds } from "@/lib/use-cases/_shared/wallet-proof";
 import type { Output as CreateAccountOutput } from "@/lib/use-cases/account/create-account/schema";
 
 export function CreateAccount() {
@@ -32,7 +33,9 @@ export function CreateAccount() {
     queryKey: ["messageToSign", address],
     queryFn: async () => {
       if (!canister || !address) return null;
-      return unwrapResult(await canister.get_message_to_sign(address));
+      return unwrapResult(
+        await canister.get_message_to_sign(address, [], computeExpiresAtSeconds()),
+      );
     },
     enabled: !!canister && !!address && !accountInfo,
   });
@@ -49,7 +52,10 @@ export function CreateAccount() {
         throw new Error("Not ready");
       }
 
-      const message = unwrapResult(await canister.get_message_to_sign(address));
+      const expiresAtSeconds = computeExpiresAtSeconds();
+      const message = unwrapResult(
+        await canister.get_message_to_sign(address, [], expiresAtSeconds),
+      );
       const signature = await primaryWallet.signMessage(message, {
         addressType: "payment",
       });
@@ -61,7 +67,11 @@ export function CreateAccount() {
       const response = await fetch("/api/account/create", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ address, signature }),
+        body: JSON.stringify({
+          address,
+          signature,
+          expiresAtSeconds: expiresAtSeconds.toString(),
+        }),
       });
 
       const data = await response.json();
