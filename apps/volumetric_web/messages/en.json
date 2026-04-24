@@ -322,7 +322,7 @@
     "problem2Title": "KYC and geo-gates",
     "problem2Desc": "Entire regions blocked by default. Where you can access, you hand over a passport to get in.",
     "problem3Title": "Built for pros",
-    "problem3Desc": "Order books, Greeks, margin modes, 50-ticker screens. Too much friction for anyone who isn't a full-time trader.",
+    "problem3Desc": "Order books, option chains, margin modes, 50-ticker screens. Too much friction for anyone who isn't a full-time trader.",
     "problemResolution": "Isometric puts Bitcoin options on-chain — permissionless, non-custodial, and simple enough for anyone to use.",
     "teamEyebrow": "Who's building this",
     "teamTitle": "Built by Bitcoin natives.",

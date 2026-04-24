@@ -33,6 +33,7 @@ export function ChainAbstractionSection() {
                   href="https://wiki.internetcomputer.org/wiki/Chain-key_Bitcoin"
                   target="_blank"
                   rel="noopener noreferrer"
+                  aria-label="Learn about Chain-key Bitcoin"
                 >
                   {t("learnMore")}
                   <ArrowRight className="size-3" />
