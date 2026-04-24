@@ -5,8 +5,8 @@ import { ArrowRight } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { WaitlistForm } from "@/components/marketing/WaitlistForm";
 import { Button } from "@/components/ui/button";
-import { appUrl } from "@/lib/urls";
 import { isWaitlistMode } from "@/lib/site-links";
+import { appUrl } from "@/lib/urls";
 import { FinalCtaBgCanvas } from "./FinalCtaBgCanvas";
 
 export function FinalCtaSection() {
