@@ -1,8 +1,8 @@
 import { Sparkles } from "lucide-react";
 import Image from "next/image";
-import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
+import { appUrl } from "@/lib/urls";
 import { HeroBgCanvas } from "./HeroBgCanvas";
 
 export function HeroSection() {
@@ -29,9 +29,9 @@ export function HeroSection() {
             <h2 className="font-semibold text-base md:text-lg lg:text-xl text-muted-foreground sm:max-w-xl mx-auto md:mx-0 max-w-[210px] ">
               {t("subheadline")}
             </h2>
-            <Link href={"/buy"}>
+            <a href={appUrl("/buy")}>
               <Button className="mt-8">{t("openApp")}</Button>
-            </Link>
+            </a>
           </div>
 
           <div className="relative mx-auto w-full max-w-[300px] sm:max-w-[340px] md:max-w-[380px]">

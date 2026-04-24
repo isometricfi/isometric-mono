@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Drawer, DrawerContent, DrawerTitle, DrawerTrigger } from "@/components/ui/drawer";
 import { ConnectButton } from "@/components/wallet/ConnectButton";
 import { Link, usePathname } from "@/i18n/routing";
+import { appUrl } from "@/lib/urls";
 import { cn } from "@/lib/utils";
 
 export function Navbar() {
@@ -116,7 +117,7 @@ export function Navbar() {
 
             {isLandingPage ? (
               <Button asChild>
-                <Link href="/write">{t("openApp")}</Link>
+                <a href={appUrl("/write")}>{t("openApp")}</a>
               </Button>
             ) : isConfigured ? (
               <ConnectButton />

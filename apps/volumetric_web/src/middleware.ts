@@ -1,12 +1,18 @@
 // Using middleware.ts instead of proxy.ts for Cloudflare compatibility (proxy support coming soon).
 // OpenNext doesn't support Next.js 16 proxy yet: https://github.com/opennextjs/opennextjs-cloudflare/issues/972
-import type { NextRequest } from "next/server";
+import { type NextRequest, NextResponse } from "next/server";
 import createIntlMiddleware from "next-intl/middleware";
 import { routing } from "./i18n/routing";
 
 const intlMiddleware = createIntlMiddleware(routing);
 
 const isDev = process.env.NODE_ENV === "development";
+
+const APP_PATH_PREFIXES = ["/buy", "/write", "/portfolio", "/history", "/testing"] as const;
+const LANDING_PAGE_PATH_PREFIXES = ["/privacy", "/terms", "/s"] as const;
+const LOCALE_PATH_PREFIXES = routing.locales.map((locale) => `/${locale}`);
+const HOMEPAGE_PATH = "/";
+const APP_DEFAULT_PATH = "/buy";
 
 // Dynamic Labs SDK uses multiple domains (need both root and wildcard)
 const DYNAMIC_CSP_SOURCES = [
@@ -54,7 +60,74 @@ function generateCspHeaders(nonce: string): string {
   return cspDirectives.join("; ");
 }
 
+function stripLocalePrefix(pathname: string): string {
+  for (const prefix of LOCALE_PATH_PREFIXES) {
+    if (pathname === prefix) {
+      return HOMEPAGE_PATH;
+    }
+    if (pathname.startsWith(`${prefix}/`)) {
+      return pathname.slice(prefix.length);
+    }
+  }
+  return pathname;
+}
+
+function matchesAnyPrefix(pathname: string, prefixes: readonly string[]): boolean {
+  return prefixes.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`));
+}
+
+function isAppPath(pathname: string): boolean {
+  return matchesAnyPrefix(stripLocalePrefix(pathname), APP_PATH_PREFIXES);
+}
+
+function isLandingPagePath(pathname: string): boolean {
+  const stripped = stripLocalePrefix(pathname);
+  if (stripped === HOMEPAGE_PATH) {
+    return true;
+  }
+  return matchesAnyPrefix(stripped, LANDING_PAGE_PATH_PREFIXES);
+}
+
+function applyHostRouting(request: NextRequest): NextResponse | null {
+  const appHost = process.env.NEXT_PUBLIC_APP_HOST;
+  const landingPageHost = process.env.NEXT_PUBLIC_LANDING_PAGE_HOST;
+  if (!appHost || !landingPageHost) {
+    return null;
+  }
+
+  const requestHost = request.headers.get("host");
+  if (!requestHost) {
+    return null;
+  }
+
+  const pathname = request.nextUrl.pathname;
+  const search = request.nextUrl.search;
+
+  if (requestHost === landingPageHost && isAppPath(pathname)) {
+    const target = new URL(`https://${appHost}${pathname}${search}`);
+    return NextResponse.redirect(target, 308);
+  }
+
+  if (requestHost === appHost) {
+    if (pathname === HOMEPAGE_PATH) {
+      const target = new URL(`https://${appHost}${APP_DEFAULT_PATH}${search}`);
+      return NextResponse.redirect(target, 302);
+    }
+    if (isLandingPagePath(pathname) && pathname !== HOMEPAGE_PATH) {
+      const target = new URL(`https://${landingPageHost}${pathname}${search}`);
+      return NextResponse.redirect(target, 308);
+    }
+  }
+
+  return null;
+}
+
 export function middleware(request: NextRequest) {
+  const hostRedirect = applyHostRouting(request);
+  if (hostRedirect) {
+    return hostRedirect;
+  }
+
   // Generate a unique nonce for this request
   const nonce = crypto.randomUUID();
 

@@ -72,7 +72,10 @@
         "MEMPOOL_API_URL": "https://mempool.space/api",
         "NEXT_PUBLIC_MEMPOOL_URL": "https://mempool.space",
         "CANISTER_ID": "5optx-3iaaa-aaaae-qjwsa-cai",
-        "NEXT_PUBLIC_TAWK_EMBED_URL": "https://embed.tawk.to/69a303f652cbb51c37094784/1jiicevko"
+        "NEXT_PUBLIC_TAWK_EMBED_URL": "https://embed.tawk.to/69a303f652cbb51c37094784/1jiicevko",
+        "NEXT_PUBLIC_APP_HOST": "app.isometric.fi",
+        "NEXT_PUBLIC_APP_URL": "https://app.isometric.fi",
+        "NEXT_PUBLIC_LANDING_PAGE_HOST": "isometric.fi"
       },
       "services": [
         {

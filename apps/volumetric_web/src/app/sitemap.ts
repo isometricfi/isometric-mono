@@ -4,17 +4,15 @@ import { getPathname, routing } from "@/i18n/routing";
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || "https://isometric.fi";
 
 type Route = {
-  pathname: "/" | "/buy" | "/write" | "/portfolio" | "/history";
+  pathname: "/" | "/privacy" | "/terms";
   priority: number;
-  changeFrequency: "daily";
+  changeFrequency: "daily" | "monthly";
 };
 
 const routes: Route[] = [
   { pathname: "/", priority: 1, changeFrequency: "daily" },
-  { pathname: "/buy", priority: 0.9, changeFrequency: "daily" },
-  { pathname: "/write", priority: 0.9, changeFrequency: "daily" },
-  { pathname: "/portfolio", priority: 0.8, changeFrequency: "daily" },
-  { pathname: "/history", priority: 0.7, changeFrequency: "daily" },
+  { pathname: "/privacy", priority: 0.3, changeFrequency: "monthly" },
+  { pathname: "/terms", priority: 0.3, changeFrequency: "monthly" },
 ];
 
 export default function sitemap(): MetadataRoute.Sitemap {

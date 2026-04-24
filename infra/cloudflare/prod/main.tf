@@ -31,6 +31,16 @@ resource "cloudflare_workers_route" "www" {
   }
 }
 
+resource "cloudflare_workers_route" "app" {
+  zone_id = var.zone_id
+  pattern = "app.isometric.fi/*"
+  script  = var.worker_script_name
+
+  lifecycle {
+    prevent_destroy = true
+  }
+}
+
 resource "cloudflare_dns_record" "apex" {
   zone_id = var.zone_id
   name    = "isometric.fi"
@@ -47,6 +57,19 @@ resource "cloudflare_dns_record" "apex" {
 resource "cloudflare_dns_record" "www" {
   zone_id = var.zone_id
   name    = "www.isometric.fi"
+  type    = "AAAA"
+  content = "100::"
+  proxied = true
+  ttl     = 1
+
+  lifecycle {
+    prevent_destroy = true
+  }
+}
+
+resource "cloudflare_dns_record" "app" {
+  zone_id = var.zone_id
+  name    = "app.isometric.fi"
   type    = "AAAA"
   content = "100::"
   proxied = true

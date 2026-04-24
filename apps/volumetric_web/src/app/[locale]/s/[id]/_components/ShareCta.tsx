@@ -5,7 +5,7 @@ import { ArrowRight } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useDynamicConfig } from "@/app/providers/dynamic-provider";
 import { Button } from "@/components/ui/button";
-import { Link } from "@/i18n/routing";
+import { appUrl } from "@/lib/urls";
 
 export function ShareCta() {
   const { setShowAuthFlow, primaryWallet } = useDynamicContext();
@@ -28,10 +28,10 @@ export function ShareCta() {
 
   return (
     <Button asChild size="lg" className="w-full">
-      <Link href="/write">
+      <a href={appUrl("/write")}>
         {t("startTrading")}
         <ArrowRight className="size-4 ml-1" />
-      </Link>
+      </a>
     </Button>
   );
 }

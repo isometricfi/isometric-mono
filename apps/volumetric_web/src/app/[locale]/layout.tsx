@@ -43,6 +43,10 @@ export async function generateMetadata({
   const keywords = t("keywords");
   const ogImage = locale === "zh" ? "/defaultOGCN.png" : "/defaultOG.png";
 
+  const appHost = process.env.NEXT_PUBLIC_APP_HOST;
+  const requestHost = (await headers()).get("host") ?? "";
+  const isAppHost = appHost != null && appHost !== "" && requestHost === appHost;
+
   return {
     metadataBase: new URL(BASE_URL),
     title: {
@@ -75,17 +79,23 @@ export async function generateMetadata({
       description,
       images: [ogImage],
     },
-    robots: {
-      index: true,
-      follow: true,
-      googleBot: {
-        index: true,
-        follow: true,
-        "max-video-preview": -1,
-        "max-image-preview": "large",
-        "max-snippet": -1,
-      },
-    },
+    robots: isAppHost
+      ? {
+          index: false,
+          follow: false,
+          googleBot: { index: false, follow: false },
+        }
+      : {
+          index: true,
+          follow: true,
+          googleBot: {
+            index: true,
+            follow: true,
+            "max-video-preview": -1,
+            "max-image-preview": "large",
+            "max-snippet": -1,
+          },
+        },
   };
 }
 

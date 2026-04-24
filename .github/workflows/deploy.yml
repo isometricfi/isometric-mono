@@ -36,4 +36,7 @@ jobs:
           NEXT_PUBLIC_BASE_URL: ${{ secrets.NEXT_PUBLIC_BASE_URL }}
           NEXT_PUBLIC_MEMPOOL_URL: ${{ vars.NEXT_PUBLIC_MEMPOOL_URL }}
           NEXT_PUBLIC_TAWK_EMBED_URL: ${{ vars.NEXT_PUBLIC_TAWK_EMBED_URL }}
+          NEXT_PUBLIC_APP_HOST: ${{ vars.NEXT_PUBLIC_APP_HOST }}
+          NEXT_PUBLIC_APP_URL: ${{ vars.NEXT_PUBLIC_APP_URL }}
+          NEXT_PUBLIC_LANDING_PAGE_HOST: ${{ vars.NEXT_PUBLIC_LANDING_PAGE_HOST }}
         run: pnpm cf:deploy-all:prod

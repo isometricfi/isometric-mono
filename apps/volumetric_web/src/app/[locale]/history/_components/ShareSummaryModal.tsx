@@ -8,6 +8,7 @@ import { CopyButton } from "@/components/ui/copy-button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAccount, useHistory, useModal } from "@/hooks";
 import { XIcon } from "@/lib/site-links";
+import { landingPageUrl } from "@/lib/urls";
 export function ShareSummaryModal() {
   const t = useTranslations("ShareSummary");
   const { closeModal } = useModal();
@@ -22,8 +23,12 @@ export function ShareSummaryModal() {
   const address = account.profile.address;
   const shareCode = account.profile.inviteCode ?? address;
   const shareUrl = `/s/${shareCode}`;
-  const absoluteShareUrl =
-    typeof window !== "undefined" ? window.location.origin + shareUrl : shareUrl;
+  const landingPageAbsoluteShareUrl = landingPageUrl(shareUrl);
+  const absoluteShareUrl = landingPageAbsoluteShareUrl.startsWith("http")
+    ? landingPageAbsoluteShareUrl
+    : typeof window !== "undefined"
+      ? window.location.origin + shareUrl
+      : shareUrl;
   const ogImageUrl = `/api/og/${address}`;
 
   const entries = history.entries ?? [];
