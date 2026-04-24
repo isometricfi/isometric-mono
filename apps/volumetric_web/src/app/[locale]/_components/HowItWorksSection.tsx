@@ -2,11 +2,11 @@
 
 import { motion } from "framer-motion";
 import { ArrowRight, TrendingUp, Zap } from "lucide-react";
-import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { AnimatedToggle } from "@/components/navigation/AnimatedToggle";
 import { Button } from "@/components/ui/button";
+import { appUrl } from "@/lib/urls";
 
 export function HowItWorksSection() {
   const t = useTranslations("Landing");
@@ -105,12 +105,12 @@ export function HowItWorksSection() {
           viewport={{ once: true }}
           className="flex justify-center mt-16"
         >
-          <Link href="/buy">
+          <a href={appUrl("/buy")}>
             <Button size="lg" className="gap-2">
               {t("openApp")}
               <ArrowRight className="size-4" />
             </Button>
-          </Link>
+          </a>
         </motion.div>
       </div>
     </section>

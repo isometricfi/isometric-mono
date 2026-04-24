@@ -2,9 +2,9 @@
 
 import { motion } from "framer-motion";
 import { ArrowRight } from "lucide-react";
-import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
+import { appUrl } from "@/lib/urls";
 import { FinalCtaBgCanvas } from "./FinalCtaBgCanvas";
 
 export function FinalCtaSection() {
@@ -29,12 +29,12 @@ export function FinalCtaSection() {
             <p className="text-muted-foreground text-base md:text-lg mb-8 max-w-xl mx-auto">
               {t("finalCtaSubtitle")}
             </p>
-            <Link href="/buy">
+            <a href={appUrl("/buy")}>
               <Button size="lg" className="gap-2">
                 {t("openApp")}
                 <ArrowRight className="size-4" />
               </Button>
-            </Link>
+            </a>
           </div>
         </motion.div>
       </div>
