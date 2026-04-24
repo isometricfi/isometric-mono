@@ -5,6 +5,7 @@ import Image from "next/image";
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/routing";
 import { LEGAL_LINKS, RESOURCE_LINKS, SOCIAL_LINKS, TelegramIcon, XIcon } from "@/lib/site-links";
+import { marketingUrl } from "@/lib/urls";
 
 export function Footer() {
   const t = useTranslations("Footer");
@@ -70,22 +71,22 @@ export function Footer() {
               <h3 className="font-medium text-sm mb-3">{t("legal")}</h3>
               <ul className="space-y-2.5">
                 <li>
-                  <Link
-                    href={LEGAL_LINKS.privacy}
+                  <a
+                    href={marketingUrl(LEGAL_LINKS.privacy)}
                     className="text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center gap-2"
                   >
                     <Shield className="size-4" />
                     {t("privacyPolicy")}
-                  </Link>
+                  </a>
                 </li>
                 <li>
-                  <Link
-                    href={LEGAL_LINKS.terms}
+                  <a
+                    href={marketingUrl(LEGAL_LINKS.terms)}
                     className="text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center gap-2"
                   >
                     <FileText className="size-4" />
                     {t("termsOfService")}
-                  </Link>
+                  </a>
                 </li>
               </ul>
             </div>
