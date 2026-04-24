@@ -5,7 +5,7 @@ import Image from "next/image";
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/routing";
 import { LEGAL_LINKS, RESOURCE_LINKS, SOCIAL_LINKS, TelegramIcon, XIcon } from "@/lib/site-links";
-import { marketingUrl } from "@/lib/urls";
+import { landingPageUrl } from "@/lib/urls";
 
 export function Footer() {
   const t = useTranslations("Footer");
@@ -72,7 +72,7 @@ export function Footer() {
               <ul className="space-y-2.5">
                 <li>
                   <a
-                    href={marketingUrl(LEGAL_LINKS.privacy)}
+                    href={landingPageUrl(LEGAL_LINKS.privacy)}
                     className="text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center gap-2"
                   >
                     <Shield className="size-4" />
@@ -81,7 +81,7 @@ export function Footer() {
                 </li>
                 <li>
                   <a
-                    href={marketingUrl(LEGAL_LINKS.terms)}
+                    href={landingPageUrl(LEGAL_LINKS.terms)}
                     className="text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center gap-2"
                   >
                     <FileText className="size-4" />

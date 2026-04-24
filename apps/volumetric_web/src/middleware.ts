@@ -9,7 +9,7 @@ const intlMiddleware = createIntlMiddleware(routing);
 const isDev = process.env.NODE_ENV === "development";
 
 const APP_PATH_PREFIXES = ["/buy", "/write", "/portfolio", "/history", "/testing"] as const;
-const MARKETING_PATH_PREFIXES = ["/privacy", "/terms", "/s"] as const;
+const LANDING_PAGE_PATH_PREFIXES = ["/privacy", "/terms", "/s"] as const;
 const LOCALE_PATH_PREFIXES = routing.locales.map((locale) => `/${locale}`);
 const HOMEPAGE_PATH = "/";
 const APP_DEFAULT_PATH = "/buy";
@@ -80,18 +80,18 @@ function isAppPath(pathname: string): boolean {
   return matchesAnyPrefix(stripLocalePrefix(pathname), APP_PATH_PREFIXES);
 }
 
-function isMarketingPath(pathname: string): boolean {
+function isLandingPagePath(pathname: string): boolean {
   const stripped = stripLocalePrefix(pathname);
   if (stripped === HOMEPAGE_PATH) {
     return true;
   }
-  return matchesAnyPrefix(stripped, MARKETING_PATH_PREFIXES);
+  return matchesAnyPrefix(stripped, LANDING_PAGE_PATH_PREFIXES);
 }
 
 function applyHostRouting(request: NextRequest): NextResponse | null {
   const appHost = process.env.NEXT_PUBLIC_APP_HOST;
-  const marketingHost = process.env.NEXT_PUBLIC_MARKETING_HOST;
-  if (!appHost || !marketingHost) {
+  const landingPageHost = process.env.NEXT_PUBLIC_LANDING_PAGE_HOST;
+  if (!appHost || !landingPageHost) {
     return null;
   }
 
@@ -103,7 +103,7 @@ function applyHostRouting(request: NextRequest): NextResponse | null {
   const pathname = request.nextUrl.pathname;
   const search = request.nextUrl.search;
 
-  if (requestHost === marketingHost && isAppPath(pathname)) {
+  if (requestHost === landingPageHost && isAppPath(pathname)) {
     const target = new URL(`https://${appHost}${pathname}${search}`);
     return NextResponse.redirect(target, 308);
   }
@@ -113,8 +113,8 @@ function applyHostRouting(request: NextRequest): NextResponse | null {
       const target = new URL(`https://${appHost}${APP_DEFAULT_PATH}${search}`);
       return NextResponse.redirect(target, 302);
     }
-    if (isMarketingPath(pathname) && pathname !== HOMEPAGE_PATH) {
-      const target = new URL(`https://${marketingHost}${pathname}${search}`);
+    if (isLandingPagePath(pathname) && pathname !== HOMEPAGE_PATH) {
+      const target = new URL(`https://${landingPageHost}${pathname}${search}`);
       return NextResponse.redirect(target, 308);
     }
   }
