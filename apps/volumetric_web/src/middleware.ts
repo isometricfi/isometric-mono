@@ -10,7 +10,7 @@ const isDev = process.env.NODE_ENV === "development";
 
 const APP_PATH_PREFIXES = ["/buy", "/write", "/portfolio", "/history", "/testing"] as const;
 const MARKETING_PATH_PREFIXES = ["/privacy", "/terms", "/s"] as const;
-const LOCALE_PATH_PREFIXES = ["/en", "/zh"] as const;
+const LOCALE_PATH_PREFIXES = routing.locales.map((locale) => `/${locale}`);
 const HOMEPAGE_PATH = "/";
 const APP_DEFAULT_PATH = "/buy";
 
@@ -110,7 +110,7 @@ function applyHostRouting(request: NextRequest): NextResponse | null {
 
   if (requestHost === appHost) {
     if (pathname === HOMEPAGE_PATH) {
-      const target = new URL(`https://${appHost}${APP_DEFAULT_PATH}`);
+      const target = new URL(`https://${appHost}${APP_DEFAULT_PATH}${search}`);
       return NextResponse.redirect(target, 302);
     }
     if (isMarketingPath(pathname) && pathname !== HOMEPAGE_PATH) {
