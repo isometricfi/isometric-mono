@@ -21,7 +21,7 @@ export function Navbar() {
   const { primaryWallet } = useDynamicContext();
   const { isConfigured } = useDynamicConfig();
   const isLandingPage = pathname === "/";
-  const waitlistMode = isWaitlistMode();
+  const hideAppNav = isWaitlistMode() && isLandingPage;
   const t = useTranslations("Navbar");
   const [open, setOpen] = useState(false);
 
@@ -50,7 +50,7 @@ export function Navbar() {
               <DrawerContent className="px-5 pb-8">
                 <DrawerTitle className="sr-only">Navigation</DrawerTitle>
                 <div className="flex flex-col gap-2 mt-2">
-                  {!waitlistMode && (
+                  {!hideAppNav && (
                     <>
                       <Link href="/write" onClick={() => setOpen(false)}>
                         <Button
@@ -99,7 +99,7 @@ export function Navbar() {
             </Drawer>
           </div>
           <div className="hidden md:flex items-center gap-0.5 justify-center">
-            {!waitlistMode && (
+            {!hideAppNav && (
               <>
                 <Link href="/write">
                   <Button variant="ghost" className={cn(pathname === "/write" && "font-bold")}>
@@ -131,7 +131,7 @@ export function Navbar() {
               </div>
             )}
 
-            {waitlistMode ? null : isLandingPage ? (
+            {hideAppNav ? null : isLandingPage ? (
               <Button asChild>
                 <a href={appUrl("/write")}>{t("openApp")}</a>
               </Button>
