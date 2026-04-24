@@ -83,6 +83,18 @@ export const userDepositAddresses = sqliteTable(
   ],
 );
 
+export const waitlistSignups = sqliteTable(
+  "waitlist_signups",
+  {
+    email: text("email").primaryKey(),
+    createdAtMs: integer("created_at_ms").notNull(),
+    locale: text("locale"),
+    referrer: text("referrer"),
+    ipHash: text("ip_hash"),
+  },
+  (table) => [index("waitlist_signups_created_idx").on(table.createdAtMs)],
+);
+
 export const depositSyncState = sqliteTable(
   "deposit_sync_state",
   {

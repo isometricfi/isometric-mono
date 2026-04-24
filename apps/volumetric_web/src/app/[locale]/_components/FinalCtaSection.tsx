@@ -3,15 +3,18 @@
 import { motion } from "framer-motion";
 import { ArrowRight } from "lucide-react";
 import { useTranslations } from "next-intl";
+import { WaitlistForm } from "@/components/marketing/WaitlistForm";
 import { Button } from "@/components/ui/button";
 import { appUrl } from "@/lib/urls";
+import { isWaitlistMode } from "@/lib/site-links";
 import { FinalCtaBgCanvas } from "./FinalCtaBgCanvas";
 
 export function FinalCtaSection() {
   const t = useTranslations("Landing");
+  const waitlistMode = isWaitlistMode();
 
   return (
-    <section className="relative py-20 md:py-32">
+    <section className="relative py-20 md:py-32" id={waitlistMode ? "waitlist" : undefined}>
       <div className="mx-auto max-w-4xl">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -24,17 +27,23 @@ export function FinalCtaSection() {
           <div className="pointer-events-none absolute inset-x-0 -top-20 h-40 bg-primary/10 blur-3xl" />
           <div className="relative">
             <h2 className="text-3xl md:text-5xl font-bold tracking-tight leading-[1.1] mb-4">
-              {t("finalCtaTitle")}
+              {waitlistMode ? t("waitlistTitle") : t("finalCtaTitle")}
             </h2>
             <p className="text-muted-foreground text-base md:text-lg mb-8 max-w-xl mx-auto">
-              {t("finalCtaSubtitle")}
+              {waitlistMode ? t("waitlistSubtitle") : t("finalCtaSubtitle")}
             </p>
-            <a href={appUrl("/buy")}>
-              <Button size="lg" className="gap-2">
-                {t("openApp")}
-                <ArrowRight className="size-4" />
-              </Button>
-            </a>
+            {waitlistMode ? (
+              <div className="flex justify-center">
+                <WaitlistForm size="lg" />
+              </div>
+            ) : (
+              <a href={appUrl("/buy")}>
+                <Button size="lg" className="gap-2">
+                  {t("openApp")}
+                  <ArrowRight className="size-4" />
+                </Button>
+              </a>
+            )}
           </div>
         </motion.div>
       </div>

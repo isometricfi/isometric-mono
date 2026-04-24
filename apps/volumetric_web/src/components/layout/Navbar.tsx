@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Drawer, DrawerContent, DrawerTitle, DrawerTrigger } from "@/components/ui/drawer";
 import { ConnectButton } from "@/components/wallet/ConnectButton";
 import { Link, usePathname } from "@/i18n/routing";
+import { isWaitlistMode } from "@/lib/site-links";
 import { appUrl } from "@/lib/urls";
 import { cn } from "@/lib/utils";
 
@@ -20,6 +21,7 @@ export function Navbar() {
   const { primaryWallet } = useDynamicContext();
   const { isConfigured } = useDynamicConfig();
   const isLandingPage = pathname === "/";
+  const waitlistMode = isWaitlistMode();
   const t = useTranslations("Navbar");
   const [open, setOpen] = useState(false);
 
@@ -48,37 +50,44 @@ export function Navbar() {
               <DrawerContent className="px-5 pb-8">
                 <DrawerTitle className="sr-only">Navigation</DrawerTitle>
                 <div className="flex flex-col gap-2 mt-2">
-                  <Link href="/write" onClick={() => setOpen(false)}>
-                    <Button
-                      variant="ghost"
-                      size="lg"
-                      className={cn("w-full justify-start", pathname === "/write" && "font-bold")}
-                    >
-                      {t("write")}
-                    </Button>
-                  </Link>
-                  <Link href="/buy" onClick={() => setOpen(false)}>
-                    <Button
-                      variant="ghost"
-                      size="lg"
-                      className={cn("w-full justify-start", pathname === "/buy" && "font-bold")}
-                    >
-                      {t("buy")}
-                    </Button>
-                  </Link>
-                  {!isLandingPage && (
-                    <Link href="/portfolio" onClick={() => setOpen(false)}>
-                      <Button
-                        variant="ghost"
-                        size="lg"
-                        className={cn(
-                          "w-full justify-start",
-                          pathname === "/portfolio" && "font-bold",
-                        )}
-                      >
-                        {t("portfolio")}
-                      </Button>
-                    </Link>
+                  {!waitlistMode && (
+                    <>
+                      <Link href="/write" onClick={() => setOpen(false)}>
+                        <Button
+                          variant="ghost"
+                          size="lg"
+                          className={cn(
+                            "w-full justify-start",
+                            pathname === "/write" && "font-bold",
+                          )}
+                        >
+                          {t("write")}
+                        </Button>
+                      </Link>
+                      <Link href="/buy" onClick={() => setOpen(false)}>
+                        <Button
+                          variant="ghost"
+                          size="lg"
+                          className={cn("w-full justify-start", pathname === "/buy" && "font-bold")}
+                        >
+                          {t("buy")}
+                        </Button>
+                      </Link>
+                      {!isLandingPage && (
+                        <Link href="/portfolio" onClick={() => setOpen(false)}>
+                          <Button
+                            variant="ghost"
+                            size="lg"
+                            className={cn(
+                              "w-full justify-start",
+                              pathname === "/portfolio" && "font-bold",
+                            )}
+                          >
+                            {t("portfolio")}
+                          </Button>
+                        </Link>
+                      )}
+                    </>
                   )}
                   {!primaryWallet && (
                     <div className="mt-4 pt-4 border-t">
@@ -90,22 +99,29 @@ export function Navbar() {
             </Drawer>
           </div>
           <div className="hidden md:flex items-center gap-0.5 justify-center">
-            <Link href="/write">
-              <Button variant="ghost" className={cn(pathname === "/write" && "font-bold")}>
-                {t("write")}
-              </Button>
-            </Link>
-            <Link href="/buy">
-              <Button variant="ghost" className={cn(pathname === "/buy" && "font-bold")}>
-                {t("buy")}
-              </Button>
-            </Link>
-            {primaryWallet && (
-              <Link href="/portfolio">
-                <Button variant="ghost" className={cn(pathname === "/portfolio" && "font-bold")}>
-                  {t("portfolio")}
-                </Button>
-              </Link>
+            {!waitlistMode && (
+              <>
+                <Link href="/write">
+                  <Button variant="ghost" className={cn(pathname === "/write" && "font-bold")}>
+                    {t("write")}
+                  </Button>
+                </Link>
+                <Link href="/buy">
+                  <Button variant="ghost" className={cn(pathname === "/buy" && "font-bold")}>
+                    {t("buy")}
+                  </Button>
+                </Link>
+                {primaryWallet && (
+                  <Link href="/portfolio">
+                    <Button
+                      variant="ghost"
+                      className={cn(pathname === "/portfolio" && "font-bold")}
+                    >
+                      {t("portfolio")}
+                    </Button>
+                  </Link>
+                )}
+              </>
             )}
           </div>
           <div className="flex items-center gap-3 justify-center md:justify-end -mr-0.5">
@@ -115,7 +131,7 @@ export function Navbar() {
               </div>
             )}
 
-            {isLandingPage ? (
+            {waitlistMode ? null : isLandingPage ? (
               <Button asChild>
                 <a href={appUrl("/write")}>{t("openApp")}</a>
               </Button>

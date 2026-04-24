@@ -330,7 +330,15 @@
     "teamDylanRole": "工程 ·",
     "teamDylanBio": "全栈工程师。Rust、Motoko、TypeScript。",
     "finalCtaTitle": "几分钟内开始交易比特币期权。",
-    "finalCtaSubtitle": "连接钱包，存入 BTC，开启你的第一笔交易。无需注册，无需 KYC。"
+    "finalCtaSubtitle": "连接钱包，存入 BTC，开启你的第一笔交易。无需注册，无需 KYC。",
+    "waitlistTitle": "抢先体验",
+    "waitlistSubtitle": "我们即将上线。留下邮箱，上线时第一时间通知你。",
+    "waitlistEmailPlaceholder": "you@example.com",
+    "waitlistSubmit": "通知我",
+    "waitlistSubmitting": "保存中…",
+    "waitlistSuccess": "已加入候补名单，我们会与你联系。",
+    "waitlistAlready": "你已在候补名单中。",
+    "waitlistError": "出错了，请重试。"
   },
   "Pages": {
     "buyOptions": "购买期权",

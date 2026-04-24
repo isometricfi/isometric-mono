@@ -331,7 +331,15 @@
     "teamDylanRole": "Engineering at",
     "teamDylanBio": "Full-stack engineer. Rust, Motoko, TypeScript.",
     "finalCtaTitle": "Trade Bitcoin options in minutes.",
-    "finalCtaSubtitle": "Connect a wallet, deposit BTC, and take your first position. No signup. No KYC."
+    "finalCtaSubtitle": "Connect a wallet, deposit BTC, and take your first position. No signup. No KYC.",
+    "waitlistTitle": "Get early access",
+    "waitlistSubtitle": "We're launching soon. Drop your email and we'll let you know the moment it's live.",
+    "waitlistEmailPlaceholder": "you@example.com",
+    "waitlistSubmit": "Notify me",
+    "waitlistSubmitting": "Saving…",
+    "waitlistSuccess": "You're on the list. We'll be in touch.",
+    "waitlistAlready": "You're already on the list.",
+    "waitlistError": "Something went wrong. Please try again."
   },
   "Pages": {
     "buyOptions": "Buy options",

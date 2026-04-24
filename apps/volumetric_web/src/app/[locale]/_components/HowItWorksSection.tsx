@@ -6,11 +6,13 @@ import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { AnimatedToggle } from "@/components/navigation/AnimatedToggle";
 import { Button } from "@/components/ui/button";
+import { isWaitlistMode } from "@/lib/site-links";
 import { appUrl } from "@/lib/urls";
 
 export function HowItWorksSection() {
   const t = useTranslations("Landing");
   const [activeTab, setActiveTab] = useState<"writer" | "buyer">("writer");
+  const waitlistMode = isWaitlistMode();
 
   const writerSteps = [
     {
@@ -105,12 +107,21 @@ export function HowItWorksSection() {
           viewport={{ once: true }}
           className="flex justify-center mt-16"
         >
-          <a href={appUrl("/buy")}>
-            <Button size="lg" className="gap-2">
-              {t("openApp")}
-              <ArrowRight className="size-4" />
-            </Button>
-          </a>
+          {waitlistMode ? (
+            <a href="#waitlist">
+              <Button size="lg" className="gap-2">
+                {t("waitlistSubmit")}
+                <ArrowRight className="size-4" />
+              </Button>
+            </a>
+          ) : (
+            <a href={appUrl("/buy")}>
+              <Button size="lg" className="gap-2">
+                {t("openApp")}
+                <ArrowRight className="size-4" />
+              </Button>
+            </a>
+          )}
         </motion.div>
       </div>
     </section>
