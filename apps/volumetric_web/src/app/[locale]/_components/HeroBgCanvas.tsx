@@ -11,7 +11,6 @@ const DESKTOP_BREAKPOINT = 768;
 const DARK_GRID = new THREE.Color(0.72, 0.58, 0.5);
 const LIGHT_GRID = new THREE.Color(0.78, 0.72, 0.66);
 
-// matches --background in globals.css (oklch(0.18 0.012 40) ≈ #1a1411, oklch(0.985 0.008 65) ≈ #fbf7f2)
 const DARK_BG = new THREE.Color(0x16100e);
 const LIGHT_BG = new THREE.Color(0xfef9f5);
 
