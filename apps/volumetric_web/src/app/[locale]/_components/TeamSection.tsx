@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Linkedin } from "lucide-react";
+import { Globe, Linkedin } from "lucide-react";
 import Image from "next/image";
 import { useTranslations } from "next-intl";
 
@@ -11,6 +11,7 @@ type Member = {
   bio: string;
   image: string;
   linkedin: string;
+  website: string;
 };
 
 export function TeamSection() {
@@ -23,6 +24,7 @@ export function TeamSection() {
       bio: t("teamLukeBio"),
       image: "/landing/luke-profile.jpg",
       linkedin: "https://www.linkedin.com/in/luke-bowles-sa/",
+      website: "https://luko.co.za",
     },
     {
       name: "Dylan van Heerden",
@@ -30,6 +32,7 @@ export function TeamSection() {
       bio: t("teamDylanBio"),
       image: "/landing/dylan-profile.jpg",
       linkedin: "https://www.linkedin.com/in/dylanvanheerden/",
+      website: "https://www.dylanvh.com",
     },
   ];
 
@@ -72,15 +75,26 @@ export function TeamSection() {
                     <div className="min-w-0">
                       <h3 className="font-semibold text-base truncate">{m.name}</h3>
                     </div>
-                    <a
-                      href={m.linkedin}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      aria-label={`${m.name} LinkedIn`}
-                      className="shrink-0 text-muted-foreground transition-colors hover:text-primary"
-                    >
-                      <Linkedin className="size-4" />
-                    </a>
+                    <div className="flex shrink-0 items-center gap-2">
+                      <a
+                        href={m.website}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        aria-label={`${m.name} website`}
+                        className="text-muted-foreground transition-colors hover:text-primary"
+                      >
+                        <Globe className="size-4" />
+                      </a>
+                      <a
+                        href={m.linkedin}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        aria-label={`${m.name} LinkedIn`}
+                        className="text-muted-foreground transition-colors hover:text-primary"
+                      >
+                        <Linkedin className="size-4" />
+                      </a>
+                    </div>
                   </div>
                   <p className="mt-2 text-sm text-muted-foreground leading-relaxed">{m.bio}</p>
                   <p className="mt-2 text-xs text-muted-foreground">
