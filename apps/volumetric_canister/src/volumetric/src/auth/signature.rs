@@ -7,6 +7,7 @@ use bitcoin::secp256k1::{Message, PublicKey, Secp256k1};
 use bitcoin::{Address, Network, ScriptBuf};
 
 use crate::errors::{error_codes, VolumetricError};
+use crate::ic;
 use crate::storage::{BtcNetwork, Config};
 
 const LEGACY_SIGNATURE_LENGTH: usize = 65;
@@ -19,6 +20,18 @@ const LEGACY_HEADER_MIN: u8 = 27;
 const LEGACY_HEADER_UNCOMPRESSED_MAX_PLUS_ONE: u8 = 31; // 27..=30 → uncompressed
 const LEGACY_HEADER_MAX_PLUS_ONE: u8 = 43; // 31..=42 → compressed (any address-type hint)
 const BIP137_RECOVERY_IDS_PER_RANGE: u8 = 4;
+
+// Upper bound on the base64-encoded signature accepted at the verifier
+// boundary. BIP-322 simple witnesses are ~150 bytes and BIP-137 signatures
+// are exactly 88 bytes in base64; 1 KiB caps cycle spend on oversized inputs
+// before any base64 decode or consensus decode runs.
+const MAX_SIGNATURE_BASE64_LEN: usize = 1024;
+
+// Upper bound on the message bytes accepted at the verifier boundary. The
+// canonical challenge built by `build_challenge_message` is well under 1 KiB
+// in practice; 4 KiB leaves headroom for future action fields while bounding
+// the cost of `legacy_message_hash` (double-SHA256 over the whole payload).
+const MAX_MESSAGE_BYTES: usize = 4096;
 
 fn configured_network() -> Network {
     match Config::btc_network() {
@@ -53,6 +66,28 @@ pub fn verify_btc_signature_on_network(
     signature_base64: &str,
     network: Network,
 ) -> Result<(), VolumetricError> {
+    if signature_base64.len() > MAX_SIGNATURE_BASE64_LEN {
+        return Err(VolumetricError::from_def(
+            error_codes::INVALID_SIGNATURE,
+            Some(&format!(
+                "signature exceeds maximum base64 length of {} bytes",
+                MAX_SIGNATURE_BASE64_LEN
+            )),
+            None,
+        ));
+    }
+
+    if message.len() > MAX_MESSAGE_BYTES {
+        return Err(VolumetricError::from_def(
+            error_codes::INVALID_SIGNATURE,
+            Some(&format!(
+                "message exceeds maximum length of {} bytes",
+                MAX_MESSAGE_BYTES
+            )),
+            None,
+        ));
+    }
+
     let btc_address = parse_address(address, network)?;
 
     let bip322_err = match try_verify_bip322_simple(&btc_address, message, signature_base64) {
@@ -65,12 +100,17 @@ pub fn verify_btc_signature_on_network(
         Err(e) => e,
     };
 
+    // Per-scheme failure reasons are logged to the canister log (visible to
+    // controllers) but intentionally omitted from the caller-facing error to
+    // avoid helping unauthenticated probes fingerprint input handling.
+    ic::log(&format!(
+        "btc signature verification failed for address {}: bip322={}; bip137={}",
+        address, bip322_err, bip137_err
+    ));
+
     Err(VolumetricError::from_def(
         error_codes::INVALID_SIGNATURE,
-        Some(&format!(
-            "no supported scheme verified (bip322: {}; bip137: {})",
-            bip322_err, bip137_err
-        )),
+        None,
         None,
     ))
 }
@@ -93,12 +133,28 @@ fn parse_address(address: &str, network: Network) -> Result<Address, VolumetricE
     })
 }
 
-// Delegates to the `bip322` crate for P2WPKH, P2SH-P2WPKH, and P2TR witnesses.
+// Delegates to the `bip322` crate for P2WPKH and P2TR witnesses. P2SH-P2WPKH
+// is intentionally rejected here: `bip322` 0.0.10's `verify_full_p2wpkh`
+// branch for P2SH addresses destructures `AddressData::P2sh { script_hash: _ }`
+// and never checks that `hash160(new_p2wpkh(witness_pubkey.wpubkey_hash()))`
+// equals the address's script_hash. A forged witness carrying any attacker
+// pubkey + a matching self-consistent ECDSA signature would otherwise verify
+// against arbitrary P2SH-P2WPKH addresses. The outer dispatcher falls through
+// to `try_verify_bip137`, whose P2SH-P2WPKH branch derives the redeem script
+// from the recovered pubkey and enforces the script_hash equality.
 fn try_verify_bip322_simple(
     btc_address: &Address,
     message: &str,
     signature_base64: &str,
 ) -> Result<(), String> {
+    if matches!(btc_address.to_address_data(), AddressData::P2sh { .. }) {
+        return Err(
+            "P2SH-P2WPKH is not verified via BIP-322 (bip322 crate skips script_hash check); \
+             BIP-137 path handles this address type safely"
+                .into(),
+        );
+    }
+
     bip322::verify_simple_encoded(&btc_address.to_string(), message, signature_base64)
         .map_err(|e| format!("{}", e))
 }
@@ -165,13 +221,18 @@ fn try_verify_bip137(
                 );
             }
             // BIP-86 keypath-only: output key = tap_tweak(internal_key, ∅).
+            // Script-path taproot addresses are indistinguishable from key-path
+            // on-chain, so a mismatch here may mean either an invalid signature
+            // or a script-path P2TR address that this verifier does not support.
             let (recovered_xonly, _parity) = recovered_key.x_only_public_key();
             let (tweaked, _parity) = recovered_xonly.tap_tweak(&secp, None);
             let expected =
                 <[u8; 32]>::try_from(witness_program.program().as_bytes()).expect("len==32");
             if tweaked.to_x_only_public_key().serialize() != expected {
                 return Err(
-                    "recovered pubkey (BIP-86 tap-tweaked) does not match P2TR witness program"
+                    "P2TR witness program does not match the BIP-86 tap-tweaked pubkey \
+                     recovered from the signature (possible causes: wrong signature, or a \
+                     script-path P2TR address — only BIP-86 key-path taproot is supported)"
                         .into(),
                 );
             }
@@ -1380,6 +1441,116 @@ mod tests {
         assert!(result.is_err());
     }
 
+    /// Given: a victim P2SH-P2WPKH address `A_v` owned by key `K_v`, and an unrelated
+    ///        attacker key `K_a`; the attacker builds a BIP-322 simple witness
+    ///        `[DER(sig_A) || 0x01, pub_A]` where `sig_A` signs the BIP-143 P2WPKH
+    ///        sighash that the bip322 crate will compute in its `is_p2sh=true` branch
+    ///        (script_code = `p2wpkh(hash160(pub_A))`, prevout = `create_to_spend(A_v, msg).txid:0`)
+    /// When: the forged witness is submitted against `A_v`
+    /// Then: `verify_btc_signature_on_network` rejects it
+    ///
+    /// Documents a pre-dispatch security check that bypasses the `bip322` crate's
+    /// `verify_full_p2wpkh(is_p2sh=true)` path. That path destructures
+    /// `AddressData::P2sh { script_hash: _ }` and never enforces
+    /// `hash160(new_p2wpkh(pub_A.wpubkey_hash())) == script_hash`, so a foreign key
+    /// can authenticate against any P2SH-P2WPKH address. The volumetric canister
+    /// must therefore skip BIP-322 for P2SH addresses and rely on the BIP-137
+    /// branch, which derives the expected script hash from the recovered pubkey.
+    #[test]
+    fn verify_rejects_bip322_forged_witness_against_p2sh_p2wpkh_address() {
+        use bitcoin::consensus::serialize;
+        use bitcoin::sighash::SighashCache;
+        use bitcoin::{Amount, EcdsaSighashType, Witness};
+
+        // given
+        const VICTIM_SECRET: [u8; 32] = [40u8; 32];
+        const ATTACKER_SEED_START: u8 = 41;
+        const BIP322_SIG_LEN_MIN: usize = 71;
+        const BIP322_SIG_LEN_MAX: usize = 72;
+        const SIGHASH_ALL_BYTE: u8 = EcdsaSighashType::All as u8;
+
+        let secp = Secp256k1::new();
+        let victim_sk = SecretKey::from_slice(&VICTIM_SECRET).unwrap();
+        let victim_private_key = PrivateKey {
+            compressed: true,
+            network: Network::Bitcoin.into(),
+            inner: victim_sk,
+        };
+        let victim_compressed =
+            CompressedPublicKey::from_private_key(&secp, &victim_private_key).unwrap();
+        let victim_p2sh_address = Address::p2shwpkh(&victim_compressed, Network::Bitcoin);
+        let message = "withdraw all funds to attacker";
+
+        let to_spend = bip322::create_to_spend(&victim_p2sh_address, message).unwrap();
+        let to_sign_psbt = bip322::create_to_sign(&to_spend, None).unwrap();
+        let unsigned_tx = to_sign_psbt.unsigned_tx;
+
+        let mut attacker_seed = ATTACKER_SEED_START;
+        let forged_signature_base64 = loop {
+            let attacker_secret = [attacker_seed; 32];
+            let attacker_sk = SecretKey::from_slice(&attacker_secret).unwrap();
+            let attacker_private_key = PrivateKey {
+                compressed: true,
+                network: Network::Bitcoin.into(),
+                inner: attacker_sk,
+            };
+            let attacker_pub = PublicKey::from_private_key(&secp, &attacker_private_key);
+            let attacker_wpubkey_hash = attacker_pub.wpubkey_hash().unwrap();
+            let script_code = ScriptBuf::new_p2wpkh(&attacker_wpubkey_hash);
+
+            let sighash = SighashCache::new(unsigned_tx.clone())
+                .p2wpkh_signature_hash(0, &script_code, Amount::from_sat(0), EcdsaSighashType::All)
+                .unwrap();
+            let sighash_msg = Message::from_digest_slice(sighash.as_ref()).unwrap();
+            let ecdsa_sig = secp.sign_ecdsa(&sighash_msg, &attacker_sk);
+            let mut sig_der = ecdsa_sig.serialize_der().to_vec();
+            sig_der.push(SIGHASH_ALL_BYTE);
+
+            if (BIP322_SIG_LEN_MIN..=BIP322_SIG_LEN_MAX).contains(&sig_der.len()) {
+                let mut witness = Witness::new();
+                witness.push(&sig_der);
+                witness.push(attacker_pub.to_bytes());
+                let witness_bytes = serialize(&witness);
+                break general_purpose::STANDARD.encode(&witness_bytes);
+            }
+
+            attacker_seed = attacker_seed.wrapping_add(1);
+            assert!(
+                attacker_seed != ATTACKER_SEED_START,
+                "no attacker secret produced a BIP-322-acceptable DER signature"
+            );
+        };
+
+        // Sanity check: the forgery is accepted by the bip322 crate on its own,
+        // confirming the construction is valid and this test actually exercises
+        // the bypass. If the upstream crate ever starts rejecting this input,
+        // the canister-level pre-dispatch below may no longer be needed.
+        let bip322_direct_result = bip322::verify_simple_encoded(
+            &victim_p2sh_address.to_string(),
+            message,
+            &forged_signature_base64,
+        );
+        assert!(
+            bip322_direct_result.is_ok(),
+            "bip322 crate should accept the forgery (documents the bypass): {:?}",
+            bip322_direct_result
+        );
+
+        // when
+        let result = verify_btc_signature_on_network(
+            &victim_p2sh_address.to_string(),
+            message,
+            &forged_signature_base64,
+            Network::Bitcoin,
+        );
+
+        // then
+        assert!(
+            result.is_err(),
+            "verifier must reject a BIP-322 witness signed by a foreign key on a P2SH-P2WPKH address"
+        );
+    }
+
     // ==================================================================
     // F. Message framing edge cases
     // ==================================================================
@@ -1650,15 +1821,62 @@ mod tests {
         assert!(result.is_err());
     }
 
-    /// Given: a 256 KB message signed end-to-end
+    /// Given: a 256 KB message — well above the MAX_MESSAGE_BYTES cap
     /// When: the verifier runs
-    /// Then: the signature verifies, confirming framing and hashing are not length-bounded
+    /// Then: the call is rejected at the boundary before any hashing happens,
+    ///       bounding cycle spend on oversized inputs
     #[test]
-    fn verify_handles_very_long_message_without_panic() {
+    fn verify_rejects_message_above_size_cap() {
+        // given
+        let address = "bc1q9vza2e8x573nczrlzms0wvx3gsqjx7vavgkx0l";
+        const MESSAGE_LEN_ABOVE_CAP: usize = 262_144;
+        let oversized_message: String =
+            std::iter::repeat('a').take(MESSAGE_LEN_ABOVE_CAP).collect();
+        let dummy_signature = encode_signature(&[0u8; LEGACY_SIGNATURE_LENGTH]);
+
+        // when
+        let result = verify_btc_signature_on_network(
+            address,
+            &oversized_message,
+            &dummy_signature,
+            Network::Bitcoin,
+        );
+
+        // then
+        let err = result.expect_err("message above MAX_MESSAGE_BYTES must be rejected");
+        assert_eq!(err.code, error_codes::INVALID_SIGNATURE.code);
+    }
+
+    /// Given: a base64 signature string that exceeds MAX_SIGNATURE_BASE64_LEN by 1 byte
+    /// When: the verifier runs
+    /// Then: the call is rejected at the boundary before base64 decode or
+    ///       consensus decode runs
+    #[test]
+    fn verify_rejects_signature_above_base64_size_cap() {
+        // given
+        let address = "bc1q9vza2e8x573nczrlzms0wvx3gsqjx7vavgkx0l";
+        let oversized_signature: String = std::iter::repeat('A')
+            .take(MAX_SIGNATURE_BASE64_LEN + 1)
+            .collect();
+
+        // when
+        let result =
+            verify_btc_signature_on_network(address, "msg", &oversized_signature, Network::Bitcoin);
+
+        // then
+        let err = result.expect_err("signature above MAX_SIGNATURE_BASE64_LEN must be rejected");
+        assert_eq!(err.code, error_codes::INVALID_SIGNATURE.code);
+    }
+
+    /// Given: a message exactly at the MAX_MESSAGE_BYTES cap (boundary inclusive)
+    /// When: the verifier runs with a legitimate signature for that message
+    /// Then: the signature verifies — the cap is inclusive and leaves headroom
+    ///       for realistic canonical challenges plus future action fields
+    #[test]
+    fn verify_accepts_message_exactly_at_size_cap() {
         // given
         let secret = [29u8; 32];
-        const MESSAGE_LEN: usize = 262_144; // 256 KB
-        let message: String = std::iter::repeat('a').take(MESSAGE_LEN).collect();
+        let message: String = std::iter::repeat('a').take(MAX_MESSAGE_BYTES).collect();
         let (address, signature) = sign_bip137(
             secret,
             &message,
@@ -1673,7 +1891,7 @@ mod tests {
         // then
         assert!(
             result.is_ok(),
-            "256 KB message should still verify: {:?}",
+            "message exactly at MAX_MESSAGE_BYTES should still verify: {:?}",
             result
         );
     }
