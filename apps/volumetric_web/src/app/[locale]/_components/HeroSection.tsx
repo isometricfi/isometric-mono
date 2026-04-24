@@ -1,12 +1,15 @@
 import { Sparkles } from "lucide-react";
 import Image from "next/image";
 import { useTranslations } from "next-intl";
+import { WaitlistForm } from "@/components/marketing/WaitlistForm";
 import { Button } from "@/components/ui/button";
+import { isWaitlistMode } from "@/lib/site-links";
 import { appUrl } from "@/lib/urls";
 import { HeroBgCanvas } from "./HeroBgCanvas";
 
 export function HeroSection() {
   const t = useTranslations("Landing");
+  const waitlistMode = isWaitlistMode();
 
   return (
     <div className="relative flex min-h-[94vh] flex-col items-center justify-center py-20 md:py-24">
@@ -29,9 +32,15 @@ export function HeroSection() {
             <h2 className="font-semibold text-base md:text-lg lg:text-xl text-muted-foreground sm:max-w-xl mx-auto md:mx-0 max-w-[210px] ">
               {t("subheadline")}
             </h2>
-            <a href={appUrl("/buy")}>
-              <Button className="mt-8">{t("openApp")}</Button>
-            </a>
+            {waitlistMode ? (
+              <div className="mt-8 flex justify-center md:justify-start">
+                <WaitlistForm size="lg" />
+              </div>
+            ) : (
+              <a href={appUrl("/buy")}>
+                <Button className="mt-8">{t("openApp")}</Button>
+              </a>
+            )}
           </div>
 
           <div className="relative mx-auto w-full max-w-[300px] sm:max-w-[340px] md:max-w-[380px]">

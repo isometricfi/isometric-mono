@@ -6,6 +6,7 @@ import { historyRouter } from "./routers/history";
 import { optionsRouter } from "./routers/options";
 import { portfolioRouter } from "./routers/portfolio";
 import { testingRouter } from "./routers/testing";
+import { waitlistRouter } from "./routers/waitlist";
 
 export const appRouter = router({
   account: accountRouter,
@@ -15,6 +16,7 @@ export const appRouter = router({
   options: optionsRouter,
   portfolio: portfolioRouter,
   testing: testingRouter,
+  waitlist: waitlistRouter,
 });
 
 export type AppRouter = typeof appRouter;

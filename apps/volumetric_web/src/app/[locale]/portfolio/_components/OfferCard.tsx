@@ -142,10 +142,7 @@ export function OfferCard({ offer, btcPrice, onCancel, isCancelling, rankInfo }:
 
               {rankInfo &&
                 (rankInfo.isBest ? (
-                  <Badge
-                    variant="default"
-                    className="bg-yellow-500/15 text-yellow-600 hover:bg-yellow-500/25 border-yellow-500/20 gap-1 px-2"
-                  >
+                  <Badge variant="default">
                     <Trophy className="size-3" />
                     {t("bestOffer")}
                   </Badge>

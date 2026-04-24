@@ -28,3 +28,7 @@ export const LEGAL_LINKS = {
   privacy: "/privacy",
   terms: "/terms",
 };
+
+export function isWaitlistMode(): boolean {
+  return process.env.NEXT_PUBLIC_WAITLIST_MODE === "true";
+}
