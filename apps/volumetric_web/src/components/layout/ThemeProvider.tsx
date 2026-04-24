@@ -8,7 +8,13 @@ interface ThemeProviderProps {
 
 export function ThemeProvider({ children, nonce }: ThemeProviderProps) {
   return (
-    <NextThemesProvider attribute="class" enableSystem disableTransitionOnChange nonce={nonce}>
+    <NextThemesProvider
+      attribute="class"
+      enableSystem
+      disableTransitionOnChange
+      nonce={nonce}
+      scriptProps={{ "data-cfasync": "false" }}
+    >
       {children}
     </NextThemesProvider>
   );
