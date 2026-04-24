@@ -33,7 +33,7 @@ export function HeroSection() {
               {t("subheadline")}
             </h2>
             {waitlistMode ? (
-              <div className="mt-8 flex justify-center md:justify-start" id="waitlist">
+              <div className="mt-8 flex justify-center md:justify-start">
                 <WaitlistForm size="lg" />
               </div>
             ) : (

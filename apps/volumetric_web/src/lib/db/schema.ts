@@ -90,7 +90,6 @@ export const waitlistSignups = sqliteTable(
     createdAtMs: integer("created_at_ms").notNull(),
     locale: text("locale"),
     referrer: text("referrer"),
-    ipHash: text("ip_hash"),
   },
   (table) => [index("waitlist_signups_created_idx").on(table.createdAtMs)],
 );

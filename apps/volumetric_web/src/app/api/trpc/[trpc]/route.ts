@@ -1,4 +1,5 @@
 import { fetchRequestHandler } from "@trpc/server/adapters/fetch";
+import { createTRPCContext } from "@/trpc/init";
 import { appRouter } from "@/trpc/router";
 
 const handler = (req: Request) =>
@@ -6,7 +7,7 @@ const handler = (req: Request) =>
     endpoint: "/api/trpc",
     req,
     router: appRouter,
-    createContext: () => Promise.resolve({ req }),
+    createContext: createTRPCContext,
   });
 
 export { handler as GET, handler as POST };

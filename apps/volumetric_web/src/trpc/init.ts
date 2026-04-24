@@ -2,15 +2,11 @@ import { initTRPC } from "@trpc/server";
 import { cache } from "react";
 import superjson from "superjson";
 
-export interface TRPCContext {
-  req?: Request;
-}
-
-export const createTRPCContext = cache(async (): Promise<TRPCContext> => {
+export const createTRPCContext = cache(async () => {
   return {};
 });
 
-const t = initTRPC.context<TRPCContext>().create({
+const t = initTRPC.create({
   transformer: superjson,
 });
 

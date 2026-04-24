@@ -2,10 +2,7 @@ import { getD1Db } from "@/lib/db/get-d1-db";
 import { waitlistSignups } from "@/lib/db/schema";
 import type { Input, Output } from "./schema";
 
-export async function signupForWaitlist(
-  input: Input,
-  meta: { ipHash?: string } = {},
-): Promise<Output> {
+export async function signupForWaitlist(input: Input): Promise<Output> {
   const db = getD1Db();
 
   const result = await db
@@ -15,7 +12,6 @@ export async function signupForWaitlist(
       createdAtMs: Date.now(),
       locale: input.locale ?? null,
       referrer: input.referrer ?? null,
-      ipHash: meta.ipHash ?? null,
     })
     .onConflictDoNothing({ target: waitlistSignups.email })
     .returning({ email: waitlistSignups.email });
