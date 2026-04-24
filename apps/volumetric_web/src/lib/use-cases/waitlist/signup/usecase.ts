@@ -11,7 +11,6 @@ export async function signupForWaitlist(input: Input): Promise<Output> {
       email: input.email,
       createdAtMs: Date.now(),
       locale: input.locale ?? null,
-      referrer: input.referrer ?? null,
     })
     .onConflictDoNothing({ target: waitlistSignups.email })
     .returning({ email: waitlistSignups.email });

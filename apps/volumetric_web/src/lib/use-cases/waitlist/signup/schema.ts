@@ -3,7 +3,6 @@ import { z } from "zod";
 export const inputSchema = z.object({
   email: z.string().trim().toLowerCase().email().max(254),
   locale: z.string().max(10).optional(),
-  referrer: z.string().max(500).optional(),
 });
 
 export type Input = z.infer<typeof inputSchema>;

@@ -29,7 +29,6 @@ export function WaitlistForm({ className, size = "default" }: WaitlistFormProps)
       trpcClient.waitlist.signup.mutate({
         email: input.email,
         locale,
-        referrer: typeof document !== "undefined" ? document.referrer || undefined : undefined,
       }),
   });
 

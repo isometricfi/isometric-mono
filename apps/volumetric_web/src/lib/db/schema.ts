@@ -89,7 +89,6 @@ export const waitlistSignups = sqliteTable(
     email: text("email").primaryKey(),
     createdAtMs: integer("created_at_ms").notNull(),
     locale: text("locale"),
-    referrer: text("referrer"),
   },
   (table) => [index("waitlist_signups_created_idx").on(table.createdAtMs)],
 );
