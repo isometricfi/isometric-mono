@@ -1,4 +1,5 @@
 import { getCanisterActor } from "@/lib/canister-server";
+import { logError } from "@/lib/telemetry/logs";
 import { withSpan } from "@/lib/telemetry/withSpan";
 import type { ConfigData } from "@/types/config";
 import { mapConfig } from "./mapper";
@@ -12,6 +13,15 @@ export async function getConfig(): Promise<ConfigData> {
       actor.get_trading_limits(),
       actor.get_fee_config(),
     ]);
-    return mapConfig(rawLimits, rawFeeConfig);
+    const config = mapConfig(rawLimits, rawFeeConfig);
+
+    if (config.termOptions.length === 0) {
+      const { min, max } = rawLimits.option_duration_seconds;
+      await logError(
+        `No term day fits option_duration_seconds range [min=${min}s, max=${max}s]; term selector will be empty`,
+      );
+    }
+
+    return config;
   });
 }

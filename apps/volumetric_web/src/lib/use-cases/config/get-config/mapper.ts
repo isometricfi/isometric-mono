@@ -38,22 +38,17 @@ function mapFeeConfig(rawFeeConfig: unknown): FeeConfig {
 export function mapConfig(rawLimits: unknown, rawFeeConfig: unknown): ConfigData {
   const limits = TradingLimitsSchema.parse(rawLimits);
 
-  const minDurationSeconds = Number(limits.option_duration_seconds.min);
-  const maxDurationSeconds = Number(limits.option_duration_seconds.max);
-  const minTermDays = Math.max(1, Math.ceil(minDurationSeconds / SECONDS_PER_DAY));
-  const maxTermDays = Math.floor(maxDurationSeconds / SECONDS_PER_DAY);
+  const minDurationSecondsBn = limits.option_duration_seconds.min;
+  const maxDurationSecondsBn = limits.option_duration_seconds.max;
+  const secondsPerDayBn = BigInt(SECONDS_PER_DAY);
 
-  if (minTermDays > maxTermDays) {
-    throw new Error(`Invalid term limits: min (${minTermDays}) > max (${maxTermDays})`);
-  }
+  const termOptions = DEFAULT_TERM_OPTIONS.filter((days) => {
+    const durationSeconds = BigInt(days) * secondsPerDayBn;
+    return durationSeconds >= minDurationSecondsBn && durationSeconds <= maxDurationSecondsBn;
+  });
 
-  const termOptions = DEFAULT_TERM_OPTIONS.filter(
-    (days) => days >= minTermDays && days <= maxTermDays,
-  );
-
-  if (termOptions.length === 0) {
-    termOptions.push(Math.max(minTermDays, 1));
-  }
+  const minTermDays = termOptions[0] ?? 0;
+  const maxTermDays = termOptions[termOptions.length - 1] ?? 0;
 
   return {
     canisterId: process.env.CANISTER_ID,
