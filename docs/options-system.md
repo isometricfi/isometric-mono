@@ -11,13 +11,14 @@ Offer {
     id: u64,
     writer: Principal,
     option_type: Call | Put,
-    strike_price: u64,
-    premium_per_unit: u64,
+    strike_price_cents: u64,
+    premium_basis_points: u16,
     total_quantity: u64,
     remaining_quantity: u64,
-    expiry: u64,
+    offer_valid_until_seconds: u64,
+    option_duration_seconds: u64,
     status: Open | PartiallyFilled | Filled | Cancelled,
-    created_at: u64,
+    created_at_seconds: u64,
 }
 ```
 
@@ -33,11 +34,11 @@ ActiveOption {
     buyer: Principal,
     writer: Principal,
     quantity: u64,
-    strike_price: u64,
+    strike_price_cents: u64,
     premium_paid: u64,
-    expiry: u64,
+    expiry_seconds: u64,
     status: Active | Settling | Expired | Settled,
-    accepted_at: u64,
+    accepted_at_seconds: u64,
 }
 ```
 

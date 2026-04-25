@@ -6,7 +6,6 @@ import {
   formatBtcBigint,
   formatBtcWithSymbol,
   formatBtcWithSymbolBigint,
-  nsToISOString,
   parseBtcToSats,
   parseBtcToSatsBigint,
   roundToN,
@@ -331,19 +330,6 @@ describe("secondsToDays", () => {
 
     // then
     expect(result).toBe(4);
-  });
-});
-
-describe("nsToISOString", () => {
-  test("should convert nanosecond timestamp to valid ISO string", () => {
-    // given
-    const ns = BigInt(1_700_000_000_000_000_000);
-
-    // when
-    const result = nsToISOString(ns);
-
-    // then
-    expect(result).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/);
   });
 });
 

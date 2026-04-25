@@ -33,8 +33,8 @@ pub use events::{
     get_events_by_principal, get_events_since, Event, EventData, EventType, TradeRole,
 };
 pub use invites::{
-    backfill_invite_codes, get_or_create_invite_code, get_referral_count, link_referrer_once,
-    resolve_invite_code, validate_invite_code_for_principal,
+    get_or_create_invite_code, get_referral_count, link_referrer_once, resolve_invite_code,
+    validate_invite_code_for_principal,
 };
 pub use options::{
     calculate_call_option_payout, calculate_premium_in_sats, calculate_strike_price_in_cents,
