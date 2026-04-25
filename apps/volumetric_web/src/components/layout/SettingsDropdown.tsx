@@ -5,7 +5,6 @@ import { Monitor, Moon, Settings, Sun } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import { useTheme } from "next-themes";
 import { useEffect, useState, useTransition } from "react";
-import { useProMode } from "@/components/layout/ProModeProvider";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -18,6 +17,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { usePathname, useRouter } from "@/i18n/routing";
+import { useProMode } from "@/stores/preferences-store";
 
 export function SettingsDropdown() {
   const { theme, setTheme } = useTheme();

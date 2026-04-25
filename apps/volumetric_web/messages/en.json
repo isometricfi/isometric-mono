@@ -209,7 +209,7 @@
     "createAccount": "Create an account to access your portfolio",
     "history": "History",
     "offers": "Offers",
-    "options": "Options",
+    "options": "Active",
     "noActiveOptions": "You have no active options",
     "noActiveOffers": "You have no active offers",
     "writeOptions": "Write options",
@@ -575,7 +575,7 @@
     "editOffer": "Edit Offer",
     "cancelling": "Cancelling...",
     "cancelOffer": "Cancel Offer",
-    "remainingBelowMinimum": "Remaining below {amount} minimum"
+    "remainingBelowMinimum": "Remaining below {amount} min"
   },
   "Errors": {
     "unauthorizedController": "You are not authorized to perform this action",

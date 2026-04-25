@@ -71,7 +71,7 @@ export function OfferCard({ offer, btcPrice, onCancel, isCancelling, rankInfo }:
 
         {belowMinOfferAmount ? (
           <div className="-mt-1.5">
-            <Badge variant={"destructive"} className="text-sm text-center w-full py-0">
+            <Badge variant={"destructive"} className="text-center w-full py-0">
               {t("remainingBelowMinimum", {
                 amount: formatBtcWithSymbol(minAcceptOfferAmountSats),
               })}
