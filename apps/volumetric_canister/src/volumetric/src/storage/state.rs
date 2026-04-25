@@ -40,10 +40,13 @@ pub enum MemoryIndex {
     InviteCodeRegistryMemory = 14,
     /// Reserved for the completed one-off nanoseconds-to-seconds migration marker.
     ReservedTimestampSecondsMigrationMemory = 15,
+    /// Hashed bearer token for protected HTTP log access.
+    LogAccessTokenHashMemory = 16,
 }
 
 pub type Memory = VirtualMemory<DefaultMemoryImpl>;
 pub type ConfigCell = StableCell<Cbor<Config>, Memory>;
+pub type LogAccessTokenHashCell = StableCell<Cbor<Option<String>>, Memory>;
 
 thread_local! {
     pub static MEMORY_MANAGER: RefCell<MemoryManager<DefaultMemoryImpl>> =
@@ -53,6 +56,13 @@ thread_local! {
         ConfigCell::init(
             MEMORY_MANAGER.with_borrow(|m| m.get(MemoryId::new(MemoryIndex::ConfigMemory as u8))),
             Cbor(Config::default())
+        )
+    );
+
+    pub static LOG_ACCESS_TOKEN_HASH: RefCell<LogAccessTokenHashCell> = RefCell::new(
+        LogAccessTokenHashCell::init(
+            MEMORY_MANAGER.with_borrow(|m| m.get(MemoryId::new(MemoryIndex::LogAccessTokenHashMemory as u8))),
+            Cbor(None)
         )
     );
 

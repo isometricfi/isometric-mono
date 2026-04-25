@@ -1,5 +1,6 @@
 [workspace]
 members = [
+    "crates/logging",
     "src/volumetric"
 ]
 resolver = "2"

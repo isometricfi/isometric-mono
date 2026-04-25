@@ -19,20 +19,25 @@ async function callCronEndpoint(env: Env, path: string): Promise<unknown> {
 
 const worker: ExportedHandler<Env> = {
   async scheduled(event, env, ctx) {
-    switch (event.cron) {
-      case ONE_MINUTE_CRON:
-        ctx.waitUntil(
-          callCronEndpoint(env, "/api/cron/sync-events")
-            .then((data) => console.log("Cron sync result:", data))
-            .catch((err) => console.error("Cron sync failed:", err)),
-        );
-        ctx.waitUntil(
-          callCronEndpoint(env, "/api/cron/sync-deposits")
-            .then((data) => console.log("Deposit sync result:", data))
-            .catch((err) => console.error("Deposit sync failed:", err)),
-        );
-        break;
+    if (event.cron !== ONE_MINUTE_CRON) {
+      return;
     }
+
+    ctx.waitUntil(
+      callCronEndpoint(env, "/api/cron/sync-events")
+        .then((data) => console.log("Cron sync result:", data))
+        .catch((err) => console.error("Cron sync failed:", err)),
+    );
+    ctx.waitUntil(
+      callCronEndpoint(env, "/api/cron/sync-deposits")
+        .then((data) => console.log("Deposit sync result:", data))
+        .catch((err) => console.error("Deposit sync failed:", err)),
+    );
+    ctx.waitUntil(
+      callCronEndpoint(env, "/api/cron/ship-canister-logs")
+        .then((data) => console.log("Canister log ship result:", data))
+        .catch((err) => console.error("Canister log ship failed:", err)),
+    );
   },
 };
 

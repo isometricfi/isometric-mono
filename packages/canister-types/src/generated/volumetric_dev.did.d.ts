@@ -233,17 +233,6 @@ export interface FeeConfig {
   'fee_recipient' : Principal,
   'profit_fee_basis_points' : bigint,
 }
-export interface HttpRequest {
-  'url' : string,
-  'method' : string,
-  'body' : Uint8Array | number[],
-  'headers' : Array<[string, string]>,
-}
-export interface HttpResponse {
-  'body' : Uint8Array | number[],
-  'headers' : Array<[string, string]>,
-  'status_code' : number,
-}
 export interface ObservabilityMetrics {
   'failed_accepts_total' : bigint,
   'balances_total' : bigint,
@@ -526,6 +515,7 @@ export interface _SERVICE {
   'cancel_offer' : ActorMethod<[AuthenticatedPayload_1], Result_2>,
   'cleanup_old_events' : ActorMethod<[], Result_3>,
   'clear_all_events' : ActorMethod<[], Result_3>,
+  'clear_log_access_token' : ActorMethod<[], Result_1>,
   'create_account' : ActorMethod<[AuthenticatedPayload_2], Result_4>,
   'create_offer' : ActorMethod<[AuthenticatedPayload_3], Result_5>,
   'get_accept_by_id' : ActorMethod<[bigint], Result_6>,
@@ -591,7 +581,6 @@ export interface _SERVICE {
   'get_withdraw_status' : ActorMethod<[Uint8Array | number[]], Result_21>,
   'get_withdrawal_by_id' : ActorMethod<[bigint], Result_22>,
   'greet' : ActorMethod<[string], string>,
-  'http_request' : ActorMethod<[HttpRequest], HttpResponse>,
   'list_users' : ActorMethod<[], Array<UserInfo>>,
   'list_whitelisted' : ActorMethod<[], Array<Principal>>,
   'observability_get_metrics' : ActorMethod<[], ObservabilityMetrics>,
@@ -611,6 +600,7 @@ export interface _SERVICE {
   'set_feature_flags_config' : ActorMethod<[FeatureFlags], Result_1>,
   'set_fee_config_config' : ActorMethod<[FeeConfig], Result_1>,
   'set_fee_recipient_config' : ActorMethod<[Principal], Result_1>,
+  'set_log_access_token' : ActorMethod<[string], Result_1>,
   'set_max_offers_per_term_config' : ActorMethod<[bigint], Result_1>,
   'set_option_duration_seconds_range_config' : ActorMethod<
     [bigint, bigint],

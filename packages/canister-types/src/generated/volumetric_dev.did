@@ -201,17 +201,6 @@ type FeeConfig = record {
   fee_recipient : principal;
   profit_fee_basis_points : nat64;
 };
-type HttpRequest = record {
-  url : text;
-  method : text;
-  body : blob;
-  headers : vec record { text; text };
-};
-type HttpResponse = record {
-  body : blob;
-  headers : vec record { text; text };
-  status_code : nat16;
-};
 type ObservabilityMetrics = record {
   failed_accepts_total : nat64;
   balances_total : nat64;
@@ -447,6 +436,7 @@ service : (opt BtcNetwork) -> {
   cancel_offer : (AuthenticatedPayload_1) -> (Result_2);
   cleanup_old_events : () -> (Result_3);
   clear_all_events : () -> (Result_3);
+  clear_log_access_token : () -> (Result_1);
   create_account : (AuthenticatedPayload_2) -> (Result_4);
   create_offer : (AuthenticatedPayload_3) -> (Result_5);
   get_accept_by_id : (nat64) -> (Result_6) query;
@@ -503,7 +493,6 @@ service : (opt BtcNetwork) -> {
   get_withdraw_status : (blob) -> (Result_21) query;
   get_withdrawal_by_id : (nat64) -> (Result_22) query;
   greet : (text) -> (text) query;
-  http_request : (HttpRequest) -> (HttpResponse) query;
   list_users : () -> (vec UserInfo) query;
   list_whitelisted : () -> (vec principal) query;
   observability_get_metrics : () -> (ObservabilityMetrics) query;
@@ -517,6 +506,7 @@ service : (opt BtcNetwork) -> {
   set_feature_flags_config : (FeatureFlags) -> (Result_1);
   set_fee_config_config : (FeeConfig) -> (Result_1);
   set_fee_recipient_config : (principal) -> (Result_1);
+  set_log_access_token : (text) -> (Result_1);
   set_max_offers_per_term_config : (nat64) -> (Result_1);
   set_option_duration_seconds_range_config : (nat64, nat64) -> (Result_1);
   set_oracle_price_config : (nat64) -> (Result_1);
