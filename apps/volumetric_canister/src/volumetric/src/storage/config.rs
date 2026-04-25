@@ -40,7 +40,6 @@ pub struct TradingLimits {
     pub premium_basis_points: Range<u16>,
     pub strike_basis_points: Range<u16>,
     pub option_duration_seconds: Range<u64>,
-    pub term_days: Range<u64>,
     // Used only by the web app UX; deposit flow does not enforce this server-side.
     pub deposit_amount_sats: u64,
     pub withdraw_amount_sats: u64,
@@ -97,7 +96,6 @@ impl Default for TradingLimits {
                 min: 3_600,
                 max: 86400 * 30,
             },
-            term_days: Range { min: 1, max: 30 },
             deposit_amount_sats: 50_000,
             withdraw_amount_sats: 50_000,
             max_offers_per_term: 5,
@@ -239,14 +237,6 @@ impl Config {
         CONFIG.with_borrow_mut(|c| {
             let mut config = c.get().0.clone();
             config.trading_limits.option_duration_seconds = Range { min, max };
-            let _ = c.set(Cbor(config));
-        });
-    }
-
-    pub fn set_term_days_range(min: u64, max: u64) {
-        CONFIG.with_borrow_mut(|c| {
-            let mut config = c.get().0.clone();
-            config.trading_limits.term_days = Range { min, max };
             let _ = c.set(Cbor(config));
         });
     }

@@ -14,17 +14,21 @@ interface TermSelectorProps {
 export function TermSelector({ value, onChange }: TermSelectorProps) {
   const t = useTranslations("Forms");
   const { data: config } = useConfig();
-  const termOptions = config?.termOptions ?? [];
   const layoutId = useId();
 
-  const options = termOptions.map((term) => ({
+  if (!config) {
+    return <Skeleton className="h-9 w-full" />;
+  }
+
+  if (config.termOptions.length === 0) {
+    return null;
+  }
+
+  const options = config.termOptions.map((term) => ({
     value: term,
     label: `${term} ${t(term === 1 ? "day" : "days")}`,
   }));
 
-  if (termOptions.length === 0) {
-    return <Skeleton className="h-9 w-full" />;
-  }
   return (
     <AnimatedToggle
       options={options}

@@ -174,7 +174,6 @@ dfx canister call volumetric_dev set_trading_limits --network ic '(record {
   premium_basis_points = record { min = 50 : nat16; max = 500 : nat16 };
   strike_basis_points = record { min = 500 : nat16; max = 2_000 : nat16 };
   option_duration_seconds = record { min = 60 : nat64; max = 2_592_000 : nat64 };
-  term_days = record { min = 1 : nat64; max = 14 : nat64 };
   deposit_amount_sats = 50_000 : nat64;
   withdraw_amount_sats = 50_000 : nat64;
 })'
@@ -185,8 +184,7 @@ dfx canister call volumetric_dev set_trading_limits --network ic '(record {
 | `quantity_sats` | Min/max offer size in satoshis |
 | `premium_basis_points` | Min/max premium (100 = 1%) |
 | `strike_basis_points` | Min/max strike price offset (100 = 1%) |
-| `option_duration_seconds` | Min/max option duration |
-| `term_days` | Min/max term length in days |
+| `option_duration_seconds` | Min/max option duration (web UI derives term-day options from this range) |
 | `deposit_amount_sats` | Minimum deposit amount |
 | `withdraw_amount_sats` | Minimum withdrawal amount |
 

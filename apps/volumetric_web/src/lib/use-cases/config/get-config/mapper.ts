@@ -5,7 +5,6 @@ const RangeU64Schema = z.object({ min: z.bigint(), max: z.bigint() });
 const RangeU16Schema = z.object({ min: z.number().or(z.bigint()), max: z.number().or(z.bigint()) });
 
 const TradingLimitsSchema = z.object({
-  term_days: RangeU64Schema,
   create_offer_quantity_sats: RangeU64Schema,
   accept_offer_quantity_sats: RangeU64Schema,
   premium_basis_points: RangeU16Schema,
@@ -25,6 +24,7 @@ const BASIS_POINTS_PER_PERCENT = 100;
 const DEFAULT_TERM_OPTIONS = [1, 7, 14];
 const STRIKE_PERCENT_OPTIONS = [5, 10, 15, 20];
 const PREMIUM_STEP = 0.25;
+const SECONDS_PER_DAY = 86_400;
 
 function mapFeeConfig(rawFeeConfig: unknown): FeeConfig {
   const feeConfig = FeeConfigSchema.parse(rawFeeConfig);
@@ -38,20 +38,17 @@ function mapFeeConfig(rawFeeConfig: unknown): FeeConfig {
 export function mapConfig(rawLimits: unknown, rawFeeConfig: unknown): ConfigData {
   const limits = TradingLimitsSchema.parse(rawLimits);
 
-  const minTermDays = Number(limits.term_days.min);
-  const maxTermDays = Number(limits.term_days.max);
+  const minDurationSecondsBn = limits.option_duration_seconds.min;
+  const maxDurationSecondsBn = limits.option_duration_seconds.max;
+  const secondsPerDayBn = BigInt(SECONDS_PER_DAY);
 
-  if (minTermDays > maxTermDays) {
-    throw new Error(`Invalid term limits: min (${minTermDays}) > max (${maxTermDays})`);
-  }
+  const termOptions = DEFAULT_TERM_OPTIONS.filter((days) => {
+    const durationSeconds = BigInt(days) * secondsPerDayBn;
+    return durationSeconds >= minDurationSecondsBn && durationSeconds <= maxDurationSecondsBn;
+  });
 
-  const termOptions = DEFAULT_TERM_OPTIONS.filter(
-    (days) => days >= minTermDays && days <= maxTermDays,
-  );
-
-  if (termOptions.length === 0) {
-    termOptions.push(Math.max(minTermDays, 1));
-  }
+  const minTermDays = termOptions[0] ?? 0;
+  const maxTermDays = termOptions[termOptions.length - 1] ?? 0;
 
   return {
     canisterId: process.env.CANISTER_ID,
