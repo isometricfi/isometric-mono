@@ -5,35 +5,41 @@ const sidebars: SidebarsConfig = {
     'intro',
     {
       type: 'category',
-      label: 'Quick Start',
+      label: 'Getting started',
       items: [
-        'quick-start/index',
-        'quick-start/account-setup',
-        'quick-start/write',
-        'quick-start/buy',
-        'quick-start/portfolio',
-        'quick-start/history',
+        'getting-started/index',
+        'getting-started/connect-and-account',
+        'getting-started/deposit',
+        'getting-started/withdraw',
       ],
     },
     {
       type: 'category',
-      label: 'Concepts',
-      items: ['concepts/options-basics', 'concepts/strategies'],
+      label: 'Trading',
+      items: [
+        'trading/buy-an-option',
+        'trading/write-an-option',
+        'trading/portfolio',
+        'trading/history',
+        'trading/settlement',
+        'trading/fees',
+      ],
     },
     {
       type: 'category',
-      label: 'Architecture',
+      label: 'Strategies',
       items: [
-        'architecture/overview',
-        'architecture/collateral-system',
-        'architecture/contract-standardization',
-        'architecture/settlement',
-        'architecture/authentication',
-        'architecture/fees',
+        'strategies/options-explained',
+        'strategies/write-or-buy',
       ],
     },
+    'faq',
+  ],
+  technicalSidebar: [
+    'technical/index',
+    'technical/mechanics',
+    'technical/price-oracle',
   ],
 };
-
 
 export default sidebars;

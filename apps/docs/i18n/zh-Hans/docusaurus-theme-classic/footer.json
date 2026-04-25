@@ -1,46 +1,74 @@
 {
-  "link.title.App": {
-    "message": "应用",
-    "description": "The title of the footer links column with title=App in the footer"
+  "link.title.Getting started": {
+    "message": "开始使用",
+    "description": "Footer column title for Getting started"
+  },
+  "link.title.Trading": {
+    "message": "交易",
+    "description": "Footer column title for Trading"
   },
   "link.title.Learn": {
     "message": "学习",
-    "description": "The title of the footer links column with title=Learn in the footer"
+    "description": "Footer column title for Learn"
   },
-  "link.title.More": {
-    "message": "更多",
-    "description": "The title of the footer links column with title=More in the footer"
+  "link.title.Technical": {
+    "message": "技术",
+    "description": "Footer column title for Technical"
   },
-  "link.item.label.Write": {
-    "message": "卖出",
-    "description": "The label of footer link with label=Write linking to /quick-start/write"
+  "link.item.label.Connect and account": {
+    "message": "连接与账户",
+    "description": "Footer link label for Connect and account"
   },
-  "link.item.label.Buy": {
-    "message": "买入",
-    "description": "The label of footer link with label=Buy linking to /quick-start/buy"
+  "link.item.label.Deposit": {
+    "message": "存入",
+    "description": "Footer link label for Deposit"
+  },
+  "link.item.label.Withdraw": {
+    "message": "提取",
+    "description": "Footer link label for Withdraw"
+  },
+  "link.item.label.Buy an option": {
+    "message": "买期权",
+    "description": "Footer link label for Buy an option"
+  },
+  "link.item.label.Write an option": {
+    "message": "写期权",
+    "description": "Footer link label for Write an option"
   },
   "link.item.label.Portfolio": {
-    "message": "投资组合",
-    "description": "The label of footer link with label=Portfolio linking to /quick-start/portfolio"
+    "message": "持仓",
+    "description": "Footer link label for Portfolio"
   },
   "link.item.label.History": {
     "message": "历史记录",
-    "description": "The label of footer link with label=History linking to /quick-start/history"
+    "description": "Footer link label for History"
   },
-  "link.item.label.Options Basics": {
-    "message": "期权基础",
-    "description": "The label of footer link with label=Options Basics linking to /concepts/options-basics"
+  "link.item.label.Options explained": {
+    "message": "期权说明",
+    "description": "Footer link label for Options explained"
   },
-  "link.item.label.Architecture": {
-    "message": "系统架构",
-    "description": "The label of footer link with label=Architecture linking to /architecture/overview"
+  "link.item.label.Write or Buy": {
+    "message": "写还是买",
+    "description": "Footer link label for Write or Buy"
   },
-  "link.item.label.GitHub": {
-    "message": "GitHub",
-    "description": "The label of footer link with label=GitHub linking to https://github.com/volumetrichq/volumetric-mono"
+  "link.item.label.FAQ": {
+    "message": "常见问题",
+    "description": "Footer link label for FAQ"
+  },
+  "link.item.label.Overview": {
+    "message": "概览",
+    "description": "Footer link label for Technical overview"
+  },
+  "link.item.label.Mechanics": {
+    "message": "机制",
+    "description": "Footer link label for Mechanics"
+  },
+  "link.item.label.Price oracle": {
+    "message": "价格预言机",
+    "description": "Footer link label for Price oracle"
   },
   "copyright": {
-    "message": "Copyright © 2026 Isometric.",
+    "message": "Copyright © 2026 Isometric。",
     "description": "The footer copyright"
   }
 }

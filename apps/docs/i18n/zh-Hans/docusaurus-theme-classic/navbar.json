@@ -11,8 +11,8 @@
     "message": "文档",
     "description": "Navbar item with label Documentation"
   },
-  "item.label.GitHub": {
-    "message": "GitHub",
-    "description": "Navbar item with label GitHub"
+  "item.label.Technical": {
+    "message": "技术",
+    "description": "Navbar item with label Technical"
   }
 }

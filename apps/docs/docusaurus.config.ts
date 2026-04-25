@@ -24,7 +24,6 @@ const config: Config = {
   projectName: 'volumetric-mono', // Usually your repo name.
 
   onBrokenLinks: 'throw',
-  onBrokenMarkdownLinks: 'warn',
 
   i18n: {
     defaultLocale: 'en',
@@ -42,6 +41,9 @@ const config: Config = {
 
   markdown: {
     mermaid: true,
+    hooks: {
+      onBrokenMarkdownLinks: 'warn',
+    },
   },
 
   themes: ['@docusaurus/theme-mermaid'],
@@ -85,12 +87,13 @@ const config: Config = {
           label: 'Documentation',
         },
         {
-          type: 'localeDropdown',
-          position: 'right',
+          type: 'docSidebar',
+          sidebarId: 'technicalSidebar',
+          position: 'left',
+          label: 'Technical',
         },
         {
-          href: 'https://github.com/volumetrichq/volumetric-mono',
-          label: 'GitHub',
+          type: 'localeDropdown',
           position: 'right',
         },
       ],
@@ -99,46 +102,36 @@ const config: Config = {
       style: 'dark',
       links: [
         {
-          title: 'App',
+          title: 'Getting started',
           items: [
-            {
-              label: 'Write',
-              to: '/quick-start/write',
-            },
-            {
-              label: 'Buy',
-              to: '/quick-start/buy',
-            },
-            {
-              label: 'Portfolio',
-              to: '/quick-start/portfolio',
-            },
-            {
-              label: 'History',
-              to: '/quick-start/history',
-            },
+            {label: 'Connect and account', to: '/getting-started/connect-and-account'},
+            {label: 'Deposit', to: '/getting-started/deposit'},
+            {label: 'Withdraw', to: '/getting-started/withdraw'},
+          ],
+        },
+        {
+          title: 'Trading',
+          items: [
+            {label: 'Buy an option', to: '/trading/buy-an-option'},
+            {label: 'Write an option', to: '/trading/write-an-option'},
+            {label: 'Portfolio', to: '/trading/portfolio'},
+            {label: 'History', to: '/trading/history'},
           ],
         },
         {
           title: 'Learn',
           items: [
-            {
-              label: 'Options Basics',
-              to: '/concepts/options-basics',
-            },
-            {
-              label: 'Architecture',
-              to: '/architecture/overview',
-            },
+            {label: 'Options explained', to: '/strategies/options-explained'},
+            {label: 'Write or Buy', to: '/strategies/write-or-buy'},
+            {label: 'FAQ', to: '/faq'},
           ],
         },
         {
-          title: 'More',
+          title: 'Technical',
           items: [
-            {
-              label: 'GitHub',
-              href: 'https://github.com/volumetrichq/volumetric-mono',
-            },
+            {label: 'Overview', to: '/technical/'},
+            {label: 'Mechanics', to: '/technical/mechanics'},
+            {label: 'Price oracle', to: '/technical/price-oracle'},
           ],
         },
       ],

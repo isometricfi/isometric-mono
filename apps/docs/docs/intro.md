@@ -1,74 +1,30 @@
 ---
-sidebar_position: 1
 slug: /
+sidebar_position: 1
+title: Isometric
 ---
 
-# Welcome to Isometric
+# Isometric
 
-**Isometric** is a decentralized options trading platform built on the [Internet Computer Protocol (ICP)](https://internetcomputer.org/). Trade Bitcoin options with transparent pricing, automatic settlement, and full on-chain execution.
+Isometric is a Bitcoin call options app. Self-custody. No KYC. No liquidations.
 
-## What is Isometric?
+Two sides of the market.
 
-Isometric enables you to trade **options** on Bitcoin in a fully decentralized environment. Unlike traditional options platforms:
+If you hold BTC and want to **earn**, you write an offer. You set a price BTC has to stay below and earn an amount upfront when a buyer accepts. If BTC closes above your strike at expiry, you pay out the difference from your BTC.
 
-- **Decentralized**: All trades execute on-chain via ICP smart contracts
-- **Transparent**: Verifiable settlement, and real-time oracle pricing
-- **BTC-Native**: Collateral and payouts in Bitcoin
-- **Automatic Settlement**: Options settle automatically at expiry
-- **No Counterparty Risk**: Smart contracts hold collateral and enforce settlement
+If you want a **leveraged bet** on BTC, you buy. You put in a small amount and get exposure to a much larger BTC position for a fixed period. If BTC ends above your chosen price, you keep the upside. If not, you lose what you put in.
 
-## Who is Isometric For?
+## How it works at a glance
 
-### Option Writers (Sellers)
+1. Connect a wallet and set up your account.
+2. Deposit BTC.
+3. Write an offer or buy an option.
+4. At expiry, the option settles automatically.
+5. Withdraw BTC back to any address whenever your balance is available.
 
-Earn premium income by writing covered calls on your Bitcoin holdings. Lock your BTC as collateral and collect premiums from buyers.
+## Where to start
 
-[Learn how to write options →](/quick-start/write)
-
-### Option Buyers
-
-Gain leveraged exposure to Bitcoin price movements by purchasing call options. Pay a premium upfront for the right to profit if BTC rises above the strike price.
-
-[Learn how to buy options →](/quick-start/buy)
-
-## Key Features
-
-### Standardized Contracts
-
-Options are standardized with fixed strike increments, premium levels, and expiry times. This creates deep liquidity and makes it easy to find counterparties.
-
-### Covered Calls
-
-The current version supports **covered call options** only. Writers must fully collateralize their positions with BTC. This eliminates liquidation risk and keeps the system simple.
-
-### Automatic Settlement
-
-When options expire, the platform automatically:
-1. Fetches the BTC/USD price from the ICP oracle
-2. Calculates payouts for in-the-money options
-3. Transfers profits to buyers and returns collateral to writers
-
-No manual exercise required.
-
-## Getting Started
-
-Ready to start trading? Follow these steps:
-
-1. **[Set up your account](/quick-start/account-setup)** - Connect your wallet and deposit funds
-2. **Choose your path**:
-   - **Writers**: [Create your first offer](/quick-start/write)
-   - **Buyers**: [Buy your first option](/quick-start/buy)
-3. **[Manage your portfolio](/quick-start/portfolio)** - Track positions and withdraw funds
-
-## New to Options?
-
-If you're unfamiliar with options trading, start here:
-
-[Options Basics](/concepts/options-basics) - Learn about calls, strikes, premiums, and payoffs
-
-## Technical Documentation
-
-Developers and advanced users can explore:
-
-- **[System Architecture](/architecture/overview)** - How Isometric works under the hood
-- **[Options Basics](/concepts/options-basics)** - Learn about calls, strikes, and payoffs
+- New to options? Read [Options explained](/strategies/options-explained).
+- Ready to trade? Start with [Connect and account](/getting-started/connect-and-account).
+- Curious about the tech under the hood? See the [Technical](/technical/) section.
+- Looking for something specific? Try the [FAQ](/faq).
