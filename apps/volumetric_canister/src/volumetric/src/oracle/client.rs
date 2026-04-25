@@ -27,7 +27,7 @@ pub trait PriceOracle {
     ) -> Result<u64, VolumetricError>;
 }
 
-fn round_to_hour_secs(time_nanos: u64) -> u64 {
+pub(crate) fn xrc_timestamp_secs_for_time_ns(time_nanos: u64) -> u64 {
     let secs = time_nanos / NANOS_PER_SECOND;
     (secs / SECONDS_PER_HOUR) * SECONDS_PER_HOUR
 }
@@ -141,7 +141,7 @@ impl PriceOracle for IcOracle {
                 None,
             )
         })?;
-        let timestamp_secs = round_to_hour_secs(settlement_time_ns);
+        let timestamp_secs = xrc_timestamp_secs_for_time_ns(settlement_time_ns);
 
         let request = GetExchangeRateRequest {
             base_asset: Asset {
@@ -292,12 +292,12 @@ mod tests {
     }
 
     #[test]
-    fn test_round_to_hour_secs() {
+    fn test_xrc_timestamp_secs_for_time_ns_rounds_down_to_hour() {
         // given
         let nanos_at_14_30 = 14 * 3600 * NANOS_PER_SECOND + 30 * 60 * NANOS_PER_SECOND;
 
         // when
-        let rounded = round_to_hour_secs(nanos_at_14_30);
+        let rounded = xrc_timestamp_secs_for_time_ns(nanos_at_14_30);
 
         // then
         let expected_14_00 = 14 * 3600;
@@ -305,12 +305,12 @@ mod tests {
     }
 
     #[test]
-    fn test_round_to_hour_secs_exact() {
+    fn test_xrc_timestamp_secs_for_time_ns_keeps_exact_hour() {
         // given
         let nanos_at_14_00 = 14 * 3600 * NANOS_PER_SECOND;
 
         // when
-        let rounded = round_to_hour_secs(nanos_at_14_00);
+        let rounded = xrc_timestamp_secs_for_time_ns(nanos_at_14_00);
 
         // then
         assert_eq!(rounded, 14 * 3600);

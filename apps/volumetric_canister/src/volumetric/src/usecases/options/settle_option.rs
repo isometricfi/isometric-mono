@@ -12,7 +12,9 @@ use crate::journaling::{
     WalPayload, WalResult, WalStatus,
 };
 use crate::locks::SettlementLock;
-use crate::oracle::{get_btc_usd_price_cents, get_btc_usd_price_cents_at_time_ns};
+use crate::oracle::{
+    get_btc_usd_price_cents, get_btc_usd_price_cents_at_time_ns, xrc_timestamp_secs_for_time_ns,
+};
 use crate::storage::{
     add_platform_fee, calculate_call_option_payout, calculate_profit_fee, complete_settlement,
     create_settlement, emit_event, fail_settlement, get_active_option, get_fee_recipient,
@@ -24,7 +26,7 @@ use crate::storage::{
 
 use crate::usecases::balances::transfer_ckbtc;
 
-type ExpiredOptionsByExpiryNs = BTreeMap<u64, Vec<ActiveOption>>;
+type ExpiredOptionsByXrcTimestampSecs = BTreeMap<u64, Vec<ActiveOption>>;
 
 pub struct SettlementResult {
     pub option_id: u64,
@@ -85,25 +87,30 @@ struct PreparedSettlementExecution {
 pub async fn settle_expired_options_use_case() -> SettleExpiredOptionsResult {
     let now = ic::time();
     let expired_options = list_expired_active_options(now);
-    let expired_options_by_expiry_ns = group_expired_options_by_expiry_ns(expired_options);
+    let expired_options_by_xrc_timestamp_secs =
+        group_expired_options_by_xrc_timestamp_secs(expired_options);
 
     let mut settled: Vec<SettlementResult> = Vec::new();
     let mut errors: Vec<String> = Vec::new();
 
-    for (expiry_ns, options_expiring_at_same_time) in expired_options_by_expiry_ns {
+    for (xrc_timestamp_secs, options_in_xrc_bucket) in expired_options_by_xrc_timestamp_secs {
         // Settlement is marked at option expiry, not when the cron catches up.
-        let settlement_price_cents = match get_btc_usd_price_cents_at_time_ns(expiry_ns).await {
-            Ok(price) => price,
-            Err(e) => {
-                errors.push(format!(
-                    "Failed to get oracle price for expiry {}: {}",
-                    expiry_ns, e
-                ));
-                continue;
-            }
+        let Some(first_option_in_xrc_bucket) = options_in_xrc_bucket.first() else {
+            continue;
         };
+        let settlement_price_cents =
+            match get_btc_usd_price_cents_at_time_ns(first_option_in_xrc_bucket.expiry).await {
+                Ok(price) => price,
+                Err(e) => {
+                    errors.push(format!(
+                        "Failed to get oracle price for XRC timestamp {}: {}",
+                        xrc_timestamp_secs, e
+                    ));
+                    continue;
+                }
+            };
 
-        for option in options_expiring_at_same_time {
+        for option in options_in_xrc_bucket {
             match settle_single_option(option.id, settlement_price_cents).await {
                 Ok(result) => settled.push(result),
                 Err(e) => errors.push(format!("Option {}: {}", option.id, e)),
@@ -114,15 +121,17 @@ pub async fn settle_expired_options_use_case() -> SettleExpiredOptionsResult {
     SettleExpiredOptionsResult { settled, errors }
 }
 
-fn group_expired_options_by_expiry_ns(options: Vec<ActiveOption>) -> ExpiredOptionsByExpiryNs {
-    let mut options_by_expiry_ns = BTreeMap::new();
+fn group_expired_options_by_xrc_timestamp_secs(
+    options: Vec<ActiveOption>,
+) -> ExpiredOptionsByXrcTimestampSecs {
+    let mut options_by_xrc_timestamp_secs = BTreeMap::new();
     for option in options {
-        options_by_expiry_ns
-            .entry(option.expiry)
+        options_by_xrc_timestamp_secs
+            .entry(xrc_timestamp_secs_for_time_ns(option.expiry))
             .or_insert_with(Vec::new)
             .push(option);
     }
-    options_by_expiry_ns
+    options_by_xrc_timestamp_secs
 }
 
 pub async fn settle_single_option(
@@ -1155,19 +1164,18 @@ mod tests {
         );
     }
 
-    /// Given: expired options across two expiry timestamps
+    /// Given: expired options with different raw expiries in the same XRC timestamp bucket
     /// When: settle_expired_options_use_case runs
-    /// Then: it fetches one settlement price per expiry timestamp and uses each matching price
+    /// Then: it fetches one settlement price for the shared XRC timestamp bucket
     #[tokio::test]
-    async fn test_settle_expired_options_groups_oracle_fetches_by_expiry() {
+    async fn test_settle_expired_options_groups_oracle_fetches_by_xrc_timestamp() {
         // given
         const FIRST_OPTION_ID: u64 = 301;
         const SECOND_OPTION_ID: u64 = 302;
         const THIRD_OPTION_ID: u64 = 303;
         const FIRST_EXPIRY_NS: u64 = TEST_NOW_NS - 1;
         const SECOND_EXPIRY_NS: u64 = TEST_NOW_NS - 2;
-        const FIRST_EXPIRY_PRICE_CENTS: u64 = 10_000_000;
-        const SECOND_EXPIRY_PRICE_CENTS: u64 = 10_100_000;
+        const XRC_BUCKET_PRICE_CENTS: u64 = 10_000_000;
 
         let writer = test_principal(51);
         let buyer = test_principal(52);
@@ -1176,10 +1184,8 @@ mod tests {
         insert_test_option(SECOND_OPTION_ID, writer, buyer, FIRST_EXPIRY_NS);
         insert_test_option(THIRD_OPTION_ID, writer, buyer, SECOND_EXPIRY_NS);
 
-        let (oracle, requested_times_ns) = RecordingOracle::new(BTreeMap::from([
-            (FIRST_EXPIRY_NS, FIRST_EXPIRY_PRICE_CENTS),
-            (SECOND_EXPIRY_NS, SECOND_EXPIRY_PRICE_CENTS),
-        ]));
+        let (oracle, requested_times_ns) =
+            RecordingOracle::new(BTreeMap::from([(FIRST_EXPIRY_NS, XRC_BUCKET_PRICE_CENTS)]));
         set_oracle(Rc::new(oracle));
 
         // when
@@ -1187,26 +1193,15 @@ mod tests {
 
         // then
         assert!(result.errors.is_empty());
-        assert_eq!(
-            *requested_times_ns.borrow(),
-            vec![SECOND_EXPIRY_NS, FIRST_EXPIRY_NS]
-        );
+        assert_eq!(*requested_times_ns.borrow(), vec![FIRST_EXPIRY_NS]);
         assert_eq!(result.settled.len(), 3);
         assert_eq!(
             result
                 .settled
                 .iter()
-                .filter(|settlement| settlement.settlement_price_cents == FIRST_EXPIRY_PRICE_CENTS)
+                .filter(|settlement| settlement.settlement_price_cents == XRC_BUCKET_PRICE_CENTS)
                 .count(),
-            2
-        );
-        assert_eq!(
-            result
-                .settled
-                .iter()
-                .filter(|settlement| settlement.settlement_price_cents == SECOND_EXPIRY_PRICE_CENTS)
-                .count(),
-            1
+            3
         );
     }
 

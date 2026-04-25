@@ -4,6 +4,8 @@ use ic_cdk::api::{in_replicated_execution, is_controller as api_is_controller, m
 use crate::errors::{error_codes, VolumetricError};
 use crate::storage::{Config, TradingLimits, WHITELIST};
 
+const SECONDS_PER_HOUR: u64 = 3_600;
+
 pub fn is_controller() -> Result<(), VolumetricError> {
     let caller_id = msg_caller();
     ensure_non_anonymous(&caller_id, error_codes::UNAUTHORIZED_CONTROLLER)?;
@@ -234,6 +236,17 @@ fn validate_option_duration(
         ));
     }
 
+    if option_duration_seconds % SECONDS_PER_HOUR != 0 {
+        return Err(VolumetricError::from_def(
+            error_codes::DURATION_NOT_HOUR_MULTIPLE,
+            Some(&format!(
+                "got: {} seconds, required multiple: {} seconds",
+                option_duration_seconds, SECONDS_PER_HOUR
+            )),
+            None,
+        ));
+    }
+
     Ok(())
 }
 
@@ -249,7 +262,8 @@ mod tests {
     const MAX_PREMIUM_BPS: u16 = 10_000;
     const MIN_STRIKE_BPS: u16 = 500;
     const MAX_STRIKE_BPS: u16 = 10_000;
-    const MIN_DURATION_SECS: u64 = 60;
+    const SECONDS_PER_HOUR: u64 = 3_600;
+    const MIN_DURATION_SECS: u64 = SECONDS_PER_HOUR;
     const SECONDS_PER_DAY: u64 = 86400;
     const MAX_DURATION_DAYS: u64 = 30;
     const MAX_DURATION_SECS: u64 = SECONDS_PER_DAY * MAX_DURATION_DAYS;
@@ -556,6 +570,21 @@ mod tests {
 
         // then
         assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_validate_duration_rejects_non_hour_multiple() {
+        // given
+        let limits = test_limits();
+        let duration = SECONDS_PER_HOUR + 60;
+
+        // when
+        let result = validate_option_duration(duration, &limits);
+
+        // then
+        assert!(result.is_err());
+        let error = result.unwrap_err();
+        assert_eq!(error.code, error_codes::DURATION_NOT_HOUR_MULTIPLE.code);
     }
 
     #[test]

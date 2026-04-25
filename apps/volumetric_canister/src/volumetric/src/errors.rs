@@ -206,6 +206,11 @@ pub mod error_codes {
         name: "FEE_CALCULATION_OVERFLOW",
         message: "Fee calculation overflow",
     };
+    pub const DURATION_NOT_HOUR_MULTIPLE: ErrorDef = ErrorDef {
+        code: 5029,
+        name: "DURATION_NOT_HOUR_MULTIPLE",
+        message: "Option duration must be a whole number of hours",
+    };
 
     // 9xxx: Internal/generic errors
     pub const INTERNAL_ERROR: ErrorDef = ErrorDef {
