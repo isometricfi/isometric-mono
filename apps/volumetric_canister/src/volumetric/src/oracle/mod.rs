@@ -1,8 +1,8 @@
 mod client;
 
 pub use client::get_btc_usd_price_cents;
-pub use client::get_btc_usd_price_cents_at_time_ns;
-pub(crate) use client::xrc_timestamp_secs_for_time_ns;
+pub use client::get_btc_usd_price_cents_at_time_seconds;
+pub(crate) use client::xrc_timestamp_seconds_for_time_seconds;
 pub use client::PriceOracle;
 pub use client::StubOracle;
 

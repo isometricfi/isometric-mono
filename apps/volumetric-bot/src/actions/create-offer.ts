@@ -4,7 +4,7 @@ import { log, withSpan } from "../telemetry.js";
 import type { TRPCClient } from "../trpc-client.js";
 import type { BotWallet } from "../wallet.js";
 
-const TEN_YEARS_NS = BigInt(86400) * BigInt(1_000_000_000) * BigInt(365 * 10);
+const TEN_YEARS_SECONDS = BigInt(86400) * BigInt(365 * 10);
 
 const MAX_OPEN_OFFERS = 4;
 const MAX_OPTION_TERM_DAYS = 3;
@@ -294,8 +294,8 @@ export async function createOffer(
         own_open_offers: ownOpenOffers,
       });
 
-      const now = BigInt(Date.now()) * BigInt(1_000_000);
-      const offerValidUntil = now + TEN_YEARS_NS;
+      const nowSeconds = BigInt(Math.floor(Date.now() / 1000));
+      const offerValidUntilSeconds = nowSeconds + TEN_YEARS_SECONDS;
       const expiresAtSeconds = computeExpiresAtSeconds();
 
       const message = await getCreateOfferMessage(
@@ -305,7 +305,7 @@ export async function createOffer(
         params.strikeBasisPoints,
         params.premiumBasisPoints,
         BigInt(params.optionDurationSeconds),
-        offerValidUntil,
+        offerValidUntilSeconds,
         expiresAtSeconds,
       );
 
@@ -318,7 +318,7 @@ export async function createOffer(
         quantity: params.quantitySats.toString(),
         strikeBasisPoints: params.strikeBasisPoints,
         premiumBasisPoints: params.premiumBasisPoints,
-        offerValidUntil: offerValidUntil.toString(),
+        offerValidUntilSeconds: offerValidUntilSeconds.toString(),
         optionDurationSeconds: params.optionDurationSeconds.toString(),
       });
 

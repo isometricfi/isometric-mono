@@ -29,9 +29,9 @@ pub fn get_events_for_principal(
 }
 
 #[ic_cdk::query]
-pub fn get_events_since(timestamp_ns: u64, limit: Option<u32>) -> Vec<Event> {
+pub fn get_events_since(timestamp_seconds: u64, limit: Option<u32>) -> Vec<Event> {
     let limit = limit.unwrap_or(100).min(MAX_EVENTS_LIMIT);
-    storage_get_events_since(timestamp_ns, limit)
+    storage_get_events_since(timestamp_seconds, limit)
 }
 
 #[ic_cdk::query]

@@ -40,7 +40,7 @@ export async function getCreateOfferMessage(
   strikeBasisPoints: number,
   premiumBasisPoints: number,
   optionDurationSeconds: bigint,
-  offerValidUntil: bigint,
+  offerValidUntilSeconds: bigint,
   expiresAtSeconds: bigint,
 ): Promise<string> {
   return unwrapResult(
@@ -50,7 +50,7 @@ export async function getCreateOfferMessage(
       strikeBasisPoints,
       premiumBasisPoints,
       optionDurationSeconds,
-      offerValidUntil,
+      offerValidUntilSeconds,
       expiresAtSeconds,
     ),
   );

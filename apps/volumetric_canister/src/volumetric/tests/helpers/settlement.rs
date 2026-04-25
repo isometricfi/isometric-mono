@@ -94,18 +94,18 @@ pub fn wait_for_settlement_terminal_status(
     Ok(latest_status)
 }
 
-pub fn testing_set_option_expiry(
+pub fn testing_set_option_expiry_seconds(
     env: &TestEnv,
     option_id: u64,
-    expiry_ns: u64,
+    expiry_seconds: u64,
 ) -> Result<ActiveOption, VolumetricError> {
     let response = env
         .pic
         .update_call(
             env.volumetric_canister,
             env.controller,
-            "testing_set_option_expiry",
-            candid::encode_args((option_id, expiry_ns)).unwrap(),
+            "testing_set_option_expiry_seconds",
+            candid::encode_args((option_id, expiry_seconds)).unwrap(),
         )
         .expect("Update call failed");
 

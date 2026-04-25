@@ -223,8 +223,8 @@ fn create_active_options_from_wal_payload(
             } else {
                 prepared_accept.premium_to_writer_sats
             },
-            accepted_at: accept.created_at,
-            expiry: prepared_accept.expiry_ns,
+            accepted_at_seconds: accept.created_at_seconds,
+            expiry_seconds: prepared_accept.expiry_seconds,
             status: ActiveOptionStatus::Active,
             fill_group_id: Some(payload.fill_group_id),
             profit_fee_basis_points: prepared_accept.profit_fee_basis_points,
@@ -291,7 +291,7 @@ fn emit_offer_accepted_events_from_wal(
             premium_sats: premium_paid_sats,
             entry_price_cents,
             strike_price_cents,
-            expiry_ns: prepared_accept.expiry_ns,
+            expiry_seconds: prepared_accept.expiry_seconds,
             role: TradeRole::Buyer,
         },
     );
@@ -308,7 +308,7 @@ fn emit_offer_accepted_events_from_wal(
             premium_sats: premium_paid_sats,
             entry_price_cents,
             strike_price_cents,
-            expiry_ns: prepared_accept.expiry_ns,
+            expiry_seconds: prepared_accept.expiry_seconds,
             role: TradeRole::Writer,
         },
     );

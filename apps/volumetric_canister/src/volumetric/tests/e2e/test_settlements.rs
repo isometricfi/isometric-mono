@@ -3,7 +3,7 @@ use crate::helpers::{
     accept_offers, configure_test_ledger, create_account, create_offer, get_events_for_principal,
     get_fee_recipient_ledger_balance, get_pending_settlements, get_settlement_status,
     get_user_balance, mint_and_sync_balance, set_oracle_price, settle_expired_options,
-    settle_option_by_id, testing_set_option_expiry, wait_for_settlement_terminal_status,
+    settle_option_by_id, testing_set_option_expiry_seconds, wait_for_settlement_terminal_status,
     whitelist_controller,
 };
 use volumetric::{AcceptOfferItem, EventData, EventType, SettlementStatus, TradeRole};
@@ -48,7 +48,7 @@ fn run_single_option_settlement_and_collect_deltas(
     const BUYER_SEED: u64 = 222;
     const STRIKE_BPS: u16 = 500;
     const OPTION_ID: u64 = 1;
-    const EXPIRED_AT_NS: u64 = 0;
+    const EXPIRED_AT_SECONDS: u64 = 0;
     const TEST_QUANTITY_SATS: u64 = 73_456_789;
     const TEST_PREMIUM_SATS: u64 = TEST_QUANTITY_SATS * PREMIUM_BPS as u64 / BASIS_POINTS;
     const TEST_SETTLEMENT_PRICE_CENTS: u64 = 12_345_678;
@@ -95,7 +95,8 @@ fn run_single_option_settlement_and_collect_deltas(
         get_user_balance(&env, &buyer_wallet.address).expect("Buyer balance failed");
 
     set_oracle_price(&env, TEST_SETTLEMENT_PRICE_CENTS);
-    testing_set_option_expiry(&env, OPTION_ID, EXPIRED_AT_NS).expect("Set expiry failed");
+    testing_set_option_expiry_seconds(&env, OPTION_ID, EXPIRED_AT_SECONDS)
+        .expect("Set expiry failed");
 
     // when
     match path {
@@ -253,8 +254,8 @@ fn test_expired_itm_option_auto_settles_with_correct_payouts() {
     assert_eq!(buyer_settle_events.len(), 1);
 
     let EventData::OptionSettled {
-        accepted_at_ns: buyer_accepted_at,
-        settled_at_ns: buyer_settled_at,
+        accepted_at_seconds: buyer_accepted_at,
+        settled_at_seconds: buyer_settled_at,
         ..
     } = &buyer_settle_events[0].data
     else {
@@ -271,8 +272,8 @@ fn test_expired_itm_option_auto_settles_with_correct_payouts() {
             settlement_price_cents: SETTLEMENT_PRICE_CENTS,
             premium_sats: PREMIUM_SATS,
             payout_sats: EXPECTED_BUYER_PAYOUT_SATS,
-            accepted_at_ns: *buyer_accepted_at,
-            settled_at_ns: *buyer_settled_at,
+            accepted_at_seconds: *buyer_accepted_at,
+            settled_at_seconds: *buyer_settled_at,
             role: TradeRole::Buyer,
         }
     );
@@ -285,8 +286,8 @@ fn test_expired_itm_option_auto_settles_with_correct_payouts() {
     assert_eq!(writer_settle_events.len(), 1);
 
     let EventData::OptionSettled {
-        accepted_at_ns: writer_accepted_at,
-        settled_at_ns: writer_settled_at,
+        accepted_at_seconds: writer_accepted_at,
+        settled_at_seconds: writer_settled_at,
         ..
     } = &writer_settle_events[0].data
     else {
@@ -303,8 +304,8 @@ fn test_expired_itm_option_auto_settles_with_correct_payouts() {
             settlement_price_cents: SETTLEMENT_PRICE_CENTS,
             premium_sats: PREMIUM_SATS,
             payout_sats: EXPECTED_WRITER_PAYOUT_SATS,
-            accepted_at_ns: *writer_accepted_at,
-            settled_at_ns: *writer_settled_at,
+            accepted_at_seconds: *writer_accepted_at,
+            settled_at_seconds: *writer_settled_at,
             role: TradeRole::Writer,
         }
     );
@@ -890,7 +891,7 @@ fn test_settling_already_settled_option_returns_idempotent_receipt() {
 
     const OPTION_ID: u64 = 1;
     let past_expiry = 0;
-    testing_set_option_expiry(&env, OPTION_ID, past_expiry).expect("Set expiry failed");
+    testing_set_option_expiry_seconds(&env, OPTION_ID, past_expiry).expect("Set expiry failed");
 
     let first_settle_receipt =
         settle_option_by_id(&env, OPTION_ID).expect("first settlement should enqueue");
@@ -1009,7 +1010,7 @@ fn test_settlement_conserves_collateral_across_writer_buyer_and_profit_fee() {
         get_user_balance(&env, &buyer_wallet.address).expect("Buyer balance failed");
 
     set_oracle_price(&env, TEST_SETTLEMENT_PRICE_CENTS);
-    testing_set_option_expiry(&env, OPTION_ID, 0).expect("Set expiry failed");
+    testing_set_option_expiry_seconds(&env, OPTION_ID, 0).expect("Set expiry failed");
 
     // when
     let response = settle_expired_options(&env).expect("Settle expired options failed");
@@ -1106,7 +1107,7 @@ fn test_partial_quantity_itm_option_settles_with_correct_payouts_and_fees() {
         get_user_balance(&env, &buyer_wallet.address).expect("Buyer balance failed");
 
     set_oracle_price(&env, TEST_SETTLEMENT_PRICE_CENTS);
-    testing_set_option_expiry(&env, OPTION_ID, 0).expect("Set expiry failed");
+    testing_set_option_expiry_seconds(&env, OPTION_ID, 0).expect("Set expiry failed");
 
     // when
     let response = settle_expired_options(&env).expect("Settle expired options failed");
@@ -1242,8 +1243,8 @@ fn test_two_itm_options_in_one_tick_aggregate_profit_fees_on_fee_recipient() {
 
     let fee_recipient_balance_after_accept = get_fee_recipient_ledger_balance(&env);
     set_oracle_price(&env, TEST_SETTLEMENT_PRICE_CENTS);
-    testing_set_option_expiry(&env, OPTION_1_ID, 0).expect("Set option 1 expiry failed");
-    testing_set_option_expiry(&env, OPTION_2_ID, 0).expect("Set option 2 expiry failed");
+    testing_set_option_expiry_seconds(&env, OPTION_1_ID, 0).expect("Set option 1 expiry failed");
+    testing_set_option_expiry_seconds(&env, OPTION_2_ID, 0).expect("Set option 2 expiry failed");
 
     // when
     let response = settle_expired_options(&env).expect("Settle expired options failed");
@@ -1289,7 +1290,7 @@ fn test_settle_option_by_id_status_transitions_from_pending_to_terminal() {
     const STRIKE_BPS: u16 = 500;
     const SETTLEMENT_PRICE_CENTS: u64 = 10_200_000;
     const OPTION_ID: u64 = 1;
-    const EXPIRED_AT_NS: u64 = 0;
+    const EXPIRED_AT_SECONDS: u64 = 0;
 
     let writer_wallet = generate_wallet(WRITER_SEED);
     let buyer_wallet = generate_wallet(BUYER_SEED);
@@ -1322,7 +1323,8 @@ fn test_settle_option_by_id_status_transitions_from_pending_to_terminal() {
     .expect("Accept offer failed");
 
     set_oracle_price(&env, SETTLEMENT_PRICE_CENTS);
-    testing_set_option_expiry(&env, OPTION_ID, EXPIRED_AT_NS).expect("Set expiry failed");
+    testing_set_option_expiry_seconds(&env, OPTION_ID, EXPIRED_AT_SECONDS)
+        .expect("Set expiry failed");
 
     // when
     let settlement_receipt =

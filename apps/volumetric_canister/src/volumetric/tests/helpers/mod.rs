@@ -21,6 +21,6 @@ pub use offers::{accept_offers, cancel_offer, create_offer, get_open_offers};
 pub use recovery::{get_recovery_required_wal_entries, recover_wal_operation};
 pub use settlement::{
     get_pending_settlements, get_settlement_status, settle_expired_options, settle_option_by_id,
-    testing_set_option_expiry, wait_for_settlement_terminal_status,
+    testing_set_option_expiry_seconds, wait_for_settlement_terminal_status,
 };
 pub use withdrawals::{get_withdraw_status, withdraw_ckbtc};

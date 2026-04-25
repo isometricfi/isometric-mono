@@ -19,7 +19,7 @@ export async function createOffer(input: Input): Promise<Output> {
         quantity: BigInt(input.quantity),
         strike_basis_points: input.strikeBasisPoints,
         premium_basis_points: input.premiumBasisPoints,
-        offer_valid_until: BigInt(input.offerValidUntil),
+        offer_valid_until_seconds: BigInt(input.offerValidUntilSeconds),
         option_duration_seconds: BigInt(input.optionDurationSeconds),
         expires_at_seconds: BigInt(input.expiresAtSeconds),
       },

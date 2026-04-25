@@ -8,11 +8,10 @@ use crate::errors::{error_codes, VolumetricError};
 use crate::generated::xrc::{
     Asset, AssetClass, ExchangeRateError, GetExchangeRateRequest, GetExchangeRateResult,
 };
-use crate::ic;
+use crate::time::current_time_seconds;
 
 const XRC_CANISTER_ID: &str = "uf6dk-hyaaa-aaaaq-qaaaq-cai";
 const XRC_CYCLES: u128 = 1_000_000_000;
-const NANOS_PER_SECOND: u64 = 1_000_000_000;
 const SECONDS_PER_HOUR: u64 = 3_600;
 const CENTS_DECIMALS: u32 = 2;
 const BTC_SYMBOL: &str = "BTC";
@@ -21,15 +20,14 @@ const USD_SYMBOL: &str = "USD";
 #[async_trait(?Send)]
 pub trait PriceOracle {
     async fn get_btc_usd_price_cents(&self) -> Result<u64, VolumetricError>;
-    async fn get_btc_usd_price_cents_at_time_ns(
+    async fn get_btc_usd_price_cents_at_time_seconds(
         &self,
-        settlement_time_ns: u64,
+        settlement_time_seconds: u64,
     ) -> Result<u64, VolumetricError>;
 }
 
-pub(crate) fn xrc_timestamp_secs_for_time_ns(time_nanos: u64) -> u64 {
-    let secs = time_nanos / NANOS_PER_SECOND;
-    (secs / SECONDS_PER_HOUR) * SECONDS_PER_HOUR
+pub(crate) fn xrc_timestamp_seconds_for_time_seconds(time_seconds: u64) -> u64 {
+    (time_seconds / SECONDS_PER_HOUR) * SECONDS_PER_HOUR
 }
 
 fn rate_to_cents(rate: u64, decimals: u32) -> Result<u64, VolumetricError> {
@@ -127,12 +125,13 @@ struct IcOracle;
 #[async_trait(?Send)]
 impl PriceOracle for IcOracle {
     async fn get_btc_usd_price_cents(&self) -> Result<u64, VolumetricError> {
-        self.get_btc_usd_price_cents_at_time_ns(ic::time()).await
+        self.get_btc_usd_price_cents_at_time_seconds(current_time_seconds())
+            .await
     }
 
-    async fn get_btc_usd_price_cents_at_time_ns(
+    async fn get_btc_usd_price_cents_at_time_seconds(
         &self,
-        settlement_time_ns: u64,
+        settlement_time_seconds: u64,
     ) -> Result<u64, VolumetricError> {
         let xrc = Principal::from_text(XRC_CANISTER_ID).map_err(|e| {
             VolumetricError::from_def(
@@ -141,7 +140,7 @@ impl PriceOracle for IcOracle {
                 None,
             )
         })?;
-        let timestamp_secs = xrc_timestamp_secs_for_time_ns(settlement_time_ns);
+        let timestamp_secs = xrc_timestamp_seconds_for_time_seconds(settlement_time_seconds);
 
         let request = GetExchangeRateRequest {
             base_asset: Asset {
@@ -208,9 +207,9 @@ impl PriceOracle for StubOracle {
         Ok(self.price_cents)
     }
 
-    async fn get_btc_usd_price_cents_at_time_ns(
+    async fn get_btc_usd_price_cents_at_time_seconds(
         &self,
-        _settlement_time_ns: u64,
+        _settlement_time_seconds: u64,
     ) -> Result<u64, VolumetricError> {
         Ok(self.price_cents)
     }
@@ -225,12 +224,12 @@ pub async fn get_btc_usd_price_cents() -> Result<u64, VolumetricError> {
     oracle.get_btc_usd_price_cents().await
 }
 
-pub async fn get_btc_usd_price_cents_at_time_ns(
-    settlement_time_ns: u64,
+pub async fn get_btc_usd_price_cents_at_time_seconds(
+    settlement_time_seconds: u64,
 ) -> Result<u64, VolumetricError> {
     let oracle = ORACLE.with(|o| Rc::clone(&o.borrow()));
     oracle
-        .get_btc_usd_price_cents_at_time_ns(settlement_time_ns)
+        .get_btc_usd_price_cents_at_time_seconds(settlement_time_seconds)
         .await
 }
 
@@ -292,12 +291,12 @@ mod tests {
     }
 
     #[test]
-    fn test_xrc_timestamp_secs_for_time_ns_rounds_down_to_hour() {
+    fn test_xrc_timestamp_seconds_for_time_seconds_rounds_down_to_hour() {
         // given
-        let nanos_at_14_30 = 14 * 3600 * NANOS_PER_SECOND + 30 * 60 * NANOS_PER_SECOND;
+        let seconds_at_14_30 = 14 * 3600 + 30 * 60;
 
         // when
-        let rounded = xrc_timestamp_secs_for_time_ns(nanos_at_14_30);
+        let rounded = xrc_timestamp_seconds_for_time_seconds(seconds_at_14_30);
 
         // then
         let expected_14_00 = 14 * 3600;
@@ -305,12 +304,12 @@ mod tests {
     }
 
     #[test]
-    fn test_xrc_timestamp_secs_for_time_ns_keeps_exact_hour() {
+    fn test_xrc_timestamp_seconds_for_time_seconds_keeps_exact_hour() {
         // given
-        let nanos_at_14_00 = 14 * 3600 * NANOS_PER_SECOND;
+        let seconds_at_14_00 = 14 * 3600;
 
         // when
-        let rounded = xrc_timestamp_secs_for_time_ns(nanos_at_14_00);
+        let rounded = xrc_timestamp_seconds_for_time_seconds(seconds_at_14_00);
 
         // then
         assert_eq!(rounded, 14 * 3600);

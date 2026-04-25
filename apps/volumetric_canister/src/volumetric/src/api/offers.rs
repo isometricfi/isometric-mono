@@ -20,7 +20,7 @@ pub struct CreateOfferRequest {
     pub strike_basis_points: u16,
     pub premium_basis_points: u16,
     pub quantity: u64,
-    pub offer_valid_until: u64,
+    pub offer_valid_until_seconds: u64,
     pub option_duration_seconds: u64,
     pub expires_at_seconds: u64,
 }
@@ -37,7 +37,10 @@ impl SignableAction for CreateOfferRequest {
         };
         vec![
             ("asset", asset_tag.to_string()),
-            ("offer_valid_until_ns", self.offer_valid_until.to_string()),
+            (
+                "offer_valid_until_seconds",
+                self.offer_valid_until_seconds.to_string(),
+            ),
             (
                 "option_duration_seconds",
                 self.option_duration_seconds.to_string(),
@@ -65,7 +68,7 @@ pub fn get_create_offer_message(
     strike_basis_points: u16,
     premium_basis_points: u16,
     option_duration_seconds: u64,
-    offer_valid_until: u64,
+    offer_valid_until_seconds: u64,
     expires_at_seconds: u64,
 ) -> Result<String, VolumetricError> {
     let wallet_key = WalletKey::try_from_address(&wallet_address)?;
@@ -76,7 +79,7 @@ pub fn get_create_offer_message(
         strike_basis_points,
         premium_basis_points,
         quantity,
-        offer_valid_until,
+        offer_valid_until_seconds,
         option_duration_seconds,
         expires_at_seconds,
     };
@@ -110,7 +113,7 @@ pub fn create_offer(
         strike_basis_points: req.data.strike_basis_points,
         premium_basis_points: req.data.premium_basis_points,
         quantity: req.data.quantity,
-        offer_valid_until: req.data.offer_valid_until,
+        offer_valid_until_seconds: req.data.offer_valid_until_seconds,
         option_duration_seconds: req.data.option_duration_seconds,
     };
 

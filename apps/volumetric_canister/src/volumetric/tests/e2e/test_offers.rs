@@ -71,7 +71,7 @@ fn test_writer_creates_offer_and_it_appears_in_open_offers() {
             strike_basis_points: STRIKE_BPS,
             premium_basis_points: PREMIUM_BPS,
             duration_seconds: ONE_DAY_SECS,
-            offer_valid_until_ns: response.offer.offer_valid_until,
+            offer_valid_until_seconds: response.offer.offer_valid_until_seconds,
         }
     );
 }

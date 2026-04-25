@@ -28,8 +28,8 @@ export function mapOffer(offer: Offer): OfferData {
     strikeBasisPoints: offer.strike_basis_points,
     premiumBasisPoints: offer.premium_basis_points,
     optionDurationSeconds: offer.option_duration_seconds,
-    offerValidUntil: offer.offer_valid_until,
-    createdAt: offer.created_at,
+    offerValidUntil: offer.offer_valid_until_seconds,
+    createdAt: offer.created_at_seconds,
   };
 }
 
@@ -41,8 +41,8 @@ export function mapOption(option: ActiveOption): OptionData {
     entryPriceCents: option.entry_price_cents,
     strikePriceCents: option.strike_price_cents,
     premiumPaid: option.premium_paid,
-    expiry: option.expiry,
-    acceptedAt: option.accepted_at,
+    expiry: option.expiry_seconds,
+    acceptedAt: option.accepted_at_seconds,
     offerId: option.offer_id.toString(),
   };
 }

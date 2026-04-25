@@ -8,7 +8,7 @@ import { describe, expect, test } from "vitest";
 import { mapEvent, mapEvents } from "./mapper";
 
 const DEFAULT_PRINCIPAL = Principal.fromText("aaaaa-aa");
-const DEFAULT_TIMESTAMP_NS = BigInt(1_700_000_000_000_000_000);
+const DEFAULT_TIMESTAMP_SECONDS = BigInt(1_700_000_000);
 
 function makeCanisterEvent(
   overrides: { data?: CanisterEventData; event_type?: CanisterEventType } = {},
@@ -16,7 +16,7 @@ function makeCanisterEvent(
   return {
     id: BigInt(1),
     principal: DEFAULT_PRINCIPAL,
-    timestamp: DEFAULT_TIMESTAMP_NS,
+    timestamp_seconds: DEFAULT_TIMESTAMP_SECONDS,
     event_type: overrides.event_type ?? { AccountCreated: null },
     data: overrides.data ?? { AccountCreated: { wallet_address: "bc1qdefault" } },
   };
@@ -24,10 +24,10 @@ function makeCanisterEvent(
 
 test("should map event envelope fields (id, eventType, principal, timestamp)", () => {
   // given
-  const TIMESTAMP_NS_WITH_REMAINDER = BigInt("1700000000123456789");
+  const TIMESTAMP_SECONDS = BigInt(1_700_000_123);
   const event: CanisterEvent = {
     ...makeCanisterEvent({ event_type: { Deposit: null } }),
-    timestamp: TIMESTAMP_NS_WITH_REMAINDER,
+    timestamp_seconds: TIMESTAMP_SECONDS,
   };
 
   // when
@@ -37,7 +37,7 @@ test("should map event envelope fields (id, eventType, principal, timestamp)", (
   expect(result.id).toBe("1");
   expect(result.eventType).toBe("Deposit");
   expect(result.principal).toBe(DEFAULT_PRINCIPAL.toText());
-  expect(result.timestamp).toBe(1_700_000_000_123);
+  expect(result.timestamp).toBe(1_700_000_123);
 });
 
 describe("mapEventData", () => {
@@ -141,7 +141,7 @@ describe("mapEventData", () => {
           strike_basis_points: 10_500,
           premium_basis_points: 250,
           duration_seconds: BigInt(86_400),
-          offer_valid_until_ns: BigInt(1_700_000_000_000_000_000),
+          offer_valid_until_seconds: BigInt(1_700_000_000),
         },
       },
     });
@@ -157,7 +157,7 @@ describe("mapEventData", () => {
       strikeBasisPoints: 10_500,
       premiumBasisPoints: 250,
       durationSeconds: 86_400,
-      offerValidUntilNs: 1_700_000_000_000_000_000,
+      offerValidUntilSeconds: 1_700_000_000,
     });
   });
 
@@ -188,7 +188,7 @@ describe("mapEventData", () => {
           premium_sats: BigInt(5_000),
           entry_price_cents: BigInt(9_500_000),
           strike_price_cents: BigInt(10_000_000),
-          expiry_ns: BigInt(1_700_100_000_000_000_000),
+          expiry_seconds: BigInt(1_700_100_000),
           role: { Buyer: null },
         },
       },
@@ -208,7 +208,7 @@ describe("mapEventData", () => {
       premiumSats: 5_000,
       entryPriceCents: 9_500_000,
       strikePriceCents: 10_000_000,
-      expiryNs: 1_700_100_000_000_000_000,
+      expirySeconds: 1_700_100_000,
       role: "Buyer",
     });
   });
@@ -238,8 +238,8 @@ describe("mapEventData", () => {
           settlement_price_cents: BigInt(10_500_000),
           premium_sats: BigInt(5_000),
           payout_sats: BigInt(210_000),
-          accepted_at_ns: BigInt(1_700_000_000_000_000_000),
-          settled_at_ns: BigInt(1_700_100_000_000_000_000),
+          accepted_at_seconds: BigInt(1_700_000_000),
+          settled_at_seconds: BigInt(1_700_100_000),
           role: { Writer: null },
         },
       },
@@ -258,8 +258,8 @@ describe("mapEventData", () => {
       settlementPriceCents: 10_500_000,
       premiumSats: 5_000,
       payoutSats: 210_000,
-      acceptedAtNs: 1_700_000_000_000_000_000,
-      settledAtNs: 1_700_100_000_000_000_000,
+      acceptedAtSeconds: 1_700_000_000,
+      settledAtSeconds: 1_700_100_000,
       role: "Writer",
     });
   });

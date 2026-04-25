@@ -7,6 +7,8 @@ use ic_stable_structures::StableBTreeMap;
 use crate::ic;
 use serde::{Deserialize, Serialize};
 
+use crate::time::current_time_seconds;
+
 use super::cbor::Cbor;
 use super::options::{CounterKey, COUNTERS};
 use super::state::{Memory, MemoryIndex, MEMORY_MANAGER};
@@ -24,7 +26,7 @@ pub struct Event {
     pub id: u64,
     pub event_type: EventType,
     pub principal: Principal,
-    pub timestamp: u64,
+    pub timestamp_seconds: u64,
     pub data: EventData,
 }
 
@@ -77,7 +79,7 @@ pub enum EventData {
         strike_basis_points: u16,
         premium_basis_points: u16,
         duration_seconds: u64,
-        offer_valid_until_ns: u64,
+        offer_valid_until_seconds: u64,
     },
     OfferCancelled {
         offer_id: u64,
@@ -92,7 +94,7 @@ pub enum EventData {
         premium_sats: u64,
         entry_price_cents: u64,
         strike_price_cents: u64,
-        expiry_ns: u64,
+        expiry_seconds: u64,
         role: TradeRole,
     },
     OfferAcceptFailed {
@@ -107,8 +109,8 @@ pub enum EventData {
         settlement_price_cents: u64,
         premium_sats: u64,
         payout_sats: u64,
-        accepted_at_ns: u64,
-        settled_at_ns: u64,
+        accepted_at_seconds: u64,
+        settled_at_seconds: u64,
         role: TradeRole,
     },
     OptionSettlementFailed {
@@ -136,7 +138,7 @@ pub fn emit_event(principal: Principal, event_type: EventType, data: EventData) 
             id,
             event_type,
             principal,
-            timestamp: ic::time(),
+            timestamp_seconds: current_time_seconds(),
             data,
         };
 
@@ -177,12 +179,12 @@ pub fn get_events_by_principal(
     })
 }
 
-pub fn get_events_since(timestamp: u64, limit: u32) -> Vec<Event> {
+pub fn get_events_since(timestamp_seconds: u64, limit: u32) -> Vec<Event> {
     EVENTS.with_borrow(|e| {
         e.iter()
             .filter_map(|entry| {
                 let event = entry.value().0.clone();
-                if event.timestamp >= timestamp {
+                if event.timestamp_seconds >= timestamp_seconds {
                     Some(event)
                 } else {
                     None
@@ -203,12 +205,12 @@ pub fn get_all_events(after_id: Option<u64>, limit: u32) -> Vec<Event> {
     })
 }
 
-pub fn delete_events_before(older_than_ns: u64) -> u64 {
+pub fn delete_events_before(older_than_seconds: u64) -> u64 {
     EVENTS.with_borrow_mut(|e| {
         let keys_to_remove: Vec<u64> = e
             .iter()
             .filter_map(|entry| {
-                if entry.value().0.timestamp < older_than_ns {
+                if entry.value().0.timestamp_seconds < older_than_seconds {
                     Some(*entry.key())
                 } else {
                     None

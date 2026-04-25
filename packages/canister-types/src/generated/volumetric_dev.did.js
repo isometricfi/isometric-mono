@@ -59,12 +59,12 @@ export const idlFactory = ({ IDL }) => {
     'option_type' : OptionType,
     'asset' : Asset,
     'total_quantity' : IDL.Nat64,
-    'offer_valid_until' : IDL.Nat64,
-    'created_at' : IDL.Nat64,
+    'offer_valid_until_seconds' : IDL.Nat64,
     'writer' : IDL.Principal,
     'strike_basis_points' : IDL.Nat16,
     'remaining_quantity' : IDL.Nat64,
     'premium_basis_points' : IDL.Nat16,
+    'created_at_seconds' : IDL.Nat64,
     'option_duration_seconds' : IDL.Nat64,
   });
   const Result_2 = IDL.Variant({ 'Ok' : Offer, 'Err' : VolumetricError });
@@ -89,7 +89,7 @@ export const idlFactory = ({ IDL }) => {
   const CreateOfferRequest = IDL.Record({
     'option_type' : OptionType,
     'asset' : Asset,
-    'offer_valid_until' : IDL.Nat64,
+    'offer_valid_until_seconds' : IDL.Nat64,
     'expires_at_seconds' : IDL.Nat64,
     'strike_basis_points' : IDL.Nat16,
     'premium_basis_points' : IDL.Nat16,
@@ -124,11 +124,11 @@ export const idlFactory = ({ IDL }) => {
   });
   const PendingAccept = IDL.Record({
     'id' : IDL.Nat64,
-    'updated_at' : IDL.Nat64,
     'fill_group_id' : IDL.Nat64,
     'entry_price_cents' : IDL.Opt(IDL.Nat64),
+    'updated_at_seconds' : IDL.Nat64,
     'offers' : IDL.Vec(AcceptedOffer),
-    'created_at' : IDL.Nat64,
+    'created_at_seconds' : IDL.Nat64,
     'buyer' : IDL.Principal,
     'phase' : AcceptPhase,
     'total_buyer_debit_required_sats' : IDL.Nat64,
@@ -148,17 +148,17 @@ export const idlFactory = ({ IDL }) => {
   const ActiveOption = IDL.Record({
     'id' : IDL.Nat64,
     'status' : ActiveOptionStatus,
+    'expiry_seconds' : IDL.Nat64,
     'option_type' : OptionType,
     'fill_group_id' : IDL.Opt(IDL.Nat64),
     'entry_price_cents' : IDL.Nat64,
     'asset' : Asset,
-    'accepted_at' : IDL.Nat64,
     'writer' : IDL.Principal,
     'offer_id' : IDL.Nat64,
     'profit_fee_basis_points' : IDL.Nat64,
     'quantity' : IDL.Nat64,
+    'accepted_at_seconds' : IDL.Nat64,
     'buyer' : IDL.Principal,
-    'expiry' : IDL.Nat64,
     'premium_paid' : IDL.Nat64,
     'strike_price_cents' : IDL.Nat64,
   });
@@ -207,9 +207,9 @@ export const idlFactory = ({ IDL }) => {
       'remaining_quantity_sats' : IDL.Nat64,
     }),
     'OfferAccepted' : IDL.Record({
+      'expiry_seconds' : IDL.Nat64,
       'fill_group_id' : IDL.Nat64,
       'entry_price_cents' : IDL.Nat64,
-      'expiry_ns' : IDL.Nat64,
       'role' : TradeRole,
       'counterparty' : IDL.Principal,
       'option_id' : IDL.Nat64,
@@ -224,8 +224,8 @@ export const idlFactory = ({ IDL }) => {
       'role' : TradeRole,
       'option_id' : IDL.Nat64,
       'quantity_sats' : IDL.Nat64,
-      'accepted_at_ns' : IDL.Nat64,
-      'settled_at_ns' : IDL.Nat64,
+      'accepted_at_seconds' : IDL.Nat64,
+      'settled_at_seconds' : IDL.Nat64,
       'premium_sats' : IDL.Nat64,
       'settlement_price_cents' : IDL.Nat64,
       'strike_price_cents' : IDL.Nat64,
@@ -245,11 +245,11 @@ export const idlFactory = ({ IDL }) => {
     }),
     'OfferCreated' : IDL.Record({
       'duration_seconds' : IDL.Nat64,
+      'offer_valid_until_seconds' : IDL.Nat64,
       'quantity_sats' : IDL.Nat64,
       'strike_basis_points' : IDL.Nat16,
       'offer_id' : IDL.Nat64,
       'premium_basis_points' : IDL.Nat16,
-      'offer_valid_until_ns' : IDL.Nat64,
     }),
     'OptionSettlementFailed' : IDL.Record({
       'option_id' : IDL.Nat64,
@@ -274,8 +274,8 @@ export const idlFactory = ({ IDL }) => {
     'id' : IDL.Nat64,
     'principal' : IDL.Principal,
     'data' : EventData,
-    'timestamp' : IDL.Nat64,
     'event_type' : EventType,
+    'timestamp_seconds' : IDL.Nat64,
   });
   const Result_10 = IDL.Variant({ 'Ok' : IDL.Nat, 'Err' : VolumetricError });
   const Range = IDL.Record({ 'max' : IDL.Nat64, 'min' : IDL.Nat64 });
@@ -331,11 +331,11 @@ export const idlFactory = ({ IDL }) => {
     'Completed' : IDL.Null,
   });
   const PendingSettlement = IDL.Record({
-    'updated_at' : IDL.Nat64,
+    'updated_at_seconds' : IDL.Nat64,
     'payout_to_buyer' : IDL.Nat64,
-    'created_at' : IDL.Nat64,
     'writer' : IDL.Principal,
     'option_id' : IDL.Nat64,
+    'created_at_seconds' : IDL.Nat64,
     'buyer' : IDL.Principal,
     'phase' : SettlementPhase,
     'settlement_price_cents' : IDL.Nat64,
@@ -355,11 +355,11 @@ export const idlFactory = ({ IDL }) => {
   });
   const PendingWithdrawal = IDL.Record({
     'id' : IDL.Nat64,
-    'updated_at' : IDL.Nat64,
     'principal' : IDL.Principal,
-    'created_at' : IDL.Nat64,
+    'updated_at_seconds' : IDL.Nat64,
+    'created_at_time_ns' : IDL.Nat64,
+    'created_at_seconds' : IDL.Nat64,
     'phase' : WithdrawalPhase,
-    'created_at_time' : IDL.Nat64,
     'amount' : IDL.Nat64,
     'btc_address' : IDL.Text,
   });
@@ -770,7 +770,7 @@ export const idlFactory = ({ IDL }) => {
     'testing_expire_option' : IDL.Func([IDL.Nat64], [Result_27], []),
     'testing_force_settle' : IDL.Func([IDL.Nat64], [Result_25], []),
     'testing_set_ckbtc_ledger' : IDL.Func([IDL.Principal], [Result_1], []),
-    'testing_set_option_expiry' : IDL.Func(
+    'testing_set_option_expiry_seconds' : IDL.Func(
         [IDL.Nat64, IDL.Nat64],
         [Result_27],
         [],

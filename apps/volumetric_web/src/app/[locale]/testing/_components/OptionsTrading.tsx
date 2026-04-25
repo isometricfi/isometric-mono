@@ -15,9 +15,8 @@ function formatSats(sats: bigint | number): string {
   return `${Number(sats).toLocaleString()} sats`;
 }
 
-function formatTimestamp(ns: bigint): string {
-  const ms = Number(ns / BigInt(1_000_000));
-  return new Date(ms).toLocaleString();
+function formatTimestamp(seconds: bigint): string {
+  return new Date(Number(seconds) * 1_000).toLocaleString();
 }
 
 export function OptionsTrading() {

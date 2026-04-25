@@ -36,7 +36,7 @@ thread_local! {
 pub struct Profile {
     pub wallet_address: String,
     pub username: Option<String>,
-    pub created_at: u64,
+    pub created_at_seconds: u64,
     #[serde(default)]
     pub invite_code: Option<String>,
     #[serde(default)]

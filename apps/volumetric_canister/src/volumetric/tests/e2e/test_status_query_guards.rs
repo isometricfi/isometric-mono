@@ -3,7 +3,7 @@ use candid::Decode;
 use crate::common::{create_test_env, generate_wallet};
 use crate::helpers::{
     configure_test_ledger, create_account, create_offer, mint_and_sync_balance, set_oracle_price,
-    settle_option_by_id, testing_set_option_expiry, whitelist_controller, withdraw_ckbtc,
+    settle_option_by_id, testing_set_option_expiry_seconds, whitelist_controller, withdraw_ckbtc,
 };
 use volumetric::auth::types::WalletProof;
 use volumetric::{
@@ -166,7 +166,7 @@ fn test_get_settlement_status_rejects_replicated_calls() {
     )
     .expect("accept should succeed");
 
-    testing_set_option_expiry(&env, OFFER_ID, 0).expect("set option expiry failed");
+    testing_set_option_expiry_seconds(&env, OFFER_ID, 0).expect("set option expiry failed");
     let settle_receipt = settle_option_by_id(&env, OFFER_ID).expect("settle should enqueue");
 
     // when

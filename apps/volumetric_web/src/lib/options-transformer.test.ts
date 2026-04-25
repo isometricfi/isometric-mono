@@ -4,7 +4,7 @@ import { describe, expect, test } from "vitest";
 import { groupOffersByTermAndStrike } from "./options-transformer";
 
 const SECONDS_PER_DAY = 86400;
-const ONE_DAY_NS = BigInt(86_400_000_000_000);
+const ONE_DAY_SECONDS = BigInt(86_400);
 const DEFAULT_TERM_SECONDS = BigInt(7 * SECONDS_PER_DAY);
 const DEFAULT_STRIKE_BP = 1000;
 const DEFAULT_PREMIUM_BP = 500;
@@ -19,8 +19,8 @@ function makeOffer(overrides: Partial<Offer> = {}): Offer {
     asset: { CkBtc: null },
     total_quantity: DEFAULT_QUANTITY,
     remaining_quantity: DEFAULT_QUANTITY,
-    offer_valid_until: ONE_DAY_NS,
-    created_at: BigInt(0),
+    offer_valid_until_seconds: ONE_DAY_SECONDS,
+    created_at_seconds: BigInt(0),
     writer: DEFAULT_PRINCIPAL,
     strike_basis_points: DEFAULT_STRIKE_BP,
     premium_basis_points: DEFAULT_PREMIUM_BP,
@@ -246,24 +246,24 @@ describe("groupOffersByTermAndStrike", () => {
 
   test("should pick the earliest expiresAt across all offers in a term group", () => {
     // given
-    const earliestExpiryNs = ONE_DAY_NS;
-    const middleExpiryNs = ONE_DAY_NS * BigInt(3);
-    const latestExpiryNs = ONE_DAY_NS * BigInt(5);
+    const earliestExpirySeconds = ONE_DAY_SECONDS;
+    const middleExpirySeconds = ONE_DAY_SECONDS * BigInt(3);
+    const latestExpirySeconds = ONE_DAY_SECONDS * BigInt(5);
     const lowStrikeBp = 500;
     const highStrikeBp = 2000;
     const offerEarly = makeOffer({
       id: BigInt(1),
-      offer_valid_until: earliestExpiryNs,
+      offer_valid_until_seconds: earliestExpirySeconds,
       strike_basis_points: lowStrikeBp,
     });
     const offerMiddle = makeOffer({
       id: BigInt(2),
-      offer_valid_until: middleExpiryNs,
+      offer_valid_until_seconds: middleExpirySeconds,
       strike_basis_points: lowStrikeBp,
     });
     const offerLate = makeOffer({
       id: BigInt(3),
-      offer_valid_until: latestExpiryNs,
+      offer_valid_until_seconds: latestExpirySeconds,
       strike_basis_points: highStrikeBp,
     });
     const offers = [offerLate, offerMiddle, offerEarly];

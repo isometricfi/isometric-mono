@@ -3,15 +3,14 @@ use std::cell::RefCell;
 use ic_stable_structures::memory_manager::MemoryId;
 use ic_stable_structures::StableBTreeMap;
 
-use crate::ic;
 use crate::storage::{Cbor, Memory, MemoryIndex, MEMORY_MANAGER};
+use crate::time::current_time_seconds;
 
 use super::super::OperationId;
 use super::types::{WalEntry, WalKind, WalPayload, WalPolicy, WalStatus};
 
 const SUCCEEDED_WAL_ENTRY_RETENTION_24_HOURS_SECS: u64 = 24 * 60 * 60;
 const STALE_IN_FLIGHT_RETRY_TIMEOUT_15_MINUTES_SECS: u64 = 15 * 60;
-const NANOSECONDS_PER_SECOND: u64 = 1_000_000_000;
 
 thread_local! {
     static WAL: RefCell<StableBTreeMap<OperationId, Cbor<WalEntry>, Memory>> = RefCell::new(
@@ -34,7 +33,7 @@ pub fn enqueue_if_absent(
     payload: WalPayload,
     policy: WalPolicy,
 ) -> OperationId {
-    let now_ns = ic::time();
+    let now_seconds = current_time_seconds();
     WAL.with_borrow_mut(|wal| {
         if let Some(existing_wal_entry) = wal.get(&operation_id).map(|entry| entry.0) {
             if existing_wal_entry.kind != kind || existing_wal_entry.payload != payload {
@@ -54,13 +53,13 @@ pub fn enqueue_if_absent(
                 kind,
                 attempts: 0,
                 status: WalStatus::Enqueued,
-                first_seen_ns: now_ns,
-                last_update_ns: now_ns,
+                first_seen_seconds: now_seconds,
+                last_update_seconds: now_seconds,
                 last_err: None,
                 payload,
                 max_retries: policy.max_retries,
                 backoff_secs: policy.backoff_secs,
-                next_attempt_at_ns: now_ns,
+                next_attempt_at_seconds: now_seconds,
                 result: None,
             }),
         );
@@ -94,10 +93,9 @@ pub fn list_entries_by_status(status: WalStatus, limit: usize) -> Vec<WalEntry> 
 }
 
 pub fn promote_stale_in_flight_to_recovery_required() -> u64 {
-    let now_ns = ic::time();
-    let stale_after_ns =
-        STALE_IN_FLIGHT_RETRY_TIMEOUT_15_MINUTES_SECS.saturating_mul(NANOSECONDS_PER_SECOND);
-    let stale_deadline_ns = now_ns.saturating_sub(stale_after_ns);
+    let now_seconds = current_time_seconds();
+    let stale_deadline_seconds =
+        now_seconds.saturating_sub(STALE_IN_FLIGHT_RETRY_TIMEOUT_15_MINUTES_SECS);
 
     WAL.with_borrow_mut(|wal| {
         let stale_operation_ids: Vec<OperationId> = wal
@@ -105,7 +103,7 @@ pub fn promote_stale_in_flight_to_recovery_required() -> u64 {
             .filter_map(|entry| {
                 let wal_entry = entry.value().0;
                 if wal_entry.status == WalStatus::InFlight
-                    && wal_entry.last_update_ns <= stale_deadline_ns
+                    && wal_entry.last_update_seconds <= stale_deadline_seconds
                 {
                     Some(*entry.key())
                 } else {
@@ -118,14 +116,14 @@ pub fn promote_stale_in_flight_to_recovery_required() -> u64 {
         for operation_id in stale_operation_ids {
             if let Some(mut wal_entry) = wal.get(&operation_id).map(|entry| entry.0) {
                 if wal_entry.status != WalStatus::InFlight
-                    || wal_entry.last_update_ns > stale_deadline_ns
+                    || wal_entry.last_update_seconds > stale_deadline_seconds
                 {
                     continue;
                 }
 
                 wal_entry.status = WalStatus::RecoveryRequired;
-                wal_entry.last_update_ns = now_ns;
-                wal_entry.next_attempt_at_ns = now_ns;
+                wal_entry.last_update_seconds = now_seconds;
+                wal_entry.next_attempt_at_seconds = now_seconds;
                 if wal_entry.last_err.is_none() {
                     wal_entry.last_err =
                         Some("stale in-flight WAL execution requires manual recovery".to_string());
@@ -140,16 +138,17 @@ pub fn promote_stale_in_flight_to_recovery_required() -> u64 {
 }
 
 pub fn cleanup_succeeded() -> u64 {
-    let now_ns = ic::time();
+    let now_seconds = current_time_seconds();
     WAL.with_borrow_mut(|wal| {
-        let cutoff_ns = now_ns
-            .saturating_sub(SUCCEEDED_WAL_ENTRY_RETENTION_24_HOURS_SECS * NANOSECONDS_PER_SECOND);
+        let cutoff_seconds =
+            now_seconds.saturating_sub(SUCCEEDED_WAL_ENTRY_RETENTION_24_HOURS_SECS);
         let keys_to_remove: Vec<OperationId> = wal
             .iter()
             .filter_map(|entry| {
                 let wal_entry = entry.value().0;
 
-                if wal_entry.status == WalStatus::Succeeded && wal_entry.last_update_ns <= cutoff_ns
+                if wal_entry.status == WalStatus::Succeeded
+                    && wal_entry.last_update_seconds <= cutoff_seconds
                 {
                     Some(*entry.key())
                 } else {
@@ -180,6 +179,7 @@ mod tests {
     use crate::ic::{self, IcRuntime};
 
     const TEST_NOW_NS: u64 = 1_000_000_000_000;
+    const TEST_NOW_SECONDS: u64 = TEST_NOW_NS / crate::time::NANOS_PER_SECOND;
 
     struct MockRuntime;
 
@@ -259,23 +259,23 @@ mod tests {
         reset_wal_for_test();
         let stale_operation_id = make_operation_id(31);
         let fresh_operation_id = make_operation_id(32);
-        let stale_after_ns =
-            STALE_IN_FLIGHT_RETRY_TIMEOUT_15_MINUTES_SECS.saturating_mul(NANOSECONDS_PER_SECOND);
-        let stale_last_update_ns = TEST_NOW_NS.saturating_sub(stale_after_ns);
-        let fresh_last_update_ns = TEST_NOW_NS.saturating_sub(stale_after_ns.saturating_sub(1));
+        let stale_last_update_seconds =
+            TEST_NOW_SECONDS.saturating_sub(STALE_IN_FLIGHT_RETRY_TIMEOUT_15_MINUTES_SECS);
+        let fresh_last_update_seconds =
+            TEST_NOW_SECONDS.saturating_sub(STALE_IN_FLIGHT_RETRY_TIMEOUT_15_MINUTES_SECS - 1);
 
         put_entry(WalEntry {
             id: stale_operation_id,
             kind: WalKind::Withdrawal,
             attempts: 1,
             status: WalStatus::InFlight,
-            first_seen_ns: TEST_NOW_NS,
-            last_update_ns: stale_last_update_ns,
+            first_seen_seconds: TEST_NOW_SECONDS,
+            last_update_seconds: stale_last_update_seconds,
             last_err: None,
             payload: make_withdrawal_payload(31),
             max_retries: 20,
             backoff_secs: 5,
-            next_attempt_at_ns: TEST_NOW_NS.saturating_add(1_000),
+            next_attempt_at_seconds: TEST_NOW_SECONDS.saturating_add(1),
             result: None,
         });
 
@@ -284,13 +284,13 @@ mod tests {
             kind: WalKind::Withdrawal,
             attempts: 1,
             status: WalStatus::InFlight,
-            first_seen_ns: TEST_NOW_NS,
-            last_update_ns: fresh_last_update_ns,
+            first_seen_seconds: TEST_NOW_SECONDS,
+            last_update_seconds: fresh_last_update_seconds,
             last_err: None,
             payload: make_withdrawal_payload(32),
             max_retries: 20,
             backoff_secs: 5,
-            next_attempt_at_ns: TEST_NOW_NS.saturating_add(1_000),
+            next_attempt_at_seconds: TEST_NOW_SECONDS.saturating_add(1),
             result: None,
         });
 

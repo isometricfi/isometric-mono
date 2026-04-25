@@ -107,7 +107,7 @@ fn test_buyer_accepts_offer_creates_option_and_locks_writer_collateral() {
             premium_sats: PREMIUM_SATS,
             entry_price_cents: active_option.entry_price_cents,
             strike_price_cents: active_option.strike_price_cents,
-            expiry_ns: active_option.expiry,
+            expiry_seconds: active_option.expiry_seconds,
             role: TradeRole::Buyer,
         }
     );
@@ -129,7 +129,7 @@ fn test_buyer_accepts_offer_creates_option_and_locks_writer_collateral() {
             premium_sats: PREMIUM_SATS,
             entry_price_cents: active_option.entry_price_cents,
             strike_price_cents: active_option.strike_price_cents,
-            expiry_ns: active_option.expiry,
+            expiry_seconds: active_option.expiry_seconds,
             role: TradeRole::Writer,
         }
     );

@@ -63,12 +63,15 @@ mod tests {
     use crate::storage::{clear_events, clear_offers, get_offer, insert_offer, Asset, OptionType};
 
     const TEST_NOW_NS: u64 = 1_000_000_000_000;
+    const TEST_NOW_SECONDS: u64 = TEST_NOW_NS / crate::time::NANOS_PER_SECOND;
     const TEST_OFFER_ID: u64 = 1;
     const TEST_QUANTITY_SATS: u64 = 1_000_000;
     const TEST_STRIKE_BPS: u16 = 500;
     const TEST_PREMIUM_BPS: u16 = 100;
     const TEST_DURATION_SECS: u64 = 3_600;
     const TEST_OFFER_VALID_FOR_NS: u64 = 60_000_000_000;
+    const TEST_OFFER_VALID_FOR_SECONDS: u64 =
+        TEST_OFFER_VALID_FOR_NS / crate::time::NANOS_PER_SECOND;
 
     struct MockRuntime {
         now: u64,
@@ -104,10 +107,10 @@ mod tests {
             premium_basis_points: TEST_PREMIUM_BPS,
             total_quantity: TEST_QUANTITY_SATS,
             remaining_quantity: TEST_QUANTITY_SATS,
-            offer_valid_until: TEST_NOW_NS + TEST_OFFER_VALID_FOR_NS,
+            offer_valid_until_seconds: TEST_NOW_SECONDS + TEST_OFFER_VALID_FOR_SECONDS,
             option_duration_seconds: TEST_DURATION_SECS,
             status,
-            created_at: TEST_NOW_NS,
+            created_at_seconds: TEST_NOW_SECONDS,
         }
     }
 

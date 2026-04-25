@@ -6,7 +6,7 @@ use ic_stable_structures::storable::Bound;
 use ic_stable_structures::{StableBTreeMap, Storable};
 use serde::{Deserialize, Serialize};
 
-use crate::ic;
+use crate::time::current_time_seconds;
 
 use super::state::{Memory, MemoryIndex, MEMORY_MANAGER};
 
@@ -30,8 +30,8 @@ pub struct PendingSettlement {
     pub payout_to_writer: u64,
     pub settlement_price_cents: u64,
     pub phase: SettlementPhase,
-    pub created_at: u64,
-    pub updated_at: u64,
+    pub created_at_seconds: u64,
+    pub updated_at_seconds: u64,
 }
 
 impl Storable for PendingSettlement {
@@ -69,7 +69,7 @@ pub fn create_settlement(
     payout_to_writer: u64,
     settlement_price_cents: u64,
 ) -> PendingSettlement {
-    let now = ic::time();
+    let now_seconds = current_time_seconds();
 
     let settlement = PendingSettlement {
         option_id,
@@ -79,8 +79,8 @@ pub fn create_settlement(
         payout_to_writer,
         settlement_price_cents,
         phase: SettlementPhase::Started,
-        created_at: now,
-        updated_at: now,
+        created_at_seconds: now_seconds,
+        updated_at_seconds: now_seconds,
     };
 
     SETTLEMENT_JOURNAL.with(|journal| {
@@ -95,7 +95,7 @@ pub fn update_settlement_phase(option_id: u64, phase: SettlementPhase) {
         let mut journal = journal.borrow_mut();
         if let Some(mut settlement) = journal.get(&option_id) {
             settlement.phase = phase;
-            settlement.updated_at = ic::time();
+            settlement.updated_at_seconds = current_time_seconds();
             journal.insert(option_id, settlement);
         }
     });

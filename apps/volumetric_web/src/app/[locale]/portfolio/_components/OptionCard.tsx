@@ -69,12 +69,12 @@ function calculatePnL(
 }
 
 function getTimeRemaining(
-  expiryNs: bigint,
-  acceptedAtNs: bigint,
+  expirySeconds: bigint,
+  acceptedAtSeconds: bigint,
   t: (key: string) => string,
 ): { text: string; isExpired: boolean; progressPercent: number; expiryDate: Date } {
-  const expiryMs = Number(expiryNs / BigInt(1_000_000));
-  const acceptedAtMs = Number(acceptedAtNs / BigInt(1_000_000));
+  const expiryMs = Number(expirySeconds) * 1_000;
+  const acceptedAtMs = Number(acceptedAtSeconds) * 1_000;
   const expiryDate = new Date(expiryMs);
   const now = Date.now();
 
