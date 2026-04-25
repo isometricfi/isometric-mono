@@ -50,10 +50,6 @@ pub fn set_option_duration_seconds_range_use_case(min: u64, max: u64) {
     Config::set_option_duration_seconds_range(min, max);
 }
 
-pub fn set_term_days_range_use_case(min: u64, max: u64) {
-    Config::set_term_days_range(min, max);
-}
-
 pub fn set_deposit_amount_sats_use_case(amount: u64) {
     Config::set_deposit_amount_sats(amount);
 }

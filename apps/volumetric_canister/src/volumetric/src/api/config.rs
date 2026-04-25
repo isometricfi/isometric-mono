@@ -11,8 +11,7 @@ use crate::usecases::{
     set_option_duration_seconds_range_use_case, set_premium_basis_points_range_use_case,
     set_premium_fee_basis_points_use_case, set_profit_fee_basis_points_use_case,
     set_quantity_sats_range_use_case, set_strike_basis_points_range_use_case,
-    set_term_days_range_use_case, set_withdraw_amount_sats_use_case,
-    testing_set_ckbtc_ledger_use_case,
+    set_withdraw_amount_sats_use_case, testing_set_ckbtc_ledger_use_case,
 };
 
 #[query]
@@ -115,13 +114,6 @@ pub fn set_strike_basis_points_range_config(min: u16, max: u16) -> Result<(), Vo
 pub fn set_option_duration_seconds_range_config(min: u64, max: u64) -> Result<(), VolumetricError> {
     is_whitelisted()?;
     set_option_duration_seconds_range_use_case(min, max);
-    Ok(())
-}
-
-#[update]
-pub fn set_term_days_range_config(min: u64, max: u64) -> Result<(), VolumetricError> {
-    is_whitelisted()?;
-    set_term_days_range_use_case(min, max);
     Ok(())
 }
 

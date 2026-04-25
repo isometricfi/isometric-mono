@@ -282,7 +282,6 @@ export const idlFactory = ({ IDL }) => {
   const Range_1 = IDL.Record({ 'max' : IDL.Nat16, 'min' : IDL.Nat16 });
   const TradingLimits = IDL.Record({
     'create_offer_quantity_sats' : Range,
-    'term_days' : Range,
     'deposit_amount_sats' : IDL.Nat64,
     'accept_offer_quantity_sats' : Range,
     'max_offers_per_term' : IDL.Nat64,
@@ -760,11 +759,6 @@ export const idlFactory = ({ IDL }) => {
       ),
     'set_strike_basis_points_range_config' : IDL.Func(
         [IDL.Nat16, IDL.Nat16],
-        [Result_1],
-        [],
-      ),
-    'set_term_days_range_config' : IDL.Func(
-        [IDL.Nat64, IDL.Nat64],
         [Result_1],
         [],
       ),

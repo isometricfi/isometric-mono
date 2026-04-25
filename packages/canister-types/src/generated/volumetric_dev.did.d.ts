@@ -434,7 +434,6 @@ export type TradeRole = { 'Buyer' : null } |
   { 'Writer' : null };
 export interface TradingLimits {
   'create_offer_quantity_sats' : Range,
-  'term_days' : Range,
   'deposit_amount_sats' : bigint,
   'accept_offer_quantity_sats' : Range,
   'max_offers_per_term' : bigint,
@@ -629,7 +628,6 @@ export interface _SERVICE {
     [number, number],
     Result_1
   >,
-  'set_term_days_range_config' : ActorMethod<[bigint, bigint], Result_1>,
   'set_trading_limits_config' : ActorMethod<[TradingLimits], Result_1>,
   'set_withdraw_amount_sats_config' : ActorMethod<[bigint], Result_1>,
   'settle_expired_options' : ActorMethod<[], Result_24>,

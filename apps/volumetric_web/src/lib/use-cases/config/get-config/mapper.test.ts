@@ -1,14 +1,22 @@
 import { afterEach, describe, expect, test, vi } from "vitest";
 import { mapConfig } from "./mapper";
 
+const SECONDS_PER_DAY = 86_400;
+
+function daysToSecondsRange(minDays: number, maxDays: number) {
+  return {
+    min: BigInt(minDays * SECONDS_PER_DAY),
+    max: BigInt(maxDays * SECONDS_PER_DAY),
+  };
+}
+
 function makeValidLimits(overrides: Record<string, unknown> = {}) {
   return {
-    term_days: { min: BigInt(1), max: BigInt(14) },
     create_offer_quantity_sats: { min: BigInt(10_000), max: BigInt(1_000_000) },
     accept_offer_quantity_sats: { min: BigInt(5_000), max: BigInt(500_000) },
     premium_basis_points: { min: 100, max: 5_000 },
     strike_basis_points: { min: 500, max: 2_000 },
-    option_duration_seconds: { min: BigInt(86_400), max: BigInt(1_209_600) },
+    option_duration_seconds: daysToSecondsRange(1, 14),
     deposit_amount_sats: BigInt(5_000),
     withdraw_amount_sats: BigInt(5_000),
     ...overrides,
@@ -65,7 +73,7 @@ describe("mapConfig", () => {
   test("should filter term options to narrow 7-7 range", () => {
     // given
     const limits = makeValidLimits({
-      term_days: { min: BigInt(7), max: BigInt(7) },
+      option_duration_seconds: daysToSecondsRange(7, 7),
     });
 
     // when
@@ -78,7 +86,7 @@ describe("mapConfig", () => {
   test("should fall back to min term days when no defaults fit range", () => {
     // given
     const limits = makeValidLimits({
-      term_days: { min: BigInt(20), max: BigInt(30) },
+      option_duration_seconds: daysToSecondsRange(20, 30),
     });
 
     // when
@@ -88,10 +96,27 @@ describe("mapConfig", () => {
     expect(result.termOptions).toEqual([20]);
   });
 
+  test("should round sub-day minimum up to 1 day", () => {
+    // given
+    const limits = makeValidLimits({
+      option_duration_seconds: { min: BigInt(3_600), max: BigInt(30 * SECONDS_PER_DAY) },
+    });
+
+    // when
+    const result = mapConfig(limits, makeValidFeeConfig());
+
+    // then
+    expect(result.minTermDays).toBe(1);
+    expect(result.maxTermDays).toBe(30);
+  });
+
   test("should throw when minTermDays exceeds maxTermDays", () => {
     // given
     const limits = makeValidLimits({
-      term_days: { min: BigInt(30), max: BigInt(10) },
+      option_duration_seconds: {
+        min: BigInt(30 * SECONDS_PER_DAY),
+        max: BigInt(10 * SECONDS_PER_DAY),
+      },
     });
 
     // when / then
@@ -100,7 +125,7 @@ describe("mapConfig", () => {
 
   test("should throw Zod error for invalid limits", () => {
     // given / when / then
-    expect(() => mapConfig({ term_days: "bad" }, makeValidFeeConfig())).toThrow();
+    expect(() => mapConfig({ option_duration_seconds: "bad" }, makeValidFeeConfig())).toThrow();
   });
 
   test("should use env vars when set", () => {
