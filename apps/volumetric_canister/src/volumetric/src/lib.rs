@@ -17,7 +17,6 @@ pub mod minter;
 pub mod observability;
 pub mod oracle;
 pub mod storage;
-pub mod temporary_timestamp_seconds_migration;
 pub mod time;
 pub mod timers;
 pub mod usecases;
@@ -68,7 +67,7 @@ pub use usecases::{
     SettlementStatus, WithdrawReceipt, WithdrawResult, WithdrawStatus,
 };
 
-use crate::storage::{backfill_invite_codes, Cbor, Config, CONFIG};
+use crate::storage::{Cbor, Config, CONFIG};
 
 #[init]
 fn init(btc_network: Option<BtcNetwork>) {
@@ -79,15 +78,11 @@ fn init(btc_network: Option<BtcNetwork>) {
         let _ = config.set(Cbor(new_config));
     });
 
-    backfill_invite_codes();
-    temporary_timestamp_seconds_migration::mark_temporary_timestamp_seconds_migration_complete();
     timers::setup_timers();
 }
 
 #[post_upgrade]
 fn post_upgrade() {
-    temporary_timestamp_seconds_migration::run_temporary_timestamp_seconds_migration();
-    backfill_invite_codes();
     timers::setup_timers();
 }
 

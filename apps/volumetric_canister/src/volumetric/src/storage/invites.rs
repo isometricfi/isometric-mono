@@ -160,12 +160,6 @@ pub fn get_referral_count(principal: &Principal) -> u64 {
         .count() as u64
 }
 
-pub fn backfill_invite_codes() {
-    for (principal, _) in list_all_profiles() {
-        let _ = get_or_create_invite_code(principal);
-    }
-}
-
 fn try_register_invite_code(code: &str, principal: Principal) -> bool {
     let Some(key) = InviteCodeKey::from_code(code) else {
         return false;
