@@ -457,17 +457,6 @@ export const idlFactory = ({ IDL }) => {
     'Ok' : IDL.Opt(PendingWithdrawal),
     'Err' : VolumetricError,
   });
-  const HttpRequest = IDL.Record({
-    'url' : IDL.Text,
-    'method' : IDL.Text,
-    'body' : IDL.Vec(IDL.Nat8),
-    'headers' : IDL.Vec(IDL.Tuple(IDL.Text, IDL.Text)),
-  });
-  const HttpResponse = IDL.Record({
-    'body' : IDL.Vec(IDL.Nat8),
-    'headers' : IDL.Vec(IDL.Tuple(IDL.Text, IDL.Text)),
-    'status_code' : IDL.Nat16,
-  });
   const UserInfo = IDL.Record({
     'principal' : IDL.Principal,
     'username' : IDL.Opt(IDL.Text),
@@ -701,7 +690,6 @@ export const idlFactory = ({ IDL }) => {
       ),
     'get_withdrawal_by_id' : IDL.Func([IDL.Nat64], [Result_22], ['query']),
     'greet' : IDL.Func([IDL.Text], [IDL.Text], ['query']),
-    'http_request' : IDL.Func([HttpRequest], [HttpResponse], ['query']),
     'list_users' : IDL.Func([], [IDL.Vec(UserInfo)], ['query']),
     'list_whitelisted' : IDL.Func([], [IDL.Vec(IDL.Principal)], ['query']),
     'observability_get_metrics' : IDL.Func(

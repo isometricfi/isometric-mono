@@ -2,7 +2,6 @@ use crate::journaling::OperationId;
 use candid::{Nat, Principal};
 use ic_cdk::export_candid;
 use ic_cdk::{init, post_upgrade};
-use ic_http_types::{HttpRequest, HttpResponse};
 
 pub mod api;
 pub mod auth;

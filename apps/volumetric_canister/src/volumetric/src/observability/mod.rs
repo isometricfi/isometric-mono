@@ -39,7 +39,7 @@ pub fn observability_get_metrics() -> ObservabilityMetrics {
     observability_collect_metrics()
 }
 
-#[ic_cdk::query]
+#[ic_cdk::query(name = "http_request", hidden = true)]
 pub fn http_request(request: HttpRequest) -> HttpResponse {
     match request.path() {
         OBSERVABILITY_METRICS_PATH => observability_serve_metrics_response(),

@@ -201,17 +201,6 @@ type FeeConfig = record {
   fee_recipient : principal;
   profit_fee_basis_points : nat64;
 };
-type HttpRequest = record {
-  url : text;
-  method : text;
-  body : blob;
-  headers : vec record { text; text };
-};
-type HttpResponse = record {
-  body : blob;
-  headers : vec record { text; text };
-  status_code : nat16;
-};
 type ObservabilityMetrics = record {
   failed_accepts_total : nat64;
   balances_total : nat64;
@@ -504,7 +493,6 @@ service : (opt BtcNetwork) -> {
   get_withdraw_status : (blob) -> (Result_21) query;
   get_withdrawal_by_id : (nat64) -> (Result_22) query;
   greet : (text) -> (text) query;
-  http_request : (HttpRequest) -> (HttpResponse) query;
   list_users : () -> (vec UserInfo) query;
   list_whitelisted : () -> (vec principal) query;
   observability_get_metrics : () -> (ObservabilityMetrics) query;

@@ -233,17 +233,6 @@ export interface FeeConfig {
   'fee_recipient' : Principal,
   'profit_fee_basis_points' : bigint,
 }
-export interface HttpRequest {
-  'url' : string,
-  'method' : string,
-  'body' : Uint8Array | number[],
-  'headers' : Array<[string, string]>,
-}
-export interface HttpResponse {
-  'body' : Uint8Array | number[],
-  'headers' : Array<[string, string]>,
-  'status_code' : number,
-}
 export interface ObservabilityMetrics {
   'failed_accepts_total' : bigint,
   'balances_total' : bigint,
@@ -592,7 +581,6 @@ export interface _SERVICE {
   'get_withdraw_status' : ActorMethod<[Uint8Array | number[]], Result_21>,
   'get_withdrawal_by_id' : ActorMethod<[bigint], Result_22>,
   'greet' : ActorMethod<[string], string>,
-  'http_request' : ActorMethod<[HttpRequest], HttpResponse>,
   'list_users' : ActorMethod<[], Array<UserInfo>>,
   'list_whitelisted' : ActorMethod<[], Array<Principal>>,
   'observability_get_metrics' : ActorMethod<[], ObservabilityMetrics>,
