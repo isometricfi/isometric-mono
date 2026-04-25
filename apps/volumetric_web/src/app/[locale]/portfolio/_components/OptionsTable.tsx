@@ -5,7 +5,7 @@ import { useTranslations } from "next-intl";
 import { Skeleton } from "@/components/ui/skeleton";
 import { type PortfolioOption, usePortfolio, usePrices } from "@/hooks";
 import { Link } from "@/i18n/routing";
-import { OptionCard } from "./OptionCard";
+import { OptionCardModal } from "./options/OptionCardModal";
 
 type OptionRole = "buyer" | "writer";
 type OptionWithRole = PortfolioOption & { role: OptionRole };
@@ -68,7 +68,7 @@ export function OptionsTable() {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
       {sortedOptions.map((option) => (
-        <OptionCard
+        <OptionCardModal
           key={`${option.role}-${option.id.toString()}`}
           option={option}
           btcPrice={currentBtcPrice}
