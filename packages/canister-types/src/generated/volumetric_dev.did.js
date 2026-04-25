@@ -584,6 +584,7 @@ export const idlFactory = ({ IDL }) => {
     'cancel_offer' : IDL.Func([AuthenticatedPayload_1], [Result_2], []),
     'cleanup_old_events' : IDL.Func([], [Result_3], []),
     'clear_all_events' : IDL.Func([], [Result_3], []),
+    'clear_log_access_token' : IDL.Func([], [Result_1], []),
     'create_account' : IDL.Func([AuthenticatedPayload_2], [Result_4], []),
     'create_offer' : IDL.Func([AuthenticatedPayload_3], [Result_5], []),
     'get_accept_by_id' : IDL.Func([IDL.Nat64], [Result_6], ['query']),
@@ -730,6 +731,7 @@ export const idlFactory = ({ IDL }) => {
     'set_feature_flags_config' : IDL.Func([FeatureFlags], [Result_1], []),
     'set_fee_config_config' : IDL.Func([FeeConfig], [Result_1], []),
     'set_fee_recipient_config' : IDL.Func([IDL.Principal], [Result_1], []),
+    'set_log_access_token' : IDL.Func([IDL.Text], [Result_1], []),
     'set_max_offers_per_term_config' : IDL.Func([IDL.Nat64], [Result_1], []),
     'set_option_duration_seconds_range_config' : IDL.Func(
         [IDL.Nat64, IDL.Nat64],

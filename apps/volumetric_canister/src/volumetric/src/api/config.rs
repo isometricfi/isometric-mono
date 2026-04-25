@@ -2,16 +2,17 @@ use candid::Principal;
 use ic_cdk::{query, update};
 
 use crate::errors::VolumetricError;
-use crate::guards::is_whitelisted;
+use crate::guards::{is_controller, is_whitelisted};
 use crate::storage::{get_platform_fees_collected, Config, FeatureFlags, FeeConfig, TradingLimits};
 use crate::usecases::{
     self, set_accept_offer_quantity_sats_range_use_case,
     set_create_offer_quantity_sats_range_use_case, set_deposit_amount_sats_use_case,
-    set_fee_config_use_case, set_fee_recipient_use_case, set_max_offers_per_term_use_case,
-    set_option_duration_seconds_range_use_case, set_premium_basis_points_range_use_case,
-    set_premium_fee_basis_points_use_case, set_profit_fee_basis_points_use_case,
-    set_quantity_sats_range_use_case, set_strike_basis_points_range_use_case,
-    set_withdraw_amount_sats_use_case, testing_set_ckbtc_ledger_use_case,
+    set_fee_config_use_case, set_fee_recipient_use_case, set_log_access_token_use_case,
+    set_max_offers_per_term_use_case, set_option_duration_seconds_range_use_case,
+    set_premium_basis_points_range_use_case, set_premium_fee_basis_points_use_case,
+    set_profit_fee_basis_points_use_case, set_quantity_sats_range_use_case,
+    set_strike_basis_points_range_use_case, set_withdraw_amount_sats_use_case,
+    testing_set_ckbtc_ledger_use_case,
 };
 
 #[query]
@@ -163,6 +164,19 @@ pub fn set_profit_fee_basis_points_config(basis_points: u64) -> Result<(), Volum
 pub fn set_fee_recipient_config(recipient: Principal) -> Result<(), VolumetricError> {
     is_whitelisted()?;
     set_fee_recipient_use_case(recipient);
+    Ok(())
+}
+
+#[update]
+pub fn set_log_access_token(token: String) -> Result<(), VolumetricError> {
+    is_controller()?;
+    set_log_access_token_use_case(token)
+}
+
+#[update]
+pub fn clear_log_access_token() -> Result<(), VolumetricError> {
+    is_controller()?;
+    usecases::clear_log_access_token_use_case();
     Ok(())
 }
 

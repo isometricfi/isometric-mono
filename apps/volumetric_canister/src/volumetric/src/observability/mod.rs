@@ -8,6 +8,7 @@ use ic_metrics_encoder::MetricsEncoder;
 use serde::{Deserialize, Serialize};
 
 use self::storage::collect_observability_storage_counts;
+use crate::storage::get_log_access_token_hash;
 
 const OBSERVABILITY_METRICS_PATH: &str = "/observability/metrics";
 const WASM_PAGE_SIZE_BYTES: u64 = 65_536;
@@ -42,6 +43,10 @@ pub fn observability_get_metrics() -> ObservabilityMetrics {
 pub fn http_request(request: HttpRequest) -> HttpResponse {
     match request.path() {
         OBSERVABILITY_METRICS_PATH => observability_serve_metrics_response(),
+        "/logs" => {
+            let log_access_token_hash = get_log_access_token_hash();
+            logging::do_reply_with_bearer_token_hash(request, log_access_token_hash.as_deref())
+        }
         _ => observability_plain_text_response(404, "not_found"),
     }
 }
@@ -256,6 +261,9 @@ mod tests {
         }
     }
 
+    /// Given: an HTTP request with a query string on the metrics path
+    /// When: reading the request path
+    /// Then: ignores the query string
     #[test]
     fn test_http_request_path_ignores_query_string() {
         // given
@@ -273,6 +281,32 @@ mod tests {
         assert_eq!(path, OBSERVABILITY_METRICS_PATH);
     }
 
+    /// Given: an HTTP request for /logs
+    /// When: routing through the observability HTTP entrypoint
+    /// Then: requires a bearer token
+    #[test]
+    fn test_http_request_routes_logs_path_to_protected_logging_package() {
+        // given
+        let request = HttpRequest {
+            method: "GET".to_string(),
+            url: "/logs".to_string(),
+            headers: vec![],
+            body: Default::default(),
+        };
+
+        // when
+        let response = http_request(request);
+
+        // then
+        assert_eq!(response.status_code, 401);
+        assert!(response.headers.iter().any(|(name, value)| {
+            name == "content-type" && value == "application/json; charset=utf-8"
+        }));
+    }
+
+    /// Given: a sample metrics snapshot
+    /// When: encoding it in Prometheus format
+    /// Then: includes the expected metric names and values
     #[test]
     fn test_observability_encode_metrics_snapshot_includes_expected_metrics() {
         // given

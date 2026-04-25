@@ -19,12 +19,13 @@ pub use config::reset_oracle_config;
 #[cfg(feature = "testing")]
 pub use config::set_oracle_price_config;
 pub use config::{
-    get_config, get_feature_flags, get_trading_limits, set_accept_offer_quantity_sats_range_config,
-    set_create_offer_quantity_sats_range_config, set_deposit_amount_sats_config,
-    set_feature_flags_config, set_max_offers_per_term_config,
-    set_option_duration_seconds_range_config, set_premium_basis_points_range_config,
-    set_quantity_sats_range_config, set_strike_basis_points_range_config,
-    set_trading_limits_config, set_withdraw_amount_sats_config, testing_set_ckbtc_ledger,
+    clear_log_access_token, get_config, get_feature_flags, get_trading_limits,
+    set_accept_offer_quantity_sats_range_config, set_create_offer_quantity_sats_range_config,
+    set_deposit_amount_sats_config, set_feature_flags_config, set_log_access_token,
+    set_max_offers_per_term_config, set_option_duration_seconds_range_config,
+    set_premium_basis_points_range_config, set_quantity_sats_range_config,
+    set_strike_basis_points_range_config, set_trading_limits_config,
+    set_withdraw_amount_sats_config, testing_set_ckbtc_ledger,
 };
 pub use deposits::{
     get_ckbtc_balance, get_deposit_address, get_user_balance, testing_sync_balance_from_ledger,

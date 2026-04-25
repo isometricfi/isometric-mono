@@ -5,6 +5,7 @@ pub mod cbor;
 pub mod config;
 pub mod events;
 pub mod invites;
+pub mod log_access;
 pub mod options;
 pub mod settlements;
 pub mod state;
@@ -36,6 +37,9 @@ pub use invites::{
     get_or_create_invite_code, get_referral_count, link_referrer_once, resolve_invite_code,
     validate_invite_code_for_principal,
 };
+pub use log_access::{
+    clear_log_access_token_hash, get_log_access_token_hash, set_log_access_token_hash,
+};
 pub use options::{
     calculate_call_option_payout, calculate_premium_in_sats, calculate_strike_price_in_cents,
     clear_active_options, clear_offers, get_active_option, get_offer, insert_active_option,
@@ -49,7 +53,10 @@ pub use settlements::{
     list_failed_settlements, list_pending_settlements_journal, remove_settlement,
     update_settlement_phase, PendingSettlement, SettlementPhase,
 };
-pub use state::{ConfigCell, Memory, MemoryIndex, CONFIG, MEMORY_MANAGER, WHITELIST};
+pub use state::{
+    ConfigCell, LogAccessTokenHashCell, Memory, MemoryIndex, CONFIG, LOG_ACCESS_TOKEN_HASH,
+    MEMORY_MANAGER, WHITELIST,
+};
 pub use withdrawals::{
     complete_withdrawal, create_withdrawal, fail_withdrawal, get_pending_withdrawals_by_principal,
     get_withdrawal, list_failed_withdrawals, list_pending_withdrawals, remove_withdrawal,

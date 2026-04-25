@@ -526,6 +526,7 @@ export interface _SERVICE {
   'cancel_offer' : ActorMethod<[AuthenticatedPayload_1], Result_2>,
   'cleanup_old_events' : ActorMethod<[], Result_3>,
   'clear_all_events' : ActorMethod<[], Result_3>,
+  'clear_log_access_token' : ActorMethod<[], Result_1>,
   'create_account' : ActorMethod<[AuthenticatedPayload_2], Result_4>,
   'create_offer' : ActorMethod<[AuthenticatedPayload_3], Result_5>,
   'get_accept_by_id' : ActorMethod<[bigint], Result_6>,
@@ -611,6 +612,7 @@ export interface _SERVICE {
   'set_feature_flags_config' : ActorMethod<[FeatureFlags], Result_1>,
   'set_fee_config_config' : ActorMethod<[FeeConfig], Result_1>,
   'set_fee_recipient_config' : ActorMethod<[Principal], Result_1>,
+  'set_log_access_token' : ActorMethod<[string], Result_1>,
   'set_max_offers_per_term_config' : ActorMethod<[bigint], Result_1>,
   'set_option_duration_seconds_range_config' : ActorMethod<
     [bigint, bigint],

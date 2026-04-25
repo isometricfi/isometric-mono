@@ -447,6 +447,7 @@ service : (opt BtcNetwork) -> {
   cancel_offer : (AuthenticatedPayload_1) -> (Result_2);
   cleanup_old_events : () -> (Result_3);
   clear_all_events : () -> (Result_3);
+  clear_log_access_token : () -> (Result_1);
   create_account : (AuthenticatedPayload_2) -> (Result_4);
   create_offer : (AuthenticatedPayload_3) -> (Result_5);
   get_accept_by_id : (nat64) -> (Result_6) query;
@@ -516,6 +517,7 @@ service : (opt BtcNetwork) -> {
   set_feature_flags_config : (FeatureFlags) -> (Result_1);
   set_fee_config_config : (FeeConfig) -> (Result_1);
   set_fee_recipient_config : (principal) -> (Result_1);
+  set_log_access_token : (text) -> (Result_1);
   set_max_offers_per_term_config : (nat64) -> (Result_1);
   set_option_duration_seconds_range_config : (nat64, nat64) -> (Result_1);
   set_premium_basis_points_range_config : (nat16, nat16) -> (Result_1);

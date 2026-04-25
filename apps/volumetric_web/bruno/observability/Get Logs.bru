@@ -1,0 +1,15 @@
+meta {
+  name: Get Logs
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{canisterBaseUrl}}/logs
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{logAccessToken}}
+}

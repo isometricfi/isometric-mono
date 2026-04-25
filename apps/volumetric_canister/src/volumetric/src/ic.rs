@@ -26,7 +26,7 @@ impl IcRuntime for IcProd {
     }
 
     fn log(&self, message: &str) {
-        ic_cdk::println!("{}", message);
+        logging::log!("{}", message);
     }
 }
 
