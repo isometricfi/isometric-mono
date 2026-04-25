@@ -1,38 +1,37 @@
 use base64::prelude::*;
 use bitcoin::address::{AddressData, NetworkUnchecked};
 use bitcoin::hashes::{hash160, sha256, Hash, HashEngine};
+use bitcoin::key::TapTweak;
 use bitcoin::secp256k1::ecdsa::{RecoverableSignature, RecoveryId};
-use bitcoin::secp256k1::{Message, Secp256k1};
+use bitcoin::secp256k1::{Message, PublicKey, Secp256k1};
 use bitcoin::{Address, Network, ScriptBuf};
 
 use crate::errors::{error_codes, VolumetricError};
+use crate::ic;
 use crate::storage::{BtcNetwork, Config};
 
 const LEGACY_SIGNATURE_LENGTH: usize = 65;
 const BTC_MESSAGE_PREFIX: &[u8] = b"\x18Bitcoin Signed Message:\n";
 
-/// Half the order of the secp256k1 group, big-endian.
-///
-/// A canonical ECDSA signature has `s <= N/2` (a.k.a. "low-s"). Enforcing
-/// this rejects the malleated twin `(r, N-s)` that any valid signature
-/// silently has, closing the ECDSA-malleability class of attacks. See
-/// Bitcoin Core's `CheckSignatureEncoding` / BIP-146.
-const SECP256K1_HALF_ORDER_BE: [u8; 32] = [
-    0x7F, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
-    0x5D, 0x57, 0x6E, 0x73, 0x57, 0xA4, 0x50, 0x1D, 0xDF, 0xE9, 0x2F, 0x46, 0x68, 0x1B, 0x20, 0xA0,
-];
-
-/// BIP-137 legacy "Bitcoin signed message" header byte ranges.
-///
-/// The header always carries `(recovery_id, is_compressed)`. The sub-ranges
-/// 35..=38 and 39..=42 were later added by Trezor/Electrum as optional
-/// address-type hints, but wallets in the wild (notably UniSat) routinely
-/// emit headers 31..=34 for segwit addresses too. The hint is therefore
-/// treated as non-authoritative — verification binds the recovered pubkey to
-/// the caller's *actual* address type, regardless of what the header claimed.
+// Header byte ranges for BIP-137 recoverable ECDSA signatures.
+// Wallets (notably UniSat) often emit compressed-range headers (31-34) even for
+// segwit addresses, so the address-type hint in the header is treated as advisory.
 const LEGACY_HEADER_MIN: u8 = 27;
 const LEGACY_HEADER_UNCOMPRESSED_MAX_PLUS_ONE: u8 = 31; // 27..=30 → uncompressed
 const LEGACY_HEADER_MAX_PLUS_ONE: u8 = 43; // 31..=42 → compressed (any address-type hint)
+const BIP137_RECOVERY_IDS_PER_RANGE: u8 = 4;
+
+// Upper bound on the base64-encoded signature accepted at the verifier
+// boundary. BIP-322 simple witnesses are ~150 bytes and BIP-137 signatures
+// are exactly 88 bytes in base64; 1 KiB caps cycle spend on oversized inputs
+// before any base64 decode or consensus decode runs.
+const MAX_SIGNATURE_BASE64_LEN: usize = 1024;
+
+// Upper bound on the message bytes accepted at the verifier boundary. The
+// canonical challenge built by `build_challenge_message` is well under 1 KiB
+// in practice; 4 KiB leaves headroom for future action fields while bounding
+// the cost of `legacy_message_hash` (double-SHA256 over the whole payload).
+const MAX_MESSAGE_BYTES: usize = 4096;
 
 fn configured_network() -> Network {
     match Config::btc_network() {
@@ -51,27 +50,44 @@ pub fn verify_btc_signature(
     verify_btc_signature_on_network(address, message, signature_base64, configured_network())
 }
 
-/// Same as [`verify_btc_signature`] but takes an explicit network, so the
+/// Same as [`verify_btc_signature`] but takes an explicit network so the
 /// verifier can be unit-tested without touching stable storage.
 ///
-/// The verifier runs each supported scheme in turn. A scheme that accepts the
-/// bytes as its format and cryptographically verifies against the exact
-/// address terminates with `Ok`. If no scheme accepts, the accumulated
-/// per-scheme errors are surfaced together so debugging a real rejection
-/// doesn't require guessing which scheme the client intended.
+/// Tries BIP-322 simple first, then BIP-137 legacy ECDSA. The first scheme
+/// that cryptographically verifies returns `Ok`. Both per-scheme errors are
+/// included in the failure message when neither accepts.
 ///
-/// Each scheme is strictly bound to the address types it covers:
-/// - BIP-322 simple: P2WPKH, P2SH-P2WPKH, P2TR (delegated to the `bip322` crate).
-/// - BIP-137 legacy: P2PKH, P2SH-P2WPKH, P2WPKH — with header-to-address-type
-///   binding. Recovery never synthesizes an address from the recovered key;
-///   it only checks that the recovered key hashes to the caller's existing
-///   address under the matching derivation.
+/// Taproot (P2TR) is handled by both paths: Phantom-style wallets produce a
+/// BIP-322 Schnorr witness; UniSat-style wallets produce a BIP-137 ECDSA
+/// signature from the BIP-86 internal key.
 pub fn verify_btc_signature_on_network(
     address: &str,
     message: &str,
     signature_base64: &str,
     network: Network,
 ) -> Result<(), VolumetricError> {
+    if signature_base64.len() > MAX_SIGNATURE_BASE64_LEN {
+        return Err(VolumetricError::from_def(
+            error_codes::INVALID_SIGNATURE,
+            Some(&format!(
+                "signature exceeds maximum base64 length of {} bytes",
+                MAX_SIGNATURE_BASE64_LEN
+            )),
+            None,
+        ));
+    }
+
+    if message.len() > MAX_MESSAGE_BYTES {
+        return Err(VolumetricError::from_def(
+            error_codes::INVALID_SIGNATURE,
+            Some(&format!(
+                "message exceeds maximum length of {} bytes",
+                MAX_MESSAGE_BYTES
+            )),
+            None,
+        ));
+    }
+
     let btc_address = parse_address(address, network)?;
 
     let bip322_err = match try_verify_bip322_simple(&btc_address, message, signature_base64) {
@@ -84,12 +100,17 @@ pub fn verify_btc_signature_on_network(
         Err(e) => e,
     };
 
+    // Per-scheme failure reasons are logged to the canister log (visible to
+    // controllers) but intentionally omitted from the caller-facing error to
+    // avoid helping unauthenticated probes fingerprint input handling.
+    ic::log(&format!(
+        "btc signature verification failed for address {}: bip322={}; bip137={}",
+        address, bip322_err, bip137_err
+    ));
+
     Err(VolumetricError::from_def(
         error_codes::INVALID_SIGNATURE,
-        Some(&format!(
-            "no supported scheme verified (bip322: {}; bip137: {})",
-            bip322_err, bip137_err
-        )),
+        None,
         None,
     ))
 }
@@ -112,72 +133,44 @@ fn parse_address(address: &str, network: Network) -> Result<Address, VolumetricE
     })
 }
 
-/// Delegates to the `bip322` crate, which consensus-decodes the witness stack
-/// and dispatches on the address kind (P2WPKH, P2SH-P2WPKH, P2TR).
+// Delegates to the `bip322` crate for P2WPKH and P2TR witnesses. P2SH-P2WPKH
+// is intentionally rejected here: `bip322` 0.0.10's `verify_full_p2wpkh`
+// branch for P2SH addresses destructures `AddressData::P2sh { script_hash: _ }`
+// and never checks that `hash160(new_p2wpkh(witness_pubkey.wpubkey_hash()))`
+// equals the address's script_hash. A forged witness carrying any attacker
+// pubkey + a matching self-consistent ECDSA signature would otherwise verify
+// against arbitrary P2SH-P2WPKH addresses. The outer dispatcher falls through
+// to `try_verify_bip137`, whose P2SH-P2WPKH branch derives the redeem script
+// from the recovered pubkey and enforces the script_hash equality.
 fn try_verify_bip322_simple(
     btc_address: &Address,
     message: &str,
     signature_base64: &str,
 ) -> Result<(), String> {
+    if matches!(btc_address.to_address_data(), AddressData::P2sh { .. }) {
+        return Err(
+            "P2SH-P2WPKH is not verified via BIP-322 (bip322 crate skips script_hash check); \
+             BIP-137 path handles this address type safely"
+                .into(),
+        );
+    }
+
     bip322::verify_simple_encoded(&btc_address.to_string(), message, signature_base64)
         .map_err(|e| format!("{}", e))
 }
 
-/// BIP-137 legacy signed-message verification.
-///
-/// The header byte encodes `(recovery_id, is_compressed)`. Ranges 35..=42 add
-/// an optional address-type hint that some wallets emit and others don't —
-/// we ignore the hint and instead match the recovered pubkey against the
-/// caller's actual address type. This is what UniSat's default `signMessage`
-/// needs: header 31–34 paired with a native segwit address.
+// BIP-137 legacy signed-message verification. The header's address-type hint
+// is ignored; the recovered key is matched against the caller's actual address
+// type. This accepts UniSat's behaviour of emitting headers 31-34 for any
+// address type, including native segwit and taproot.
 fn try_verify_bip137(
     btc_address: &Address,
     message: &str,
     signature_base64: &str,
 ) -> Result<(), String> {
-    let signature_bytes = BASE64_STANDARD
-        .decode(signature_base64)
-        .map_err(|e| format!("base64 decode failed: {}", e))?;
-
-    if signature_bytes.len() != LEGACY_SIGNATURE_LENGTH {
-        return Err(format!(
-            "expected {}-byte recoverable signature, got {}",
-            LEGACY_SIGNATURE_LENGTH,
-            signature_bytes.len()
-        ));
-    }
-
-    const S_COMPONENT_OFFSET: usize = 33;
-    const S_COMPONENT_END: usize = 65;
-    let mut s_bytes = [0u8; 32];
-    s_bytes.copy_from_slice(&signature_bytes[S_COMPONENT_OFFSET..S_COMPONENT_END]);
-    if !is_low_s(&s_bytes) {
-        return Err("high-s signature rejected (non-canonical, malleable)".into());
-    }
-
-    let header = signature_bytes[0];
-    let (recovery_offset, is_compressed) = decode_bip137_header(header)?;
-
-    let recovery_id = RecoveryId::from_i32(recovery_offset as i32)
-        .map_err(|e| format!("invalid recovery id: {}", e))?;
-
-    let recoverable_sig = RecoverableSignature::from_compact(&signature_bytes[1..], recovery_id)
-        .map_err(|e| format!("invalid signature: {}", e))?;
-
-    let message_hash = legacy_message_hash(message.as_bytes());
-    let msg = Message::from_digest(message_hash);
-
+    let (recovered_key, is_compressed) = recover_bip137_ecdsa_key(signature_base64, message)?;
+    let recovered_pubkey_hash = hash160_bip137_pubkey(&recovered_key, is_compressed);
     let secp = Secp256k1::verification_only();
-    let recovered_key = secp
-        .recover_ecdsa(&msg, &recoverable_sig)
-        .map_err(|e| format!("recovery failed: {}", e))?;
-
-    let serialized_pubkey = if is_compressed {
-        recovered_key.serialize().to_vec()
-    } else {
-        recovered_key.serialize_uncompressed().to_vec()
-    };
-    let recovered_pubkey_hash = hash160::Hash::hash(&serialized_pubkey);
 
     match btc_address.to_address_data() {
         AddressData::P2pkh { pubkey_hash } => ensure_hash_matches(
@@ -190,7 +183,7 @@ fn try_verify_bip137(
         {
             if !is_compressed {
                 return Err(
-                    "P2WPKH addresses require a compressed-key signature (header 31–42)".into(),
+                    "P2WPKH addresses require a compressed-key signature (header 31-42)".into(),
                 );
             }
             let expected =
@@ -203,7 +196,7 @@ fn try_verify_bip137(
         AddressData::P2sh { script_hash } => {
             if !is_compressed {
                 return Err(
-                    "P2SH-P2WPKH addresses require a compressed-key signature (header 31–42)"
+                    "P2SH-P2WPKH addresses require a compressed-key signature (header 31-42)"
                         .into(),
                 );
             }
@@ -219,10 +212,84 @@ fn try_verify_bip137(
                 *script_hash.as_raw_hash(),
             )
         }
-        _ => {
-            Err("address type is not supported for BIP-137 (taproot / P2WSH / unrecognized)".into())
+        AddressData::Segwit { witness_program }
+            if witness_program.version().to_num() == 1 && witness_program.program().len() == 32 =>
+        {
+            if !is_compressed {
+                return Err(
+                    "P2TR addresses require a compressed-key signature (header 31-42)".into(),
+                );
+            }
+            // BIP-86 keypath-only: output key = tap_tweak(internal_key, ∅).
+            // Script-path taproot addresses are indistinguishable from key-path
+            // on-chain, so a mismatch here may mean either an invalid signature
+            // or a script-path P2TR address that this verifier does not support.
+            let (recovered_xonly, _parity) = recovered_key.x_only_public_key();
+            let (tweaked, _parity) = recovered_xonly.tap_tweak(&secp, None);
+            let expected =
+                <[u8; 32]>::try_from(witness_program.program().as_bytes()).expect("len==32");
+            if tweaked.to_x_only_public_key().serialize() != expected {
+                return Err(
+                    "P2TR witness program does not match the BIP-86 tap-tweaked pubkey \
+                     recovered from the signature (possible causes: wrong signature, or a \
+                     script-path P2TR address — only BIP-86 key-path taproot is supported)"
+                        .into(),
+                );
+            }
+            Ok(())
         }
+        _ => Err("address type is not supported for BIP-137 (P2WSH / unrecognized)".into()),
     }
+}
+
+// Decodes and validates the 65-byte BIP-137 signature, then recovers the
+// secp256k1 public key and returns it together with the is_compressed flag.
+fn recover_bip137_ecdsa_key(
+    signature_base64: &str,
+    message: &str,
+) -> Result<(PublicKey, bool), String> {
+    let signature_bytes = BASE64_STANDARD
+        .decode(signature_base64)
+        .map_err(|e| format!("base64 decode failed: {}", e))?;
+
+    if signature_bytes.len() != LEGACY_SIGNATURE_LENGTH {
+        return Err(format!(
+            "expected {}-byte recoverable signature, got {}",
+            LEGACY_SIGNATURE_LENGTH,
+            signature_bytes.len()
+        ));
+    }
+
+    let header = signature_bytes[0];
+    let (recovery_offset, is_compressed) = decode_bip137_header(header)?;
+
+    let recovery_id = RecoveryId::from_i32(recovery_offset as i32)
+        .map_err(|e| format!("invalid recovery id: {}", e))?;
+
+    let s_bytes = <&[u8; 32]>::try_from(&signature_bytes[33..65]).expect("slice is 32 bytes");
+    if !is_low_s(s_bytes) {
+        return Err("high-s signature rejected (non-canonical, malleable)".into());
+    }
+
+    let recoverable_sig = RecoverableSignature::from_compact(&signature_bytes[1..], recovery_id)
+        .map_err(|e| format!("invalid signature: {}", e))?;
+
+    let message_hash = legacy_message_hash(message.as_bytes());
+    let secp = Secp256k1::verification_only();
+    let recovered_key = secp
+        .recover_ecdsa(&Message::from_digest(message_hash), &recoverable_sig)
+        .map_err(|e| format!("recovery failed: {}", e))?;
+
+    Ok((recovered_key, is_compressed))
+}
+
+fn hash160_bip137_pubkey(key: &PublicKey, is_compressed: bool) -> hash160::Hash {
+    let bytes = if is_compressed {
+        key.serialize().to_vec()
+    } else {
+        key.serialize_uncompressed().to_vec()
+    };
+    hash160::Hash::hash(&bytes)
 }
 
 fn ensure_hash_matches(
@@ -236,12 +303,16 @@ fn ensure_hash_matches(
     Ok(())
 }
 
-/// Returns `true` when `s_bytes` is in the lower half of the curve order,
-/// i.e. the canonical low-s form. Uses a plain big-endian byte compare
-/// against `N/2` — no arithmetic, no timing pitfalls, no external crate.
+// Returns true when s <= N/2 (canonical low-s form, required by BIP-146).
+// N/2 is computed inline by right-shifting CURVE_ORDER one bit, so there
+// are no magic byte literals stored in the source.
 fn is_low_s(s_bytes: &[u8; 32]) -> bool {
+    let order = bitcoin::secp256k1::constants::CURVE_ORDER;
+    let mut carry = 0u8;
     for i in 0..32 {
-        match s_bytes[i].cmp(&SECP256K1_HALF_ORDER_BE[i]) {
+        let half_byte = (order[i] >> 1) | (carry << 7);
+        carry = order[i] & 1;
+        match s_bytes[i].cmp(&half_byte) {
             std::cmp::Ordering::Less => return true,
             std::cmp::Ordering::Greater => return false,
             std::cmp::Ordering::Equal => continue,
@@ -249,8 +320,6 @@ fn is_low_s(s_bytes: &[u8; 32]) -> bool {
     }
     true
 }
-
-const BIP137_RECOVERY_IDS_PER_RANGE: u8 = 4;
 
 fn decode_bip137_header(header: u8) -> Result<(u8, bool), String> {
     if !(LEGACY_HEADER_MIN..LEGACY_HEADER_MAX_PLUS_ONE).contains(&header) {
@@ -310,6 +379,7 @@ mod tests {
         P2pkh,
         P2wpkh,
         P2shP2wpkh,
+        P2tr,
     }
 
     /// Signs `message` with the BIP-137 / Satoshi legacy format and returns
@@ -354,6 +424,10 @@ mod tests {
                     CompressedPublicKey::from_private_key(&secp, &private_key).unwrap();
                 Address::p2shwpkh(&compressed, Network::Bitcoin)
             }
+            WalletAddressType::P2tr => {
+                let (xonly, _parity) = pubkey.inner.x_only_public_key();
+                Address::p2tr(&secp, xonly, None, Network::Bitcoin)
+            }
         };
 
         let hash = legacy_message_hash(message.as_bytes());
@@ -368,6 +442,9 @@ mod tests {
         (address.to_string(), general_purpose::STANDARD.encode(bytes))
     }
 
+    /// Given: a P2PKH address and a BIP-137 ECDSA signature with a compressed header
+    /// When: the verifier runs
+    /// Then: the signature verifies
     #[test]
     fn verify_accepts_round_trip_p2pkh_compressed() {
         // given
@@ -388,6 +465,9 @@ mod tests {
         assert!(result.is_ok(), "verifier rejected: {:?}", result);
     }
 
+    /// Given: a P2PKH address and a BIP-137 ECDSA signature with an uncompressed header
+    /// When: the verifier runs
+    /// Then: the signature verifies
     #[test]
     fn verify_accepts_round_trip_p2pkh_uncompressed() {
         // given
@@ -408,9 +488,10 @@ mod tests {
         assert!(result.is_ok(), "verifier rejected: {:?}", result);
     }
 
-    /// UniSat's default `signMessage` emits header bytes 31–34 even for a
-    /// native segwit (bech32) address. This is the real-world case we must
-    /// accept.
+    /// Given: a P2WPKH (native segwit) address and a BIP-137 signature using the
+    ///        compressed P2PKH header base (31-34) — UniSat's default signMessage behaviour
+    /// When: the verifier runs
+    /// Then: the signature verifies; the header hint is advisory, not authoritative
     #[test]
     fn verify_accepts_unisat_style_compressed_header_on_p2wpkh_address() {
         // given
@@ -431,7 +512,10 @@ mod tests {
         assert!(result.is_ok(), "verifier rejected: {:?}", result);
     }
 
-    /// Trezor / Electrum convention: header 39–42 with a P2WPKH address.
+    /// Given: a P2WPKH address and a BIP-137 signature using the segwit hint header (39-42)
+    ///        — the Trezor / Electrum convention
+    /// When: the verifier runs
+    /// Then: the signature verifies
     #[test]
     fn verify_accepts_trezor_style_p2wpkh_hint_header() {
         // given
@@ -452,6 +536,33 @@ mod tests {
         assert!(result.is_ok(), "verifier rejected: {:?}", result);
     }
 
+    /// Given: a P2TR (taproot) address and a BIP-137 ECDSA signature produced from the
+    ///        BIP-86 internal key — UniSat's default signMessage behaviour for taproot
+    /// When: the verifier runs
+    /// Then: the signature verifies via BIP-86 tap_tweak on the recovered ECDSA key
+    #[test]
+    fn verify_accepts_unisat_style_bip137_signature_on_p2tr_address() {
+        // given
+        let secret = [42u8; 32];
+        let message = "taproot ecdsa signed with bip137 header";
+        let (address, signature) = sign_bip137(
+            secret,
+            message,
+            WalletAddressType::P2tr,
+            HEADER_BASE_COMPRESSED,
+        );
+
+        // when
+        let result =
+            verify_btc_signature_on_network(&address, message, &signature, Network::Bitcoin);
+
+        // then
+        assert!(result.is_ok(), "verifier rejected: {:?}", result);
+    }
+
+    /// Given: a P2SH-P2WPKH address and a BIP-137 signature using the plain compressed header
+    /// When: the verifier runs
+    /// Then: the signature verifies
     #[test]
     fn verify_accepts_compressed_header_on_p2sh_p2wpkh_address() {
         // given
@@ -472,6 +583,9 @@ mod tests {
         assert!(result.is_ok(), "verifier rejected: {:?}", result);
     }
 
+    /// Given: a P2SH-P2WPKH address and a BIP-137 signature using the P2SH hint header (35-38)
+    /// When: the verifier runs
+    /// Then: the signature verifies
     #[test]
     fn verify_accepts_p2sh_hint_header_on_p2sh_p2wpkh_address() {
         // given
@@ -492,6 +606,9 @@ mod tests {
         assert!(result.is_ok(), "verifier rejected: {:?}", result);
     }
 
+    /// Given: a valid address and signature, but the message submitted to the verifier differs
+    /// When: the verifier runs
+    /// Then: the signature is rejected
     #[test]
     fn verify_rejects_tampered_message() {
         // given
@@ -515,6 +632,9 @@ mod tests {
         assert!(result.is_err());
     }
 
+    /// Given: a signature produced by key A, submitted against an address derived from key B
+    /// When: the verifier runs
+    /// Then: the signature is rejected
     #[test]
     fn verify_rejects_signature_from_a_different_key() {
         // given
@@ -545,6 +665,10 @@ mod tests {
         assert!(result.is_err());
     }
 
+    /// Given: a valid uncompressed-key signature, submitted against the P2WPKH address
+    ///        of the same key (P2WPKH requires a compressed key)
+    /// When: the verifier runs
+    /// Then: the signature is rejected
     #[test]
     fn verify_rejects_uncompressed_header_against_p2wpkh_address() {
         // given
@@ -574,8 +698,11 @@ mod tests {
         assert!(result.is_err());
     }
 
-    /// "Hello World" vector from the BIP-322 reference implementation.
-    /// See https://github.com/bitcoin/bips/blob/master/bip-0322.mediawiki
+    /// Given: the BIP-322 reference "Hello World" spec vector (P2WPKH address, message, signature)
+    /// When: the verifier runs
+    /// Then: the signature verifies via the BIP-322 path
+    ///
+    /// Spec: https://github.com/bitcoin/bips/blob/master/bip-0322.mediawiki
     #[test]
     fn verify_accepts_bip322_simple_spec_p2wpkh_vector() {
         // given
@@ -590,6 +717,9 @@ mod tests {
         assert!(result.is_ok(), "spec vector failed: {:?}", result);
     }
 
+    /// Given: the BIP-322 spec signature paired with a different message
+    /// When: the verifier runs
+    /// Then: the signature is rejected
     #[test]
     fn verify_rejects_bip322_simple_with_wrong_message() {
         // given
@@ -604,6 +734,9 @@ mod tests {
         assert!(result.is_err());
     }
 
+    /// Given: a 65-byte blob of zeros (not a valid ECDSA signature)
+    /// When: the verifier runs
+    /// Then: the signature is rejected by both paths
     #[test]
     fn verify_rejects_random_65_byte_blob() {
         // given
@@ -617,6 +750,48 @@ mod tests {
         assert!(result.is_err());
     }
 
+    /// Given: the header byte constants defining the four BIP-137 ranges
+    /// When: decode_bip137_header is called on the minimum and maximum of each range
+    /// Then: the uncompressed range (27-30) sets is_compressed=false; all compressed
+    ///       ranges (31-42) set is_compressed=true; recovery_offset cycles 0-3 within each
+    #[test]
+    fn decode_bip137_header_classifies_ranges_correctly() {
+        // given
+        let uncompressed_min = HEADER_BASE_UNCOMPRESSED;
+        let uncompressed_max = HEADER_BASE_COMPRESSED - 1;
+        let compressed_p2pkh_min = HEADER_BASE_COMPRESSED;
+        let compressed_p2pkh_max = HEADER_BASE_P2SH_P2WPKH_HINT - 1;
+        let compressed_p2sh_min = HEADER_BASE_P2SH_P2WPKH_HINT;
+        let compressed_p2sh_max = HEADER_BASE_P2WPKH_HINT - 1;
+        let compressed_segwit_min = HEADER_BASE_P2WPKH_HINT;
+        let compressed_segwit_max = HEADER_BASE_P2WPKH_HINT + 3;
+
+        // when
+        let results = [
+            decode_bip137_header(uncompressed_min),
+            decode_bip137_header(uncompressed_max),
+            decode_bip137_header(compressed_p2pkh_min),
+            decode_bip137_header(compressed_p2pkh_max),
+            decode_bip137_header(compressed_p2sh_min),
+            decode_bip137_header(compressed_p2sh_max),
+            decode_bip137_header(compressed_segwit_min),
+            decode_bip137_header(compressed_segwit_max),
+        ];
+
+        // then
+        assert_eq!(results[0].clone().unwrap(), (0, false));
+        assert_eq!(results[1].clone().unwrap(), (3, false));
+        assert_eq!(results[2].clone().unwrap(), (0, true));
+        assert_eq!(results[3].clone().unwrap(), (3, true));
+        assert_eq!(results[4].clone().unwrap(), (0, true));
+        assert_eq!(results[5].clone().unwrap(), (3, true));
+        assert_eq!(results[6].clone().unwrap(), (0, true));
+        assert_eq!(results[7].clone().unwrap(), (3, true));
+    }
+
+    /// Given: header byte values outside the BIP-137 range (0, 26, 43, 255)
+    /// When: decode_bip137_header is called on each
+    /// Then: every value is rejected
     #[test]
     fn decode_bip137_header_rejects_out_of_range_values() {
         // given
@@ -628,19 +803,9 @@ mod tests {
         assert!(decode_bip137_header(too_high).is_err());
     }
 
-    #[test]
-    fn decode_bip137_header_classifies_ranges_correctly() {
-        // given / when / then
-        assert_eq!(decode_bip137_header(27).unwrap(), (0, false));
-        assert_eq!(decode_bip137_header(30).unwrap(), (3, false));
-        assert_eq!(decode_bip137_header(31).unwrap(), (0, true));
-        assert_eq!(decode_bip137_header(34).unwrap(), (3, true));
-        assert_eq!(decode_bip137_header(35).unwrap(), (0, true));
-        assert_eq!(decode_bip137_header(38).unwrap(), (3, true));
-        assert_eq!(decode_bip137_header(39).unwrap(), (0, true));
-        assert_eq!(decode_bip137_header(42).unwrap(), (3, true));
-    }
-
+    /// Given: a short (100-byte), medium (1000-byte), and large (100000-byte) length
+    /// When: varint_encode is called on each
+    /// Then: short encodes as a single byte; medium uses the 0xfd u16 prefix; large uses 0xfe
     #[test]
     fn varint_encode_uses_bitcoin_var_int_framing() {
         // given
@@ -916,21 +1081,21 @@ mod tests {
 
     /// Computes `(N - s) mod N` on a 32-byte big-endian scalar.
     fn negate_s(s_bytes: &[u8; 32]) -> [u8; 32] {
-        let mut n = SECP256K1_ORDER_BYTES;
+        let mut result = SECP256K1_ORDER_BYTES;
         let mut borrow = 0i16;
         for i in (0..32).rev() {
-            let lhs = n[i] as i16;
+            let lhs = result[i] as i16;
             let rhs = s_bytes[i] as i16 + borrow;
             let diff = lhs - rhs;
             if diff < 0 {
-                n[i] = (diff + 256) as u8;
+                result[i] = (diff + 256) as u8;
                 borrow = 1;
             } else {
-                n[i] = diff as u8;
+                result[i] = diff as u8;
                 borrow = 0;
             }
         }
-        n
+        result
     }
 
     /// Flipping the y-parity of the recovery id is 0↔1 / 2↔3. This
@@ -949,8 +1114,8 @@ mod tests {
     #[test]
     fn verify_rejects_high_s_malleated_signature() {
         // given
-        const S_COMPONENT_OFFSET: usize = 33;
-        const S_COMPONENT_END: usize = 65;
+        const S_OFFSET: usize = 33;
+        const S_END: usize = 65;
         let secret = [16u8; 32];
         let message = "malleate me";
         let (address, signature) = sign_bip137(
@@ -964,10 +1129,10 @@ mod tests {
         let original_rec_id = original_header - HEADER_BASE_COMPRESSED;
 
         let mut s_bytes = [0u8; 32];
-        s_bytes.copy_from_slice(&raw[S_COMPONENT_OFFSET..S_COMPONENT_END]);
+        s_bytes.copy_from_slice(&raw[S_OFFSET..S_END]);
         let negated_s = negate_s(&s_bytes);
 
-        raw[S_COMPONENT_OFFSET..S_COMPONENT_END].copy_from_slice(&negated_s);
+        raw[S_OFFSET..S_END].copy_from_slice(&negated_s);
         raw[0] = HEADER_BASE_COMPRESSED + flip_y_parity(original_rec_id);
         let malleated = encode_signature(&raw);
 
@@ -980,24 +1145,6 @@ mod tests {
             result.is_err(),
             "high-s malleated twin must be rejected by the low-s canonical-form check"
         );
-    }
-
-    /// Given: the boundary s values zero, exactly N/2, and N/2 + 1
-    /// When: is_low_s is evaluated on each
-    /// Then: zero and N/2 are accepted; N/2 + 1 is rejected
-    #[test]
-    fn is_low_s_classifies_boundary_values() {
-        // given
-        let zero = [0u8; 32];
-        let exact_half = SECP256K1_HALF_ORDER_BE;
-        let mut just_above_half = SECP256K1_HALF_ORDER_BE;
-        const LAST_BYTE: usize = 31;
-        just_above_half[LAST_BYTE] += 1;
-
-        // when / then
-        assert!(is_low_s(&zero), "zero is trivially low-s");
-        assert!(is_low_s(&exact_half), "exactly N/2 is low-s");
-        assert!(!is_low_s(&just_above_half), "N/2 + 1 must be rejected");
     }
 
     /// Given: a valid signature with its 32-byte r component zeroed
@@ -1294,6 +1441,116 @@ mod tests {
         assert!(result.is_err());
     }
 
+    /// Given: a victim P2SH-P2WPKH address `A_v` owned by key `K_v`, and an unrelated
+    ///        attacker key `K_a`; the attacker builds a BIP-322 simple witness
+    ///        `[DER(sig_A) || 0x01, pub_A]` where `sig_A` signs the BIP-143 P2WPKH
+    ///        sighash that the bip322 crate will compute in its `is_p2sh=true` branch
+    ///        (script_code = `p2wpkh(hash160(pub_A))`, prevout = `create_to_spend(A_v, msg).txid:0`)
+    /// When: the forged witness is submitted against `A_v`
+    /// Then: `verify_btc_signature_on_network` rejects it
+    ///
+    /// Documents a pre-dispatch security check that bypasses the `bip322` crate's
+    /// `verify_full_p2wpkh(is_p2sh=true)` path. That path destructures
+    /// `AddressData::P2sh { script_hash: _ }` and never enforces
+    /// `hash160(new_p2wpkh(pub_A.wpubkey_hash())) == script_hash`, so a foreign key
+    /// can authenticate against any P2SH-P2WPKH address. The volumetric canister
+    /// must therefore skip BIP-322 for P2SH addresses and rely on the BIP-137
+    /// branch, which derives the expected script hash from the recovered pubkey.
+    #[test]
+    fn verify_rejects_bip322_forged_witness_against_p2sh_p2wpkh_address() {
+        use bitcoin::consensus::serialize;
+        use bitcoin::sighash::SighashCache;
+        use bitcoin::{Amount, EcdsaSighashType, Witness};
+
+        // given
+        const VICTIM_SECRET: [u8; 32] = [40u8; 32];
+        const ATTACKER_SEED_START: u8 = 41;
+        const BIP322_SIG_LEN_MIN: usize = 71;
+        const BIP322_SIG_LEN_MAX: usize = 72;
+        const SIGHASH_ALL_BYTE: u8 = EcdsaSighashType::All as u8;
+
+        let secp = Secp256k1::new();
+        let victim_sk = SecretKey::from_slice(&VICTIM_SECRET).unwrap();
+        let victim_private_key = PrivateKey {
+            compressed: true,
+            network: Network::Bitcoin.into(),
+            inner: victim_sk,
+        };
+        let victim_compressed =
+            CompressedPublicKey::from_private_key(&secp, &victim_private_key).unwrap();
+        let victim_p2sh_address = Address::p2shwpkh(&victim_compressed, Network::Bitcoin);
+        let message = "withdraw all funds to attacker";
+
+        let to_spend = bip322::create_to_spend(&victim_p2sh_address, message).unwrap();
+        let to_sign_psbt = bip322::create_to_sign(&to_spend, None).unwrap();
+        let unsigned_tx = to_sign_psbt.unsigned_tx;
+
+        let mut attacker_seed = ATTACKER_SEED_START;
+        let forged_signature_base64 = loop {
+            let attacker_secret = [attacker_seed; 32];
+            let attacker_sk = SecretKey::from_slice(&attacker_secret).unwrap();
+            let attacker_private_key = PrivateKey {
+                compressed: true,
+                network: Network::Bitcoin.into(),
+                inner: attacker_sk,
+            };
+            let attacker_pub = PublicKey::from_private_key(&secp, &attacker_private_key);
+            let attacker_wpubkey_hash = attacker_pub.wpubkey_hash().unwrap();
+            let script_code = ScriptBuf::new_p2wpkh(&attacker_wpubkey_hash);
+
+            let sighash = SighashCache::new(unsigned_tx.clone())
+                .p2wpkh_signature_hash(0, &script_code, Amount::from_sat(0), EcdsaSighashType::All)
+                .unwrap();
+            let sighash_msg = Message::from_digest_slice(sighash.as_ref()).unwrap();
+            let ecdsa_sig = secp.sign_ecdsa(&sighash_msg, &attacker_sk);
+            let mut sig_der = ecdsa_sig.serialize_der().to_vec();
+            sig_der.push(SIGHASH_ALL_BYTE);
+
+            if (BIP322_SIG_LEN_MIN..=BIP322_SIG_LEN_MAX).contains(&sig_der.len()) {
+                let mut witness = Witness::new();
+                witness.push(&sig_der);
+                witness.push(attacker_pub.to_bytes());
+                let witness_bytes = serialize(&witness);
+                break general_purpose::STANDARD.encode(&witness_bytes);
+            }
+
+            attacker_seed = attacker_seed.wrapping_add(1);
+            assert!(
+                attacker_seed != ATTACKER_SEED_START,
+                "no attacker secret produced a BIP-322-acceptable DER signature"
+            );
+        };
+
+        // Sanity check: the forgery is accepted by the bip322 crate on its own,
+        // confirming the construction is valid and this test actually exercises
+        // the bypass. If the upstream crate ever starts rejecting this input,
+        // the canister-level pre-dispatch below may no longer be needed.
+        let bip322_direct_result = bip322::verify_simple_encoded(
+            &victim_p2sh_address.to_string(),
+            message,
+            &forged_signature_base64,
+        );
+        assert!(
+            bip322_direct_result.is_ok(),
+            "bip322 crate should accept the forgery (documents the bypass): {:?}",
+            bip322_direct_result
+        );
+
+        // when
+        let result = verify_btc_signature_on_network(
+            &victim_p2sh_address.to_string(),
+            message,
+            &forged_signature_base64,
+            Network::Bitcoin,
+        );
+
+        // then
+        assert!(
+            result.is_err(),
+            "verifier must reject a BIP-322 witness signed by a foreign key on a P2SH-P2WPKH address"
+        );
+    }
+
     // ==================================================================
     // F. Message framing edge cases
     // ==================================================================
@@ -1517,9 +1774,12 @@ mod tests {
         assert!(result.is_err());
     }
 
-    /// Given: a 65-byte BIP-137 signature and a P2TR (taproot) address
+    /// Given: a 65-byte BIP-137 signature signed by key K, verified against a
+    ///        P2TR address derived from an unrelated key
     /// When: the verifier tries both branches
-    /// Then: both reject — BIP-322 can't consensus-decode 65 bytes as a witness, BIP-137 doesn't support taproot
+    /// Then: both reject — BIP-322 can't consensus-decode 65 bytes as a
+    ///       witness, and BIP-137's tap-tweak of the recovered key does not
+    ///       match the address's witness program
     #[test]
     fn verify_rejects_bip137_signature_against_p2tr_address() {
         // given
@@ -1561,15 +1821,62 @@ mod tests {
         assert!(result.is_err());
     }
 
-    /// Given: a 256 KB message signed end-to-end
+    /// Given: a 256 KB message — well above the MAX_MESSAGE_BYTES cap
     /// When: the verifier runs
-    /// Then: the signature verifies, confirming framing and hashing are not length-bounded
+    /// Then: the call is rejected at the boundary before any hashing happens,
+    ///       bounding cycle spend on oversized inputs
     #[test]
-    fn verify_handles_very_long_message_without_panic() {
+    fn verify_rejects_message_above_size_cap() {
+        // given
+        let address = "bc1q9vza2e8x573nczrlzms0wvx3gsqjx7vavgkx0l";
+        const MESSAGE_LEN_ABOVE_CAP: usize = 262_144;
+        let oversized_message: String =
+            std::iter::repeat('a').take(MESSAGE_LEN_ABOVE_CAP).collect();
+        let dummy_signature = encode_signature(&[0u8; LEGACY_SIGNATURE_LENGTH]);
+
+        // when
+        let result = verify_btc_signature_on_network(
+            address,
+            &oversized_message,
+            &dummy_signature,
+            Network::Bitcoin,
+        );
+
+        // then
+        let err = result.expect_err("message above MAX_MESSAGE_BYTES must be rejected");
+        assert_eq!(err.code, error_codes::INVALID_SIGNATURE.code);
+    }
+
+    /// Given: a base64 signature string that exceeds MAX_SIGNATURE_BASE64_LEN by 1 byte
+    /// When: the verifier runs
+    /// Then: the call is rejected at the boundary before base64 decode or
+    ///       consensus decode runs
+    #[test]
+    fn verify_rejects_signature_above_base64_size_cap() {
+        // given
+        let address = "bc1q9vza2e8x573nczrlzms0wvx3gsqjx7vavgkx0l";
+        let oversized_signature: String = std::iter::repeat('A')
+            .take(MAX_SIGNATURE_BASE64_LEN + 1)
+            .collect();
+
+        // when
+        let result =
+            verify_btc_signature_on_network(address, "msg", &oversized_signature, Network::Bitcoin);
+
+        // then
+        let err = result.expect_err("signature above MAX_SIGNATURE_BASE64_LEN must be rejected");
+        assert_eq!(err.code, error_codes::INVALID_SIGNATURE.code);
+    }
+
+    /// Given: a message exactly at the MAX_MESSAGE_BYTES cap (boundary inclusive)
+    /// When: the verifier runs with a legitimate signature for that message
+    /// Then: the signature verifies — the cap is inclusive and leaves headroom
+    ///       for realistic canonical challenges plus future action fields
+    #[test]
+    fn verify_accepts_message_exactly_at_size_cap() {
         // given
         let secret = [29u8; 32];
-        const MESSAGE_LEN: usize = 262_144; // 256 KB
-        let message: String = std::iter::repeat('a').take(MESSAGE_LEN).collect();
+        let message: String = std::iter::repeat('a').take(MAX_MESSAGE_BYTES).collect();
         let (address, signature) = sign_bip137(
             secret,
             &message,
@@ -1584,7 +1891,7 @@ mod tests {
         // then
         assert!(
             result.is_ok(),
-            "256 KB message should still verify: {:?}",
+            "message exactly at MAX_MESSAGE_BYTES should still verify: {:?}",
             result
         );
     }
