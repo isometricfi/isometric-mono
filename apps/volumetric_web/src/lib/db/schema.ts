@@ -93,6 +93,17 @@ export const waitlistSignups = sqliteTable(
   (table) => [index("waitlist_signups_created_idx").on(table.createdAtMs)],
 );
 
+export const canisterLogShipCursor = sqliteTable(
+  "canister_log_ship_cursor",
+  {
+    id: text("id").primaryKey(),
+    lastShippedTimestampSeconds: integer("last_shipped_timestamp_seconds").notNull(),
+    lastShippedCounter: integer("last_shipped_counter").notNull(),
+    updatedAtMs: integer("updated_at_ms").notNull(),
+  },
+  (table) => [check("canister_log_ship_cursor_id_only", sql`${table.id} = 'cursor'`)],
+);
+
 export const depositSyncState = sqliteTable(
   "deposit_sync_state",
   {

@@ -12,25 +12,34 @@ const OTEL_SERVICE_NAME = process.env.OTEL_SERVICE_NAME;
 const OTEL_SEVERITY_NUMBER_ERROR = 17;
 const OTEL_SEVERITY_NUMBER_INFO = 9;
 
-export async function logInfo(message: string): Promise<void> {
-  console.info(message);
-  await sendLog(message, OTEL_SEVERITY_NUMBER_INFO, "INFO");
+export interface LogOptions {
+  serviceName?: string;
 }
 
-export async function logError(message: string, error?: unknown): Promise<void> {
+export async function logInfo(message: string, options?: LogOptions): Promise<void> {
+  console.info(message);
+  await sendLog(message, OTEL_SEVERITY_NUMBER_INFO, "INFO", options);
+}
+
+export async function logError(
+  message: string,
+  error?: unknown,
+  options?: LogOptions,
+): Promise<void> {
   if (error === undefined) {
     console.error(message);
   } else {
     console.error(message, error);
   }
 
-  await sendLog(getErrorMessage(message, error), OTEL_SEVERITY_NUMBER_ERROR, "ERROR");
+  await sendLog(getErrorMessage(message, error), OTEL_SEVERITY_NUMBER_ERROR, "ERROR", options);
 }
 
 async function sendLog(
   message: string,
   severityNumber: number,
   severityText: string,
+  options?: LogOptions,
 ): Promise<void> {
   if (!OTEL_LOGS_ENDPOINT) {
     return;
@@ -53,7 +62,10 @@ async function sendLog(
                 {
                   key: "service.name",
                   value: {
-                    stringValue: OTEL_SERVICE_NAME?.trim() || WEB_APP_TRACER_NAME,
+                    stringValue:
+                      options?.serviceName?.trim() ||
+                      OTEL_SERVICE_NAME?.trim() ||
+                      WEB_APP_TRACER_NAME,
                   },
                 },
               ],
