@@ -94,7 +94,7 @@ impl Default for TradingLimits {
                 max: 10_000,
             },
             option_duration_seconds: Range {
-                min: 60,
+                min: 3_600,
                 max: 86400 * 30,
             },
             term_days: Range { min: 1, max: 30 },
