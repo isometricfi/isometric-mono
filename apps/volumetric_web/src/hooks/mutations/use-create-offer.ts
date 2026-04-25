@@ -11,7 +11,7 @@ import { trpcClient } from "@/trpc/react";
 import { useBtcAddress } from "../queries/use-btc-address";
 import { useCanister } from "../use-canister";
 
-const TEN_YEARS_NS = BigInt(86400) * BigInt(1_000_000_000) * BigInt(365 * 10);
+const TEN_YEARS_SECONDS = BigInt(86400) * BigInt(365 * 10);
 const SECONDS_PER_DAY = 86400;
 const PERCENT_TO_BASIS_POINTS = 100;
 
@@ -53,8 +53,8 @@ export function useCreateOffer() {
       const premiumBasisPoints = Math.round(premiumPercent * PERCENT_TO_BASIS_POINTS);
       const optionDurationSeconds = BigInt(termDays * SECONDS_PER_DAY);
 
-      const now = BigInt(Date.now()) * BigInt(1_000_000);
-      const offerValidUntil = now + TEN_YEARS_NS;
+      const nowSeconds = BigInt(Math.floor(Date.now() / 1000));
+      const offerValidUntilSeconds = nowSeconds + TEN_YEARS_SECONDS;
       const expiresAtSeconds = computeExpiresAtSeconds();
 
       const message = unwrapResult(
@@ -64,7 +64,7 @@ export function useCreateOffer() {
           strikeBasisPoints,
           premiumBasisPoints,
           optionDurationSeconds,
-          offerValidUntil,
+          offerValidUntilSeconds,
           expiresAtSeconds,
         ),
       );
@@ -83,7 +83,7 @@ export function useCreateOffer() {
         quantity: quantity.toString(),
         strikeBasisPoints,
         premiumBasisPoints,
-        offerValidUntil: offerValidUntil.toString(),
+        offerValidUntilSeconds: offerValidUntilSeconds.toString(),
         optionDurationSeconds: optionDurationSeconds.toString(),
       });
     },

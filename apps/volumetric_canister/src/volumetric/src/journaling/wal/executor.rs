@@ -4,7 +4,7 @@ use std::collections::BTreeSet;
 use scopeguard::guard;
 
 use crate::errors::{error_codes, VolumetricError};
-use crate::ic;
+use crate::time::current_time_seconds;
 use crate::usecases::{
     finalize_failed_accept_wal, finalize_failed_settlement_wal, finalize_failed_withdrawal_wal,
     run_accept_wal, run_settlement_wal, run_withdrawal_wal,
@@ -77,10 +77,10 @@ async fn execute_wal_entry_attempt(operation_id: OperationId) -> WalExecutionOut
         return WalExecutionOutcome::FailedPermanent(WAL_ENTRY_NOT_FOUND_MESSAGE.to_string());
     };
 
-    let now_ns = ic::time();
+    let now_seconds = current_time_seconds();
     wal_entry.status = WalStatus::InFlight;
     wal_entry.attempts = wal_entry.attempts.saturating_add(1);
-    wal_entry.last_update_ns = now_ns;
+    wal_entry.last_update_seconds = now_seconds;
 
     // Persist attempt start before await so retries survive traps/upgrades.
     put_entry(wal_entry.clone());
@@ -92,7 +92,7 @@ async fn execute_wal_entry_attempt(operation_id: OperationId) -> WalExecutionOut
             let mut updated_wal_entry = wal_entry;
 
             updated_wal_entry.status = WalStatus::Succeeded;
-            updated_wal_entry.last_update_ns = ic::time();
+            updated_wal_entry.last_update_seconds = current_time_seconds();
             updated_wal_entry.last_err = None;
             updated_wal_entry.result = Some(wal_result);
 
@@ -102,11 +102,11 @@ async fn execute_wal_entry_attempt(operation_id: OperationId) -> WalExecutionOut
         Err(WalExecutionError::Retryable(retryable_error_message)) => {
             let mut updated_wal_entry = wal_entry;
 
-            updated_wal_entry.last_update_ns = ic::time();
+            updated_wal_entry.last_update_seconds = current_time_seconds();
             updated_wal_entry.last_err = Some(retryable_error_message.clone());
 
             updated_wal_entry.status = WalStatus::RecoveryRequired;
-            updated_wal_entry.next_attempt_at_ns = updated_wal_entry.last_update_ns;
+            updated_wal_entry.next_attempt_at_seconds = updated_wal_entry.last_update_seconds;
             put_entry(updated_wal_entry);
             WalExecutionOutcome::RecoveryRequired(retryable_error_message)
         }
@@ -115,7 +115,7 @@ async fn execute_wal_entry_attempt(operation_id: OperationId) -> WalExecutionOut
             let mut updated_wal_entry = wal_entry;
 
             updated_wal_entry.status = WalStatus::FailedPermanent;
-            updated_wal_entry.last_update_ns = ic::time();
+            updated_wal_entry.last_update_seconds = current_time_seconds();
             updated_wal_entry.last_err = Some(permanent_error_message.clone());
 
             put_entry(updated_wal_entry);

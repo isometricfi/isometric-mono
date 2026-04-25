@@ -84,6 +84,7 @@ export function parseBtcToSatsBigint(btcString: string): bigint {
 
 const SECONDS_PER_DAY = 86400;
 const NS_PER_MS = 1_000_000;
+const MS_PER_SECOND = 1_000;
 const BASIS_POINTS_DIVISOR = 100;
 const FALLBACK_USERNAME_MODULUS = 10_000;
 const FALLBACK_USERNAME_PAD = 4;
@@ -96,6 +97,10 @@ export function secondsToDays(seconds: bigint): number {
 
 export function nsToISOString(ns: bigint): string {
   return new Date(Number(ns / BigInt(NS_PER_MS))).toISOString();
+}
+
+export function secondsToISOString(seconds: bigint): string {
+  return new Date(Number(seconds) * MS_PER_SECOND).toISOString();
 }
 
 export function basisPointsToPercent(basisPoints: number): number {

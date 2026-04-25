@@ -43,8 +43,8 @@ export async function getHistory(principal: string): Promise<Output> {
         pnlPercent,
         result: getTradeResult(pnlSats),
         moneyStatus: getMoneyStatus(strikePriceCents, settlementPriceCents),
-        acceptedAt: BigInt(data.acceptedAtNs),
-        settledAt: BigInt(data.settledAtNs),
+        acceptedAt: BigInt(data.acceptedAtSeconds),
+        settledAt: BigInt(data.settledAtSeconds),
       });
     }
 

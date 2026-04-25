@@ -117,10 +117,10 @@ pub struct Offer {
     pub premium_basis_points: u16,
     pub total_quantity: u64,
     pub remaining_quantity: u64,
-    pub offer_valid_until: u64,
+    pub offer_valid_until_seconds: u64,
     pub option_duration_seconds: u64,
     pub status: OfferStatus,
-    pub created_at: u64,
+    pub created_at_seconds: u64,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, CandidType)]
@@ -135,8 +135,8 @@ pub struct ActiveOption {
     pub entry_price_cents: u64,
     pub strike_price_cents: u64,
     pub premium_paid: u64,
-    pub accepted_at: u64,
-    pub expiry: u64,
+    pub accepted_at_seconds: u64,
+    pub expiry_seconds: u64,
     pub status: ActiveOptionStatus,
     pub fill_group_id: Option<u64>,
     #[serde(default)]
@@ -256,7 +256,9 @@ pub fn list_expired_active_options(current_time: u64) -> Vec<ActiveOption> {
         a.iter()
             .filter_map(|entry| {
                 let option = entry.value().0;
-                if option.status == ActiveOptionStatus::Active && option.expiry <= current_time {
+                if option.status == ActiveOptionStatus::Active
+                    && option.expiry_seconds <= current_time
+                {
                     Some(option)
                 } else {
                     None

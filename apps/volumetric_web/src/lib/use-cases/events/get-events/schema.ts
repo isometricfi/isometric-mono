@@ -48,7 +48,7 @@ export const eventDataSchema = z.discriminatedUnion("type", [
     strikeBasisPoints: z.number(),
     premiumBasisPoints: z.number(),
     durationSeconds: z.number(),
-    offerValidUntilNs: z.number(),
+    offerValidUntilSeconds: z.number(),
   }),
   z.object({
     type: z.literal("OfferCancelled"),
@@ -65,7 +65,7 @@ export const eventDataSchema = z.discriminatedUnion("type", [
     premiumSats: z.number(),
     entryPriceCents: z.number(),
     strikePriceCents: z.number(),
-    expiryNs: z.number(),
+    expirySeconds: z.number(),
     role: tradeRoleSchema,
   }),
   z.object({
@@ -82,8 +82,8 @@ export const eventDataSchema = z.discriminatedUnion("type", [
     settlementPriceCents: z.number(),
     premiumSats: z.number(),
     payoutSats: z.number(),
-    acceptedAtNs: z.number(),
-    settledAtNs: z.number(),
+    acceptedAtSeconds: z.number(),
+    settledAtSeconds: z.number(),
     role: tradeRoleSchema,
   }),
   z.object({

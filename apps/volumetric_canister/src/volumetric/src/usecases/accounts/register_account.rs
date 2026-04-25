@@ -3,11 +3,11 @@ use candid::Principal;
 use crate::auth::types::WalletKey;
 use crate::auth::{derive_principal, derive_subaccount};
 use crate::errors::VolumetricError;
-use crate::ic;
 use crate::storage::{
     create_profile, emit_event, get_or_create_invite_code, register_wallet,
     validate_invite_code_for_principal, EventData, EventType, Profile,
 };
+use crate::time::current_time_seconds;
 
 pub struct RegisterAccountParams {
     pub wallet_address: String,
@@ -31,7 +31,7 @@ pub fn register_account_use_case(
     let profile = Profile {
         wallet_address: params.wallet_address.clone(),
         username: None,
-        created_at: ic::time(),
+        created_at_seconds: current_time_seconds(),
         invite_code: None,
         referred_by,
     };

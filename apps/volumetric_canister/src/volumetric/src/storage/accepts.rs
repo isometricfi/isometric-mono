@@ -6,7 +6,7 @@ use ic_stable_structures::storable::Bound;
 use ic_stable_structures::{StableBTreeMap, Storable};
 use serde::{Deserialize, Serialize};
 
-use crate::ic;
+use crate::time::current_time_seconds;
 
 use super::state::{Memory, MemoryIndex, MEMORY_MANAGER};
 
@@ -40,8 +40,8 @@ pub struct PendingAccept {
     pub total_buyer_debit_required_sats: u64,
     pub offers: Vec<AcceptedOffer>,
     pub phase: AcceptPhase,
-    pub created_at: u64,
-    pub updated_at: u64,
+    pub created_at_seconds: u64,
+    pub updated_at_seconds: u64,
     pub fill_group_id: u64,
     pub entry_price_cents: Option<u64>,
     pub platform_fee_collected: Option<bool>,
@@ -80,7 +80,7 @@ pub fn create_accept_journal_entry(
     offers: Vec<AcceptedOffer>,
     fill_group_id: u64,
 ) -> PendingAccept {
-    let now = ic::time();
+    let now_seconds = current_time_seconds();
     let id = super::next_id(super::CounterKey::AcceptJournalId);
 
     let accept = PendingAccept {
@@ -89,8 +89,8 @@ pub fn create_accept_journal_entry(
         total_buyer_debit_required_sats,
         offers,
         phase: AcceptPhase::Started,
-        created_at: now,
-        updated_at: now,
+        created_at_seconds: now_seconds,
+        updated_at_seconds: now_seconds,
         fill_group_id,
         entry_price_cents: None,
         platform_fee_collected: None,
@@ -108,7 +108,7 @@ pub fn update_accept_phase(id: u64, phase: AcceptPhase) {
         let mut journal = journal.borrow_mut();
         if let Some(mut accept) = journal.get(&id) {
             accept.phase = phase;
-            accept.updated_at = ic::time();
+            accept.updated_at_seconds = current_time_seconds();
             journal.insert(id, accept);
         }
     });
@@ -124,7 +124,7 @@ pub fn update_accept_execution_snapshot(
         if let Some(mut accept) = journal.get(&id) {
             accept.entry_price_cents = Some(entry_price_cents);
             accept.platform_fee_collected = Some(platform_fee_collected);
-            accept.updated_at = ic::time();
+            accept.updated_at_seconds = current_time_seconds();
             journal.insert(id, accept);
         }
     });

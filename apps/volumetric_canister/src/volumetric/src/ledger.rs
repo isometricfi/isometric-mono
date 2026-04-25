@@ -15,8 +15,9 @@ use icrc_ledger_types::icrc2::approve::{ApproveArgs, ApproveError};
 use crate::errors::{error_codes, VolumetricError};
 use crate::ic;
 use crate::storage::Config;
+use crate::time::current_time_seconds;
 
-const TRANSFER_FEE_CACHE_TTL_90_SECONDS_NS: u64 = 90_000_000_000;
+const TRANSFER_FEE_CACHE_TTL_90_SECONDS: u64 = 90;
 #[cfg(any(test, feature = "testing"))]
 pub const TESTING_CKBTC_TRANSFER_FEE_SATS: u64 = 10;
 
@@ -27,7 +28,7 @@ pub const CKBTC_WITHDRAW_ICRC2_LEDGER_FEE_CHARGE_COUNT: u64 = 2;
 #[derive(Clone, Copy)]
 struct TransferFeeCacheEntry {
     fee_sats: u64,
-    fetched_at_ns: u64,
+    fetched_at_seconds: u64,
 }
 
 #[async_trait(?Send)]
@@ -37,7 +38,7 @@ pub trait LedgerClient {
         from_subaccount: Option<[u8; 32]>,
         to: Account,
         amount: u64,
-        created_at_time: u64,
+        created_at_time_ns: u64,
     ) -> Result<u64, VolumetricError>;
 
     async fn icrc1_balance_of(&self, account: Account) -> Result<Nat, VolumetricError>;
@@ -67,7 +68,7 @@ impl LedgerClient for IcLedger {
         from_subaccount: Option<[u8; 32]>,
         to: Account,
         amount: u64,
-        created_at_time: u64,
+        created_at_time_ns: u64,
     ) -> Result<u64, VolumetricError> {
         let ledger = Config::ckbtc_ledger();
 
@@ -77,7 +78,7 @@ impl LedgerClient for IcLedger {
             amount: Nat::from(amount),
             fee: None,
             memo: None,
-            created_at_time: Some(created_at_time),
+            created_at_time: Some(created_at_time_ns),
         };
 
         let response = ic_cdk::call::Call::bounded_wait(ledger, "icrc1_transfer")
@@ -206,11 +207,11 @@ pub async fn icrc1_transfer(
     from_subaccount: Option<[u8; 32]>,
     to: Account,
     amount: u64,
-    created_at_time: u64,
+    created_at_time_ns: u64,
 ) -> Result<u64, VolumetricError> {
     let ledger = LEDGER.with(|l| Rc::clone(&l.borrow()));
     ledger
-        .icrc1_transfer(from_subaccount, to, amount, created_at_time)
+        .icrc1_transfer(from_subaccount, to, amount, created_at_time_ns)
         .await
 }
 
@@ -225,8 +226,8 @@ pub async fn icrc2_approve(args: ApproveArgs) -> Result<Nat, VolumetricError> {
 }
 
 pub fn get_cached_icrc1_transfer_fee_sats_for_sync_flow() -> Result<u64, VolumetricError> {
-    let now_ns = ic::time();
-    if let Some(fee_sats) = load_fresh_transfer_fee_sats(now_ns) {
+    let now_seconds = current_time_seconds();
+    if let Some(fee_sats) = load_fresh_transfer_fee_sats(now_seconds) {
         return Ok(fee_sats);
     }
 
@@ -289,11 +290,11 @@ pub async fn refresh_transfer_fee_cache_if_idle() {
 
 pub async fn refresh_transfer_fee_cache() -> Result<u64, VolumetricError> {
     let fee_sats = fetch_icrc1_transfer_fee_sats().await?;
-    let fetched_at_ns = ic::time();
+    let fetched_at_seconds = current_time_seconds();
     TRANSFER_FEE_CACHE.with(|cache| {
         *cache.borrow_mut() = Some(TransferFeeCacheEntry {
             fee_sats,
-            fetched_at_ns,
+            fetched_at_seconds,
         });
     });
     Ok(fee_sats)
@@ -304,11 +305,11 @@ async fn fetch_icrc1_transfer_fee_sats() -> Result<u64, VolumetricError> {
     ledger.icrc1_fee().await
 }
 
-fn load_fresh_transfer_fee_sats(now_ns: u64) -> Option<u64> {
+fn load_fresh_transfer_fee_sats(now_seconds: u64) -> Option<u64> {
     TRANSFER_FEE_CACHE.with(|cache| {
         let cached_fee_entry = cache.borrow().as_ref().copied()?;
-        let cache_age_ns = now_ns.saturating_sub(cached_fee_entry.fetched_at_ns);
-        if cache_age_ns <= TRANSFER_FEE_CACHE_TTL_90_SECONDS_NS {
+        let cache_age_seconds = now_seconds.saturating_sub(cached_fee_entry.fetched_at_seconds);
+        if cache_age_seconds <= TRANSFER_FEE_CACHE_TTL_90_SECONDS {
             return Some(cached_fee_entry.fee_sats);
         }
         None
@@ -339,11 +340,11 @@ pub fn set_ledger(client: Rc<dyn LedgerClient>) {
 }
 
 #[cfg(any(test, feature = "testing"))]
-pub fn set_cached_transfer_fee_for_testing(fee_sats: u64, fetched_at_ns: u64) {
+pub fn set_cached_transfer_fee_for_testing(fee_sats: u64, fetched_at_seconds: u64) {
     TRANSFER_FEE_CACHE.with(|cache| {
         *cache.borrow_mut() = Some(TransferFeeCacheEntry {
             fee_sats,
-            fetched_at_ns,
+            fetched_at_seconds,
         });
     });
 }
@@ -371,6 +372,7 @@ mod tests {
     use crate::ic::{self, IcRuntime};
 
     const TEST_NOW_NS: u64 = 1_000_000_000_000;
+    const TEST_NOW_SECONDS: u64 = TEST_NOW_NS / crate::time::NANOS_PER_SECOND;
     const TEST_FEE_10_SATS: u64 = 10;
     const TEST_FEE_25_SATS: u64 = 25;
 
@@ -465,7 +467,7 @@ mod tests {
         ic::set_runtime(Box::new(MockRuntime {
             now_ns: TEST_NOW_NS,
         }));
-        set_cached_transfer_fee_for_testing(TEST_FEE_10_SATS, TEST_NOW_NS - 1);
+        set_cached_transfer_fee_for_testing(TEST_FEE_10_SATS, TEST_NOW_SECONDS - 1);
 
         // when
         let fee_result = get_cached_icrc1_transfer_fee_sats_for_sync_flow();
@@ -502,7 +504,7 @@ mod tests {
         }));
         set_cached_transfer_fee_for_testing(
             TEST_FEE_10_SATS,
-            TEST_NOW_NS - TRANSFER_FEE_CACHE_TTL_90_SECONDS_NS,
+            TEST_NOW_SECONDS - TRANSFER_FEE_CACHE_TTL_90_SECONDS,
         );
 
         // when
@@ -527,7 +529,7 @@ mod tests {
         }));
         set_cached_transfer_fee_for_testing(
             TEST_FEE_10_SATS,
-            TEST_NOW_NS - TRANSFER_FEE_CACHE_TTL_90_SECONDS_NS - 1,
+            TEST_NOW_SECONDS - TRANSFER_FEE_CACHE_TTL_90_SECONDS - 1,
         );
 
         // when
@@ -646,7 +648,7 @@ mod tests {
         }));
         set_cached_transfer_fee_for_testing(
             TEST_FEE_10_SATS,
-            TEST_NOW_NS - TRANSFER_FEE_CACHE_TTL_90_SECONDS_NS - 1,
+            TEST_NOW_SECONDS - TRANSFER_FEE_CACHE_TTL_90_SECONDS - 1,
         );
         let mock_ledger = Rc::new(FeeMockLedger::new(vec![Ok(TEST_FEE_25_SATS)]));
         set_ledger(mock_ledger);
@@ -674,7 +676,7 @@ mod tests {
         ic::set_runtime(Box::new(MockRuntime {
             now_ns: TEST_NOW_NS,
         }));
-        set_cached_transfer_fee_for_testing(TEST_FEE_10_SATS, TEST_NOW_NS);
+        set_cached_transfer_fee_for_testing(TEST_FEE_10_SATS, TEST_NOW_SECONDS);
         const AVAILABLE_SATS: u64 = 1_000;
         const MINIMUM_NET_WITHDRAW_SATS: u64 = 900;
 
@@ -699,7 +701,7 @@ mod tests {
         ic::set_runtime(Box::new(MockRuntime {
             now_ns: TEST_NOW_NS,
         }));
-        set_cached_transfer_fee_for_testing(TEST_FEE_10_SATS, TEST_NOW_NS);
+        set_cached_transfer_fee_for_testing(TEST_FEE_10_SATS, TEST_NOW_SECONDS);
         const AVAILABLE_SATS: u64 = 1_000;
         const MINIMUM_NET_WITHDRAW_SATS: u64 = 990;
 

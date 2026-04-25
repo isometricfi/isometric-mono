@@ -38,6 +38,8 @@ pub enum MemoryIndex {
     WalMemory = 13,
     /// Invite code to principal lookup
     InviteCodeRegistryMemory = 14,
+    /// Temporary marker for the one-off nanoseconds-to-seconds timestamp migration.
+    TemporaryTimestampSecondsMigrationMemory = 15,
 }
 
 pub type Memory = VirtualMemory<DefaultMemoryImpl>;

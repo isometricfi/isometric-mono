@@ -1,6 +1,6 @@
 import type { Offer } from "@volumetric/canister-types";
 import type { OptionOffer, OptionsData, StrikeBucket, TermGroup } from "@/types/options";
-import { basisPointsToPercent, nsToISOString, secondsToDays } from "./utils";
+import { basisPointsToPercent, secondsToDays, secondsToISOString } from "./utils";
 
 function transformOffer(offer: Offer): OptionOffer {
   return {
@@ -10,8 +10,8 @@ function transformOffer(offer: Offer): OptionOffer {
     premium: basisPointsToPercent(offer.premium_basis_points),
     strikePercent: basisPointsToPercent(offer.strike_basis_points),
     termDays: secondsToDays(offer.option_duration_seconds),
-    createdAt: nsToISOString(offer.created_at),
-    expiresAt: nsToISOString(offer.offer_valid_until),
+    createdAt: secondsToISOString(offer.created_at_seconds),
+    expiresAt: secondsToISOString(offer.offer_valid_until_seconds),
   };
 }
 

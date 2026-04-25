@@ -13,7 +13,8 @@ use crate::journaling::{
 };
 use crate::locks::SettlementLock;
 use crate::oracle::{
-    get_btc_usd_price_cents, get_btc_usd_price_cents_at_time_ns, xrc_timestamp_secs_for_time_ns,
+    get_btc_usd_price_cents, get_btc_usd_price_cents_at_time_seconds,
+    xrc_timestamp_seconds_for_time_seconds,
 };
 use crate::storage::{
     add_platform_fee, calculate_call_option_payout, calculate_profit_fee, complete_settlement,
@@ -24,6 +25,7 @@ use crate::storage::{
     SettlementPhase, TradeRole,
 };
 
+use crate::time::current_time_seconds;
 use crate::usecases::balances::transfer_ckbtc;
 
 type ExpiredOptionsByXrcTimestampSecs = BTreeMap<u64, Vec<ActiveOption>>;
@@ -85,8 +87,8 @@ struct PreparedSettlementExecution {
 }
 
 pub async fn settle_expired_options_use_case() -> SettleExpiredOptionsResult {
-    let now = ic::time();
-    let expired_options = list_expired_active_options(now);
+    let now_seconds = current_time_seconds();
+    let expired_options = list_expired_active_options(now_seconds);
     let expired_options_by_xrc_timestamp_secs =
         group_expired_options_by_xrc_timestamp_secs(expired_options);
 
@@ -98,17 +100,20 @@ pub async fn settle_expired_options_use_case() -> SettleExpiredOptionsResult {
         let Some(first_option_in_xrc_bucket) = options_in_xrc_bucket.first() else {
             continue;
         };
-        let settlement_price_cents =
-            match get_btc_usd_price_cents_at_time_ns(first_option_in_xrc_bucket.expiry).await {
-                Ok(price) => price,
-                Err(e) => {
-                    errors.push(format!(
-                        "Failed to get oracle price for XRC timestamp {}: {}",
-                        xrc_timestamp_secs, e
-                    ));
-                    continue;
-                }
-            };
+        let settlement_price_cents = match get_btc_usd_price_cents_at_time_seconds(
+            first_option_in_xrc_bucket.expiry_seconds,
+        )
+        .await
+        {
+            Ok(price) => price,
+            Err(e) => {
+                errors.push(format!(
+                    "Failed to get oracle price for XRC timestamp {}: {}",
+                    xrc_timestamp_secs, e
+                ));
+                continue;
+            }
+        };
 
         for option in options_in_xrc_bucket {
             match settle_single_option(option.id, settlement_price_cents).await {
@@ -127,7 +132,9 @@ fn group_expired_options_by_xrc_timestamp_secs(
     let mut options_by_xrc_timestamp_secs = BTreeMap::new();
     for option in options {
         options_by_xrc_timestamp_secs
-            .entry(xrc_timestamp_secs_for_time_ns(option.expiry))
+            .entry(xrc_timestamp_seconds_for_time_seconds(
+                option.expiry_seconds,
+            ))
             .or_insert_with(Vec::new)
             .push(option);
     }
@@ -366,7 +373,7 @@ pub async fn run_settlement_wal(
     complete_settlement(option.id);
     remove_settlement(option.id);
 
-    let settled_at_ns = ic::time();
+    let settled_at_seconds = current_time_seconds();
 
     emit_event(
         option.buyer,
@@ -379,8 +386,8 @@ pub async fn run_settlement_wal(
             settlement_price_cents: payload.settlement_price_cents,
             premium_sats: option.premium_paid,
             payout_sats: payout_to_buyer,
-            accepted_at_ns: option.accepted_at,
-            settled_at_ns,
+            accepted_at_seconds: option.accepted_at_seconds,
+            settled_at_seconds,
             role: TradeRole::Buyer,
         },
     );
@@ -396,8 +403,8 @@ pub async fn run_settlement_wal(
             settlement_price_cents: payload.settlement_price_cents,
             premium_sats: option.premium_paid,
             payout_sats: payout_to_writer,
-            accepted_at_ns: option.accepted_at,
-            settled_at_ns,
+            accepted_at_seconds: option.accepted_at_seconds,
+            settled_at_seconds,
             role: TradeRole::Writer,
         },
     );
@@ -599,7 +606,7 @@ pub fn get_settlement_status_use_case(
 pub async fn settle_option_by_id_use_case(
     option_id: u64,
 ) -> Result<SettlementReceipt, VolumetricError> {
-    let now = ic::time();
+    let now_seconds = current_time_seconds();
 
     let option = get_active_option(option_id).ok_or_else(|| {
         VolumetricError::from_def(
@@ -609,7 +616,7 @@ pub async fn settle_option_by_id_use_case(
         )
     })?;
 
-    if option.expiry > now {
+    if option.expiry_seconds > now_seconds {
         return Err(VolumetricError::from_def(
             error_codes::OPTION_NOT_EXPIRED,
             None,
@@ -617,7 +624,8 @@ pub async fn settle_option_by_id_use_case(
         ));
     }
 
-    let settlement_price_cents = get_btc_usd_price_cents_at_time_ns(option.expiry).await?;
+    let settlement_price_cents =
+        get_btc_usd_price_cents_at_time_seconds(option.expiry_seconds).await?;
     queue_settlement_execution(option_id, settlement_price_cents)
 }
 
@@ -666,7 +674,7 @@ pub fn testing_expire_option_use_case(option_id: u64) -> Result<ActiveOption, Vo
         ));
     }
 
-    option.expiry = 0;
+    option.expiry_seconds = 0;
     update_active_option(option.clone());
 
     Ok(option)
@@ -674,7 +682,7 @@ pub fn testing_expire_option_use_case(option_id: u64) -> Result<ActiveOption, Vo
 
 pub fn testing_set_option_expiry_use_case(
     option_id: u64,
-    expiry_ns: u64,
+    expiry_seconds: u64,
 ) -> Result<ActiveOption, VolumetricError> {
     let mut option = get_active_option(option_id).ok_or_else(|| {
         VolumetricError::from_def(
@@ -692,7 +700,7 @@ pub fn testing_set_option_expiry_use_case(
         ));
     }
 
-    option.expiry = expiry_ns;
+    option.expiry_seconds = expiry_seconds;
     update_active_option(option.clone());
 
     Ok(option)
@@ -725,7 +733,8 @@ mod tests {
     const TEST_SETTLEMENT_PRICE_CENTS: u64 = 12_000_000;
     const TEST_PROFIT_FEE_BASIS_POINTS: u64 = 1_000;
     const TEST_OTM_SETTLEMENT_PRICE_CENTS: u64 = 10_000_000;
-    const TEST_ONE_HOUR_NS: u64 = 3_600_000_000_000;
+    const TEST_NOW_SECONDS: u64 = TEST_NOW_NS / crate::time::NANOS_PER_SECOND;
+    const TEST_ONE_HOUR_SECONDS: u64 = 3_600;
 
     struct MockRuntime;
 
@@ -866,19 +875,19 @@ mod tests {
     }
 
     struct RecordingOracle {
-        prices_by_time_ns: BTreeMap<u64, u64>,
-        requested_times_ns: Rc<RefCell<Vec<u64>>>,
+        prices_by_time_seconds: BTreeMap<u64, u64>,
+        requested_times_seconds: Rc<RefCell<Vec<u64>>>,
     }
 
     impl RecordingOracle {
-        fn new(prices_by_time_ns: BTreeMap<u64, u64>) -> (Self, Rc<RefCell<Vec<u64>>>) {
-            let requested_times_ns = Rc::new(RefCell::new(Vec::new()));
+        fn new(prices_by_time_seconds: BTreeMap<u64, u64>) -> (Self, Rc<RefCell<Vec<u64>>>) {
+            let requested_times_seconds = Rc::new(RefCell::new(Vec::new()));
             (
                 Self {
-                    prices_by_time_ns,
-                    requested_times_ns: requested_times_ns.clone(),
+                    prices_by_time_seconds,
+                    requested_times_seconds: requested_times_seconds.clone(),
                 },
-                requested_times_ns,
+                requested_times_seconds,
             )
         }
     }
@@ -886,18 +895,19 @@ mod tests {
     #[async_trait(?Send)]
     impl PriceOracle for RecordingOracle {
         async fn get_btc_usd_price_cents(&self) -> Result<u64, VolumetricError> {
-            self.get_btc_usd_price_cents_at_time_ns(ic::time()).await
+            self.get_btc_usd_price_cents_at_time_seconds(current_time_seconds())
+                .await
         }
 
-        async fn get_btc_usd_price_cents_at_time_ns(
+        async fn get_btc_usd_price_cents_at_time_seconds(
             &self,
-            settlement_time_ns: u64,
+            settlement_time_seconds: u64,
         ) -> Result<u64, VolumetricError> {
-            self.requested_times_ns
+            self.requested_times_seconds
                 .borrow_mut()
-                .push(settlement_time_ns);
-            self.prices_by_time_ns
-                .get(&settlement_time_ns)
+                .push(settlement_time_seconds);
+            self.prices_by_time_seconds
+                .get(&settlement_time_seconds)
                 .copied()
                 .ok_or_else(|| {
                     VolumetricError::from_def(
@@ -996,8 +1006,8 @@ mod tests {
             entry_price_cents: TEST_ENTRY_PRICE_CENTS,
             strike_price_cents: TEST_STRIKE_PRICE_CENTS,
             premium_paid: 10_000,
-            accepted_at: TEST_NOW_NS,
-            expiry: TEST_NOW_NS.saturating_sub(1),
+            accepted_at_seconds: TEST_NOW_SECONDS,
+            expiry_seconds: TEST_NOW_SECONDS.saturating_sub(1),
             status: ActiveOptionStatus::Active,
             fill_group_id: None,
             profit_fee_basis_points: TEST_PROFIT_FEE_BASIS_POINTS,
@@ -1030,7 +1040,12 @@ mod tests {
         );
     }
 
-    fn insert_test_option(option_id: u64, writer: Principal, buyer: Principal, expiry: u64) {
+    fn insert_test_option(
+        option_id: u64,
+        writer: Principal,
+        buyer: Principal,
+        expiry_seconds: u64,
+    ) {
         insert_active_option(ActiveOption {
             id: option_id,
             offer_id: option_id,
@@ -1042,8 +1057,8 @@ mod tests {
             entry_price_cents: TEST_ENTRY_PRICE_CENTS,
             strike_price_cents: TEST_STRIKE_PRICE_CENTS,
             premium_paid: 10_000,
-            accepted_at: TEST_NOW_NS.saturating_sub(TEST_ONE_HOUR_NS),
-            expiry,
+            accepted_at_seconds: TEST_NOW_SECONDS.saturating_sub(TEST_ONE_HOUR_SECONDS),
+            expiry_seconds,
             status: ActiveOptionStatus::Active,
             fill_group_id: None,
             profit_fee_basis_points: TEST_PROFIT_FEE_BASIS_POINTS,
@@ -1135,14 +1150,14 @@ mod tests {
     async fn test_settle_option_by_id_requests_price_at_option_expiry() {
         // given
         const OPTION_ID: u64 = 201;
-        const OPTION_EXPIRY_NS: u64 = TEST_NOW_NS - 1;
+        const OPTION_EXPIRY_SECONDS: u64 = TEST_NOW_SECONDS - 1;
         let writer = test_principal(41);
         let buyer = test_principal(42);
         setup_clean_option_state(writer, buyer, TEST_QUANTITY_SATS);
-        insert_test_option(OPTION_ID, writer, buyer, OPTION_EXPIRY_NS);
+        insert_test_option(OPTION_ID, writer, buyer, OPTION_EXPIRY_SECONDS);
 
-        let (oracle, requested_times_ns) = RecordingOracle::new(BTreeMap::from([(
-            OPTION_EXPIRY_NS,
+        let (oracle, requested_times_seconds) = RecordingOracle::new(BTreeMap::from([(
+            OPTION_EXPIRY_SECONDS,
             TEST_OTM_SETTLEMENT_PRICE_CENTS,
         )]));
         set_oracle(Rc::new(oracle));
@@ -1154,7 +1169,10 @@ mod tests {
         let wal_entry = get_entry(receipt.operation_id).expect("wal entry should exist");
 
         // then
-        assert_eq!(*requested_times_ns.borrow(), vec![OPTION_EXPIRY_NS]);
+        assert_eq!(
+            *requested_times_seconds.borrow(),
+            vec![OPTION_EXPIRY_SECONDS]
+        );
         let WalPayload::Settlement(settlement_payload) = wal_entry.payload else {
             panic!("settlement WAL entry should contain settlement payload");
         };
@@ -1173,19 +1191,21 @@ mod tests {
         const FIRST_OPTION_ID: u64 = 301;
         const SECOND_OPTION_ID: u64 = 302;
         const THIRD_OPTION_ID: u64 = 303;
-        const FIRST_EXPIRY_NS: u64 = TEST_NOW_NS - 1;
-        const SECOND_EXPIRY_NS: u64 = TEST_NOW_NS - 2;
+        const FIRST_EXPIRY_SECONDS: u64 = TEST_NOW_SECONDS - 1;
+        const SECOND_EXPIRY_SECONDS: u64 = TEST_NOW_SECONDS - 2;
         const XRC_BUCKET_PRICE_CENTS: u64 = 10_000_000;
 
         let writer = test_principal(51);
         let buyer = test_principal(52);
         setup_clean_option_state(writer, buyer, TEST_QUANTITY_SATS * 3);
-        insert_test_option(FIRST_OPTION_ID, writer, buyer, FIRST_EXPIRY_NS);
-        insert_test_option(SECOND_OPTION_ID, writer, buyer, FIRST_EXPIRY_NS);
-        insert_test_option(THIRD_OPTION_ID, writer, buyer, SECOND_EXPIRY_NS);
+        insert_test_option(FIRST_OPTION_ID, writer, buyer, FIRST_EXPIRY_SECONDS);
+        insert_test_option(SECOND_OPTION_ID, writer, buyer, FIRST_EXPIRY_SECONDS);
+        insert_test_option(THIRD_OPTION_ID, writer, buyer, SECOND_EXPIRY_SECONDS);
 
-        let (oracle, requested_times_ns) =
-            RecordingOracle::new(BTreeMap::from([(FIRST_EXPIRY_NS, XRC_BUCKET_PRICE_CENTS)]));
+        let (oracle, requested_times_seconds) = RecordingOracle::new(BTreeMap::from([(
+            FIRST_EXPIRY_SECONDS,
+            XRC_BUCKET_PRICE_CENTS,
+        )]));
         set_oracle(Rc::new(oracle));
 
         // when
@@ -1193,7 +1213,10 @@ mod tests {
 
         // then
         assert!(result.errors.is_empty());
-        assert_eq!(*requested_times_ns.borrow(), vec![FIRST_EXPIRY_NS]);
+        assert_eq!(
+            *requested_times_seconds.borrow(),
+            vec![FIRST_EXPIRY_SECONDS]
+        );
         assert_eq!(result.settled.len(), 3);
         assert_eq!(
             result

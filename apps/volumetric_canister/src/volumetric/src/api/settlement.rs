@@ -3,9 +3,9 @@ use serde::{Deserialize, Serialize};
 
 use crate::errors::VolumetricError;
 use crate::guards::{is_whitelisted, no_replicated_call};
-use crate::ic;
 use crate::journaling::OperationId;
 use crate::storage::{list_expired_active_options, ActiveOption, ActiveOptionStatus};
+use crate::time::current_time_seconds;
 use crate::usecases;
 
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
@@ -68,8 +68,7 @@ pub fn get_settlement_status(
 
 #[ic_cdk::query]
 pub fn get_pending_settlements() -> Vec<ActiveOption> {
-    let now = ic::time();
-    list_expired_active_options(now)
+    list_expired_active_options(current_time_seconds())
 }
 
 #[ic_cdk::update]
@@ -79,12 +78,12 @@ pub fn testing_expire_option(option_id: u64) -> Result<ActiveOption, VolumetricE
 }
 
 #[ic_cdk::update]
-pub fn testing_set_option_expiry(
+pub fn testing_set_option_expiry_seconds(
     option_id: u64,
-    expiry_ns: u64,
+    expiry_seconds: u64,
 ) -> Result<ActiveOption, VolumetricError> {
     is_whitelisted()?;
-    usecases::testing_set_option_expiry_use_case(option_id, expiry_ns)
+    usecases::testing_set_option_expiry_use_case(option_id, expiry_seconds)
 }
 
 #[ic_cdk::update]

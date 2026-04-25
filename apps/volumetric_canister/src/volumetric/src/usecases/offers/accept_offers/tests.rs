@@ -22,6 +22,7 @@ use crate::storage::{
 use crate::usecases::{withdraw_ckbtc_use_case, WithdrawParams};
 
 const TEST_NOW_NS: u64 = 1_000_000_000_000;
+const TEST_NOW_SECONDS: u64 = TEST_NOW_NS / crate::time::NANOS_PER_SECOND;
 const TEST_PRICE_CENTS: u64 = 10_000_000;
 const TEST_OFFER_ID: u64 = 1;
 const TEST_QUANTITY_SATS: u64 = 1_000_000;
@@ -29,9 +30,10 @@ const TEST_STRIKE_BPS: u16 = 500;
 const TEST_PREMIUM_BPS: u16 = 100;
 const TEST_DURATION_SECS: u64 = 3_600;
 const TEST_OFFER_VALID_FOR_NS: u64 = 60_000_000_000;
+const TEST_OFFER_VALID_FOR_SECONDS: u64 = TEST_OFFER_VALID_FOR_NS / crate::time::NANOS_PER_SECOND;
 const TEST_BUYER_AVAILABLE_SATS: u64 = 200_000;
 const TEST_BLOCK_INDEX: u64 = 42;
-const STALE_TRANSFER_FEE_FETCHED_AT_NS: u64 = TEST_NOW_NS - 90_000_000_001;
+const STALE_TRANSFER_FEE_FETCHED_AT_SECONDS: u64 = TEST_NOW_SECONDS - 91;
 
 struct MockRuntime {
     now: u64,
@@ -154,7 +156,7 @@ fn setup_test_state(writer: Principal, buyer: Principal) {
     clear_events();
     ic::set_runtime(Box::new(MockRuntime { now: TEST_NOW_NS }));
     set_oracle(Rc::new(StubOracle::new(TEST_PRICE_CENTS)));
-    ledger::set_cached_transfer_fee_for_testing(TESTING_CKBTC_TRANSFER_FEE_SATS, TEST_NOW_NS);
+    ledger::set_cached_transfer_fee_for_testing(TESTING_CKBTC_TRANSFER_FEE_SATS, TEST_NOW_SECONDS);
 
     set_balance(
         writer,
@@ -180,10 +182,10 @@ fn setup_test_state(writer: Principal, buyer: Principal) {
         premium_basis_points: TEST_PREMIUM_BPS,
         total_quantity: TEST_QUANTITY_SATS,
         remaining_quantity: TEST_QUANTITY_SATS,
-        offer_valid_until: TEST_NOW_NS + TEST_OFFER_VALID_FOR_NS,
+        offer_valid_until_seconds: TEST_NOW_SECONDS + TEST_OFFER_VALID_FOR_SECONDS,
         option_duration_seconds: TEST_DURATION_SECS,
         status: OfferStatus::Open,
-        created_at: TEST_NOW_NS,
+        created_at_seconds: TEST_NOW_SECONDS,
     });
 }
 
@@ -204,10 +206,10 @@ fn build_test_offer(writer: Principal, status: OfferStatus) -> Offer {
         premium_basis_points: TEST_PREMIUM_BPS,
         total_quantity: TEST_QUANTITY_SATS,
         remaining_quantity: TEST_QUANTITY_SATS,
-        offer_valid_until: TEST_NOW_NS + TEST_OFFER_VALID_FOR_NS,
+        offer_valid_until_seconds: TEST_NOW_SECONDS + TEST_OFFER_VALID_FOR_SECONDS,
         option_duration_seconds: TEST_DURATION_SECS,
         status,
-        created_at: TEST_NOW_NS,
+        created_at_seconds: TEST_NOW_SECONDS,
     }
 }
 
@@ -236,8 +238,9 @@ fn test_validate_accept_offer_request_rejects_disallowed_statuses() {
         let offer = build_test_offer(writer, disallowed_status);
 
         // when
-        let error = validate_accept_offer_request(buyer, &accept_offer_item, &offer, TEST_NOW_NS)
-            .expect_err("disallowed status should be rejected");
+        let error =
+            validate_accept_offer_request(buyer, &accept_offer_item, &offer, TEST_NOW_SECONDS)
+                .expect_err("disallowed status should be rejected");
 
         // then
         assert_eq!(error.code, error_codes::INVALID_OFFER_STATE.code);
@@ -257,7 +260,7 @@ fn test_validate_accept_offer_request_allows_partially_filled_status() {
     let offer = build_test_offer(writer, OfferStatus::PartiallyFilled);
 
     // when
-    let result = validate_accept_offer_request(buyer, &accept_offer_item, &offer, TEST_NOW_NS);
+    let result = validate_accept_offer_request(buyer, &accept_offer_item, &offer, TEST_NOW_SECONDS);
 
     // then
     assert!(result.is_ok());
@@ -289,7 +292,7 @@ fn test_validate_accept_offer_request_allows_quantity_below_create_minimum() {
     let offer = build_test_offer(writer, OfferStatus::Open);
 
     // when
-    let result = validate_accept_offer_request(buyer, &accept_offer_item, &offer, TEST_NOW_NS);
+    let result = validate_accept_offer_request(buyer, &accept_offer_item, &offer, TEST_NOW_SECONDS);
 
     Config::set_accept_offer_quantity_sats_range(
         prior_accept_offer_quantity_sats.min,
@@ -345,7 +348,7 @@ fn test_accept_offers_rejects_when_transfer_fee_cache_is_stale() {
     setup_test_state(writer, buyer);
     ledger::set_cached_transfer_fee_for_testing(
         TESTING_CKBTC_TRANSFER_FEE_SATS,
-        STALE_TRANSFER_FEE_FETCHED_AT_NS,
+        STALE_TRANSFER_FEE_FETCHED_AT_SECONDS,
     );
 
     // when

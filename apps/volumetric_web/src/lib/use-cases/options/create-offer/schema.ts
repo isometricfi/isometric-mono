@@ -5,7 +5,7 @@ export const inputSchema = walletProofInputSchema.extend({
   quantity: z.string(),
   strikeBasisPoints: z.number(),
   premiumBasisPoints: z.number(),
-  offerValidUntil: z.string(),
+  offerValidUntilSeconds: z.string(),
   optionDurationSeconds: z.string(),
 });
 

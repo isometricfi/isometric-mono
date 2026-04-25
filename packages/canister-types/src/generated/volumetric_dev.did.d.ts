@@ -61,17 +61,17 @@ export interface Account {
 export interface ActiveOption {
   'id' : bigint,
   'status' : ActiveOptionStatus,
+  'expiry_seconds' : bigint,
   'option_type' : OptionType,
   'fill_group_id' : [] | [bigint],
   'entry_price_cents' : bigint,
   'asset' : Asset,
-  'accepted_at' : bigint,
   'writer' : Principal,
   'offer_id' : bigint,
   'profit_fee_basis_points' : bigint,
   'quantity' : bigint,
+  'accepted_at_seconds' : bigint,
   'buyer' : Principal,
-  'expiry' : bigint,
   'premium_paid' : bigint,
   'strike_price_cents' : bigint,
 }
@@ -129,7 +129,7 @@ export interface Config {
 export interface CreateOfferRequest {
   'option_type' : OptionType,
   'asset' : Asset,
-  'offer_valid_until' : bigint,
+  'offer_valid_until_seconds' : bigint,
   'expires_at_seconds' : bigint,
   'strike_basis_points' : number,
   'premium_basis_points' : number,
@@ -147,8 +147,8 @@ export interface Event {
   'id' : bigint,
   'principal' : Principal,
   'data' : EventData,
-  'timestamp' : bigint,
   'event_type' : EventType,
+  'timestamp_seconds' : bigint,
 }
 export type EventData = { 'AccountCreated' : { 'wallet_address' : string } } |
   {
@@ -166,9 +166,9 @@ export type EventData = { 'AccountCreated' : { 'wallet_address' : string } } |
   } |
   {
     'OfferAccepted' : {
+      'expiry_seconds' : bigint,
       'fill_group_id' : bigint,
       'entry_price_cents' : bigint,
-      'expiry_ns' : bigint,
       'role' : TradeRole,
       'counterparty' : Principal,
       'option_id' : bigint,
@@ -185,8 +185,8 @@ export type EventData = { 'AccountCreated' : { 'wallet_address' : string } } |
       'role' : TradeRole,
       'option_id' : bigint,
       'quantity_sats' : bigint,
-      'accepted_at_ns' : bigint,
-      'settled_at_ns' : bigint,
+      'accepted_at_seconds' : bigint,
+      'settled_at_seconds' : bigint,
       'premium_sats' : bigint,
       'settlement_price_cents' : bigint,
       'strike_price_cents' : bigint,
@@ -204,11 +204,11 @@ export type EventData = { 'AccountCreated' : { 'wallet_address' : string } } |
   {
     'OfferCreated' : {
       'duration_seconds' : bigint,
+      'offer_valid_until_seconds' : bigint,
       'quantity_sats' : bigint,
       'strike_basis_points' : number,
       'offer_id' : bigint,
       'premium_basis_points' : number,
-      'offer_valid_until_ns' : bigint,
     }
   } |
   { 'OptionSettlementFailed' : { 'option_id' : bigint, 'reason' : string } };
@@ -269,12 +269,12 @@ export interface Offer {
   'option_type' : OptionType,
   'asset' : Asset,
   'total_quantity' : bigint,
-  'offer_valid_until' : bigint,
-  'created_at' : bigint,
+  'offer_valid_until_seconds' : bigint,
   'writer' : Principal,
   'strike_basis_points' : number,
   'remaining_quantity' : bigint,
   'premium_basis_points' : number,
+  'created_at_seconds' : bigint,
   'option_duration_seconds' : bigint,
 }
 export type OfferStatus = { 'Open' : null } |
@@ -285,22 +285,22 @@ export type OfferStatus = { 'Open' : null } |
 export type OptionType = { 'Call' : null };
 export interface PendingAccept {
   'id' : bigint,
-  'updated_at' : bigint,
   'fill_group_id' : bigint,
   'entry_price_cents' : [] | [bigint],
+  'updated_at_seconds' : bigint,
   'offers' : Array<AcceptedOffer>,
-  'created_at' : bigint,
+  'created_at_seconds' : bigint,
   'buyer' : Principal,
   'phase' : AcceptPhase,
   'total_buyer_debit_required_sats' : bigint,
   'platform_fee_collected' : [] | [boolean],
 }
 export interface PendingSettlement {
-  'updated_at' : bigint,
+  'updated_at_seconds' : bigint,
   'payout_to_buyer' : bigint,
-  'created_at' : bigint,
   'writer' : Principal,
   'option_id' : bigint,
+  'created_at_seconds' : bigint,
   'buyer' : Principal,
   'phase' : SettlementPhase,
   'settlement_price_cents' : bigint,
@@ -308,11 +308,11 @@ export interface PendingSettlement {
 }
 export interface PendingWithdrawal {
   'id' : bigint,
-  'updated_at' : bigint,
   'principal' : Principal,
-  'created_at' : bigint,
+  'updated_at_seconds' : bigint,
+  'created_at_time_ns' : bigint,
+  'created_at_seconds' : bigint,
   'phase' : WithdrawalPhase,
-  'created_at_time' : bigint,
   'amount' : bigint,
   'btc_address' : string,
 }
@@ -640,7 +640,10 @@ export interface _SERVICE {
   'testing_expire_option' : ActorMethod<[bigint], Result_27>,
   'testing_force_settle' : ActorMethod<[bigint], Result_25>,
   'testing_set_ckbtc_ledger' : ActorMethod<[Principal], Result_1>,
-  'testing_set_option_expiry' : ActorMethod<[bigint, bigint], Result_27>,
+  'testing_set_option_expiry_seconds' : ActorMethod<
+    [bigint, bigint],
+    Result_27
+  >,
   'testing_sync_balance_from_ledger' : ActorMethod<[string], Result_3>,
   'update_ckbtc_balance' : ActorMethod<[string], Result_28>,
   'update_username' : ActorMethod<[AuthenticatedPayload_5], Result_4>,

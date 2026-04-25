@@ -65,7 +65,7 @@ export default async function SharePage({ params }: { params: SharePageParams })
     : [];
   const firstTrade = sortedEntries[0];
   const joinedDate = firstTrade
-    ? new Date(Number(firstTrade.acceptedAt / BigInt(1_000_000))).toLocaleDateString(locale, {
+    ? new Date(Number(firstTrade.acceptedAt) * 1_000).toLocaleDateString(locale, {
         month: "long",
         year: "numeric",
       })

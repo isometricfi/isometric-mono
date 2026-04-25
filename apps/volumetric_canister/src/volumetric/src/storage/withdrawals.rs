@@ -5,7 +5,7 @@ use ic_stable_structures::storable::Bound;
 use ic_stable_structures::{StableBTreeMap, Storable};
 use serde::{Deserialize, Serialize};
 
-use crate::ic;
+use crate::time::current_time_seconds;
 
 use super::state::{Memory, MemoryIndex, MEMORY_MANAGER};
 
@@ -27,9 +27,9 @@ pub struct PendingWithdrawal {
     pub amount: u64,
     pub btc_address: String,
     pub phase: WithdrawalPhase,
-    pub created_at: u64,
-    pub updated_at: u64,
-    pub created_at_time: u64,
+    pub created_at_seconds: u64,
+    pub updated_at_seconds: u64,
+    pub created_at_time_ns: u64,
 }
 
 impl Storable for PendingWithdrawal {
@@ -63,9 +63,9 @@ pub fn create_withdrawal(
     principal: Principal,
     amount: u64,
     btc_address: String,
-    created_at_time: u64,
+    created_at_time_ns: u64,
 ) -> PendingWithdrawal {
-    let now = ic::time();
+    let now_seconds = current_time_seconds();
     let id = super::next_id(super::CounterKey::WithdrawalJournalId);
 
     let withdrawal = PendingWithdrawal {
@@ -74,9 +74,9 @@ pub fn create_withdrawal(
         amount,
         btc_address,
         phase: WithdrawalPhase::Started,
-        created_at: now,
-        updated_at: now,
-        created_at_time,
+        created_at_seconds: now_seconds,
+        updated_at_seconds: now_seconds,
+        created_at_time_ns,
     };
 
     WITHDRAWAL_JOURNAL.with(|journal| {
@@ -91,7 +91,7 @@ pub fn update_withdrawal_phase(id: u64, phase: WithdrawalPhase) {
         let mut journal = journal.borrow_mut();
         if let Some(mut withdrawal) = journal.get(&id) {
             withdrawal.phase = phase;
-            withdrawal.updated_at = ic::time();
+            withdrawal.updated_at_seconds = current_time_seconds();
             journal.insert(id, withdrawal);
         }
     });

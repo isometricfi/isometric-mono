@@ -48,7 +48,7 @@ function mapEventData(data: CanisterEventData): EventData {
       strikeBasisPoints: d.strike_basis_points,
       premiumBasisPoints: d.premium_basis_points,
       durationSeconds: Number(d.duration_seconds),
-      offerValidUntilNs: Number(d.offer_valid_until_ns),
+      offerValidUntilSeconds: Number(d.offer_valid_until_seconds),
     };
   }
   if ("OfferCancelled" in data) {
@@ -71,7 +71,7 @@ function mapEventData(data: CanisterEventData): EventData {
       premiumSats: Number(d.premium_sats),
       entryPriceCents: Number(d.entry_price_cents),
       strikePriceCents: Number(d.strike_price_cents),
-      expiryNs: Number(d.expiry_ns),
+      expirySeconds: Number(d.expiry_seconds),
       role: mapTradeRole(d.role),
     };
   }
@@ -94,8 +94,8 @@ function mapEventData(data: CanisterEventData): EventData {
       settlementPriceCents: Number(d.settlement_price_cents),
       premiumSats: Number(d.premium_sats),
       payoutSats: Number(d.payout_sats),
-      acceptedAtNs: Number(d.accepted_at_ns),
-      settledAtNs: Number(d.settled_at_ns),
+      acceptedAtSeconds: Number(d.accepted_at_seconds),
+      settledAtSeconds: Number(d.settled_at_seconds),
       role: mapTradeRole(d.role),
     };
   }
@@ -115,7 +115,7 @@ export function mapEvent(event: CanisterEvent): Event {
     id: event.id.toString(),
     eventType: mapEventType(event.event_type),
     principal: event.principal.toText(),
-    timestamp: Math.floor(Number(event.timestamp) / 1_000_000),
+    timestamp: Number(event.timestamp_seconds),
     data: mapEventData(event.data),
   };
 }

@@ -18,7 +18,7 @@ use crate::storage::{
     next_id, subtract_available, unlock_collateral, update_accept_phase, update_offer, AcceptPhase,
     AcceptedOffer, ActiveOption, Asset, Config, CounterKey, OfferStatus, OptionType,
 };
-use crate::time::calculate_expiry_ns;
+use crate::time::{calculate_expiry_seconds, current_time_seconds};
 
 use super::{
     AcceptOfferItem, AcceptOffersReceipt, AcceptOffersResult, AcceptOffersStatus, AcceptWalResult,
@@ -41,7 +41,7 @@ struct PreparedAcceptExecution {
     premium_to_writer_sats: u64,
     premium_fee_sats: u64,
     option_id: u64,
-    expiry_ns: u64,
+    expiry_seconds: u64,
     original_remaining_quantity_sats: u64,
     original_status: OfferStatus,
     profit_fee_basis_points: u64,
@@ -72,13 +72,13 @@ pub fn accept_offers_use_case(
     ensure_no_other_accept_in_progress(buyer_principal)?;
 
     let ledger_transfer_created_at_time_ns = ic::time();
-    let current_time_ns = ic::time();
+    let current_time_seconds = current_time_seconds();
 
     let accept_receipt = prepare_accept_execution(
         buyer_principal,
         &accept_offer_items,
         operation_id,
-        current_time_ns,
+        current_time_seconds,
         ledger_transfer_created_at_time_ns,
         transfer_fee_sats,
     )?;
@@ -129,7 +129,7 @@ pub(super) fn validate_accept_offer_request(
     buyer_principal: Principal,
     accept_offer_item: &AcceptOfferItem,
     offer: &crate::storage::Offer,
-    current_time_ns: u64,
+    current_time_seconds: u64,
 ) -> Result<(), VolumetricError> {
     validate_trading_limits_for_accept_offer(&OfferParams {
         quantity: accept_offer_item.quantity,
@@ -157,7 +157,7 @@ pub(super) fn validate_accept_offer_request(
         ));
     }
 
-    if offer.offer_valid_until <= current_time_ns {
+    if offer.offer_valid_until_seconds <= current_time_seconds {
         return Err(VolumetricError::from_def(
             error_codes::OFFER_EXPIRED,
             None,
@@ -230,7 +230,7 @@ fn prepare_accept_execution(
     buyer_principal: Principal,
     accept_offer_items: &[AcceptOfferItem],
     operation_id: OperationId,
-    current_time_ns: u64,
+    current_time_seconds: u64,
     ledger_transfer_created_at_time_ns: u64,
     transfer_fee_sats: u64,
 ) -> Result<AcceptOffersReceipt, VolumetricError> {
@@ -238,7 +238,7 @@ fn prepare_accept_execution(
     let accept_execution_preparation = prepare_offer_acceptances(
         buyer_principal,
         accept_offer_items,
-        current_time_ns,
+        current_time_seconds,
         transfer_fee_sats,
     )?;
 
@@ -322,7 +322,7 @@ fn is_stitched_accept_request(accept_offer_items: &[AcceptOfferItem]) -> bool {
 fn prepare_offer_acceptances(
     buyer_principal: Principal,
     accept_offer_items: &[AcceptOfferItem],
-    current_time_ns: u64,
+    current_time_seconds: u64,
     transfer_fee_sats: u64,
 ) -> Result<AcceptExecutionPreparation, VolumetricError> {
     let mut prepared_accept_executions: Vec<PreparedAcceptExecution> =
@@ -341,7 +341,12 @@ fn prepare_offer_acceptances(
             )
         })?;
 
-        validate_accept_offer_request(buyer_principal, accept_offer_item, &offer, current_time_ns)?;
+        validate_accept_offer_request(
+            buyer_principal,
+            accept_offer_item,
+            &offer,
+            current_time_seconds,
+        )?;
 
         let writer_available_balance_sats = get_balance(&offer.writer);
         if writer_available_balance_sats.available < accept_offer_item.quantity {
@@ -377,14 +382,15 @@ fn prepare_offer_acceptances(
             .or_insert(premium_to_writer_sats);
 
         let active_option_id = next_id(CounterKey::ActiveOptionId);
-        let option_expiry_ns = calculate_expiry_ns(current_time_ns, offer.option_duration_seconds)
-            .ok_or_else(|| {
-                VolumetricError::from_def(
-                    error_codes::INTERNAL_ERROR,
-                    Some("Expiry timestamp overflow"),
-                    None,
-                )
-            })?;
+        let option_expiry_seconds =
+            calculate_expiry_seconds(current_time_seconds, offer.option_duration_seconds)
+                .ok_or_else(|| {
+                    VolumetricError::from_def(
+                        error_codes::INTERNAL_ERROR,
+                        Some("Expiry timestamp overflow"),
+                        None,
+                    )
+                })?;
 
         prepared_accept_executions.push(PreparedAcceptExecution {
             offer_id: offer.id,
@@ -397,7 +403,7 @@ fn prepare_offer_acceptances(
             premium_to_writer_sats,
             premium_fee_sats,
             option_id: active_option_id,
-            expiry_ns: option_expiry_ns,
+            expiry_seconds: option_expiry_seconds,
             original_remaining_quantity_sats: offer.remaining_quantity,
             original_status: offer.status,
             profit_fee_basis_points: platform_fee_config.profit_fee_basis_points,
@@ -495,7 +501,7 @@ fn build_accept_wal_prepared_accepts(
             premium_to_writer_sats: prepared_accept_execution.premium_to_writer_sats,
             premium_fee_sats: prepared_accept_execution.premium_fee_sats,
             option_id: prepared_accept_execution.option_id,
-            expiry_ns: prepared_accept_execution.expiry_ns,
+            expiry_seconds: prepared_accept_execution.expiry_seconds,
             original_remaining_quantity_sats: prepared_accept_execution
                 .original_remaining_quantity_sats,
             original_status: prepared_accept_execution.original_status,

@@ -17,6 +17,7 @@ pub mod minter;
 pub mod observability;
 pub mod oracle;
 pub mod storage;
+pub mod temporary_timestamp_seconds_migration;
 pub mod time;
 pub mod timers;
 pub mod usecases;
@@ -35,7 +36,7 @@ pub use api::{
     get_pending_settlements, get_pending_settlements_journal, get_recovery_required_wal_entries,
     get_settlement_by_id, get_settlement_status, recover_wal_operation, settle_expired_options,
     settle_option_by_id, testing_clear_offers_and_options, testing_expire_option,
-    testing_force_settle, testing_set_option_expiry, AcceptOfferItem, AcceptOffersRequest,
+    testing_force_settle, testing_set_option_expiry_seconds, AcceptOfferItem, AcceptOffersRequest,
     CancelOfferRequest, ClearStorageResponse, CreateOfferRequest, CreateOfferResponse,
     SettleExpiredOptionsResponse, SettlementResult,
 };
@@ -79,11 +80,13 @@ fn init(btc_network: Option<BtcNetwork>) {
     });
 
     backfill_invite_codes();
+    temporary_timestamp_seconds_migration::mark_temporary_timestamp_seconds_migration_complete();
     timers::setup_timers();
 }
 
 #[post_upgrade]
 fn post_upgrade() {
+    temporary_timestamp_seconds_migration::run_temporary_timestamp_seconds_migration();
     backfill_invite_codes();
     timers::setup_timers();
 }

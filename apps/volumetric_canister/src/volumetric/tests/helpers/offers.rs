@@ -11,7 +11,8 @@ use volumetric::{
 
 use crate::common::{wallets, TestEnv, TestWallet};
 
-const ONE_HOUR_NS: u64 = 3_600_000_000_000;
+const NANOS_PER_SECOND: u64 = 1_000_000_000;
+const ONE_HOUR_SECONDS: u64 = 3_600;
 const SIGNING_WINDOW_SECONDS: u64 = 300;
 const MAX_ACCEPT_STATUS_POLLS: usize = 20;
 
@@ -26,7 +27,7 @@ pub fn get_create_offer_message(
     strike_bps: u16,
     premium_bps: u16,
     option_duration_seconds: u64,
-    offer_valid_until: u64,
+    offer_valid_until_seconds: u64,
     expires_at_seconds: u64,
 ) -> String {
     let response = env
@@ -41,7 +42,7 @@ pub fn get_create_offer_message(
                 strike_bps,
                 premium_bps,
                 option_duration_seconds,
-                offer_valid_until,
+                offer_valid_until_seconds,
                 expires_at_seconds,
             ))
             .unwrap(),
@@ -80,8 +81,8 @@ pub fn create_offer(
     premium_bps: u16,
     duration_secs: u64,
 ) -> Result<CreateOfferResponse, VolumetricError> {
-    let now = env.get_time_ns();
-    let valid_until = now + ONE_HOUR_NS;
+    let now_seconds = env.get_time_ns() / NANOS_PER_SECOND;
+    let valid_until_seconds = now_seconds + ONE_HOUR_SECONDS;
     let expires_at = expires_at_seconds(env);
 
     let message = get_create_offer_message(
@@ -91,7 +92,7 @@ pub fn create_offer(
         strike_bps,
         premium_bps,
         duration_secs,
-        valid_until,
+        valid_until_seconds,
         expires_at,
     );
     let signature = wallets::sign_message(wallet, &message);
@@ -103,7 +104,7 @@ pub fn create_offer(
             strike_basis_points: strike_bps,
             premium_basis_points: premium_bps,
             quantity,
-            offer_valid_until: valid_until,
+            offer_valid_until_seconds: valid_until_seconds,
             option_duration_seconds: duration_secs,
             expires_at_seconds: expires_at,
         },

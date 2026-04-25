@@ -50,17 +50,17 @@ type Account = record { owner : principal; subaccount : opt blob };
 type ActiveOption = record {
   id : nat64;
   status : ActiveOptionStatus;
+  expiry_seconds : nat64;
   option_type : OptionType;
   fill_group_id : opt nat64;
   entry_price_cents : nat64;
   asset : Asset;
-  accepted_at : nat64;
   writer : principal;
   offer_id : nat64;
   profit_fee_basis_points : nat64;
   quantity : nat64;
+  accepted_at_seconds : nat64;
   buyer : principal;
-  expiry : nat64;
   premium_paid : nat64;
   strike_price_cents : nat64;
 };
@@ -114,7 +114,7 @@ type Config = record {
 type CreateOfferRequest = record {
   option_type : OptionType;
   asset : Asset;
-  offer_valid_until : nat64;
+  offer_valid_until_seconds : nat64;
   expires_at_seconds : nat64;
   strike_basis_points : nat16;
   premium_basis_points : nat16;
@@ -132,8 +132,8 @@ type Event = record {
   id : nat64;
   "principal" : principal;
   data : EventData;
-  timestamp : nat64;
   event_type : EventType;
+  timestamp_seconds : nat64;
 };
 type EventData = variant {
   AccountCreated : record { wallet_address : text };
@@ -141,9 +141,9 @@ type EventData = variant {
   Deposit : record { amount_sats : nat64 };
   OfferCancelled : record { offer_id : nat64; remaining_quantity_sats : nat64 };
   OfferAccepted : record {
+    expiry_seconds : nat64;
     fill_group_id : nat64;
     entry_price_cents : nat64;
-    expiry_ns : nat64;
     role : TradeRole;
     counterparty : principal;
     option_id : nat64;
@@ -158,8 +158,8 @@ type EventData = variant {
     role : TradeRole;
     option_id : nat64;
     quantity_sats : nat64;
-    accepted_at_ns : nat64;
-    settled_at_ns : nat64;
+    accepted_at_seconds : nat64;
+    settled_at_seconds : nat64;
     premium_sats : nat64;
     settlement_price_cents : nat64;
     strike_price_cents : nat64;
@@ -170,11 +170,11 @@ type EventData = variant {
   UsernameUpdated : record { old_username : opt text; new_username : text };
   OfferCreated : record {
     duration_seconds : nat64;
+    offer_valid_until_seconds : nat64;
     quantity_sats : nat64;
     strike_basis_points : nat16;
     offer_id : nat64;
     premium_basis_points : nat16;
-    offer_valid_until_ns : nat64;
   };
   OptionSettlementFailed : record { option_id : nat64; reason : text };
 };
@@ -237,12 +237,12 @@ type Offer = record {
   option_type : OptionType;
   asset : Asset;
   total_quantity : nat64;
-  offer_valid_until : nat64;
-  created_at : nat64;
+  offer_valid_until_seconds : nat64;
   writer : principal;
   strike_basis_points : nat16;
   remaining_quantity : nat64;
   premium_basis_points : nat16;
+  created_at_seconds : nat64;
   option_duration_seconds : nat64;
 };
 type OfferStatus = variant {
@@ -255,22 +255,22 @@ type OfferStatus = variant {
 type OptionType = variant { Call };
 type PendingAccept = record {
   id : nat64;
-  updated_at : nat64;
   fill_group_id : nat64;
   entry_price_cents : opt nat64;
+  updated_at_seconds : nat64;
   offers : vec AcceptedOffer;
-  created_at : nat64;
+  created_at_seconds : nat64;
   buyer : principal;
   phase : AcceptPhase;
   total_buyer_debit_required_sats : nat64;
   platform_fee_collected : opt bool;
 };
 type PendingSettlement = record {
-  updated_at : nat64;
+  updated_at_seconds : nat64;
   payout_to_buyer : nat64;
-  created_at : nat64;
   writer : principal;
   option_id : nat64;
+  created_at_seconds : nat64;
   buyer : principal;
   phase : SettlementPhase;
   settlement_price_cents : nat64;
@@ -278,11 +278,11 @@ type PendingSettlement = record {
 };
 type PendingWithdrawal = record {
   id : nat64;
-  updated_at : nat64;
   "principal" : principal;
-  created_at : nat64;
+  updated_at_seconds : nat64;
+  created_at_time_ns : nat64;
+  created_at_seconds : nat64;
   phase : WithdrawalPhase;
-  created_at_time : nat64;
   amount : nat64;
   btc_address : text;
 };
@@ -535,7 +535,7 @@ service : (opt BtcNetwork) -> {
   testing_expire_option : (nat64) -> (Result_27);
   testing_force_settle : (nat64) -> (Result_25);
   testing_set_ckbtc_ledger : (principal) -> (Result_1);
-  testing_set_option_expiry : (nat64, nat64) -> (Result_27);
+  testing_set_option_expiry_seconds : (nat64, nat64) -> (Result_27);
   testing_sync_balance_from_ledger : (text) -> (Result_3);
   update_ckbtc_balance : (text) -> (Result_28);
   update_username : (AuthenticatedPayload_5) -> (Result_4);

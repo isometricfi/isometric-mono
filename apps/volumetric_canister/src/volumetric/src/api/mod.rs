@@ -47,7 +47,7 @@ pub use options::{
 pub use recovery::{get_recovery_required_wal_entries, recover_wal_operation};
 pub use settlement::{
     get_pending_settlements, get_settlement_status, settle_expired_options, settle_option_by_id,
-    testing_expire_option, testing_force_settle, testing_set_option_expiry,
+    testing_expire_option, testing_force_settle, testing_set_option_expiry_seconds,
     SettleExpiredOptionsResponse, SettlementResult,
 };
 pub use whitelist::{add_whitelisted, list_whitelisted, remove_whitelisted};
