@@ -15,10 +15,16 @@ const XRC_CYCLES: u128 = 1_000_000_000;
 const NANOS_PER_SECOND: u64 = 1_000_000_000;
 const SECONDS_PER_HOUR: u64 = 3_600;
 const CENTS_DECIMALS: u32 = 2;
+const BTC_SYMBOL: &str = "BTC";
+const USD_SYMBOL: &str = "USD";
 
 #[async_trait(?Send)]
 pub trait PriceOracle {
     async fn get_btc_usd_price_cents(&self) -> Result<u64, VolumetricError>;
+    async fn get_btc_usd_price_cents_at_time_ns(
+        &self,
+        settlement_time_ns: u64,
+    ) -> Result<u64, VolumetricError>;
 }
 
 fn round_to_hour_secs(time_nanos: u64) -> u64 {
@@ -27,6 +33,13 @@ fn round_to_hour_secs(time_nanos: u64) -> u64 {
 }
 
 fn rate_to_cents(rate: u64, decimals: u32) -> Result<u64, VolumetricError> {
+    if rate == 0 {
+        return Err(VolumetricError::from_def(
+            error_codes::INTER_CANISTER_CALL_FAILED,
+            Some("XRC rate is zero"),
+            None,
+        ));
+    }
     if decimals < CENTS_DECIMALS {
         return Err(VolumetricError::from_def(
             error_codes::INTER_CANISTER_CALL_FAILED,
@@ -43,6 +56,44 @@ fn rate_to_cents(rate: u64, decimals: u32) -> Result<u64, VolumetricError> {
         )
     })?;
     Ok(rate / divisor)
+}
+
+fn validate_exchange_rate_response(
+    exchange_rate: &crate::generated::xrc::ExchangeRate,
+    requested_timestamp_secs: u64,
+) -> Result<(), VolumetricError> {
+    if exchange_rate.base_asset.symbol != BTC_SYMBOL
+        || !matches!(&exchange_rate.base_asset.class, AssetClass::Cryptocurrency)
+    {
+        return Err(VolumetricError::from_def(
+            error_codes::INTER_CANISTER_CALL_FAILED,
+            Some("XRC base asset mismatch"),
+            None,
+        ));
+    }
+
+    if exchange_rate.quote_asset.symbol != USD_SYMBOL
+        || !matches!(&exchange_rate.quote_asset.class, AssetClass::FiatCurrency)
+    {
+        return Err(VolumetricError::from_def(
+            error_codes::INTER_CANISTER_CALL_FAILED,
+            Some("XRC quote asset mismatch"),
+            None,
+        ));
+    }
+
+    if exchange_rate.timestamp != requested_timestamp_secs {
+        return Err(VolumetricError::from_def(
+            error_codes::INTER_CANISTER_CALL_FAILED,
+            Some(&format!(
+                "XRC timestamp mismatch: requested={}, received={}",
+                requested_timestamp_secs, exchange_rate.timestamp
+            )),
+            None,
+        ));
+    }
+
+    Ok(())
 }
 
 fn format_xrc_error(e: &ExchangeRateError) -> String {
@@ -76,6 +127,13 @@ struct IcOracle;
 #[async_trait(?Send)]
 impl PriceOracle for IcOracle {
     async fn get_btc_usd_price_cents(&self) -> Result<u64, VolumetricError> {
+        self.get_btc_usd_price_cents_at_time_ns(ic::time()).await
+    }
+
+    async fn get_btc_usd_price_cents_at_time_ns(
+        &self,
+        settlement_time_ns: u64,
+    ) -> Result<u64, VolumetricError> {
         let xrc = Principal::from_text(XRC_CANISTER_ID).map_err(|e| {
             VolumetricError::from_def(
                 error_codes::INTERNAL_ERROR,
@@ -83,15 +141,15 @@ impl PriceOracle for IcOracle {
                 None,
             )
         })?;
-        let timestamp_secs = round_to_hour_secs(ic::time());
+        let timestamp_secs = round_to_hour_secs(settlement_time_ns);
 
         let request = GetExchangeRateRequest {
             base_asset: Asset {
-                symbol: "BTC".to_string(),
+                symbol: BTC_SYMBOL.to_string(),
                 class: AssetClass::Cryptocurrency,
             },
             quote_asset: Asset {
-                symbol: "USD".to_string(),
+                symbol: USD_SYMBOL.to_string(),
                 class: AssetClass::FiatCurrency,
             },
             timestamp: Some(timestamp_secs),
@@ -118,7 +176,10 @@ impl PriceOracle for IcOracle {
         })?;
 
         match result {
-            Ok(exchange_rate) => rate_to_cents(exchange_rate.rate, exchange_rate.metadata.decimals),
+            Ok(exchange_rate) => {
+                validate_exchange_rate_response(&exchange_rate, timestamp_secs)?;
+                rate_to_cents(exchange_rate.rate, exchange_rate.metadata.decimals)
+            }
             Err(e) => Err(VolumetricError::from_def(
                 error_codes::INTER_CANISTER_CALL_FAILED,
                 Some(&format!(
@@ -146,6 +207,13 @@ impl PriceOracle for StubOracle {
     async fn get_btc_usd_price_cents(&self) -> Result<u64, VolumetricError> {
         Ok(self.price_cents)
     }
+
+    async fn get_btc_usd_price_cents_at_time_ns(
+        &self,
+        _settlement_time_ns: u64,
+    ) -> Result<u64, VolumetricError> {
+        Ok(self.price_cents)
+    }
 }
 
 thread_local! {
@@ -155,6 +223,15 @@ thread_local! {
 pub async fn get_btc_usd_price_cents() -> Result<u64, VolumetricError> {
     let oracle = ORACLE.with(|o| Rc::clone(&o.borrow()));
     oracle.get_btc_usd_price_cents().await
+}
+
+pub async fn get_btc_usd_price_cents_at_time_ns(
+    settlement_time_ns: u64,
+) -> Result<u64, VolumetricError> {
+    let oracle = ORACLE.with(|o| Rc::clone(&o.borrow()));
+    oracle
+        .get_btc_usd_price_cents_at_time_ns(settlement_time_ns)
+        .await
 }
 
 #[cfg(feature = "testing")]
@@ -176,6 +253,43 @@ pub fn set_oracle(client: Rc<dyn PriceOracle>) {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::generated::xrc::{ExchangeRate, ExchangeRateMetadata};
+
+    const TEST_TIMESTAMP_SECS: u64 = 50_400;
+    const TEST_RATE: u64 = 100_000_000_000_000;
+    const TEST_DECIMALS: u32 = 9;
+
+    fn make_exchange_rate(overrides: ExchangeRateOverrides) -> ExchangeRate {
+        ExchangeRate {
+            metadata: ExchangeRateMetadata {
+                decimals: TEST_DECIMALS,
+                forex_timestamp: None,
+                quote_asset_num_received_rates: 4,
+                base_asset_num_received_rates: 4,
+                base_asset_num_queried_sources: 4,
+                standard_deviation: 0,
+                quote_asset_num_queried_sources: 4,
+            },
+            rate: overrides.rate.unwrap_or(TEST_RATE),
+            timestamp: overrides.timestamp.unwrap_or(TEST_TIMESTAMP_SECS),
+            quote_asset: overrides.quote_asset.unwrap_or_else(|| Asset {
+                symbol: USD_SYMBOL.to_string(),
+                class: AssetClass::FiatCurrency,
+            }),
+            base_asset: overrides.base_asset.unwrap_or_else(|| Asset {
+                symbol: BTC_SYMBOL.to_string(),
+                class: AssetClass::Cryptocurrency,
+            }),
+        }
+    }
+
+    #[derive(Default)]
+    struct ExchangeRateOverrides {
+        base_asset: Option<Asset>,
+        quote_asset: Option<Asset>,
+        timestamp: Option<u64>,
+        rate: Option<u64>,
+    }
 
     #[test]
     fn test_round_to_hour_secs() {
@@ -237,6 +351,82 @@ mod tests {
 
         // when
         let result = rate_to_cents(rate, decimals);
+
+        // then
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn should_accept_matching_btc_usd_response_for_requested_timestamp() {
+        // given
+        let exchange_rate = make_exchange_rate(ExchangeRateOverrides::default());
+
+        // when
+        let result = validate_exchange_rate_response(&exchange_rate, TEST_TIMESTAMP_SECS);
+
+        // then
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn should_reject_response_with_mismatched_base_asset() {
+        // given
+        let exchange_rate = make_exchange_rate(ExchangeRateOverrides {
+            base_asset: Some(Asset {
+                symbol: "ETH".to_string(),
+                class: AssetClass::Cryptocurrency,
+            }),
+            ..Default::default()
+        });
+
+        // when
+        let result = validate_exchange_rate_response(&exchange_rate, TEST_TIMESTAMP_SECS);
+
+        // then
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn should_reject_response_with_mismatched_quote_asset() {
+        // given
+        let exchange_rate = make_exchange_rate(ExchangeRateOverrides {
+            quote_asset: Some(Asset {
+                symbol: "EUR".to_string(),
+                class: AssetClass::FiatCurrency,
+            }),
+            ..Default::default()
+        });
+
+        // when
+        let result = validate_exchange_rate_response(&exchange_rate, TEST_TIMESTAMP_SECS);
+
+        // then
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn should_reject_response_with_mismatched_timestamp() {
+        // given
+        const UNEXPECTED_TIMESTAMP_SECS: u64 = TEST_TIMESTAMP_SECS + SECONDS_PER_HOUR;
+        let exchange_rate = make_exchange_rate(ExchangeRateOverrides {
+            timestamp: Some(UNEXPECTED_TIMESTAMP_SECS),
+            ..Default::default()
+        });
+
+        // when
+        let result = validate_exchange_rate_response(&exchange_rate, TEST_TIMESTAMP_SECS);
+
+        // then
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn should_reject_zero_rate_before_converting_to_cents() {
+        // given
+        const ZERO_RATE: u64 = 0;
+
+        // when
+        let result = rate_to_cents(ZERO_RATE, TEST_DECIMALS);
 
         // then
         assert!(result.is_err());

@@ -1,6 +1,7 @@
 use candid::CandidType;
 use icrc_ledger_types::icrc1::account::Account;
 use serde::{Deserialize, Serialize};
+use std::collections::BTreeMap;
 
 use crate::auth::derive_subaccount;
 use crate::errors::{error_codes, VolumetricError};
@@ -11,7 +12,7 @@ use crate::journaling::{
     WalPayload, WalResult, WalStatus,
 };
 use crate::locks::SettlementLock;
-use crate::oracle::get_btc_usd_price_cents;
+use crate::oracle::{get_btc_usd_price_cents, get_btc_usd_price_cents_at_time_ns};
 use crate::storage::{
     add_platform_fee, calculate_call_option_payout, calculate_profit_fee, complete_settlement,
     create_settlement, emit_event, fail_settlement, get_active_option, get_fee_recipient,
@@ -22,6 +23,8 @@ use crate::storage::{
 };
 
 use crate::usecases::balances::transfer_ckbtc;
+
+type ExpiredOptionsByExpiryNs = BTreeMap<u64, Vec<ActiveOption>>;
 
 pub struct SettlementResult {
     pub option_id: u64,
@@ -82,26 +85,44 @@ struct PreparedSettlementExecution {
 pub async fn settle_expired_options_use_case() -> SettleExpiredOptionsResult {
     let now = ic::time();
     let expired_options = list_expired_active_options(now);
+    let expired_options_by_expiry_ns = group_expired_options_by_expiry_ns(expired_options);
 
     let mut settled: Vec<SettlementResult> = Vec::new();
     let mut errors: Vec<String> = Vec::new();
 
-    let settlement_price_cents = match get_btc_usd_price_cents().await {
-        Ok(price) => price,
-        Err(e) => {
-            errors.push(format!("Failed to get oracle price: {}", e));
-            return SettleExpiredOptionsResult { settled, errors };
-        }
-    };
+    for (expiry_ns, options_expiring_at_same_time) in expired_options_by_expiry_ns {
+        // Settlement is marked at option expiry, not when the cron catches up.
+        let settlement_price_cents = match get_btc_usd_price_cents_at_time_ns(expiry_ns).await {
+            Ok(price) => price,
+            Err(e) => {
+                errors.push(format!(
+                    "Failed to get oracle price for expiry {}: {}",
+                    expiry_ns, e
+                ));
+                continue;
+            }
+        };
 
-    for option in expired_options {
-        match settle_single_option(option.id, settlement_price_cents).await {
-            Ok(result) => settled.push(result),
-            Err(e) => errors.push(format!("Option {}: {}", option.id, e)),
+        for option in options_expiring_at_same_time {
+            match settle_single_option(option.id, settlement_price_cents).await {
+                Ok(result) => settled.push(result),
+                Err(e) => errors.push(format!("Option {}: {}", option.id, e)),
+            }
         }
     }
 
     SettleExpiredOptionsResult { settled, errors }
+}
+
+fn group_expired_options_by_expiry_ns(options: Vec<ActiveOption>) -> ExpiredOptionsByExpiryNs {
+    let mut options_by_expiry_ns = BTreeMap::new();
+    for option in options {
+        options_by_expiry_ns
+            .entry(option.expiry)
+            .or_insert_with(Vec::new)
+            .push(option);
+    }
+    options_by_expiry_ns
 }
 
 pub async fn settle_single_option(
@@ -587,7 +608,7 @@ pub async fn settle_option_by_id_use_case(
         ));
     }
 
-    let settlement_price_cents = get_btc_usd_price_cents().await?;
+    let settlement_price_cents = get_btc_usd_price_cents_at_time_ns(option.expiry).await?;
     queue_settlement_execution(option_id, settlement_price_cents)
 }
 
@@ -680,7 +701,7 @@ mod tests {
     use super::*;
     use crate::ic::IcRuntime;
     use crate::ledger::{self, LedgerClient};
-    use crate::oracle::{set_oracle, StubOracle};
+    use crate::oracle::{set_oracle, PriceOracle, StubOracle};
     use crate::storage::{
         clear_active_options, clear_events, get_balance, get_settlement, insert_active_option,
         list_failed_settlements, list_pending_settlements_journal, remove_settlement, set_balance,
@@ -694,6 +715,8 @@ mod tests {
     const TEST_STRIKE_PRICE_CENTS: u64 = 10_500_000;
     const TEST_SETTLEMENT_PRICE_CENTS: u64 = 12_000_000;
     const TEST_PROFIT_FEE_BASIS_POINTS: u64 = 1_000;
+    const TEST_OTM_SETTLEMENT_PRICE_CENTS: u64 = 10_000_000;
+    const TEST_ONE_HOUR_NS: u64 = 3_600_000_000_000;
 
     struct MockRuntime;
 
@@ -833,6 +856,50 @@ mod tests {
         }
     }
 
+    struct RecordingOracle {
+        prices_by_time_ns: BTreeMap<u64, u64>,
+        requested_times_ns: Rc<RefCell<Vec<u64>>>,
+    }
+
+    impl RecordingOracle {
+        fn new(prices_by_time_ns: BTreeMap<u64, u64>) -> (Self, Rc<RefCell<Vec<u64>>>) {
+            let requested_times_ns = Rc::new(RefCell::new(Vec::new()));
+            (
+                Self {
+                    prices_by_time_ns,
+                    requested_times_ns: requested_times_ns.clone(),
+                },
+                requested_times_ns,
+            )
+        }
+    }
+
+    #[async_trait(?Send)]
+    impl PriceOracle for RecordingOracle {
+        async fn get_btc_usd_price_cents(&self) -> Result<u64, VolumetricError> {
+            self.get_btc_usd_price_cents_at_time_ns(ic::time()).await
+        }
+
+        async fn get_btc_usd_price_cents_at_time_ns(
+            &self,
+            settlement_time_ns: u64,
+        ) -> Result<u64, VolumetricError> {
+            self.requested_times_ns
+                .borrow_mut()
+                .push(settlement_time_ns);
+            self.prices_by_time_ns
+                .get(&settlement_time_ns)
+                .copied()
+                .ok_or_else(|| {
+                    VolumetricError::from_def(
+                        error_codes::INTER_CANISTER_CALL_FAILED,
+                        Some("missing test oracle price"),
+                        None,
+                    )
+                })
+        }
+    }
+
     #[async_trait(?Send)]
     impl LedgerClient for TrapAfterFirstTransferOnceLedger {
         async fn icrc1_transfer(
@@ -932,6 +999,48 @@ mod tests {
         setup_test_state_with_ledger(writer, buyer, Rc::new(FailingBuyerTransferLedger));
     }
 
+    fn setup_clean_option_state(writer: Principal, buyer: Principal, writer_locked_sats: u64) {
+        clear_active_options();
+        clear_events();
+        clear_settlement_journal();
+        ic::set_runtime(Box::new(MockRuntime));
+
+        set_balance(
+            writer,
+            UserBalance {
+                available: 0,
+                locked_as_writer: writer_locked_sats,
+            },
+        );
+        set_balance(
+            buyer,
+            UserBalance {
+                available: 0,
+                locked_as_writer: 0,
+            },
+        );
+    }
+
+    fn insert_test_option(option_id: u64, writer: Principal, buyer: Principal, expiry: u64) {
+        insert_active_option(ActiveOption {
+            id: option_id,
+            offer_id: option_id,
+            buyer,
+            writer,
+            asset: crate::storage::Asset::CkBtc,
+            option_type: OptionType::Call,
+            quantity: TEST_QUANTITY_SATS,
+            entry_price_cents: TEST_ENTRY_PRICE_CENTS,
+            strike_price_cents: TEST_STRIKE_PRICE_CENTS,
+            premium_paid: 10_000,
+            accepted_at: TEST_NOW_NS.saturating_sub(TEST_ONE_HOUR_NS),
+            expiry,
+            status: ActiveOptionStatus::Active,
+            fill_group_id: None,
+            profit_fee_basis_points: TEST_PROFIT_FEE_BASIS_POINTS,
+        });
+    }
+
     fn execute_wal_entry_now_blocking(operation_id: OperationId) -> WalExecutionOutcome {
         let runtime = tokio::runtime::Builder::new_current_thread()
             .enable_all()
@@ -1008,6 +1117,97 @@ mod tests {
             }
             _ => panic!("settlement should be pending before WAL execution"),
         }
+    }
+
+    /// Given: a valid expired option and a deterministic oracle that records requested times
+    /// When: settle_option_by_id_use_case is called after the option expiry
+    /// Then: it requests the XRC price for the option expiry timestamp
+    #[tokio::test]
+    async fn test_settle_option_by_id_requests_price_at_option_expiry() {
+        // given
+        const OPTION_ID: u64 = 201;
+        const OPTION_EXPIRY_NS: u64 = TEST_NOW_NS - 1;
+        let writer = test_principal(41);
+        let buyer = test_principal(42);
+        setup_clean_option_state(writer, buyer, TEST_QUANTITY_SATS);
+        insert_test_option(OPTION_ID, writer, buyer, OPTION_EXPIRY_NS);
+
+        let (oracle, requested_times_ns) = RecordingOracle::new(BTreeMap::from([(
+            OPTION_EXPIRY_NS,
+            TEST_OTM_SETTLEMENT_PRICE_CENTS,
+        )]));
+        set_oracle(Rc::new(oracle));
+
+        // when
+        let receipt = settle_option_by_id_use_case(OPTION_ID)
+            .await
+            .expect("settle by id should enqueue settlement");
+        let wal_entry = get_entry(receipt.operation_id).expect("wal entry should exist");
+
+        // then
+        assert_eq!(*requested_times_ns.borrow(), vec![OPTION_EXPIRY_NS]);
+        let WalPayload::Settlement(settlement_payload) = wal_entry.payload else {
+            panic!("settlement WAL entry should contain settlement payload");
+        };
+        assert_eq!(
+            settlement_payload.settlement_price_cents,
+            TEST_OTM_SETTLEMENT_PRICE_CENTS
+        );
+    }
+
+    /// Given: expired options across two expiry timestamps
+    /// When: settle_expired_options_use_case runs
+    /// Then: it fetches one settlement price per expiry timestamp and uses each matching price
+    #[tokio::test]
+    async fn test_settle_expired_options_groups_oracle_fetches_by_expiry() {
+        // given
+        const FIRST_OPTION_ID: u64 = 301;
+        const SECOND_OPTION_ID: u64 = 302;
+        const THIRD_OPTION_ID: u64 = 303;
+        const FIRST_EXPIRY_NS: u64 = TEST_NOW_NS - 1;
+        const SECOND_EXPIRY_NS: u64 = TEST_NOW_NS - 2;
+        const FIRST_EXPIRY_PRICE_CENTS: u64 = 10_000_000;
+        const SECOND_EXPIRY_PRICE_CENTS: u64 = 10_100_000;
+
+        let writer = test_principal(51);
+        let buyer = test_principal(52);
+        setup_clean_option_state(writer, buyer, TEST_QUANTITY_SATS * 3);
+        insert_test_option(FIRST_OPTION_ID, writer, buyer, FIRST_EXPIRY_NS);
+        insert_test_option(SECOND_OPTION_ID, writer, buyer, FIRST_EXPIRY_NS);
+        insert_test_option(THIRD_OPTION_ID, writer, buyer, SECOND_EXPIRY_NS);
+
+        let (oracle, requested_times_ns) = RecordingOracle::new(BTreeMap::from([
+            (FIRST_EXPIRY_NS, FIRST_EXPIRY_PRICE_CENTS),
+            (SECOND_EXPIRY_NS, SECOND_EXPIRY_PRICE_CENTS),
+        ]));
+        set_oracle(Rc::new(oracle));
+
+        // when
+        let result = settle_expired_options_use_case().await;
+
+        // then
+        assert!(result.errors.is_empty());
+        assert_eq!(
+            *requested_times_ns.borrow(),
+            vec![SECOND_EXPIRY_NS, FIRST_EXPIRY_NS]
+        );
+        assert_eq!(result.settled.len(), 3);
+        assert_eq!(
+            result
+                .settled
+                .iter()
+                .filter(|settlement| settlement.settlement_price_cents == FIRST_EXPIRY_PRICE_CENTS)
+                .count(),
+            2
+        );
+        assert_eq!(
+            result
+                .settled
+                .iter()
+                .filter(|settlement| settlement.settlement_price_cents == SECOND_EXPIRY_PRICE_CENTS)
+                .count(),
+            1
+        );
     }
 
     /// Given: settlement completed buyer transfer and balance release, then hit a retryable fee transfer failure

@@ -1,6 +1,7 @@
 mod client;
 
 pub use client::get_btc_usd_price_cents;
+pub use client::get_btc_usd_price_cents_at_time_ns;
 pub use client::PriceOracle;
 pub use client::StubOracle;
 
