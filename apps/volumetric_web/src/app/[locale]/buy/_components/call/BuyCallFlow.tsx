@@ -275,15 +275,16 @@ function AmountStep({ model, onDepositClick }: { model: BuyModel; onDepositClick
           <Skeleton className="h-8 w-full mt-3 rounded-md" />
         </>
       ) : (
-        <><MobileAmountInput
-        eyebrow={tForms("amount")}
-        amountSats={model.amountSats}
-        btcPrice={model.btcPrice}
-        maxAmountSats={model.maxPremiumAmountSats}
-        minAmountSats={model.depositMinSats}
-        onAmountSatsChange={model.setAmountSats}
-        onDepositClick={onDepositClick}
-      />
+        <>
+          <MobileAmountInput
+            eyebrow={tForms("amount")}
+            amountSats={model.amountSats}
+            btcPrice={model.btcPrice}
+            maxAmountSats={model.maxPremiumAmountSats}
+            minAmountSats={model.depositMinSats}
+            onAmountSatsChange={model.setAmountSats}
+            onDepositClick={onDepositClick}
+          />
 
           <Badge
             className={cn(

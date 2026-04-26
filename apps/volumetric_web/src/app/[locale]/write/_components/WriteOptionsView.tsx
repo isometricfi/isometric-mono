@@ -1,7 +1,7 @@
 "use client";
 
 import { useDynamicContext } from "@dynamic-labs/sdk-react-core";
-import { HelpCircle, PencilLine, PiggyBankIcon, Wallet } from "lucide-react";
+import { HelpCircle, PencilLine, PiggyBank, Wallet } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { BTCPriceChart } from "@/components/options/BTCPriceChart";
@@ -57,7 +57,7 @@ export function WriteOptionsView() {
           {t("writeOptionsDescription")}
         </p>
         <div className="text-xs text-muted-foreground mt-4 bg-muted py-2 px-3 rounded-xl flex items-center gap-3 md:hidden">
-          <PiggyBankIcon className="min-w-5" />
+          <PiggyBank className="min-w-5" />
           {t("writeOptionsDescription")}
         </div>
       </div>

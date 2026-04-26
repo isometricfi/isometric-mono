@@ -225,10 +225,6 @@ function resolveCanisterLogServiceName(): string {
   return `${webServiceName}${CANISTER_LOG_SERVICE_NAME_SUFFIX}`;
 }
 
-function currentUnixTimeSeconds(): number {
-  return Math.floor(Date.now() / 1000);
-}
-
 function requireEnv(name: string): string {
   const value = process.env[name]?.trim();
   if (!value) {

@@ -288,18 +288,20 @@ function CollateralStep({
           </div>
         </>
       ) : (
-        <><MobileAmountInput
-        eyebrow={tForms("collateral")}
-        amountSats={model.amountSats}
-        btcPrice={model.btcPrice}
-        maxAmountSats={model.maxCreateOfferAmountSats}
-        minAmountSats={model.minCreateOfferAmountSats}
-        onAmountSatsChange={model.handleAmountSatsChange}
-        onDepositClick={onDepositClick}
-      />
-      <div className="mt-6">
-        <FlowInfoPanel>{t("collateral.explain")}</FlowInfoPanel>
-      </div></>
+        <>
+          <MobileAmountInput
+            eyebrow={tForms("collateral")}
+            amountSats={model.amountSats}
+            btcPrice={model.btcPrice}
+            maxAmountSats={model.maxCreateOfferAmountSats}
+            minAmountSats={model.minCreateOfferAmountSats}
+            onAmountSatsChange={model.handleAmountSatsChange}
+            onDepositClick={onDepositClick}
+          />
+          <div className="mt-6">
+            <FlowInfoPanel>{t("collateral.explain")}</FlowInfoPanel>
+          </div>
+        </>
       )}
     </>
   );
