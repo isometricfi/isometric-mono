@@ -25,6 +25,6 @@ Isometric 是一个比特币看涨期权应用。自我托管，无 KYC，无强
 ## 从哪里开始
 
 - 不熟悉期权？阅读[期权说明](/strategies/options-explained)。
-- 准备交易？从[连接与账户](/getting-started/connect-and-account)开始。
+- 准备交易？从[连接账户](/getting-started/connect-and-account)开始。
 - 想了解底层技术？查看[技术](/technical/)章节。
 - 找特定问题？查看 [FAQ](/faq)。

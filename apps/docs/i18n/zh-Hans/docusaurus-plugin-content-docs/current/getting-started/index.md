@@ -15,6 +15,6 @@ title: 开始使用
 
 ## 章节
 
-- [连接与账户](./connect-and-account)
+- [连接账户](./connect-and-account)
 - [存入 BTC](./deposit)
 - [提取 BTC](./withdraw)

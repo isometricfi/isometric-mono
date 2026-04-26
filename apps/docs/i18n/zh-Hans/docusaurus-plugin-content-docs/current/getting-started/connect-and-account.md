@@ -1,9 +1,9 @@
 ---
 sidebar_position: 2
-title: 连接与账户
+title: 连接账户
 ---
 
-# 连接与账户
+# 连接账户
 
 Isometric 使用你已有的钱包进行签名。无需另外设置密码。
 
