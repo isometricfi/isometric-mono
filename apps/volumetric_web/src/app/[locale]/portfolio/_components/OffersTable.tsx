@@ -12,7 +12,7 @@ import {
   usePrices,
 } from "@/hooks";
 import { Link } from "@/i18n/routing";
-import { OfferCardModal } from "./offers/OfferCardModal";
+import { OfferCard } from "./OfferCard";
 
 export function OffersTable() {
   const { data: priceData } = usePrices();
@@ -75,7 +75,7 @@ export function OffersTable() {
         );
 
         return (
-          <OfferCardModal
+          <OfferCard
             key={offer.id.toString()}
             offer={offer}
             btcPrice={currentBtcPrice}
