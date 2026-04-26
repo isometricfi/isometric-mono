@@ -7,7 +7,10 @@ import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { useMediaQuery } from "react-responsive";
 import { BTCPriceChart } from "@/components/options/BTCPriceChart";
-import { MobileAmountInput } from "@/components/options/MobileAmountInput";
+import {
+  MobileAmountInput,
+  MobileAmountInputSkeleton,
+} from "@/components/options/MobileAmountInput";
 import {
   FlowInfoPanel,
   FlowOfferStatus,
@@ -25,6 +28,7 @@ import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { DockSlider } from "@/components/ui/dock-slider";
 import { Drawer, DrawerContent, DrawerDescription, DrawerTitle } from "@/components/ui/drawer";
 import { ProgressDots } from "@/components/ui/progress-dots";
+import { Skeleton } from "@/components/ui/skeleton";
 import { SlideToConfirm } from "@/components/ui/slide-to-confirm";
 import { DepositModal } from "@/components/wallet/DepositModal";
 import { useConfig } from "@/hooks";
@@ -74,7 +78,8 @@ export function WriteCallFlow({ open, onOpenChange }: WriteCallFlowProps) {
 
   const canAdvance =
     step === "collateral"
-      ? model.amountSats >= model.minCreateOfferAmountSats &&
+      ? !model.isBalanceLoading &&
+        model.amountSats >= model.minCreateOfferAmountSats &&
         model.amountSats <= model.maxCreateOfferAmountSats
       : true;
 
@@ -270,17 +275,28 @@ function CollateralStep({ model }: { model: WriteModel }) {
         eyebrow={t("collateral.stepLabel")}
         title={t.rich("collateral.title", highlightTags)}
       />
-      <MobileAmountInput
-        eyebrow={tForms("collateral")}
-        amountSats={model.amountSats}
-        btcPrice={model.btcPrice}
-        maxAmountSats={model.maxCreateOfferAmountSats}
-        minAmountSats={model.minCreateOfferAmountSats}
-        onAmountSatsChange={model.handleAmountSatsChange}
-      />
-      <div className="mt-6">
-        <FlowInfoPanel>{t("collateral.explain")}</FlowInfoPanel>
-      </div>
+      {model.isBalanceLoading ? (
+        <>
+          <MobileAmountInputSkeleton />
+          <div className="mt-6">
+            <Skeleton className="h-8 w-full rounded-md" />
+          </div>
+        </>
+      ) : (
+        <>
+          <MobileAmountInput
+            eyebrow={tForms("collateral")}
+            amountSats={model.amountSats}
+            btcPrice={model.btcPrice}
+            maxAmountSats={model.maxCreateOfferAmountSats}
+            minAmountSats={model.minCreateOfferAmountSats}
+            onAmountSatsChange={model.handleAmountSatsChange}
+          />
+          <div className="mt-6">
+            <FlowInfoPanel>{t("collateral.explain")}</FlowInfoPanel>
+          </div>
+        </>
+      )}
     </>
   );
 }
@@ -385,9 +401,7 @@ function ReviewStep({
     },
     {
       condition: tSummary("writeExplainer.ifRises", { strike: strikeDisplay }),
-      outcome: tSummary("writeExplainer.ifRisesDesc", {
-        strike: strikeDisplay,
-      }),
+      outcome: tSummary("writeExplainer.ifRisesDesc"),
     },
   ];
 

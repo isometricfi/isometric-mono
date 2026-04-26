@@ -152,9 +152,9 @@
     "viewDocs": "View Docs",
     "buyExplainer": {
       "intro": "You pay <bold>{amount}</bold> upfront for <bold>{leverage}x</bold> exposure. If BTC rises above <bold>{strike}</bold> within <bold>{term}</bold>, you profit.",
-      "ifRises": "If BTC rises:",
+      "ifRises": "BTC above {strike}:",
       "ifRisesDesc": "You receive profit in BTC (max {maxProfit})",
-      "ifBelow": "If BTC stays below:",
+      "ifBelow": "BTC below {strike}:",
       "ifBelowDesc": "Option expires worthless, you lose your amount",
       "platformFee": "Platform fee:",
       "platformFeeDesc": "{fee}% of profit"
@@ -164,7 +164,7 @@
       "ifBelow": "BTC below {strike}:",
       "ifBelowDesc": "Collateral returned, you keep earnings",
       "ifRises": "BTC above {strike}:",
-      "ifRisesDesc": "You keep earnings but pay buyer gains above {strike} (capped at collateral)",
+      "ifRisesDesc": "You keep your earnings, but the buyer is paid from your collateral, proportional to the percentage increase above strike, up to your full collateral.",
       "platformFee": "Platform fee:",
       "platformFeeDesc": "{fee}% of earnings"
     }

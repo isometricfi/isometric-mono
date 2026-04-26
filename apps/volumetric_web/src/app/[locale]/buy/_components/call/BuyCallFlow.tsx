@@ -7,7 +7,10 @@ import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { useMediaQuery } from "react-responsive";
 import { BTCPriceChart } from "@/components/options/BTCPriceChart";
-import { MobileAmountInput } from "@/components/options/MobileAmountInput";
+import {
+  MobileAmountInput,
+  MobileAmountInputSkeleton,
+} from "@/components/options/MobileAmountInput";
 import {
   FlowInfoPanel,
   FlowOfferStatus,
@@ -25,6 +28,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Drawer, DrawerContent, DrawerDescription, DrawerTitle } from "@/components/ui/drawer";
 import { ProgressDots } from "@/components/ui/progress-dots";
+import { Skeleton } from "@/components/ui/skeleton";
 import { SlideToConfirm } from "@/components/ui/slide-to-confirm";
 import { DepositModal } from "@/components/wallet/DepositModal";
 import { useConfig } from "@/hooks";
@@ -67,7 +71,7 @@ export function BuyCallFlow({ open, onOpenChange }: BuyCallFlowProps) {
 
   const canAdvance =
     step === "amount"
-      ? model.amountSats > 0
+      ? !model.isBalanceLoading && model.amountSats > 0
       : step === "termStrike"
         ? model.strikeUsdValues.length > 0
         : true;
@@ -267,28 +271,38 @@ function AmountStep({ model }: { model: BuyModel }) {
         eyebrow={t("amount.stepLabel")}
         title={t.rich("amount.title", highlightTags)}
       />
-      <MobileAmountInput
-        eyebrow={tForms("amount")}
-        amountSats={model.amountSats}
-        btcPrice={model.btcPrice}
-        maxAmountSats={model.maxPremiumAmountSats}
-        minAmountSats={model.depositMinSats}
-        onAmountSatsChange={model.setAmountSats}
-      />
+      {model.isBalanceLoading ? (
+        <>
+          <MobileAmountInputSkeleton />
+          <Skeleton className="h-9 w-full mt-4 rounded-md" />
+          <Skeleton className="h-8 w-full mt-3 rounded-md" />
+        </>
+      ) : (
+        <>
+          <MobileAmountInput
+            eyebrow={tForms("amount")}
+            amountSats={model.amountSats}
+            btcPrice={model.btcPrice}
+            maxAmountSats={model.maxPremiumAmountSats}
+            minAmountSats={model.depositMinSats}
+            onAmountSatsChange={model.setAmountSats}
+          />
 
-      <Badge
-        className={cn(
-          "w-full flex justify-between px-4 mt-4",
-          model.leverage === 0 && "opacity-20",
-        )}
-      >
-        <span className="text-sm">{t("amount.leverage")}</span>
-        <span className="text-lg font-bold tabular-nums">{roundToN(model.leverage, 0)}x</span>
-      </Badge>
+          <Badge
+            className={cn(
+              "w-full flex justify-between px-4 mt-4",
+              model.leverage === 0 && "opacity-20",
+            )}
+          >
+            <span className="text-sm">{t("amount.leverage")}</span>
+            <span className="text-base font-bold tabular-nums">{roundToN(model.leverage, 0)}x</span>
+          </Badge>
 
-      <div className="mt-3">
-        <FlowInfoPanel>{t("amount.explain")}</FlowInfoPanel>
-      </div>
+          <div className="mt-3">
+            <FlowInfoPanel>{t("amount.explain")}</FlowInfoPanel>
+          </div>
+        </>
+      )}
     </>
   );
 }
@@ -327,13 +341,13 @@ function ReviewStep({ model, feePercent }: { model: BuyModel; feePercent: number
 
   const scenarios: Scenario[] = [
     {
-      condition: tSummary("buyExplainer.ifRises"),
+      condition: tSummary("buyExplainer.ifRises", { strike: strikeDisplay }),
       outcome: tSummary("buyExplainer.ifRisesDesc", {
         maxProfit: maxProfitDisplay,
       }),
     },
     {
-      condition: tSummary("buyExplainer.ifBelow"),
+      condition: tSummary("buyExplainer.ifBelow", { strike: strikeDisplay }),
       outcome: tSummary("buyExplainer.ifBelowDesc"),
     },
   ];
