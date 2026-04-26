@@ -102,7 +102,7 @@ export function BuyCallFlow({ open, onOpenChange }: BuyCallFlowProps) {
 
   const body = (
     <>
-      <div className="flex-1 overflow-y-auto overflow-x-hidden">
+      <div className="flex-1 overflow-y-auto overflow-x-hidden flex flex-col">
         <AnimatePresence mode="wait" initial={false}>
           <motion.div
             key={isReview && isOfferActive ? `review-${offerStep}` : step}
@@ -110,7 +110,7 @@ export function BuyCallFlow({ open, onOpenChange }: BuyCallFlowProps) {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.15, ease: "easeOut" }}
-            className="px-5 py-4 min-h-full flex flex-col"
+            className="px-5 py-4 flex-1 flex flex-col"
           >
             {step === "termStrike" && <TermStrikeStep model={model} />}
             {step === "amount" && <AmountStep model={model} />}
@@ -191,7 +191,7 @@ export function BuyCallFlow({ open, onOpenChange }: BuyCallFlowProps) {
     <>
       {isMobile ? (
         <Drawer open={open} onOpenChange={handleContainerOpenChange}>
-          <DrawerContent className="min-h-[95dvh] p-0 flex flex-col">
+          <DrawerContent className="h-[95dvh] p-0 flex flex-col">
             <DrawerTitle className="sr-only">{t("title")}</DrawerTitle>
             <DrawerDescription className="sr-only">{t("description")}</DrawerDescription>
             {body}
