@@ -132,7 +132,9 @@
     "higherYield": "更高收益",
     "wouldRank": "排名 #{rank}/{total}",
     "noYieldOptions": "没有可用收益选项",
-    "bestOffer": "最优报价"
+    "bestOffer": "最优报价",
+    "noBalanceMessage": "你需要BTC才能继续",
+    "depositToContinue": "存入BTC"
   },
   "Summary": {
     "premium": "溢价：",
@@ -255,14 +257,14 @@
     "openApp": "打开应用",
     "headline": "比特币期权，",
     "headlineHighlight": "简单易懂。",
-    "subheadline": "押注价格走势，或赚取收益。无术语，无复杂操作。",
+    "subheadline": "在你的比特币上赚取权利金，或对其下一步走势加杠杆。",
     "twoPathsEyebrow": "两种策略",
     "twoPathsTitle": "选择你的一方。",
-    "twoPathsTitleSub": "赚取或押注。",
+    "twoPathsTitleSub": "赚取或加杠杆。",
     "twoPathsSubtitle": "卖出期权预先赚取权利金，或买入期权获得杠杆敞口。同一份协议，两种相反的玩法。",
     "forHodlers": "适合持有者",
-    "earnYieldTitle": "持有 BTC，坐收收益",
-    "earnYieldDescription": "锁定BTC并立即赚取收益。当时间到期时，如果BTC低于您的目标价格，您保留一切。",
+    "earnYieldTitle": "在你的BTC上赚取权利金",
+    "earnYieldDescription": "按你设定的条款承接买家的另一方，预先收取权利金。",
     "forTraders": "适合交易者",
     "leverageTitle": "小注押入，收益放大",
     "leverageDescription": "选择价格和时间。如果到期时BTC高于您的目标价格，您赢得大奖。最大亏损：您投入的金额。",
@@ -272,7 +274,7 @@
     "gettingStarted": "入门指南",
     "threeStepsTitle": "三步即可开始",
     "earn": "赚取",
-    "bet": "押注",
+    "bet": "杠杆",
     "writerStep1Title": "存入 BTC",
     "writerStep1Desc": "连接钱包并将 BTC 存入您的账户。",
     "writerStep2Title": "创建您的报价",
@@ -343,6 +345,8 @@
   "Pages": {
     "buyOptions": "购买期权",
     "writeOptions": "卖出期权",
+    "buyOptionsDescription": "对BTC的下一步走势加杠杆下注。最大损失就是你投入的金额。",
+    "writeOptionsDescription": "按你设定的条款承接买家的另一方，预先收取权利金。",
     "putsComingSoon": "看跌期权即将推出",
     "writeCta": "卖出一个期权",
     "buyCta": "购买一个期权",
@@ -480,7 +484,7 @@
       "title": "Isometric",
       "tagline": "比特币期权，简单易懂。",
       "benefit1": "放大你的判断",
-      "benefit2": "赚取BTC收益",
+      "benefit2": "在BTC上赚取权利金",
       "benefit3": "完全链上",
       "showMe": "带我了解",
       "skipToApp": "跳过到应用"
@@ -505,13 +509,13 @@
       "keyFact": "非对称风险：小投入，大回报。"
     },
     "writing": {
-      "title": "让你的BTC为你工作",
+      "title": "按你的条款收取权利金",
       "youLock": "你锁定",
       "youEarnUpfront": "你预先赚取",
       "condition": "如果BTC保持在$105k以下",
-      "conditionValue": "全部保留",
+      "conditionValue": "保留BTC + 权利金",
       "netReturn": "净回报",
-      "keyFact": "你的最大风险已经定价。"
+      "keyFact": "你的最大风险就是你锁定为抵押的部分。"
     },
     "ready": {
       "title": "准备交易",

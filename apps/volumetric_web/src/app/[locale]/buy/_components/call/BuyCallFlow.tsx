@@ -30,7 +30,6 @@ import { Drawer, DrawerContent, DrawerDescription, DrawerTitle } from "@/compone
 import { ProgressDots } from "@/components/ui/progress-dots";
 import { Skeleton } from "@/components/ui/skeleton";
 import { SlideToConfirm } from "@/components/ui/slide-to-confirm";
-import { DepositModal } from "@/components/wallet/DepositModal";
 import { useConfig } from "@/hooks";
 import { Link } from "@/i18n/routing";
 import { basisPointsToPercent, cn, formatBtc, roundToN, satsToBtc } from "@/lib/utils";
@@ -39,6 +38,7 @@ import { useCallOptionBuyFormModel } from "./_internal/use-call-option-buy-form-
 interface BuyCallFlowProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onRequestDeposit: () => void;
 }
 
 const STEPS = ["termStrike", "amount", "review"] as const;
@@ -46,13 +46,12 @@ type StepName = (typeof STEPS)[number];
 
 type BuyModel = ReturnType<typeof useCallOptionBuyFormModel>;
 
-export function BuyCallFlow({ open, onOpenChange }: BuyCallFlowProps) {
+export function BuyCallFlow({ open, onOpenChange, onRequestDeposit }: BuyCallFlowProps) {
   const isMobile = useMediaQuery({ query: "(max-width: 768px)" });
   const t = useTranslations("BuyFlow");
   const tCommon = useTranslations("Common");
   const tOfferResult = useTranslations("OfferResult");
   const [stepIndex, setStepIndex] = useState(0);
-  const [depositModalOpen, setDepositModalOpen] = useState(false);
   const { primaryWallet, setShowAuthFlow } = useDynamicContext();
   const { data: config } = useConfig();
   const model = useCallOptionBuyFormModel();
@@ -82,7 +81,7 @@ export function BuyCallFlow({ open, onOpenChange }: BuyCallFlowProps) {
       return;
     }
     if (model.needDepositMore) {
-      setDepositModalOpen(true);
+      onRequestDeposit();
       return;
     }
     model.handleSubmit();
@@ -117,7 +116,7 @@ export function BuyCallFlow({ open, onOpenChange }: BuyCallFlowProps) {
             className="px-5 py-4 flex-1 flex flex-col"
           >
             {step === "termStrike" && <TermStrikeStep model={model} />}
-            {step === "amount" && <AmountStep model={model} />}
+            {step === "amount" && <AmountStep model={model} onDepositClick={onRequestDeposit} />}
             {step === "review" &&
               (isOfferActive ? (
                 <FlowOfferStatus
@@ -212,8 +211,6 @@ export function BuyCallFlow({ open, onOpenChange }: BuyCallFlowProps) {
           </DialogContent>
         </Dialog>
       )}
-
-      <DepositModal open={depositModalOpen} onOpenChange={setDepositModalOpen} />
     </>
   );
 }
@@ -262,7 +259,7 @@ function TermStrikeStep({ model }: { model: BuyModel }) {
   );
 }
 
-function AmountStep({ model }: { model: BuyModel }) {
+function AmountStep({ model, onDepositClick }: { model: BuyModel; onDepositClick: () => void }) {
   const t = useTranslations("BuyFlow");
   const tForms = useTranslations("Forms");
   return (
@@ -286,6 +283,7 @@ function AmountStep({ model }: { model: BuyModel }) {
             maxAmountSats={model.maxPremiumAmountSats}
             minAmountSats={model.depositMinSats}
             onAmountSatsChange={model.setAmountSats}
+            onDepositClick={onDepositClick}
           />
 
           <Badge

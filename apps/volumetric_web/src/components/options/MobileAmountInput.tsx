@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronsUpDown } from "lucide-react";
+import { ChevronsUpDown, Wallet } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useEffect, useId, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -23,6 +23,7 @@ interface MobileAmountInputProps {
   maxAmountSats: number;
   minAmountSats?: number;
   onAmountSatsChange: (amountSats: number) => void;
+  onDepositClick?: () => void;
 }
 
 const PRESETS = [0.25, 0.5, 0.75, 1] as const;
@@ -34,6 +35,7 @@ export function MobileAmountInput({
   maxAmountSats,
   minAmountSats,
   onAmountSatsChange,
+  onDepositClick,
 }: MobileAmountInputProps) {
   const tForms = useTranslations("Forms");
   const tCommon = useTranslations("Common");
@@ -151,44 +153,56 @@ export function MobileAmountInput({
         )}
       </label>
 
-      <div className="space-y-3">
-        <div className="flex items-center justify-between text-[11px] uppercase tracking-[0.12em] font-medium">
-          <span className="text-muted-foreground">{tForms("amount")}</span>
-          <button
-            type="button"
-            onClick={() => handlePreset(1)}
-            className="text-muted-foreground tabular-nums"
-          >
-            <span className="text-muted-foreground/70">{tForms("max")} · </span>
-            <span className="text-foreground">{maxDisplay}</span>
-          </button>
+      {maxAmountSats <= 0 && onDepositClick ? (
+        <div className="rounded-xl border bg-muted/20 p-4 flex flex-col items-center text-center gap-3">
+          <p className="text-sm text-foreground font-medium">{tForms("noBalanceMessage")}</p>
+          <Button onClick={onDepositClick} className="w-full">
+            <Wallet className="size-4" />
+            {tForms("depositToContinue")}
+          </Button>
         </div>
-        <Slider
-          value={sliderValue}
-          onValueChange={handleSliderChange}
-          min={0}
-          max={100}
-          step={0.1}
-        />
-      </div>
+      ) : (
+        <>
+          <div className="space-y-3">
+            <div className="flex items-center justify-between text-[11px] uppercase tracking-[0.12em] font-medium">
+              <span className="text-muted-foreground">{tForms("amount")}</span>
+              <button
+                type="button"
+                onClick={() => handlePreset(1)}
+                className="text-muted-foreground tabular-nums"
+              >
+                <span className="text-muted-foreground/70">{tForms("max")} · </span>
+                <span className="text-foreground">{maxDisplay}</span>
+              </button>
+            </div>
+            <Slider
+              value={sliderValue}
+              onValueChange={handleSliderChange}
+              min={0}
+              max={100}
+              step={0.1}
+            />
+          </div>
 
-      <div className="grid grid-cols-4 gap-2">
-        {PRESETS.map((fraction) => {
-          const isMax = fraction === 1;
-          const currentFraction = maxAmountSats > 0 ? amountSats / maxAmountSats : 0;
-          const active = maxAmountSats > 0 && Math.abs(currentFraction - fraction) < 0.001;
-          return (
-            <Button
-              key={fraction}
-              variant="outline"
-              onClick={() => handlePreset(fraction)}
-              className={cn("tabular-nums", active && "ring-2 ring-primary")}
-            >
-              {isMax ? tForms("max") : `${Math.round(fraction * 100)}%`}
-            </Button>
-          );
-        })}
-      </div>
+          <div className="grid grid-cols-4 gap-2">
+            {PRESETS.map((fraction) => {
+              const isMax = fraction === 1;
+              const currentFraction = maxAmountSats > 0 ? amountSats / maxAmountSats : 0;
+              const active = maxAmountSats > 0 && Math.abs(currentFraction - fraction) < 0.001;
+              return (
+                <Button
+                  key={fraction}
+                  variant="outline"
+                  onClick={() => handlePreset(fraction)}
+                  className={cn("tabular-nums", active && "ring-2 ring-primary")}
+                >
+                  {isMax ? tForms("max") : `${Math.round(fraction * 100)}%`}
+                </Button>
+              );
+            })}
+          </div>
+        </>
+      )}
     </div>
   );
 }

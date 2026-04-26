@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { TrendingUp, Zap } from "lucide-react";
+import { PiggyBank, Zap } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { PayoffVisualization } from "./PayoffVisualization";
 import { YieldDisplay } from "./YieldDisplay";
@@ -93,7 +93,7 @@ export function TwoPathsSection() {
               </div>
 
               <h3 className="flex items-center gap-2.5 text-xl md:text-2xl font-bold mb-3">
-                <TrendingUp className="size-5 text-primary" />
+                <PiggyBank className="size-5 text-primary" />
                 {t("earnYieldTitle")}
               </h3>
               <p className="text-muted-foreground text-sm md:text-base">
