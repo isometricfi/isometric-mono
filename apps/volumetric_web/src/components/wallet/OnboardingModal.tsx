@@ -265,7 +265,7 @@ function WritingSlide() {
             </div>
             <div className="flex justify-between items-center">
               <span className="text-muted-foreground">{t("youEarnUpfront")}</span>
-              <span className="font-mono font-semibold text-green-500">+0.01 BTC</span>
+              <span className="font-mono font-semibold text-green-500">+0.025 BTC</span>
             </div>
             <div className="flex justify-between items-center">
               <span className="text-muted-foreground">{t("condition")}</span>
@@ -275,14 +275,14 @@ function WritingSlide() {
             <div className="flex justify-between items-center">
               <span className="font-medium">{t("netReturn")}</span>
               <div className="flex items-baseline gap-2">
-                <span className="font-mono font-bold">1.01 BTC</span>
+                <span className="font-mono font-bold">1.025 BTC</span>
                 <motion.span
                   className="text-2xl font-black text-green-500 tabular-nums"
                   initial={{ opacity: 0, scale: 0.7 }}
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ delay: 0.3, type: "spring", stiffness: 200 }}
                 >
-                  68% APY
+                  250% APY
                 </motion.span>
               </div>
             </div>

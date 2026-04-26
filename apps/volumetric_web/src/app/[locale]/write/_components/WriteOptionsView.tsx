@@ -1,13 +1,14 @@
 "use client";
 
 import { useDynamicContext } from "@dynamic-labs/sdk-react-core";
-import { HelpCircle, PencilLine, Wallet } from "lucide-react";
+import { HelpCircle, PencilLine, PiggyBankIcon, Wallet } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { BTCPriceChart } from "@/components/options/BTCPriceChart";
 import { OptionsViewer } from "@/components/options/OptionsViewer";
 import { OptionTypeToggle } from "@/components/options/OptionTypeToggle";
 import { Button } from "@/components/ui/button";
+import { DepositModal } from "@/components/wallet/DepositModal";
 import { OnboardingContent } from "@/components/wallet/OnboardingModal";
 import { useModal } from "@/hooks";
 import { useProMode } from "@/stores/preferences-store";
@@ -19,31 +20,45 @@ export function WriteOptionsView() {
   const t = useTranslations("Pages");
   const [optionType, setOptionType] = useState<OptionType>("call");
   const [flowOpen, setFlowOpen] = useState(false);
+  const [depositModalOpen, setDepositModalOpen] = useState(false);
   const { openModal } = useModal();
   const { isProMode } = useProMode();
   const { primaryWallet, setShowAuthFlow } = useDynamicContext();
   const isConnected = !!primaryWallet;
   const handleCtaClick = () => (isConnected ? setFlowOpen(true) : setShowAuthFlow(true));
+  const handleRequestDeposit = () => {
+    setFlowOpen(false);
+    setDepositModalOpen(true);
+  };
   const ctaLabel = isConnected ? t("writeCta") : t("connectToWriteCta");
 
   const isPutDisabled = optionType === "put";
 
   return (
     <>
-      <div className="text-center mb-6  flex justify-between items-center">
-        <div className="flex items-center justify-center md:gap-1">
-          <h1 className="md:text-2xl text-xl font-bold">{t("writeOptions")}</h1>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => openModal(<OnboardingContent />, false, "600px")}
-            className="size-8 -mb-1"
-          >
-            <HelpCircle className="size-4" />
-          </Button>
+      <div className="mb-6">
+        <div className="flex justify-between items-center">
+          <div className="flex items-center justify-center md:gap-1">
+            <h1 className="md:text-2xl text-xl font-bold">{t("writeOptions")}</h1>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => openModal(<OnboardingContent />, false, "600px")}
+              className="size-8 -mb-1"
+            >
+              <HelpCircle className="size-4" />
+            </Button>
+          </div>
+          <div className="flex justify-center">
+            <OptionTypeToggle value={optionType} onChange={setOptionType} />
+          </div>
         </div>
-        <div className="flex justify-center">
-          <OptionTypeToggle value={optionType} onChange={setOptionType} />
+        <p className="text-sm text-muted-foreground max-w-xl md:block hidden">
+          {t("writeOptionsDescription")}
+        </p>
+        <div className="text-xs text-muted-foreground mt-4 bg-muted py-2 px-3 rounded-xl flex items-center gap-3 md:hidden">
+          <PiggyBankIcon className="min-w-5" />
+          {t("writeOptionsDescription")}
         </div>
       </div>
 
@@ -80,9 +95,16 @@ export function WriteOptionsView() {
               </Button>
             </div>
             <OptionsViewer mode="writer" />
-            {flowOpen && <WriteCallFlow open={flowOpen} onOpenChange={setFlowOpen} />}
+            {flowOpen && (
+              <WriteCallFlow
+                open={flowOpen}
+                onOpenChange={setFlowOpen}
+                onRequestDeposit={handleRequestDeposit}
+              />
+            )}
           </div>
         ))}
+      <DepositModal open={depositModalOpen} onOpenChange={setDepositModalOpen} />
     </>
   );
 }

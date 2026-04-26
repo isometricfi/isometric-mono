@@ -124,7 +124,7 @@ export function Navbar() {
               </>
             )}
           </div>
-          <div className="flex items-center gap-3 justify-center md:justify-end -mr-0.5">
+          <div className="flex items-center gap-3 justify-center md:justify-end -mr-1">
             {!primaryWallet && (
               <div className="md:flex hidden">
                 <SettingsDropdown />

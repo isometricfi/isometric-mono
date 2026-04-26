@@ -132,7 +132,9 @@
     "higherYield": "Higher yield",
     "wouldRank": "Rank #{rank} of {total}",
     "noYieldOptions": "No yield options available",
-    "bestOffer": "Best"
+    "bestOffer": "Best",
+    "noBalanceMessage": "You'll need more BTC to continue",
+    "depositToContinue": "Deposit BTC"
   },
   "Summary": {
     "premium": "Premium:",
@@ -255,14 +257,14 @@
     "publicBeta": "Public Beta",
     "headline": "Bitcoin options.",
     "headlineHighlight": "For everyone.",
-    "subheadline": "Earn yield on your Bitcoin, or bet on where it's heading.",
+    "subheadline": "Earn premium on your Bitcoin, or leverage its next move.",
     "twoPathsEyebrow": "Two strategies",
     "twoPathsTitle": "Pick your side.",
-    "twoPathsTitleSub": "Earn or bet.",
+    "twoPathsTitleSub": "Leverage or earn.",
     "twoPathsSubtitle": "Write options to earn premium upfront, or buy them for leveraged exposure. Same protocol, opposite plays.",
     "forHodlers": "for hodlers",
-    "earnYieldTitle": "Your BTC earns while you hold",
-    "earnYieldDescription": "Lock BTC and earn income upfront. If BTC stays below your target when time is up, you keep everything.",
+    "earnYieldTitle": "Earn premium on your BTC",
+    "earnYieldDescription": "Collect premium upfront for taking the other side of a buyer's bet on terms you set.",
     "forTraders": "for traders",
     "leverageTitle": "Small bet, big upside",
     "leverageDescription": "Pick a price and timeframe. If BTC is above your target when time is up, you win big. Up to 100x leverage",
@@ -273,7 +275,7 @@
     "gettingStarted": "Getting Started",
     "threeStepsTitle": "Three steps to get started",
     "earn": "Earn",
-    "bet": "Bet",
+    "bet": "Leverage",
     "writerStep1Title": "Deposit BTC",
     "writerStep1Desc": "Connect a wallet and deposit BTC to your account.",
     "writerStep2Title": "Create your offer",
@@ -283,7 +285,7 @@
     "buyerStep1Title": "Deposit BTC",
     "buyerStep1Desc": "Connect a wallet and deposit BTC to your account.",
     "buyerStep2Title": "Take a position",
-    "buyerStep2Desc": "Pick a price target and date, then accept an offer. Pay a small premium for leveraged upside — your max loss is the premium.",
+    "buyerStep2Desc": "Pick a price target and date, then accept an offer. Pay a small premium for leveraged upside. your max loss is the premium.",
     "buyerStep3Title": "Auto-payout at expiry",
     "buyerStep3Desc": "If BTC closes above your strike, profit settles to your account on-chain. No exit timing. No liquidations.",
     "startEarning": "Start Earning",
@@ -344,6 +346,8 @@
   "Pages": {
     "buyOptions": "Buy options",
     "writeOptions": "Write options",
+    "buyOptionsDescription": "Leverage your bet on BTC's next move. Max loss is what you put in.",
+    "writeOptionsDescription": "Collect premium upfront for taking the other side of a buyer's bet on terms you set.",
     "putsComingSoon": "Puts coming soon",
     "writeCta": "Create an offer",
     "buyCta": "Buy an option",
@@ -481,7 +485,7 @@
       "title": "Isometric",
       "tagline": "OnBitcoin options. Made simple.",
       "benefit1": "Leverage your conviction",
-      "benefit2": "Earn yield on BTC",
+      "benefit2": "Earn premium on BTC",
       "benefit3": "Fully on-chain",
       "showMe": "Show me how",
       "skipToApp": "Skip to app"
@@ -507,13 +511,13 @@
       "btcPrice": "BTC price"
     },
     "writing": {
-      "title": "Your BTC works for you",
+      "title": "Collect premium, on your terms",
       "youLock": "You lock",
       "youEarnUpfront": "You earn upfront",
       "netReturn": "Net return",
-      "keyFact": "Your maximum risk is already priced in.",
+      "keyFact": "Your max risk is what you lock as collateral.",
       "condition": "If BTC stays below $105k",
-      "conditionValue": "Keep everything"
+      "conditionValue": "Keep BTC + premium"
     },
     "ready": {
       "title": "Ready to trade",

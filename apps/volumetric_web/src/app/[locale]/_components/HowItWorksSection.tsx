@@ -11,7 +11,7 @@ import { appUrl } from "@/lib/urls";
 
 export function HowItWorksSection() {
   const t = useTranslations("Landing");
-  const [activeTab, setActiveTab] = useState<"writer" | "buyer">("writer");
+  const [activeTab, setActiveTab] = useState<"writer" | "buyer">("buyer");
   const waitlistMode = isWaitlistMode();
 
   const writerSteps = [
@@ -69,8 +69,8 @@ export function HowItWorksSection() {
 
           <AnimatedToggle
             options={[
-              { value: "writer", label: t("earn"), icon: TrendingUp },
               { value: "buyer", label: t("bet"), icon: Zap },
+              { value: "writer", label: t("earn"), icon: TrendingUp },
             ]}
             value={activeTab}
             onChange={setActiveTab}

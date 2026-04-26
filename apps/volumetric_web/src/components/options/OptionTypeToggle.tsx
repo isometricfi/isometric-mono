@@ -25,6 +25,7 @@ export function OptionTypeToggle({ value, onChange, disabled }: OptionTypeToggle
       <AnimatedToggle
         options={optionTypeOptions}
         value={value}
+        className="md:h-11 h-auto"
         onChange={onChange}
         layoutId="optionType"
       />

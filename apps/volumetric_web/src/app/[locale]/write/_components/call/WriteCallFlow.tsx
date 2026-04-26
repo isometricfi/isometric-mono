@@ -30,7 +30,6 @@ import { Drawer, DrawerContent, DrawerDescription, DrawerTitle } from "@/compone
 import { ProgressDots } from "@/components/ui/progress-dots";
 import { Skeleton } from "@/components/ui/skeleton";
 import { SlideToConfirm } from "@/components/ui/slide-to-confirm";
-import { DepositModal } from "@/components/wallet/DepositModal";
 import { useConfig } from "@/hooks";
 import { Link } from "@/i18n/routing";
 import { basisPointsToPercent, cn, formatBtc, roundToN, satsToBtc } from "@/lib/utils";
@@ -39,6 +38,7 @@ import { useCallWriteOptionFormModel } from "./_internal/use-call-write-option-f
 interface WriteCallFlowProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onRequestDeposit: () => void;
 }
 
 const STEPS = ["termStrike", "collateral", "premium", "review"] as const;
@@ -46,13 +46,12 @@ type StepName = (typeof STEPS)[number];
 
 type WriteModel = ReturnType<typeof useCallWriteOptionFormModel>;
 
-export function WriteCallFlow({ open, onOpenChange }: WriteCallFlowProps) {
+export function WriteCallFlow({ open, onOpenChange, onRequestDeposit }: WriteCallFlowProps) {
   const isMobile = useMediaQuery({ query: "(max-width: 768px)" });
   const t = useTranslations("WriteFlow");
   const tCommon = useTranslations("Common");
   const tOfferResult = useTranslations("OfferResult");
   const [stepIndex, setStepIndex] = useState(0);
-  const [depositModalOpen, setDepositModalOpen] = useState(false);
   const { primaryWallet, setShowAuthFlow } = useDynamicContext();
   const { data: config } = useConfig();
   const model = useCallWriteOptionFormModel();
@@ -89,7 +88,7 @@ export function WriteCallFlow({ open, onOpenChange }: WriteCallFlowProps) {
       return;
     }
     if (model.needDepositMore) {
-      setDepositModalOpen(true);
+      onRequestDeposit();
       return;
     }
     model.handleSubmit();
@@ -124,7 +123,9 @@ export function WriteCallFlow({ open, onOpenChange }: WriteCallFlowProps) {
             className="px-5 py-4 flex-1 flex flex-col"
           >
             {step === "termStrike" && <TermStrikeStep model={model} />}
-            {step === "collateral" && <CollateralStep model={model} />}
+            {step === "collateral" && (
+              <CollateralStep model={model} onDepositClick={onRequestDeposit} />
+            )}
             {step === "premium" && <PremiumStep model={model} apy={apyPercent} />}
             {step === "review" &&
               (isOfferActive ? (
@@ -221,8 +222,6 @@ export function WriteCallFlow({ open, onOpenChange }: WriteCallFlowProps) {
           </DialogContent>
         </Dialog>
       )}
-
-      <DepositModal open={depositModalOpen} onOpenChange={setDepositModalOpen} />
     </>
   );
 }
@@ -266,7 +265,13 @@ function TermStrikeStep({ model }: { model: WriteModel }) {
   );
 }
 
-function CollateralStep({ model }: { model: WriteModel }) {
+function CollateralStep({
+  model,
+  onDepositClick,
+}: {
+  model: WriteModel;
+  onDepositClick: () => void;
+}) {
   const t = useTranslations("WriteFlow");
   const tForms = useTranslations("Forms");
   return (
@@ -283,19 +288,18 @@ function CollateralStep({ model }: { model: WriteModel }) {
           </div>
         </>
       ) : (
-        <>
-          <MobileAmountInput
-            eyebrow={tForms("collateral")}
-            amountSats={model.amountSats}
-            btcPrice={model.btcPrice}
-            maxAmountSats={model.maxCreateOfferAmountSats}
-            minAmountSats={model.minCreateOfferAmountSats}
-            onAmountSatsChange={model.handleAmountSatsChange}
-          />
-          <div className="mt-6">
-            <FlowInfoPanel>{t("collateral.explain")}</FlowInfoPanel>
-          </div>
-        </>
+        <><MobileAmountInput
+        eyebrow={tForms("collateral")}
+        amountSats={model.amountSats}
+        btcPrice={model.btcPrice}
+        maxAmountSats={model.maxCreateOfferAmountSats}
+        minAmountSats={model.minCreateOfferAmountSats}
+        onAmountSatsChange={model.handleAmountSatsChange}
+        onDepositClick={onDepositClick}
+      />
+      <div className="mt-6">
+        <FlowInfoPanel>{t("collateral.explain")}</FlowInfoPanel>
+      </div></>
       )}
     </>
   );
