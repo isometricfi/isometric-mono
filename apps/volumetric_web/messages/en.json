@@ -291,7 +291,7 @@
     "chainAbstraction": "Chain Abstraction",
     "nativeBitcoin": "Native Bitcoin.",
     "smartContractPower": "Smart contract power.",
-    "chainAbstractionDescription": "Your BTC never leaves the Bitcoin network. ICP's chain-key technology represents it 1:1 on-chain, unlocking smart contracts without centralized bridges or wrapping.",
+    "chainAbstractionDescription": "Isometric uses ckBTC, backed by the Internet Computer's native Bitcoin integration. IC nodes collectively sign Bitcoin withdrawals with threshold ECDSA, so no single node holds the key and no bridge custodian controls the BTC.",
     "learnMore": "Learn more",
     "bitcoin": "Bitcoin",
     "yourBtc": "Your BTC",

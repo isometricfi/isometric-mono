@@ -55,8 +55,6 @@ sequenceDiagram
     end
 ```
 
-If a payout fails mid-flight, the protocol retries until it completes. Your balance is never at risk; the option remains backed by the same locked collateral until the transfer goes through.
-
 ## A note on Bitcoin custody
 
 When you deposit, your BTC goes into custody held under threshold ECDSA. Internet Computer nodes sign Bitcoin transactions collectively, and no single node holds the key. The internal on-chain representation of that BTC is called ckBTC. From your perspective the balance behaves like native BTC: you deposit BTC and you withdraw BTC.
