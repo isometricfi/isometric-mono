@@ -4,6 +4,7 @@ use std::rc::Rc;
 use async_trait::async_trait;
 use candid::{Nat, Principal};
 use icrc_ledger_types::icrc1::account::Account;
+use icrc_ledger_types::icrc1::transfer::Memo;
 use icrc_ledger_types::icrc2::approve::ApproveArgs;
 use tokio::sync::oneshot;
 use tokio::task;
@@ -66,6 +67,7 @@ impl LedgerClient for CoordinatedLedger {
         _to: Account,
         _amount: u64,
         _created_at_time: u64,
+        _memo: Option<Memo>,
     ) -> Result<u64, VolumetricError> {
         let completed_transfer_count = self.completed_transfer_count.get();
         self.completed_transfer_count
@@ -107,6 +109,7 @@ impl LedgerClient for CoordinatedLedger {
 
 struct SecondTransferFailsLedger {
     completed_transfer_count: Cell<u64>,
+    transfer_memos: RefCell<Vec<Option<Memo>>>,
 }
 
 #[async_trait(?Send)]
@@ -117,10 +120,12 @@ impl LedgerClient for SecondTransferFailsLedger {
         _to: Account,
         _amount: u64,
         _created_at_time: u64,
+        memo: Option<Memo>,
     ) -> Result<u64, VolumetricError> {
         let completed_transfer_count = self.completed_transfer_count.get();
         self.completed_transfer_count
             .set(completed_transfer_count + 1);
+        self.transfer_memos.borrow_mut().push(memo);
 
         if completed_transfer_count == 0 {
             return Ok(TEST_BLOCK_INDEX);
@@ -593,9 +598,11 @@ async fn test_accept_offer_succeeds_when_platform_fee_transfer_fails() {
     let writer = test_principal(99);
     let buyer = test_principal(100);
     setup_test_state(writer, buyer);
-    ledger::set_ledger(Rc::new(SecondTransferFailsLedger {
+    let ledger = Rc::new(SecondTransferFailsLedger {
         completed_transfer_count: Cell::new(0),
-    }));
+        transfer_memos: RefCell::new(Vec::new()),
+    });
+    ledger::set_ledger(ledger.clone());
 
     let premium_sats = calculate_premium_in_sats(TEST_QUANTITY_SATS, TEST_PREMIUM_BPS);
     let premium_fee_sats =
@@ -638,6 +645,11 @@ async fn test_accept_offer_succeeds_when_platform_fee_transfer_fails() {
     assert_eq!(buyer_balance.available, expected_buyer_available_sats);
 
     assert_eq!(get_platform_fees_collected(), 0);
+    let transfer_memos = ledger.transfer_memos.borrow();
+    assert_eq!(transfer_memos.len(), 2);
+    assert!(transfer_memos[0].is_some());
+    assert!(transfer_memos[1].is_some());
+    assert_ne!(transfer_memos[0], transfer_memos[1]);
 }
 
 /// Given: one buyer has already started accepting and the offer is Processing

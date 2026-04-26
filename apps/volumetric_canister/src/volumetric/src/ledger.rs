@@ -9,6 +9,7 @@ use std::rc::Rc;
 use async_trait::async_trait;
 use candid::Nat;
 use icrc_ledger_types::icrc1::account::Account;
+use icrc_ledger_types::icrc1::transfer::Memo;
 use icrc_ledger_types::icrc1::transfer::TransferError;
 use icrc_ledger_types::icrc2::approve::{ApproveArgs, ApproveError};
 
@@ -39,6 +40,7 @@ pub trait LedgerClient {
         to: Account,
         amount: u64,
         created_at_time_ns: u64,
+        memo: Option<Memo>,
     ) -> Result<u64, VolumetricError>;
 
     async fn icrc1_balance_of(&self, account: Account) -> Result<Nat, VolumetricError>;
@@ -69,6 +71,7 @@ impl LedgerClient for IcLedger {
         to: Account,
         amount: u64,
         created_at_time_ns: u64,
+        memo: Option<Memo>,
     ) -> Result<u64, VolumetricError> {
         let ledger = Config::ckbtc_ledger();
 
@@ -77,7 +80,7 @@ impl LedgerClient for IcLedger {
             to,
             amount: Nat::from(amount),
             fee: None,
-            memo: None,
+            memo,
             created_at_time: Some(created_at_time_ns),
         };
 
@@ -208,10 +211,11 @@ pub async fn icrc1_transfer(
     to: Account,
     amount: u64,
     created_at_time_ns: u64,
+    memo: Option<Memo>,
 ) -> Result<u64, VolumetricError> {
     let ledger = LEDGER.with(|l| Rc::clone(&l.borrow()));
     ledger
-        .icrc1_transfer(from_subaccount, to, amount, created_at_time_ns)
+        .icrc1_transfer(from_subaccount, to, amount, created_at_time_ns, memo)
         .await
 }
 
@@ -367,6 +371,7 @@ mod tests {
     use async_trait::async_trait;
     use candid::Principal;
     use icrc_ledger_types::icrc1::account::Account;
+    use icrc_ledger_types::icrc1::transfer::Memo;
 
     use super::*;
     use crate::ic::{self, IcRuntime};
@@ -414,6 +419,7 @@ mod tests {
             _to: Account,
             _amount: u64,
             _created_at_time: u64,
+            _memo: Option<Memo>,
         ) -> Result<u64, VolumetricError> {
             Ok(1)
         }

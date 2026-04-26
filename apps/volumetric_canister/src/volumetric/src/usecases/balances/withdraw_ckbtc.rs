@@ -6,8 +6,9 @@ use crate::auth::derive_subaccount;
 use crate::errors::{error_codes, VolumetricError};
 use crate::generated::ckbtc::RetrieveBtcWithApprovalArgs;
 use crate::journaling::{
-    default_policy, enqueue_if_absent, get_entry, register_retryable_error, OperationId, WalEntry,
-    WalExecutionError, WalKind, WalPayload, WalResult, WalStatus, WithdrawalWalPayload,
+    default_policy, enqueue_if_absent, get_entry, ledger_memo, register_retryable_error,
+    LedgerMemoKind, OperationId, WalEntry, WalExecutionError, WalKind, WalPayload, WalResult,
+    WalStatus, WithdrawalWalPayload,
 };
 use crate::locks::BalanceMutationLock;
 use crate::storage::{
@@ -369,6 +370,7 @@ fn load_failed_withdraw_message(
 }
 
 pub async fn run_withdrawal_wal(
+    operation_id: OperationId,
     payload: &WithdrawalWalPayload,
 ) -> Result<WithdrawalWalResult, WalExecutionError> {
     let withdrawal = get_withdrawal(payload.withdrawal_id).ok_or_else(|| {
@@ -392,7 +394,11 @@ pub async fn run_withdrawal_wal(
             expected_allowance: None,
             expires_at: None,
             fee: None,
-            memo: None,
+            memo: Some(ledger_memo(
+                operation_id,
+                LedgerMemoKind::WithdrawalApprove,
+                &[],
+            )),
             created_at_time: Some(payload.created_at_time_ns),
         };
 
@@ -503,6 +509,7 @@ mod tests {
     use std::rc::Rc;
 
     use async_trait::async_trait;
+    use icrc_ledger_types::icrc1::transfer::Memo;
     use icrc_ledger_types::icrc2::approve::ApproveArgs;
 
     use crate::errors::error_codes;
@@ -541,6 +548,7 @@ mod tests {
     struct MockLedger {
         approve_result: Result<Nat, VolumetricError>,
         last_approve_amount: RefCell<Option<Nat>>,
+        last_approve_memo: RefCell<Option<Memo>>,
     }
 
     #[async_trait(?Send)]
@@ -551,6 +559,7 @@ mod tests {
             _to: Account,
             _amount: u64,
             _created_at_time: u64,
+            _memo: Option<Memo>,
         ) -> Result<u64, VolumetricError> {
             Ok(1)
         }
@@ -559,6 +568,7 @@ mod tests {
         }
         async fn icrc2_approve(&self, args: ApproveArgs) -> Result<Nat, VolumetricError> {
             self.last_approve_amount.replace(Some(args.amount));
+            self.last_approve_memo.replace(args.memo);
             self.approve_result.clone()
         }
 
@@ -651,6 +661,7 @@ mod tests {
         ledger::set_ledger(Rc::new(MockLedger {
             approve_result: Ok(Nat::from(0u64)),
             last_approve_amount: RefCell::new(None),
+            last_approve_memo: RefCell::new(None),
         }));
         ledger::set_cached_transfer_fee_for_testing(TEST_TRANSFER_FEE_SATS, TEST_NOW_NS);
         minter::set_minter(Rc::new(MockMinter {
@@ -667,6 +678,7 @@ mod tests {
         let ledger = Rc::new(MockLedger {
             approve_result: Ok(Nat::from(0u64)),
             last_approve_amount: RefCell::new(None),
+            last_approve_memo: RefCell::new(None),
         });
         ledger::set_ledger(ledger.clone());
         ledger::set_cached_transfer_fee_for_testing(TEST_TRANSFER_FEE_SATS, TEST_NOW_NS);
@@ -766,6 +778,10 @@ mod tests {
         assert_eq!(
             recorded_approve_amount,
             Nat::from(EXPECTED_NET_WITHDRAW_SATS)
+        );
+        assert!(
+            ledger.last_approve_memo.borrow().is_some(),
+            "withdraw approve should include a deterministic memo"
         );
 
         let recorded_retrieve_amount_sats = minter
@@ -911,6 +927,7 @@ mod tests {
                 None,
             )),
             last_approve_amount: RefCell::new(None),
+            last_approve_memo: RefCell::new(None),
         }));
         ledger::set_cached_transfer_fee_for_testing(TEST_TRANSFER_FEE_SATS, TEST_NOW_NS);
         minter::set_minter(Rc::new(MockMinter {
@@ -950,6 +967,7 @@ mod tests {
         ledger::set_ledger(Rc::new(MockLedger {
             approve_result: Ok(Nat::from(0u64)),
             last_approve_amount: RefCell::new(None),
+            last_approve_memo: RefCell::new(None),
         }));
         ledger::set_cached_transfer_fee_for_testing(TEST_TRANSFER_FEE_SATS, TEST_NOW_NS);
         minter::set_minter(Rc::new(MockMinter {
@@ -996,6 +1014,7 @@ mod tests {
         ledger::set_ledger(Rc::new(MockLedger {
             approve_result: Ok(Nat::from(0u64)),
             last_approve_amount: RefCell::new(None),
+            last_approve_memo: RefCell::new(None),
         }));
         ledger::set_cached_transfer_fee_for_testing(TEST_TRANSFER_FEE_SATS, TEST_NOW_NS);
         minter::set_minter(Rc::new(RetryableThenPermanentMinter {
