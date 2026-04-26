@@ -104,7 +104,7 @@ const config: Config = {
         {
           title: 'Getting started',
           items: [
-            {label: 'Connect and account', to: '/getting-started/connect-and-account'},
+            {label: 'Connect an account', to: '/getting-started/connect-and-account'},
             {label: 'Deposit', to: '/getting-started/deposit'},
             {label: 'Withdraw', to: '/getting-started/withdraw'},
           ],

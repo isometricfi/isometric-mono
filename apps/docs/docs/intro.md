@@ -25,6 +25,6 @@ If you want **leverage** on BTC, you buy. You put in an amount upfront and get e
 ## Where to start
 
 - New to options? Read [Options explained](/strategies/options-explained).
-- Ready to trade? Start with [Connect and account](/getting-started/connect-and-account).
+- Ready to trade? Start with [Connect an account](/getting-started/connect-and-account).
 - Curious about the tech under the hood? See the [Technical](/technical/) section.
 - Looking for something specific? Try the [FAQ](/faq).

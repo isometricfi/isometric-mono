@@ -1,9 +1,9 @@
 ---
 sidebar_position: 2
-title: Connect and account
+title: Connect an account
 ---
 
-# Connect and account
+# Connect an account
 
 Isometric uses your existing wallet for signing. There's no separate password to remember.
 

@@ -15,6 +15,6 @@ The app shows the current minimums on each screen before you sign anything.
 
 ## Sections
 
-- [Connect and account](./connect-and-account)
+- [Connect an account](./connect-and-account)
 - [Deposit BTC](./deposit)
 - [Withdraw BTC](./withdraw)
