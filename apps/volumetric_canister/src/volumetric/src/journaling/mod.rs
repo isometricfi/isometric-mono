@@ -1,6 +1,8 @@
+pub mod memo;
 pub mod op_id;
 pub mod wal;
 
+pub use memo::{ledger_memo, principal_memo_part, u64_memo_part, LedgerMemoKind};
 pub use op_id::OperationId;
 pub use wal::{
     cleanup_succeeded, default_policy, enqueue_if_absent, execute_wal_entry_now, get_entry,

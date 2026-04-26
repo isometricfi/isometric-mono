@@ -4,7 +4,8 @@ use icrc_ledger_types::icrc1::account::Account;
 use crate::auth::derive_subaccount;
 use crate::ic;
 use crate::journaling::{
-    register_retryable_error, AcceptWalPayload, AcceptWalPreparedAccept, WalExecutionError,
+    ledger_memo, principal_memo_part, register_retryable_error, u64_memo_part, AcceptWalPayload,
+    AcceptWalPreparedAccept, LedgerMemoKind, OperationId, WalExecutionError,
 };
 use crate::oracle::get_btc_usd_price_cents;
 use crate::storage::{
@@ -19,6 +20,7 @@ use super::accept_offers::rollback_prepared_accepts;
 use super::AcceptWalResult;
 
 pub async fn run_accept_wal(
+    operation_id: OperationId,
     payload: &AcceptWalPayload,
 ) -> Result<AcceptWalResult, WalExecutionError> {
     let accept = get_accept(payload.accept_journal_entry_id).ok_or_else(|| {
@@ -32,7 +34,8 @@ pub async fn run_accept_wal(
         validate_accept_finalization_state(payload)?;
 
         let entry_price_cents = load_or_fetch_accept_entry_price_cents(&accept).await?;
-        let platform_fee_collected = execute_wal_writer_and_fee_transfers(payload).await?;
+        let platform_fee_collected =
+            execute_wal_writer_and_fee_transfers(operation_id, payload).await?;
 
         update_accept_execution_snapshot(accept.id, entry_price_cents, platform_fee_collected);
         update_accept_phase(
@@ -156,9 +159,12 @@ fn validate_accept_finalization_state(payload: &AcceptWalPayload) -> Result<(), 
 }
 
 async fn execute_wal_writer_and_fee_transfers(
+    operation_id: OperationId,
     payload: &AcceptWalPayload,
 ) -> Result<bool, WalExecutionError> {
-    for writer_transfer in &payload.writer_transfers {
+    for (writer_transfer_index, writer_transfer) in payload.writer_transfers.iter().enumerate() {
+        let writer_part = principal_memo_part(writer_transfer.writer);
+        let writer_transfer_index_part = u64_memo_part(writer_transfer_index as u64);
         transfer_ckbtc(
             Some(derive_subaccount(payload.buyer)),
             Account {
@@ -167,6 +173,11 @@ async fn execute_wal_writer_and_fee_transfers(
             },
             writer_transfer.amount_sats,
             payload.created_at_time_ns,
+            Some(ledger_memo(
+                operation_id,
+                LedgerMemoKind::AcceptWriterTransfer,
+                &[&writer_transfer_index_part, &writer_part],
+            )),
         )
         .await
         .map_err(register_retryable_error)?;
@@ -181,6 +192,11 @@ async fn execute_wal_writer_and_fee_transfers(
             },
             payload.planned_platform_fee_sats,
             payload.created_at_time_ns,
+            Some(ledger_memo(
+                operation_id,
+                LedgerMemoKind::AcceptPlatformFee,
+                &[],
+            )),
         )
         .await;
 

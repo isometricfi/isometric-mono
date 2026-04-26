@@ -148,6 +148,7 @@ mod tests {
     use std::rc::Rc;
 
     use async_trait::async_trait;
+    use icrc_ledger_types::icrc1::transfer::Memo;
     use icrc_ledger_types::icrc2::approve::ApproveArgs;
 
     use crate::errors::error_codes;
@@ -192,6 +193,7 @@ mod tests {
             _to: Account,
             _amount: u64,
             _created_at_time: u64,
+            _memo: Option<Memo>,
         ) -> Result<u64, VolumetricError> {
             Ok(1)
         }
@@ -221,6 +223,7 @@ mod tests {
             _to: Account,
             _amount: u64,
             _created_at_time: u64,
+            _memo: Option<Memo>,
         ) -> Result<u64, VolumetricError> {
             Ok(1)
         }

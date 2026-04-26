@@ -4,6 +4,7 @@ use std::rc::Rc;
 use async_trait::async_trait;
 use candid::{Nat, Principal};
 use icrc_ledger_types::icrc1::account::Account;
+use icrc_ledger_types::icrc1::transfer::Memo;
 use icrc_ledger_types::icrc2::approve::ApproveArgs;
 use tokio::sync::oneshot;
 use tokio::task;
@@ -12,6 +13,7 @@ use super::accept_offers::validate_accept_offer_request;
 use super::*;
 use crate::errors::{error_codes, VolumetricError};
 use crate::ic::{self, IcRuntime};
+use crate::journaling::{ledger_memo, principal_memo_part, u64_memo_part, LedgerMemoKind};
 use crate::ledger::{self, LedgerClient, TESTING_CKBTC_TRANSFER_FEE_SATS};
 use crate::oracle::{set_oracle, StubOracle};
 use crate::storage::{
@@ -66,6 +68,7 @@ impl LedgerClient for CoordinatedLedger {
         _to: Account,
         _amount: u64,
         _created_at_time: u64,
+        _memo: Option<Memo>,
     ) -> Result<u64, VolumetricError> {
         let completed_transfer_count = self.completed_transfer_count.get();
         self.completed_transfer_count
@@ -107,6 +110,7 @@ impl LedgerClient for CoordinatedLedger {
 
 struct SecondTransferFailsLedger {
     completed_transfer_count: Cell<u64>,
+    transfer_memos: RefCell<Vec<Option<Memo>>>,
 }
 
 #[async_trait(?Send)]
@@ -117,10 +121,12 @@ impl LedgerClient for SecondTransferFailsLedger {
         _to: Account,
         _amount: u64,
         _created_at_time: u64,
+        memo: Option<Memo>,
     ) -> Result<u64, VolumetricError> {
         let completed_transfer_count = self.completed_transfer_count.get();
         self.completed_transfer_count
             .set(completed_transfer_count + 1);
+        self.transfer_memos.borrow_mut().push(memo);
 
         if completed_transfer_count == 0 {
             return Ok(TEST_BLOCK_INDEX);
@@ -593,9 +599,11 @@ async fn test_accept_offer_succeeds_when_platform_fee_transfer_fails() {
     let writer = test_principal(99);
     let buyer = test_principal(100);
     setup_test_state(writer, buyer);
-    ledger::set_ledger(Rc::new(SecondTransferFailsLedger {
+    let ledger = Rc::new(SecondTransferFailsLedger {
         completed_transfer_count: Cell::new(0),
-    }));
+        transfer_memos: RefCell::new(Vec::new()),
+    });
+    ledger::set_ledger(ledger.clone());
 
     let premium_sats = calculate_premium_in_sats(TEST_QUANTITY_SATS, TEST_PREMIUM_BPS);
     let premium_fee_sats =
@@ -638,6 +646,21 @@ async fn test_accept_offer_succeeds_when_platform_fee_transfer_fails() {
     assert_eq!(buyer_balance.available, expected_buyer_available_sats);
 
     assert_eq!(get_platform_fees_collected(), 0);
+    let transfer_memos = ledger.transfer_memos.borrow();
+    let writer_part = principal_memo_part(writer);
+    let writer_transfer_index_part = u64_memo_part(0);
+    let expected_writer_transfer_memo = ledger_memo(
+        receipt.operation_id,
+        LedgerMemoKind::AcceptWriterTransfer,
+        &[&writer_transfer_index_part, &writer_part],
+    );
+    let expected_platform_fee_memo =
+        ledger_memo(receipt.operation_id, LedgerMemoKind::AcceptPlatformFee, &[]);
+
+    assert_eq!(transfer_memos.len(), 2);
+    assert_eq!(transfer_memos[0], Some(expected_writer_transfer_memo));
+    assert_eq!(transfer_memos[1], Some(expected_platform_fee_memo));
+    assert_ne!(transfer_memos[0], transfer_memos[1]);
 }
 
 /// Given: one buyer has already started accepting and the offer is Processing

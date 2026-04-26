@@ -85,7 +85,7 @@ async fn execute_wal_entry_attempt(operation_id: OperationId) -> WalExecutionOut
     // Persist attempt start before await so retries survive traps/upgrades.
     put_entry(wal_entry.clone());
 
-    let payload_execution_result = execute_wal_payload(&wal_entry.payload).await;
+    let payload_execution_result = execute_wal_payload(operation_id, &wal_entry.payload).await;
 
     match payload_execution_result {
         Ok(wal_result) => {
@@ -125,17 +125,24 @@ async fn execute_wal_entry_attempt(operation_id: OperationId) -> WalExecutionOut
     }
 }
 
-async fn execute_wal_payload(payload: &WalPayload) -> Result<WalResult, WalExecutionError> {
+async fn execute_wal_payload(
+    operation_id: OperationId,
+    payload: &WalPayload,
+) -> Result<WalResult, WalExecutionError> {
     match payload {
-        WalPayload::Settlement(settlement_payload) => run_settlement_wal(settlement_payload)
-            .await
-            .map(WalResult::Settlement),
-        WalPayload::Withdrawal(withdrawal_payload) => run_withdrawal_wal(withdrawal_payload)
-            .await
-            .map(WalResult::Withdrawal),
-        WalPayload::Accept(accept_payload) => {
-            run_accept_wal(accept_payload).await.map(WalResult::Accept)
+        WalPayload::Settlement(settlement_payload) => {
+            run_settlement_wal(operation_id, settlement_payload)
+                .await
+                .map(WalResult::Settlement)
         }
+        WalPayload::Withdrawal(withdrawal_payload) => {
+            run_withdrawal_wal(operation_id, withdrawal_payload)
+                .await
+                .map(WalResult::Withdrawal)
+        }
+        WalPayload::Accept(accept_payload) => run_accept_wal(operation_id, accept_payload)
+            .await
+            .map(WalResult::Accept),
     }
 }
 
