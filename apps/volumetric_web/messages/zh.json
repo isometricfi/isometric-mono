@@ -151,9 +151,9 @@
     "optionBreakdown": "明细",
     "buyExplainer": {
       "intro": "您先支付 {premium}，获得在 {term} 内当 BTC 涨到 {strike} 以上时获利的权利。",
-      "ifRises": "如果 BTC 上涨：",
+      "ifRises": "BTC 高于 {strike}：",
       "ifRisesDesc": "您会自动收到 BTC 利润（最高 {maxProfit}）",
-      "ifBelow": "如果 BTC 维持在下方：",
+      "ifBelow": "BTC 低于 {strike}：",
       "ifBelowDesc": "期权将归零到期，您损失全部溢价",
       "platformFee": "平台费用：",
       "platformFeeDesc": "利润的 {fee}%"
@@ -163,7 +163,7 @@
       "ifBelow": "如果 BTC 低于 {strike}：",
       "ifBelowDesc": "您保留 BTC 并获得收益",
       "ifRises": "如果 BTC 高于 {strike}：",
-      "ifRisesDesc": "您保留收益，但需支付买方在 {strike} 以上的收益（上限为您的抵押）",
+      "ifRisesDesc": "您保留收益，但买方将由您的抵押支付，金额与超出行权价的百分比成比例，最多可能损失全部抵押。",
       "platformFee": "平台费用：",
       "platformFeeDesc": "收益的 {fee}%"
     }
@@ -208,7 +208,7 @@
     "createAccount": "创建账户以访问您的投资组合",
     "history": "历史记录",
     "offers": "报价",
-    "options": "期权",
+    "options": "活跃",
     "noActiveOptions": "您没有活跃的期权",
     "noActiveOffers": "您没有活跃的报价",
     "writeOptions": "卖出期权",

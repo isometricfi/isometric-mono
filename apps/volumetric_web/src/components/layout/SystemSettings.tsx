@@ -2,10 +2,10 @@
 
 import { useLocale, useTranslations } from "next-intl";
 import { useTransition } from "react";
-import { useProMode } from "@/components/layout/ProModeProvider";
 import { ThemeToggle } from "@/components/layout/ThemeToggle";
 import { Button } from "@/components/ui/button";
 import { usePathname, useRouter } from "@/i18n/routing";
+import { useProMode } from "@/stores/preferences-store";
 
 export function SystemSettings({ showHeading = true }: { showHeading?: boolean }) {
   const locale = useLocale();

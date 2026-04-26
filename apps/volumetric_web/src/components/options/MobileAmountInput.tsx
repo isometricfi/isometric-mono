@@ -4,6 +4,7 @@ import { ChevronsUpDown } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useEffect, useId, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Slider } from "@/components/ui/slider";
 import {
   formatUsdInputValue,
@@ -187,6 +188,40 @@ export function MobileAmountInput({
             </Button>
           );
         })}
+      </div>
+    </div>
+  );
+}
+
+export function MobileAmountInputSkeleton() {
+  return (
+    <div className="space-y-5">
+      <div className="rounded-xl border bg-muted/20 px-4 py-4">
+        <div className="flex items-center justify-center gap-2 mb-3">
+          <Skeleton className="h-3 w-16" />
+          <Skeleton className="h-5 w-12 rounded-full" />
+        </div>
+        <div className="flex items-center justify-center gap-1">
+          <Skeleton className="h-9 w-32" />
+        </div>
+        <div className="flex justify-center mt-3">
+          <Skeleton className="h-4 w-20" />
+        </div>
+      </div>
+
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <Skeleton className="h-3 w-16" />
+          <Skeleton className="h-3 w-24" />
+        </div>
+        <Skeleton className="h-2 w-full rounded-full" />
+      </div>
+
+      <div className="grid grid-cols-4 gap-2">
+        <Skeleton className="h-10" />
+        <Skeleton className="h-10" />
+        <Skeleton className="h-10" />
+        <Skeleton className="h-10" />
       </div>
     </div>
   );

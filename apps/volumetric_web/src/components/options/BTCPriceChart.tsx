@@ -273,7 +273,7 @@ export function BTCPriceChart({
         className={
           compact
             ? "w-full rounded-xl h-40"
-            : "w-full  rounded-xl h-full min-h-64 md:max-h-none max-h-64"
+            : "w-full rounded-xl h-full min-h-[306px] md:max-h-none"
         }
       />
     );
@@ -439,7 +439,9 @@ export function BTCPriceChart({
                 className="fill-muted-foreground text-xs font-medium"
               >
                 {t("strike")}: $
-                {strikePrice.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                {strikePrice.toLocaleString(undefined, {
+                  maximumFractionDigits: 0,
+                })}
               </text>
             </>
           )}
@@ -463,7 +465,9 @@ export function BTCPriceChart({
                 className="fill-muted-foreground text-xs font-medium"
               >
                 {t("strike")}: $
-                {strikePrice.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                {strikePrice.toLocaleString(undefined, {
+                  maximumFractionDigits: 0,
+                })}
               </text>
             </>
           )}

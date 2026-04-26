@@ -35,7 +35,7 @@ export function useCallWriteOptionFormModel() {
   const { primaryWallet } = useDynamicContext();
   const { data: priceData } = usePrices();
   const { data: config } = useConfig();
-  const { data: accountData } = useAccount();
+  const { data: accountData, isPending: isAccountPending } = useAccount();
   const { data: optionsData } = useOptions();
   const createOffer = useCreateOffer();
   const btcPrice = priceData?.btc ?? 0;
@@ -103,6 +103,7 @@ export function useCallWriteOptionFormModel() {
   );
 
   const isWalletConnected = !!primaryWallet;
+  const isBalanceLoading = isWalletConnected && isAccountPending;
   const needDepositMore = isWalletConnected && availableBalanceSats < minCreateOfferAmountSats;
   const isValidAmount =
     amountSats >= minCreateOfferAmountSats && amountSats <= maxCreateOfferAmountSats;
@@ -136,18 +137,13 @@ export function useCallWriteOptionFormModel() {
   }, [premiumPercent, premiumValues]);
 
   useEffect(() => {
-    if (maxCreateOfferAmountSats <= 0) {
+    if (maxCreateOfferAmountSats < minCreateOfferAmountSats) {
       setAmountSats(0);
       return;
     }
 
     const defaultAmountSats = Math.floor(maxCreateOfferAmountSats * 0.75);
-    if (defaultAmountSats < minCreateOfferAmountSats) {
-      setAmountSats(0);
-      return;
-    }
-
-    setAmountSats(defaultAmountSats);
+    setAmountSats(Math.max(defaultAmountSats, minCreateOfferAmountSats));
   }, [maxCreateOfferAmountSats, minCreateOfferAmountSats]);
 
   const setTerm = (value: number) => {
@@ -227,6 +223,7 @@ export function useCallWriteOptionFormModel() {
     handlePremiumPercentChange,
     handleStrikeUsdChange,
     handleSubmit,
+    isBalanceLoading,
     isSubmitDisabled: !isWalletConnected || !isValidAmount || createOffer.isPending,
     minCreateOfferAmountSats,
     maxCreateOfferAmountSats,

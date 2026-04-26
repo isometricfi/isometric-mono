@@ -336,7 +336,7 @@ export function FlowScenariosCard({ scenarios }: { scenarios: Scenario[] }) {
         </div>
       </div>
       <Link href={RESOURCE_LINKS.docs} target="_blank">
-        <Button variant="outline" size="sm" className="h-6 w-full text-xs">
+        <Button variant="outline" size="sm" className="md:h-8 h-6 w-full text-xs">
           {tCommon("learnMore")}
         </Button>
       </Link>

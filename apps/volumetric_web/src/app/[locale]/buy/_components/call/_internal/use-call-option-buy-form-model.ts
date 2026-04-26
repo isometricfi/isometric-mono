@@ -33,7 +33,7 @@ const DEFAULT_STRIKE_PERCENT = 5;
 export function useCallOptionBuyFormModel() {
   const { primaryWallet } = useDynamicContext();
   const { data } = useOptions();
-  const { data: account } = useAccount();
+  const { data: account, isPending: isAccountPending } = useAccount();
   const { data: priceData } = usePrices();
   const { data: config } = useConfig();
   const acceptOffer = useAcceptOffer();
@@ -192,6 +192,7 @@ export function useCallOptionBuyFormModel() {
   };
 
   const isWalletConnected = !!primaryWallet;
+  const isBalanceLoading = isWalletConnected && isAccountPending;
   const depositMinSats = minPremiumAmountSats;
   const needDepositMore =
     isWalletConnected &&
@@ -224,6 +225,7 @@ export function useCallOptionBuyFormModel() {
     handleModalClose,
     handleStrikeUsdChange,
     handleSubmit,
+    isBalanceLoading,
     isSubmitDisabled: !isWalletConnected || !isValidAmount || !bestOffer || acceptOffer.isPending,
     leverage,
     depositMinSats,
