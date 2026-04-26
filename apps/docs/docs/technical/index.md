@@ -15,5 +15,5 @@ Three properties of the Internet Computer make this design possible:
 
 ## Where to next
 
-- [Mechanics](./mechanics) — what happens when an offer is accepted, and how options settle.
-- [Price oracle](./price-oracle) — how the BTC/USD price used at settlement is determined.
+- [Mechanics](./mechanics): what happens when an offer is accepted, and how options settle.
+- [Price oracle](./price-oracle): how the BTC/USD price used at settlement is determined.

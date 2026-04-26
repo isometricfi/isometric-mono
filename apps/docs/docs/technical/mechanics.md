@@ -59,6 +59,6 @@ If a payout fails mid-flight, the protocol retries until it completes. Your bala
 
 ## A note on Bitcoin custody
 
-When you deposit, your BTC goes into custody held under threshold ECDSA — Internet Computer nodes sign Bitcoin transactions collectively, and no single node holds the key. The internal on-chain representation of that BTC is called ckBTC. From your perspective the balance behaves like native BTC: you deposit BTC and you withdraw BTC.
+When you deposit, your BTC goes into custody held under threshold ECDSA. Internet Computer nodes sign Bitcoin transactions collectively, and no single node holds the key. The internal on-chain representation of that BTC is called ckBTC. From your perspective the balance behaves like native BTC: you deposit BTC and you withdraw BTC.
 
 Verify on-chain: [ckBTC minter](https://dashboard.internetcomputer.org/canister/mqygn-kiaaa-aaaar-qaadq-cai), [ckBTC ledger](https://dashboard.internetcomputer.org/canister/mxzaz-hqaaa-aaaar-qaada-cai). Background: [ckBTC docs](https://docs.internetcomputer.org/defi/chain-key-tokens/ckbtc/overview).

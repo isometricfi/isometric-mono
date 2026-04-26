@@ -10,9 +10,9 @@ Isometric is a Bitcoin call options app. Self-custody. No KYC. No liquidations.
 
 Two sides of the market.
 
-If you hold BTC and want to **earn**, you write an offer. You set a price BTC has to stay below and earn an amount upfront when a buyer accepts. If BTC closes above your strike at expiry, you pay out the difference from your BTC.
+If you hold BTC and want to **earn premium**, you write an offer. You set a price BTC has to stay below and earn an amount upfront when a buyer accepts. If BTC closes above your strike at expiry, you pay out the difference from your BTC.
 
-If you want a **leveraged bet** on BTC, you buy. You put in a small amount and get exposure to a much larger BTC position for a fixed period. If BTC ends above your chosen price, you keep the upside. If not, you lose what you put in.
+If you want **leverage** on BTC, you buy. You put in an amount upfront and get exposure to a much larger BTC position for a fixed period. If BTC ends above your chosen price, you keep the upside. If not, you lose what you put in.
 
 ## How it works at a glance
 

@@ -12,7 +12,7 @@ Every option has two sides:
 - The **buyer** pays an amount upfront. If BTC rises above the strike at expiry, the buyer receives the difference, in BTC. If BTC stays at or below strike, the buyer loses what they put in.
 - The **writer** commits BTC and receives the buyer's payment. If BTC stays at or below strike, the writer keeps everything. If BTC rises above strike, the difference comes out of the writer's BTC.
 
-Isometric supports calls only.
+For now Isometric only supports calls.
 
 ## Fully covered: what makes Isometric different
 

@@ -53,8 +53,8 @@ For a writer, the maximum loss is the amount BTC moves above your strike, capped
 
 ## What are the fees?
 
-- **5%** of the premium when an offer is accepted (deducted from the writer's premium — you receive 95%).
-- **20%** of the buyer's gross profit at settlement (only when the option is in the money — buyer receives 80%).
+- **5%** of the premium when an offer is accepted (deducted from the writer's premium, so you receive 95%).
+- **20%** of the buyer's gross profit at settlement (only when the option is in the money, so the buyer receives 80%).
 
 See [Fees](/trading/fees) for worked examples.
 

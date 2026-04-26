@@ -5,14 +5,15 @@ title: Withdraw BTC
 
 # Withdraw BTC
 
-You can withdraw your **Available** balance to any Bitcoin address at any time. BTC locked in active options can't be withdrawn.
+You can withdraw your **Available** balance back to your connected wallet at any time. BTC locked in active options can't be withdrawn.
 
 ## How to withdraw
 
-1. Open **Account → Withdraw**.
-2. Enter the destination Bitcoin address.
-3. Enter the amount.
-4. Sign the message in your wallet.
+1. Open the **Account** panel and pick **Withdraw**.
+2. Enter the amount.
+3. Sign the message in your wallet.
+
+BTC is sent to the wallet you signed in with.
 
 ## Minimum withdrawal
 

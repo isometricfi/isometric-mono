@@ -23,6 +23,7 @@ const sidebars: SidebarsConfig = {
         'trading/history',
         'trading/settlement',
         'trading/fees',
+        'trading/risk',
       ],
     },
     {
