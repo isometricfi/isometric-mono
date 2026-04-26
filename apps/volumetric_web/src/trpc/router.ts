@@ -5,7 +5,6 @@ import { eventsRouter } from "./routers/events";
 import { historyRouter } from "./routers/history";
 import { optionsRouter } from "./routers/options";
 import { portfolioRouter } from "./routers/portfolio";
-import { testingRouter } from "./routers/testing";
 import { waitlistRouter } from "./routers/waitlist";
 
 export const appRouter = router({
@@ -15,7 +14,6 @@ export const appRouter = router({
   history: historyRouter,
   options: optionsRouter,
   portfolio: portfolioRouter,
-  testing: testingRouter,
   waitlist: waitlistRouter,
 });
 
