@@ -13,8 +13,6 @@ import { cn, formatBtcWithSymbolBigint, roundToN } from "@/lib/utils";
 import type { ViewerMode } from "@/types/ui";
 import type { OptionCardData } from "./_internal/use-option-card-data";
 
-// Forwards extra props/ref onto Card so Radix Dialog/Drawer `asChild` triggers
-// can attach their click handler when this component is the trigger child.
 interface OptionCardProps extends ComponentPropsWithoutRef<typeof Card> {
   option: PortfolioOption;
   role: ViewerMode;
