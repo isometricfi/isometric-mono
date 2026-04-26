@@ -23,12 +23,6 @@ importers:
 
   apps/docs:
     dependencies:
-      '@dfinity/agent':
-        specifier: ^2.2.0
-        version: 2.4.1(@dfinity/candid@2.4.1(@dfinity/principal@2.4.1))(@dfinity/principal@2.4.1)
-      '@dfinity/principal':
-        specifier: ^2.2.0
-        version: 2.4.1
       '@docusaurus/core':
         specifier: 3.9.2
         version: 3.9.2(@mdx-js/react@3.1.1(@types/react@19.2.7)(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(typescript@5.6.3)
@@ -41,9 +35,6 @@ importers:
       '@mdx-js/react':
         specifier: ^3.0.0
         version: 3.1.1(@types/react@19.2.7)(react@19.2.0)
-      '@volumetric/canister-types':
-        specifier: workspace:*
-        version: link:../../packages/canister-types
       clsx:
         specifier: ^2.0.0
         version: 2.1.1
