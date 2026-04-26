@@ -1,5 +1,5 @@
 {
-  "name": "docs",
+  "name": "volumetric_docs",
   "version": "0.0.0",
   "private": true,
   "scripts": {
@@ -17,10 +17,12 @@
     "cf:deploy": "pnpm build && wrangler pages deploy build"
   },
   "dependencies": {
-    "@docusaurus/core": "3.9.2",
-    "@docusaurus/preset-classic": "3.9.2",
-    "@docusaurus/theme-mermaid": "3.9.2",
+    "@docusaurus/core": "3.10.0",
+    "@docusaurus/faster": "3.10.0",
+    "@docusaurus/preset-classic": "3.10.0",
+    "@docusaurus/theme-mermaid": "3.10.0",
     "@mdx-js/react": "^3.0.0",
+    "@swc/helpers": "^0.5.17",
     "clsx": "^2.0.0",
     "prism-react-renderer": "^2.3.0",
     "react": "^19.0.0",
@@ -28,9 +30,9 @@
     "recharts": "^3.6.0"
   },
   "devDependencies": {
-    "@docusaurus/module-type-aliases": "3.9.2",
-    "@docusaurus/tsconfig": "3.9.2",
-    "@docusaurus/types": "3.9.2",
+    "@docusaurus/module-type-aliases": "3.10.0",
+    "@docusaurus/tsconfig": "3.10.0",
+    "@docusaurus/types": "3.10.0",
     "typescript": "~5.6.2",
     "wrangler": "^4.54.0"
   },
