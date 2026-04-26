@@ -779,9 +779,11 @@ mod tests {
             recorded_approve_amount,
             Nat::from(EXPECTED_NET_WITHDRAW_SATS)
         );
-        assert!(
-            ledger.last_approve_memo.borrow().is_some(),
-            "withdraw approve should include a deterministic memo"
+        let expected_approve_memo =
+            ledger_memo(receipt.operation_id, LedgerMemoKind::WithdrawalApprove, &[]);
+        assert_eq!(
+            *ledger.last_approve_memo.borrow(),
+            Some(expected_approve_memo)
         );
 
         let recorded_retrieve_amount_sats = minter

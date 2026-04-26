@@ -891,6 +891,10 @@ mod tests {
         transfers: Rc<RefCell<Vec<RecordedLedgerTransfer>>>,
     }
 
+    struct AlwaysFailingRecordingTransferLedger {
+        transfer_memos: Rc<RefCell<Vec<Option<Memo>>>>,
+    }
+
     impl RecordingTransferLedger {
         fn new() -> (Self, Rc<RefCell<Vec<RecordedLedgerTransfer>>>) {
             let transfers = Rc::new(RefCell::new(Vec::new()));
@@ -899,6 +903,18 @@ mod tests {
                     transfers: transfers.clone(),
                 },
                 transfers,
+            )
+        }
+    }
+
+    impl AlwaysFailingRecordingTransferLedger {
+        fn new() -> (Self, Rc<RefCell<Vec<Option<Memo>>>>) {
+            let transfer_memos = Rc::new(RefCell::new(Vec::new()));
+            (
+                Self {
+                    transfer_memos: transfer_memos.clone(),
+                },
+                transfer_memos,
             )
         }
     }
@@ -935,6 +951,37 @@ mod tests {
                 memo,
             });
             Ok(transfers.len() as u64)
+        }
+
+        async fn icrc1_balance_of(&self, _account: Account) -> Result<Nat, VolumetricError> {
+            Ok(Nat::from(0u64))
+        }
+
+        async fn icrc2_approve(&self, _args: ApproveArgs) -> Result<Nat, VolumetricError> {
+            Ok(Nat::from(0u64))
+        }
+
+        async fn icrc1_fee(&self) -> Result<u64, VolumetricError> {
+            Ok(10)
+        }
+    }
+
+    #[async_trait(?Send)]
+    impl LedgerClient for AlwaysFailingRecordingTransferLedger {
+        async fn icrc1_transfer(
+            &self,
+            _from_subaccount: Option<[u8; 32]>,
+            _to: Account,
+            _amount: u64,
+            _created_at_time: u64,
+            memo: Option<Memo>,
+        ) -> Result<u64, VolumetricError> {
+            self.transfer_memos.borrow_mut().push(memo);
+            Err(VolumetricError::from_def(
+                error_codes::INTER_CANISTER_CALL_FAILED,
+                Some("buyer transfer temporarily unavailable"),
+                None,
+            ))
         }
 
         async fn icrc1_balance_of(&self, _account: Account) -> Result<Nat, VolumetricError> {
@@ -1486,6 +1533,61 @@ mod tests {
         assert_eq!(buyer_balance.locked_as_writer, 0);
         assert_eq!(option.status, ActiveOptionStatus::Settling);
         assert_eq!(settlement.phase, SettlementPhase::Started);
+    }
+
+    /// Given: settlement retries fail at the buyer payout ledger transfer
+    /// When: run_settlement_wal is retried with the same operation id and payload
+    /// Then: each failed transfer attempt uses the same deterministic buyer payout memo
+    #[tokio::test]
+    async fn test_run_settlement_wal_reuses_buyer_payout_memo_across_retries() {
+        // given
+        let writer = test_principal(23);
+        let buyer = test_principal(24);
+        let (recording_ledger, transfer_memos) = AlwaysFailingRecordingTransferLedger::new();
+        setup_test_state_with_ledger(writer, buyer, Rc::new(recording_ledger));
+        let prepared_settlement_execution =
+            prepare_settlement_execution(TEST_OPTION_ID, TEST_SETTLEMENT_PRICE_CENTS)
+                .expect("settlement should be prepared");
+        let wal_entry = get_entry(prepared_settlement_execution.operation_id)
+            .expect("settlement wal entry should exist");
+        let WalPayload::Settlement(settlement_payload) = wal_entry.payload else {
+            panic!("settlement WAL entry should contain settlement payload");
+        };
+
+        // when
+        let first_attempt_result = run_settlement_wal(
+            prepared_settlement_execution.operation_id,
+            &settlement_payload,
+        )
+        .await;
+        let second_attempt_result = run_settlement_wal(
+            prepared_settlement_execution.operation_id,
+            &settlement_payload,
+        )
+        .await;
+
+        // then
+        assert!(matches!(
+            first_attempt_result,
+            Err(WalExecutionError::Retryable(_))
+        ));
+        assert!(matches!(
+            second_attempt_result,
+            Err(WalExecutionError::Retryable(_))
+        ));
+
+        let expected_buyer_payout_memo = ledger_memo(
+            prepared_settlement_execution.operation_id,
+            LedgerMemoKind::SettlementBuyerPayout,
+            &[],
+        );
+        assert_eq!(
+            *transfer_memos.borrow(),
+            vec![
+                Some(expected_buyer_payout_memo.clone()),
+                Some(expected_buyer_payout_memo)
+            ]
+        );
     }
 
     /// Given: settlement traps after the first transfer and leaves WAL attempt in-flight

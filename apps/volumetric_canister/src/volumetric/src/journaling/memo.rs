@@ -118,4 +118,28 @@ mod tests {
         // then
         assert_ne!(first, second);
     }
+
+    /// Given: extra memo parts with identical concatenated bytes but different boundaries
+    /// When: building ledger memos
+    /// Then: the length-prefixed encoding keeps the memos distinct
+    #[test]
+    fn ledger_memo_differs_by_extra_part_boundaries() {
+        // given
+        let operation_id = OperationId::from_parts(&[b"accept", &[3]]);
+
+        // when
+        let first = ledger_memo(
+            operation_id,
+            LedgerMemoKind::AcceptWriterTransfer,
+            &[b"ab", b"c"],
+        );
+        let second = ledger_memo(
+            operation_id,
+            LedgerMemoKind::AcceptWriterTransfer,
+            &[b"a", b"bc"],
+        );
+
+        // then
+        assert_ne!(first, second);
+    }
 }

@@ -13,6 +13,7 @@ use super::accept_offers::validate_accept_offer_request;
 use super::*;
 use crate::errors::{error_codes, VolumetricError};
 use crate::ic::{self, IcRuntime};
+use crate::journaling::{ledger_memo, principal_memo_part, u64_memo_part, LedgerMemoKind};
 use crate::ledger::{self, LedgerClient, TESTING_CKBTC_TRANSFER_FEE_SATS};
 use crate::oracle::{set_oracle, StubOracle};
 use crate::storage::{
@@ -646,9 +647,19 @@ async fn test_accept_offer_succeeds_when_platform_fee_transfer_fails() {
 
     assert_eq!(get_platform_fees_collected(), 0);
     let transfer_memos = ledger.transfer_memos.borrow();
+    let writer_part = principal_memo_part(writer);
+    let writer_transfer_index_part = u64_memo_part(0);
+    let expected_writer_transfer_memo = ledger_memo(
+        receipt.operation_id,
+        LedgerMemoKind::AcceptWriterTransfer,
+        &[&writer_transfer_index_part, &writer_part],
+    );
+    let expected_platform_fee_memo =
+        ledger_memo(receipt.operation_id, LedgerMemoKind::AcceptPlatformFee, &[]);
+
     assert_eq!(transfer_memos.len(), 2);
-    assert!(transfer_memos[0].is_some());
-    assert!(transfer_memos[1].is_some());
+    assert_eq!(transfer_memos[0], Some(expected_writer_transfer_memo));
+    assert_eq!(transfer_memos[1], Some(expected_platform_fee_memo));
     assert_ne!(transfer_memos[0], transfer_memos[1]);
 }
 
