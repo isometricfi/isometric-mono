@@ -1,6 +1,7 @@
 import { getEventsRepository } from "@/lib/repositories/events/get-events-repository";
 import { ATTR_RESULT_COUNT } from "@/lib/telemetry/traceConstants";
 import { withSpan } from "@/lib/telemetry/withSpan";
+import { eventDataSchema } from "@/lib/use-cases/events/get-events/schema";
 import { calculatePnl, calculatePnlPercent, getMoneyStatus, getTradeResult } from "./pnl";
 import type { HistoryEntry, Output, TradeRole } from "./schema";
 
@@ -13,11 +14,12 @@ export async function getHistory(principal: string): Promise<Output> {
     const entries: HistoryEntry[] = [];
 
     for (const event of events) {
-      if (event.data.type !== "OptionSettled") {
+      const parsedData = eventDataSchema.safeParse(event.data);
+      if (!parsedData.success || parsedData.data.type !== "OptionSettled") {
         continue;
       }
 
-      const data = event.data;
+      const data = parsedData.data;
       const role: TradeRole = data.role === "Buyer" ? "buyer" : "writer";
       const quantitySats = BigInt(data.quantitySats);
       const premiumSats = BigInt(data.premiumSats);

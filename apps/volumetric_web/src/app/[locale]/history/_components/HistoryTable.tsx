@@ -67,7 +67,7 @@ export function HistoryTable() {
     const toTime = dateRange.to ? dateRange.to.getTime() + 86400000 : fromTime + 86400000;
 
     return entries.filter((entry) => {
-      const entryMs = Number(entry.settledAt / BigInt(1_000_000));
+      const entryMs = Number(entry.settledAt) * 1000;
       return entryMs >= fromTime && entryMs <= toTime;
     });
   }, [history?.entries, dateRange]);
