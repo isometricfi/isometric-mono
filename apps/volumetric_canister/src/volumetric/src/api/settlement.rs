@@ -70,26 +70,3 @@ pub fn get_settlement_status(
 pub fn get_pending_settlements() -> Vec<ActiveOption> {
     list_expired_active_options(current_time_seconds())
 }
-
-#[ic_cdk::update]
-pub fn testing_expire_option(option_id: u64) -> Result<ActiveOption, VolumetricError> {
-    is_whitelisted()?;
-    usecases::testing_expire_option_use_case(option_id)
-}
-
-#[ic_cdk::update]
-pub fn testing_set_option_expiry_seconds(
-    option_id: u64,
-    expiry_seconds: u64,
-) -> Result<ActiveOption, VolumetricError> {
-    is_whitelisted()?;
-    usecases::testing_set_option_expiry_use_case(option_id, expiry_seconds)
-}
-
-#[ic_cdk::update]
-pub async fn testing_force_settle(
-    option_id: u64,
-) -> Result<usecases::SettlementReceipt, VolumetricError> {
-    is_whitelisted()?;
-    usecases::testing_force_settle_option_use_case(option_id).await
-}

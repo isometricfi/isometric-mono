@@ -22,10 +22,6 @@ pub mod usecases;
 
 pub use api::accounts::{ProfileInfo, UserInfo};
 pub use api::deposits::DepositInfo;
-#[cfg(feature = "testing")]
-pub use api::reset_oracle_config;
-#[cfg(feature = "testing")]
-pub use api::set_oracle_price_config;
 pub use api::{
     accept_offers, cancel_offer, create_offer, get_accept_by_id, get_accept_offers_message,
     get_accept_status, get_active_option_by_id, get_cancel_offer_message, get_create_offer_message,
@@ -33,10 +29,8 @@ pub use api::{
     get_my_written_options, get_offer_by_id, get_open_offers, get_pending_accepts,
     get_pending_settlements, get_pending_settlements_journal, get_recovery_required_wal_entries,
     get_settlement_by_id, get_settlement_status, recover_wal_operation, settle_expired_options,
-    settle_option_by_id, testing_clear_offers_and_options, testing_expire_option,
-    testing_force_settle, testing_set_option_expiry_seconds, AcceptOfferItem, AcceptOffersRequest,
-    CancelOfferRequest, ClearStorageResponse, CreateOfferRequest, CreateOfferResponse,
-    SettleExpiredOptionsResponse, SettlementResult,
+    settle_option_by_id, AcceptOfferItem, AcceptOffersRequest, CancelOfferRequest,
+    CreateOfferRequest, CreateOfferResponse, SettleExpiredOptionsResponse, SettlementResult,
 };
 pub use api::{
     add_whitelisted, clear_log_access_token, create_account, get_account_info, get_account_nonce,
@@ -45,8 +39,13 @@ pub use api::{
     get_user_balance, get_username_update_message, get_withdraw_message, get_withdraw_status,
     get_withdrawal_by_id, list_users, list_whitelisted, remove_whitelisted,
     set_feature_flags_config, set_log_access_token, set_trading_limits_config,
-    testing_set_ckbtc_ledger, testing_sync_balance_from_ledger, update_ckbtc_balance,
-    update_username, validate_invite_code, withdraw_ckbtc, UserBalanceInfo,
+    update_ckbtc_balance, update_username, validate_invite_code, withdraw_ckbtc, UserBalanceInfo,
+};
+#[cfg(feature = "testing")]
+pub use api::{
+    testing_clear_offers_and_options, testing_expire_option, testing_force_settle,
+    testing_reset_oracle, testing_set_ckbtc_ledger, testing_set_option_expiry_seconds,
+    testing_set_oracle_price_cents, testing_sync_balance_from_ledger, ClearStorageResponse,
 };
 pub use auth::types::{
     AuthenticatedPayload, CreateProfileRequest, UpdateUsernameRequest, WithdrawCkbtcRequest,

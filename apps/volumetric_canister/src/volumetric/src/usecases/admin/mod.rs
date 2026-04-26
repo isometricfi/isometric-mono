@@ -5,6 +5,8 @@ mod whitelist;
 pub use config::reset_oracle_use_case;
 #[cfg(feature = "testing")]
 pub use config::set_oracle_price_use_case;
+#[cfg(feature = "testing")]
+pub use config::testing_set_ckbtc_ledger_use_case;
 pub use config::{
     clear_log_access_token_use_case, set_accept_offer_quantity_sats_range_use_case,
     set_create_offer_quantity_sats_range_use_case, set_deposit_amount_sats_use_case,
@@ -14,7 +16,6 @@ pub use config::{
     set_premium_fee_basis_points_use_case, set_profit_fee_basis_points_use_case,
     set_quantity_sats_range_use_case, set_strike_basis_points_range_use_case,
     set_trading_limits_use_case, set_withdraw_amount_sats_use_case,
-    testing_set_ckbtc_ledger_use_case,
 };
 pub use whitelist::{
     add_whitelisted_use_case, list_whitelisted_use_case, remove_whitelisted_use_case,

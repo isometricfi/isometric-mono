@@ -114,10 +114,6 @@ export interface CancelOfferRequest {
   'expires_at_seconds' : bigint,
   'offer_id' : bigint,
 }
-export interface ClearStorageResponse {
-  'options_cleared' : bigint,
-  'offers_cleared' : bigint,
-}
 export interface Config {
   'ckbtc_minter' : Principal,
   'trading_limits' : TradingLimits,
@@ -353,13 +349,9 @@ export type Result_24 = { 'Ok' : SettleExpiredOptionsResponse } |
   { 'Err' : VolumetricError };
 export type Result_25 = { 'Ok' : SettlementReceipt } |
   { 'Err' : VolumetricError };
-export type Result_26 = { 'Ok' : ClearStorageResponse } |
+export type Result_26 = { 'Ok' : Array<UtxoStatus> } |
   { 'Err' : VolumetricError };
-export type Result_27 = { 'Ok' : ActiveOption } |
-  { 'Err' : VolumetricError };
-export type Result_28 = { 'Ok' : Array<UtxoStatus> } |
-  { 'Err' : VolumetricError };
-export type Result_29 = { 'Ok' : WithdrawReceipt } |
+export type Result_27 = { 'Ok' : WithdrawReceipt } |
   { 'Err' : VolumetricError };
 export type Result_3 = { 'Ok' : bigint } |
   { 'Err' : VolumetricError };
@@ -586,7 +578,6 @@ export interface _SERVICE {
   'observability_get_metrics' : ActorMethod<[], ObservabilityMetrics>,
   'recover_wal_operation' : ActorMethod<[Uint8Array | number[]], Result_23>,
   'remove_whitelisted' : ActorMethod<[Principal], Result_1>,
-  'reset_oracle_config' : ActorMethod<[], Result_1>,
   'resolve_invite_code' : ActorMethod<[string], [] | [string]>,
   'set_accept_offer_quantity_sats_range_config' : ActorMethod<
     [bigint, bigint],
@@ -606,7 +597,6 @@ export interface _SERVICE {
     [bigint, bigint],
     Result_1
   >,
-  'set_oracle_price_config' : ActorMethod<[bigint], Result_1>,
   'set_premium_basis_points_range_config' : ActorMethod<
     [number, number],
     Result_1
@@ -622,23 +612,10 @@ export interface _SERVICE {
   'set_withdraw_amount_sats_config' : ActorMethod<[bigint], Result_1>,
   'settle_expired_options' : ActorMethod<[], Result_24>,
   'settle_option_by_id' : ActorMethod<[bigint], Result_25>,
-  /**
-   * Testing endpoint to clear all offers and active options from storage.
-   * Use this for storage migration when schema changes break deserialization.
-   */
-  'testing_clear_offers_and_options' : ActorMethod<[], Result_26>,
-  'testing_expire_option' : ActorMethod<[bigint], Result_27>,
-  'testing_force_settle' : ActorMethod<[bigint], Result_25>,
-  'testing_set_ckbtc_ledger' : ActorMethod<[Principal], Result_1>,
-  'testing_set_option_expiry_seconds' : ActorMethod<
-    [bigint, bigint],
-    Result_27
-  >,
-  'testing_sync_balance_from_ledger' : ActorMethod<[string], Result_3>,
-  'update_ckbtc_balance' : ActorMethod<[string], Result_28>,
+  'update_ckbtc_balance' : ActorMethod<[string], Result_26>,
   'update_username' : ActorMethod<[AuthenticatedPayload_5], Result_4>,
   'validate_invite_code' : ActorMethod<[string, string], boolean>,
-  'withdraw_ckbtc' : ActorMethod<[AuthenticatedPayload_6], Result_29>,
+  'withdraw_ckbtc' : ActorMethod<[AuthenticatedPayload_6], Result_27>,
 }
 export declare const idlFactory: IDL.InterfaceFactory;
 export declare const init: (args: { IDL: typeof IDL }) => IDL.Type[];

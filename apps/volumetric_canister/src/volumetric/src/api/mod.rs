@@ -6,6 +6,8 @@ pub mod offers;
 pub mod options;
 pub mod recovery;
 pub mod settlement;
+#[cfg(feature = "testing")]
+pub mod testing;
 pub mod whitelist;
 pub mod withdrawals;
 
@@ -14,10 +16,6 @@ pub use accounts::{
     get_username_update_message, list_users, resolve_invite_code, update_username,
     validate_invite_code,
 };
-#[cfg(feature = "testing")]
-pub use config::reset_oracle_config;
-#[cfg(feature = "testing")]
-pub use config::set_oracle_price_config;
 pub use config::{
     clear_log_access_token, get_config, get_feature_flags, get_trading_limits,
     set_accept_offer_quantity_sats_range_config, set_create_offer_quantity_sats_range_config,
@@ -25,11 +23,10 @@ pub use config::{
     set_max_offers_per_term_config, set_option_duration_seconds_range_config,
     set_premium_basis_points_range_config, set_quantity_sats_range_config,
     set_strike_basis_points_range_config, set_trading_limits_config,
-    set_withdraw_amount_sats_config, testing_set_ckbtc_ledger,
+    set_withdraw_amount_sats_config,
 };
 pub use deposits::{
-    get_ckbtc_balance, get_deposit_address, get_user_balance, testing_sync_balance_from_ledger,
-    update_ckbtc_balance, UserBalanceInfo,
+    get_ckbtc_balance, get_deposit_address, get_user_balance, update_ckbtc_balance, UserBalanceInfo,
 };
 pub use events::{
     cleanup_old_events, get_all_events, get_events_for_principal, get_events_since, get_my_events,
@@ -42,14 +39,18 @@ pub use options::{
     accept_offers, get_accept_by_id, get_accept_offers_message, get_accept_status,
     get_active_option_by_id, get_failed_accepts, get_failed_settlements, get_my_options,
     get_my_written_options, get_pending_accepts, get_pending_settlements_journal,
-    get_settlement_by_id, testing_clear_offers_and_options, AcceptOfferItem, AcceptOffersRequest,
-    ClearStorageResponse,
+    get_settlement_by_id, AcceptOfferItem, AcceptOffersRequest,
 };
 pub use recovery::{get_recovery_required_wal_entries, recover_wal_operation};
 pub use settlement::{
     get_pending_settlements, get_settlement_status, settle_expired_options, settle_option_by_id,
-    testing_expire_option, testing_force_settle, testing_set_option_expiry_seconds,
     SettleExpiredOptionsResponse, SettlementResult,
+};
+#[cfg(feature = "testing")]
+pub use testing::{
+    testing_clear_offers_and_options, testing_expire_option, testing_force_settle,
+    testing_reset_oracle, testing_set_ckbtc_ledger, testing_set_option_expiry_seconds,
+    testing_set_oracle_price_cents, testing_sync_balance_from_ledger, ClearStorageResponse,
 };
 pub use whitelist::{add_whitelisted, list_whitelisted, remove_whitelisted};
 pub use withdrawals::{
