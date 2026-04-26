@@ -12,10 +12,10 @@ use crate::journaling::{
     WalExecutionError, WalExecutionOutcome, WalKind, WalPayload, WalResult, WalStatus,
 };
 use crate::locks::SettlementLock;
-use crate::oracle::{
-    get_btc_usd_price_cents, get_btc_usd_price_cents_at_time_seconds,
-    xrc_timestamp_seconds_for_time_seconds,
-};
+#[cfg(feature = "testing")]
+use crate::oracle::get_btc_usd_price_cents;
+use crate::oracle::get_btc_usd_price_cents_at_time_seconds;
+use crate::oracle::xrc_timestamp_seconds_for_time_seconds;
 use crate::storage::{
     add_platform_fee, calculate_call_option_payout, calculate_profit_fee, complete_settlement,
     create_settlement, emit_event, fail_settlement, get_active_option, get_fee_recipient,
@@ -643,6 +643,7 @@ pub async fn settle_option_by_id_use_case(
     queue_settlement_execution(option_id, settlement_price_cents)
 }
 
+#[cfg(feature = "testing")]
 pub async fn testing_force_settle_option_use_case(
     option_id: u64,
 ) -> Result<SettlementReceipt, VolumetricError> {
@@ -671,6 +672,7 @@ fn queue_settlement_execution(
     Ok(receipt)
 }
 
+#[cfg(feature = "testing")]
 pub fn testing_expire_option_use_case(option_id: u64) -> Result<ActiveOption, VolumetricError> {
     let mut option = get_active_option(option_id).ok_or_else(|| {
         VolumetricError::from_def(
@@ -694,6 +696,7 @@ pub fn testing_expire_option_use_case(option_id: u64) -> Result<ActiveOption, Vo
     Ok(option)
 }
 
+#[cfg(feature = "testing")]
 pub fn testing_set_option_expiry_use_case(
     option_id: u64,
     expiry_seconds: u64,

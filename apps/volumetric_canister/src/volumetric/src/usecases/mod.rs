@@ -14,6 +14,8 @@ pub use accounts::{
 pub use admin::reset_oracle_use_case;
 #[cfg(feature = "testing")]
 pub use admin::set_oracle_price_use_case;
+#[cfg(feature = "testing")]
+pub use admin::testing_set_ckbtc_ledger_use_case;
 pub use admin::{
     add_whitelisted_use_case, clear_log_access_token_use_case, list_whitelisted_use_case,
     remove_whitelisted_use_case, set_accept_offer_quantity_sats_range_use_case,
@@ -24,7 +26,6 @@ pub use admin::{
     set_premium_fee_basis_points_use_case, set_profit_fee_basis_points_use_case,
     set_quantity_sats_range_use_case, set_strike_basis_points_range_use_case,
     set_trading_limits_use_case, set_withdraw_amount_sats_use_case,
-    testing_set_ckbtc_ledger_use_case,
 };
 pub(crate) use balances::finalize_failed_withdrawal_wal;
 pub use balances::{
@@ -45,7 +46,11 @@ pub(crate) use options::finalize_failed_settlement_wal;
 pub use options::{
     get_my_options_use_case, get_my_written_options_use_case, get_settlement_status_use_case,
     run_settlement_wal, settle_expired_options_use_case, settle_option_by_id_use_case,
+    SettleExpiredOptionsResult, SettlementReceipt, SettlementResult, SettlementStatus,
+    SettlementWalResult,
+};
+#[cfg(feature = "testing")]
+pub use options::{
     testing_expire_option_use_case, testing_force_settle_option_use_case,
-    testing_set_option_expiry_use_case, SettleExpiredOptionsResult, SettlementReceipt,
-    SettlementResult, SettlementStatus, SettlementWalResult,
+    testing_set_option_expiry_use_case,
 };

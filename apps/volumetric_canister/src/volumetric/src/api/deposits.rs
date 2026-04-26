@@ -58,17 +58,6 @@ pub async fn get_ckbtc_balance(address: String) -> Result<Nat, VolumetricError> 
     usecases::get_ledger_balance(principal).await
 }
 
-#[ic_cdk::update]
-pub async fn testing_sync_balance_from_ledger(address: String) -> Result<u64, VolumetricError> {
-    is_whitelisted()?;
-
-    let wallet_key = WalletKey::try_from_address(&address)?;
-    let principal = get_principal_for_wallet(&wallet_key)
-        .ok_or_else(|| VolumetricError::from_def(error_codes::PROFILE_NOT_FOUND, None, None))?;
-
-    usecases::sync_balance_from_ledger(principal).await
-}
-
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
 pub struct UserBalanceInfo {
     pub total: u64,

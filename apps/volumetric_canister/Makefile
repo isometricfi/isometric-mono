@@ -1,4 +1,4 @@
-.PHONY: build release deploy generate generate-external-types reinstall-local verify info status set-backup-controller set-freezing-threshold clean start stop test test-integration test-integration-fast help
+.PHONY: build release deploy generate generate-external-types reinstall-local verify verify-prod-wasm info status set-backup-controller set-freezing-threshold clean start stop test test-integration test-integration-fast help
 
 # Use Homebrew LLVM on macOS if available, otherwise use system clang
 ifneq ($(wildcard /opt/homebrew/opt/llvm/bin/clang),)
@@ -23,22 +23,25 @@ endif
 DOCKER_IMAGE := volumetric-canister
 WASM_FILE := volumetric.wasm
 DID_DIR := did
+# Production Candid (no testing-only methods); updated by `make release`.
 DID_FILE := $(DID_DIR)/volumetric.did
+# Local / PocketIC: full interface including `testing_*` (from `make build` with --features testing).
+DID_TESTING_FILE := $(DID_DIR)/volumetric.testing.did
 BACKUP_CONTROLLER ?=
 FREEZING_THRESHOLD_SECONDS ?= 7776000
 
 build:
-	@echo "Building locally (with testing features)..."
+	@echo "Building locally (with testing features; use 'make release' for production wasm)..."
 	cargo build --locked --target wasm32-unknown-unknown --release --features testing
 	mkdir -p $(DID_DIR)
-	candid-extractor target/wasm32-unknown-unknown/release/volumetric.wasm > $(DID_FILE)
+	candid-extractor target/wasm32-unknown-unknown/release/volumetric.wasm > $(DID_TESTING_FILE)
 	ic-wasm target/wasm32-unknown-unknown/release/volumetric.wasm -o $(WASM_FILE) shrink
-	ic-wasm $(WASM_FILE) -o $(WASM_FILE) metadata candid:service -f $(DID_FILE) -v public
+	ic-wasm $(WASM_FILE) -o $(WASM_FILE) metadata candid:service -f $(DID_TESTING_FILE) -v public
 	@echo "Build complete: $(WASM_FILE)"
 	@sha256sum $(WASM_FILE)
 
 release:
-	@echo "Building reproducible wasm with Docker..."
+	@echo "Building production wasm (reproducible; no --features testing)..."
 	docker build -t $(DOCKER_IMAGE) -f docker/Dockerfile .
 	docker run --rm -v "$(PWD)":/canister $(DOCKER_IMAGE)
 	mkdir -p $(DID_DIR)
@@ -87,6 +90,10 @@ reinstall-local:
 verify:
 	@./scripts/verify.sh
 
+verify-prod-wasm:
+	@chmod +x scripts/verify-prod-wasm.sh
+	@./scripts/verify-prod-wasm.sh
+
 info:
 	dfx canister --network $(NETWORK) info $(CANISTER) --identity anonymous
 
@@ -120,15 +127,15 @@ clean:
 
 test: build
 	@echo "Running tests..."
-	cd src/volumetric && cargo test --test integration_smoke -- --test-threads=1
+	cd src/volumetric && cargo test --test integration_smoke --features testing -- --test-threads=1
 
 test-integration: build
 	@echo "Running all integration tests..."
-	cd src/volumetric && cargo test --test '*' -- --test-threads=1
+	cd src/volumetric && cargo test --test '*' --features testing -- --test-threads=1
 
 test-integration-fast: build
 	@echo "Running fast integration tests (excluding real ledger tests)..."
-	cd src/volumetric && cargo test --test 'integration_*' -- --test-threads=1
+	cd src/volumetric && cargo test --test 'integration_*' --features testing -- --test-threads=1
 
 help:
 	@echo "Usage: make <target> [TARGET=dev|prod|local]"
@@ -141,6 +148,7 @@ help:
 	@echo "  deploy          - Deploy canister (local: dfx, mainnet: uses volumetric.wasm)"
 	@echo "  reinstall-local - Reinstall local canister (wipes state)"
 	@echo "  verify          - Verify local build matches on-chain"
+	@echo "  verify-prod-wasm - Fail if production wasm exports testing-only Candid methods"
 	@echo "  info            - Show canister info"
 	@echo "  status          - Show canister status (cycles/controllers/freezing threshold)"
 	@echo "  set-backup-controller - Add a backup controller principal"

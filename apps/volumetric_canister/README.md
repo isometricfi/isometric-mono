@@ -112,8 +112,12 @@ Reproducible builds allow anyone to verify that the deployed canister matches th
 
 | Command | Output | Purpose |
 |---------|--------|---------|
-| `make build` | `volumetric.local.wasm` | Fast local build (not reproducible) |
-| `make release` | `volumetric.wasm` | Docker build (reproducible) |
+| `make build` | `volumetric.wasm` | Local build with `--features testing`; Candid in `did/volumetric.testing.did` |
+| `make release` | `volumetric.wasm` | Reproducible Docker build **without** testing; Candid in `did/volumetric.did` (production) |
+
+`make verify-prod-wasm` checks that the production wasm exports **no** `testing_*` Candid methods.
+
+**Testing-only canister methods** (whitelisted, only in the `make build` / `--features testing` wasm) are all named with a `testing_` prefix, e.g. `testing_set_oracle_price_cents`, `testing_reset_oracle`, `testing_force_settle`. See `did/volumetric.testing.did` for the full list; they are absent from `did/volumetric.did`.
 
 ### Build with Docker
 

@@ -122,27 +122,6 @@ pub fn get_active_option_by_id(option_id: u64) -> Option<ActiveOption> {
     get_active_option(option_id)
 }
 
-#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
-pub struct ClearStorageResponse {
-    pub offers_cleared: u64,
-    pub options_cleared: u64,
-}
-
-/// Testing endpoint to clear all offers and active options from storage.
-/// Use this for storage migration when schema changes break deserialization.
-#[ic_cdk::update]
-pub fn testing_clear_offers_and_options() -> Result<ClearStorageResponse, VolumetricError> {
-    is_whitelisted()?;
-
-    let offers_cleared = crate::storage::clear_offers();
-    let options_cleared = crate::storage::clear_active_options();
-
-    Ok(ClearStorageResponse {
-        offers_cleared,
-        options_cleared,
-    })
-}
-
 #[ic_cdk::query]
 pub fn get_pending_accepts() -> Result<Vec<PendingAccept>, VolumetricError> {
     is_controller()?;

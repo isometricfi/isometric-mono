@@ -59,7 +59,7 @@ pub fn set_oracle_price(env: &TestEnv, price_cents: u64) {
         .update_call(
             env.volumetric_canister,
             env.controller,
-            "set_oracle_price_config",
+            "testing_set_oracle_price_cents",
             candid::encode_one(price_cents).unwrap(),
         )
         .expect("Set oracle price call failed");

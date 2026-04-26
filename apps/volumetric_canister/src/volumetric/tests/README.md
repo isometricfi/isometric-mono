@@ -107,4 +107,4 @@ fn test_example() {
 - `env.advance_time_secs(seconds)` - Advance simulated time (triggers timers)
 
 ### Oracle
-- `set_oracle_price(&env, price_cents)` - Set BTC/USD price for settlement
+- `set_oracle_price(&env, price_cents)` - Calls the canister update **`testing_set_oracle_price_cents`** (requires a wasm built with `--features testing`; see `did/volumetric.testing.did` for the full testing-only Candid)

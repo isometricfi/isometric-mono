@@ -8,9 +8,14 @@ import type { Input, Output } from "./schema";
 
 const FORCE_SETTLE_SPAN_NAME = "usecase.testing.force_settle";
 
+type VolumetricActor = Awaited<ReturnType<typeof getCanisterActor>>;
+type VolumetricActorWithTesting = VolumetricActor & {
+  testing_force_settle: VolumetricActor["settle_option_by_id"];
+};
+
 export async function forceSettle(input: Input): Promise<Output> {
   return withSpan(FORCE_SETTLE_SPAN_NAME, async () => {
-    const actor = await getCanisterActor();
+    const actor = (await getCanisterActor()) as VolumetricActorWithTesting;
     const result = await actor.testing_force_settle(BigInt(input.optionId));
     const receipt = unwrapResult(result);
 

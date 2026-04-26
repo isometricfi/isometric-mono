@@ -99,6 +99,10 @@ type CancelOfferRequest = record {
   expires_at_seconds : nat64;
   offer_id : nat64;
 };
+type ClearStorageResponse = record {
+  options_cleared : nat64;
+  offers_cleared : nat64;
+};
 type Config = record {
   ckbtc_minter : principal;
   trading_limits : TradingLimits;
@@ -303,8 +307,10 @@ type Result_24 = variant {
   Err : VolumetricError;
 };
 type Result_25 = variant { Ok : SettlementReceipt; Err : VolumetricError };
-type Result_26 = variant { Ok : vec UtxoStatus; Err : VolumetricError };
-type Result_27 = variant { Ok : WithdrawReceipt; Err : VolumetricError };
+type Result_26 = variant { Ok : ClearStorageResponse; Err : VolumetricError };
+type Result_27 = variant { Ok : ActiveOption; Err : VolumetricError };
+type Result_28 = variant { Ok : vec UtxoStatus; Err : VolumetricError };
+type Result_29 = variant { Ok : WithdrawReceipt; Err : VolumetricError };
 type Result_3 = variant { Ok : nat64; Err : VolumetricError };
 type Result_4 = variant { Ok : ProfileInfo; Err : VolumetricError };
 type Result_5 = variant { Ok : CreateOfferResponse; Err : VolumetricError };
@@ -511,8 +517,16 @@ service : (opt BtcNetwork) -> {
   set_withdraw_amount_sats_config : (nat64) -> (Result_1);
   settle_expired_options : () -> (Result_24);
   settle_option_by_id : (nat64) -> (Result_25);
-  update_ckbtc_balance : (text) -> (Result_26);
+  testing_clear_offers_and_options : () -> (Result_26);
+  testing_expire_option : (nat64) -> (Result_27);
+  testing_force_settle : (nat64) -> (Result_25);
+  testing_reset_oracle : () -> (Result_1);
+  testing_set_ckbtc_ledger : (principal) -> (Result_1);
+  testing_set_option_expiry_seconds : (nat64, nat64) -> (Result_27);
+  testing_set_oracle_price_cents : (nat64) -> (Result_1);
+  testing_sync_balance_from_ledger : (text) -> (Result_3);
+  update_ckbtc_balance : (text) -> (Result_28);
   update_username : (AuthenticatedPayload_5) -> (Result_4);
   validate_invite_code : (text, text) -> (bool) query;
-  withdraw_ckbtc : (AuthenticatedPayload_6) -> (Result_27);
+  withdraw_ckbtc : (AuthenticatedPayload_6) -> (Result_29);
 }

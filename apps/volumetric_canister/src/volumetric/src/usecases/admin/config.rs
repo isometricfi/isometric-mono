@@ -110,10 +110,10 @@ pub fn clear_log_access_token_use_case() {
     clear_log_access_token_hash();
 }
 
+#[cfg(feature = "testing")]
 pub fn testing_set_ckbtc_ledger_use_case(ckbtc_ledger: Principal) {
     Config::set_ckbtc_ledger(ckbtc_ledger);
 
-    #[cfg(feature = "testing")]
     ledger::set_cached_transfer_fee_for_testing(TESTING_CKBTC_TRANSFER_FEE_SATS, ic::time());
 }
 
