@@ -63,13 +63,15 @@ pub fn get_pending_settlements(env: &TestEnv) -> Vec<ActiveOption> {
         .pic
         .query_call(
             env.volumetric_canister,
-            candid::Principal::anonymous(),
+            env.controller,
             "get_pending_settlements",
             candid::encode_one(()).unwrap(),
         )
         .expect("Query failed");
 
-    Decode!(&response, Vec<ActiveOption>).unwrap()
+    Decode!(&response, Result<Vec<ActiveOption>, VolumetricError>)
+        .unwrap()
+        .expect("get_pending_settlements should succeed for whitelisted controller")
 }
 
 pub fn wait_for_settlement_terminal_status(

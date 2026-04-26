@@ -2,7 +2,7 @@ use candid::Principal;
 use ic_cdk::api::msg_caller;
 
 use crate::errors::VolumetricError;
-use crate::guards::is_controller;
+use crate::guards::{is_controller, is_whitelisted, no_replicated_call};
 use crate::storage::{
     clear_events as storage_clear_events, get_all_events as storage_get_all_events,
     get_events_by_principal, get_events_since as storage_get_events_since, Event,
@@ -11,33 +11,42 @@ use crate::usecases::cleanup_old_events_use_case;
 
 const MAX_EVENTS_LIMIT: u32 = 1000;
 
-#[ic_cdk::query]
+#[ic_cdk::query(guard = "no_replicated_call")]
 pub fn get_my_events(after_id: Option<u64>, limit: Option<u32>) -> Vec<Event> {
     let principal = msg_caller();
     let limit = limit.unwrap_or(100).min(MAX_EVENTS_LIMIT);
     get_events_by_principal(principal, after_id, limit)
 }
 
-#[ic_cdk::query]
+#[ic_cdk::query(guard = "no_replicated_call")]
 pub fn get_events_for_principal(
     principal: Principal,
     after_id: Option<u64>,
     limit: Option<u32>,
-) -> Vec<Event> {
+) -> Result<Vec<Event>, VolumetricError> {
+    is_controller()?;
     let limit = limit.unwrap_or(100).min(MAX_EVENTS_LIMIT);
-    get_events_by_principal(principal, after_id, limit)
+    Ok(get_events_by_principal(principal, after_id, limit))
 }
 
-#[ic_cdk::query]
-pub fn get_events_since(timestamp_seconds: u64, limit: Option<u32>) -> Vec<Event> {
+#[ic_cdk::query(guard = "no_replicated_call")]
+pub fn get_events_since(
+    timestamp_seconds: u64,
+    limit: Option<u32>,
+) -> Result<Vec<Event>, VolumetricError> {
+    is_whitelisted()?;
     let limit = limit.unwrap_or(100).min(MAX_EVENTS_LIMIT);
-    storage_get_events_since(timestamp_seconds, limit)
+    Ok(storage_get_events_since(timestamp_seconds, limit))
 }
 
-#[ic_cdk::query]
-pub fn get_all_events(after_id: Option<u64>, limit: Option<u32>) -> Vec<Event> {
+#[ic_cdk::query(guard = "no_replicated_call")]
+pub fn get_all_events(
+    after_id: Option<u64>,
+    limit: Option<u32>,
+) -> Result<Vec<Event>, VolumetricError> {
+    is_whitelisted()?;
     let limit = limit.unwrap_or(100).min(MAX_EVENTS_LIMIT);
-    storage_get_all_events(after_id, limit)
+    Ok(storage_get_all_events(after_id, limit))
 }
 
 #[ic_cdk::update]

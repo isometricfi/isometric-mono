@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 use crate::auth::types::WalletKey;
 use crate::errors::{error_codes, VolumetricError};
 use crate::generated::ckbtc::UtxoStatus;
-use crate::guards::is_whitelisted;
+use crate::guards::{is_whitelisted, no_replicated_call};
 use crate::storage::get_principal_for_wallet;
 use crate::usecases;
 
@@ -75,7 +75,7 @@ impl From<usecases::UserBalanceResult> for UserBalanceInfo {
     }
 }
 
-#[ic_cdk::query]
+#[ic_cdk::query(guard = "no_replicated_call")]
 pub fn get_user_balance(address: String) -> Result<UserBalanceInfo, VolumetricError> {
     let wallet_key = WalletKey::try_from_address(&address)?;
     let principal = get_principal_for_wallet(&wallet_key)

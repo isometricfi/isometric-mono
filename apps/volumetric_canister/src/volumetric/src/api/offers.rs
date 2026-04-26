@@ -6,7 +6,7 @@ use crate::auth::{
     build_challenge_context, build_challenge_message, ensure_challenge_fresh, verify_btc_signature,
 };
 use crate::errors::{error_codes, VolumetricError};
-use crate::guards::is_whitelisted;
+use crate::guards::{is_whitelisted, no_replicated_call};
 use crate::storage::{
     get_offer, get_principal_for_wallet, increment_nonce, list_offers_by_writer, Asset, Offer,
     OptionType,
@@ -61,7 +61,7 @@ pub struct CreateOfferResponse {
     pub offer: Offer,
 }
 
-#[ic_cdk::query]
+#[ic_cdk::query(guard = "no_replicated_call")]
 pub fn get_create_offer_message(
     wallet_address: String,
     quantity: u64,
@@ -136,7 +136,7 @@ impl SignableAction for CancelOfferRequest {
     }
 }
 
-#[ic_cdk::query]
+#[ic_cdk::query(guard = "no_replicated_call")]
 pub fn get_cancel_offer_message(
     wallet_address: String,
     offer_id: u64,
@@ -175,7 +175,7 @@ pub fn cancel_offer(
     usecases::cancel_offer_use_case(principal, req.data.offer_id)
 }
 
-#[ic_cdk::query]
+#[ic_cdk::query(guard = "no_replicated_call")]
 pub fn get_my_offers(wallet_address: String) -> Result<Vec<Offer>, VolumetricError> {
     let wallet_key = WalletKey::try_from_address(&wallet_address)?;
     let principal = get_principal_for_wallet(&wallet_key)
@@ -184,12 +184,12 @@ pub fn get_my_offers(wallet_address: String) -> Result<Vec<Offer>, VolumetricErr
     Ok(list_offers_by_writer(principal))
 }
 
-#[ic_cdk::query]
+#[ic_cdk::query(guard = "no_replicated_call")]
 pub fn get_open_offers() -> Vec<Offer> {
     usecases::get_open_offers_use_case()
 }
 
-#[ic_cdk::query]
+#[ic_cdk::query(guard = "no_replicated_call")]
 pub fn get_offer_by_id(offer_id: u64) -> Option<Offer> {
     get_offer(offer_id)
 }

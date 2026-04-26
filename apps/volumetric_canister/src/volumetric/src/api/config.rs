@@ -2,7 +2,7 @@ use candid::Principal;
 use ic_cdk::{query, update};
 
 use crate::errors::VolumetricError;
-use crate::guards::{is_controller, is_whitelisted};
+use crate::guards::{is_controller, is_whitelisted, no_replicated_call};
 use crate::storage::{get_platform_fees_collected, Config, FeatureFlags, FeeConfig, TradingLimits};
 use crate::usecases;
 use crate::usecases::{
@@ -15,27 +15,27 @@ use crate::usecases::{
     set_withdraw_amount_sats_use_case,
 };
 
-#[query]
+#[query(guard = "no_replicated_call")]
 pub fn get_config() -> Config {
     Config::get()
 }
 
-#[query]
+#[query(guard = "no_replicated_call")]
 pub fn get_feature_flags() -> FeatureFlags {
     Config::feature_flags()
 }
 
-#[query]
+#[query(guard = "no_replicated_call")]
 pub fn get_trading_limits() -> TradingLimits {
     Config::trading_limits()
 }
 
-#[query]
+#[query(guard = "no_replicated_call")]
 pub fn get_fee_config() -> FeeConfig {
     Config::fee_config()
 }
 
-#[query]
+#[query(guard = "no_replicated_call")]
 pub fn get_platform_fees_collected_total() -> u64 {
     get_platform_fees_collected()
 }

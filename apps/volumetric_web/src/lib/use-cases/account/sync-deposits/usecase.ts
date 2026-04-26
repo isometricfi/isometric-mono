@@ -50,7 +50,11 @@ export async function syncDepositsFromCanister(): Promise<Output> {
 
     const { actor, users } = await withSpan(LOAD_USERS_AND_LIMITS_SPAN_NAME, async () => {
       const actor = await getCanisterActor();
-      const users = await actor.list_users();
+      const listUsersResult = await actor.list_users();
+      if ("Err" in listUsersResult) {
+        throw new Error(`list_users failed: ${JSON.stringify(listUsersResult.Err)}`);
+      }
+      const users = listUsersResult.Ok;
 
       return { actor, users };
     });

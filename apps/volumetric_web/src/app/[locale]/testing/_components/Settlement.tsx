@@ -27,7 +27,11 @@ export function Settlement() {
     queryKey: ["pendingSettlements"],
     queryFn: async () => {
       if (!canister) return [];
-      return canister.get_pending_settlements();
+      const result = await canister.get_pending_settlements();
+      if ("Err" in result) {
+        return [];
+      }
+      return result.Ok;
     },
     enabled: !!canister,
     refetchInterval: 10000,
