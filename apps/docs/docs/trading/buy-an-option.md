@@ -44,16 +44,18 @@ Minimum purchase: **500 sats** (0.000005 BTC).
 
 ## Worked example
 
-You put in **0.1 BTC** with **+10% strike** and a **7-day term**, when BTC is at $100,000.
+You put in **0.1 BTC** on a **7-day**, **+10% strike** call with BTC at $100,000. That's roughly **67x leverage** on what you put in.
 
 - Strike locks at $110,000.
 - Max loss: 0.1 BTC.
+- Breakeven at expiry: $111,675.
 
-| BTC at expiry | Outcome | Your result |
+| BTC at expiry | Outcome | Your net result |
 |---|---|---|
-| $90,000 | Expires worthless | **−0.1 BTC** |
-| $115,000 | Pays out | **~+0.17 BTC** |
-| $121,000 | Pays out | **~+0.36 BTC** |
-| $200,000 | Large move, payout near max | **~+1.8 BTC** |
+| $95,000 | Expires worthless | **−0.1 BTC** |
+| $111,675 | Breakeven | **0.00 BTC** |
+| $115,000 | Pays out | **+0.19 BTC** |
+| $130,000 | Pays out | **+0.93 BTC** |
+| $200,000 | Large move, payout near max | **+2.9 BTC** |
 
-The bigger the move above strike, the bigger your payout. Below strike, your loss is fixed at what you put in.
+The bigger the move above strike, the bigger your payout. Below strike, your loss is fixed at what you put in. Profits are subject to a [20% platform fee](/trading/fees).
