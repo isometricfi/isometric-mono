@@ -285,7 +285,7 @@
     "buyerStep1Title": "Deposit BTC",
     "buyerStep1Desc": "Connect a wallet and deposit BTC to your account.",
     "buyerStep2Title": "Take a position",
-    "buyerStep2Desc": "Pick a price target and date, then accept an offer. Pay a small premium for leveraged upside. your max loss is the premium.",
+    "buyerStep2Desc": "Pick a price target and date, then accept an offer. Pay a small premium for leveraged upside. Your max loss is the premium.",
     "buyerStep3Title": "Auto-payout at expiry",
     "buyerStep3Desc": "If BTC closes above your strike, profit settles to your account on-chain. No exit timing. No liquidations.",
     "startEarning": "Start Earning",
