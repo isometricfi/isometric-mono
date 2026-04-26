@@ -66,9 +66,5 @@
   "link.item.label.Price oracle": {
     "message": "价格预言机",
     "description": "Footer link label for Price oracle"
-  },
-  "copyright": {
-    "message": "Copyright © 2026 Isometric。",
-    "description": "The footer copyright"
   }
 }

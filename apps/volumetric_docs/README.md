@@ -4,38 +4,56 @@ This website is built using [Docusaurus](https://docusaurus.io/), a modern stati
 
 ## Installation
 
-```bash
-yarn
-```
-
-## Local Development
+From the monorepo root:
 
 ```bash
-yarn start
+pnpm install
 ```
 
-This command starts a local development server and opens up a browser window. Most changes are reflected live without having to restart the server.
+## Local development
+
+```bash
+pnpm --filter volumetric_docs dev
+```
+
+Most changes are reflected live without restarting the server.
 
 ## Build
 
 ```bash
-yarn build
+pnpm --filter volumetric_docs build
 ```
 
-This command generates static content into the `build` directory and can be served using any static contents hosting service.
+Static output is written to `apps/volumetric_docs/build`.
 
 ## Deployment
 
-Using SSH:
+Production deploys run via GitHub Actions (`.github/workflows/deploy-docs.yml`) to [Cloudflare Pages](https://developers.cloudflare.com/pages/) using [Wrangler](https://developers.cloudflare.com/workers/wrangler/).
+
+From `apps/volumetric_docs` after a build:
 
 ```bash
-USE_SSH=true yarn deploy
+pnpm cf:deploy
 ```
 
-Not using SSH:
+Or deploy the `build` directory directly (requires `CLOUDFLARE_API_TOKEN` in the environment):
 
 ```bash
-GIT_USER=<Your GitHub username> yarn deploy
+pnpm exec wrangler pages deploy build --project-name=volumetric-docs
 ```
 
-If you are using GitHub pages for hosting, this command is a convenient way to build the website and push to the `gh-pages` branch.
+`wrangler.toml` follows [Pages Wrangler configuration](https://developers.cloudflare.com/pages/functions/wrangler-configuration/) (`name`, `compatibility_date`, `pages_build_output_dir`, and `$schema` for editor validation).
+
+## Alternative: GitHub Pages
+
+If you use Docusaurus’s built-in GitHub Pages flow instead of Cloudflare:
+
+```bash
+USE_SSH=true pnpm --filter volumetric_docs deploy
+```
+
+Or:
+
+```bash
+GIT_USER=<Your GitHub username> pnpm --filter volumetric_docs deploy
+```
