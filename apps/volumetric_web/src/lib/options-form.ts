@@ -48,7 +48,9 @@ function sanitizeDecimalInput(
   options: { maxDecimals: number; maxValueExclusive: number },
 ): string | null {
   if (input === "") return "";
-  if (!/^\d*\.?\d*$/.test(input)) return null;
+  const normalized = input.replace(/,/g, ".");
+  if (!/^\d*\.?\d*$/.test(normalized)) return null;
+  input = normalized;
 
   let sanitizedInput = input;
   if (/^0\d+/.test(sanitizedInput) && !sanitizedInput.startsWith("0.")) {
