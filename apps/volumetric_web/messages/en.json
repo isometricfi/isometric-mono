@@ -133,7 +133,7 @@
     "wouldRank": "Rank #{rank} of {total}",
     "noYieldOptions": "No yield options available",
     "bestOffer": "Best",
-    "noBalanceMessage": "You'll need more BTC to continue",
+    "noBalanceMessage": "Deposit more BTC to continue",
     "depositToContinue": "Deposit BTC"
   },
   "Summary": {

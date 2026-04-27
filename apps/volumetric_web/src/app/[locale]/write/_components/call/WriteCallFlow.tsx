@@ -295,6 +295,7 @@ function CollateralStep({
             btcPrice={model.btcPrice}
             maxAmountSats={model.maxCreateOfferAmountSats}
             minAmountSats={model.minCreateOfferAmountSats}
+            availableBalanceSats={model.availableBalanceSats}
             onAmountSatsChange={model.handleAmountSatsChange}
             onDepositClick={onDepositClick}
           />

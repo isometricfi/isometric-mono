@@ -98,10 +98,11 @@ export function useCallOptionBuyFormModel() {
     return strikeBucket?.offers ?? [];
   }, [filteredData, term, strikePercent]);
 
-  const maxPremiumAmountSats = useMemo(
+  const liquidityMaxPremiumAmountSats = useMemo(
     () => getMaxPremiumAmountSats(selectedStrikeOffers, maxAcceptOfferAmountSats),
     [selectedStrikeOffers, maxAcceptOfferAmountSats],
   );
+  const maxPremiumAmountSats = Math.min(liquidityMaxPremiumAmountSats, availableBalanceSats);
   const minPremiumAmountSats = useMemo(
     () => getMinPremiumAmountSats(selectedStrikeOffers, minAcceptOfferAmountSats),
     [selectedStrikeOffers, minAcceptOfferAmountSats],
@@ -220,6 +221,7 @@ export function useCallOptionBuyFormModel() {
   return {
     acceptOffer,
     amountSats,
+    availableBalanceSats,
     btcPrice,
     getButtonText,
     handleModalClose,

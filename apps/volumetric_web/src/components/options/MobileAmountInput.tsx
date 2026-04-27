@@ -22,6 +22,7 @@ interface MobileAmountInputProps {
   btcPrice: number;
   maxAmountSats: number;
   minAmountSats?: number;
+  availableBalanceSats?: number;
   onAmountSatsChange: (amountSats: number) => void;
   onDepositClick?: () => void;
 }
@@ -34,11 +35,13 @@ export function MobileAmountInput({
   btcPrice,
   maxAmountSats,
   minAmountSats,
+  availableBalanceSats,
   onAmountSatsChange,
   onDepositClick,
 }: MobileAmountInputProps) {
   const tForms = useTranslations("Forms");
   const tCommon = useTranslations("Common");
+  const tAccount = useTranslations("AccountPanel");
   const inputId = useId();
 
   const isBelowMin = amountSats > 0 && minAmountSats !== undefined && amountSats < minAmountSats;
@@ -155,7 +158,14 @@ export function MobileAmountInput({
 
       {maxAmountSats <= 0 && onDepositClick ? (
         <div className="rounded-xl border bg-muted/20 p-4 flex flex-col items-center text-center gap-3">
-          <p className="text-sm text-foreground font-medium">{tForms("noBalanceMessage")}</p>
+          <div className="space-y-1">
+            <p className="text-sm text-foreground font-medium">{tForms("noBalanceMessage")}</p>
+            {availableBalanceSats !== undefined && (
+              <p className="text-xs text-muted-foreground tabular-nums">
+                {tAccount("available")} · {formatBtcWithSymbol(availableBalanceSats, 6)}
+              </p>
+            )}
+          </div>
           <Button onClick={onDepositClick} className="w-full">
             <Wallet className="size-4" />
             {tForms("depositToContinue")}

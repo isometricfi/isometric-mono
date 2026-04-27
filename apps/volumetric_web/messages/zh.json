@@ -133,7 +133,7 @@
     "wouldRank": "排名 #{rank}/{total}",
     "noYieldOptions": "没有可用收益选项",
     "bestOffer": "最优报价",
-    "noBalanceMessage": "你需要BTC才能继续",
+    "noBalanceMessage": "存入更多BTC以继续",
     "depositToContinue": "存入BTC"
   },
   "Summary": {
