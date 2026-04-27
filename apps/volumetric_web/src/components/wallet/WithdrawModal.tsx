@@ -130,7 +130,9 @@ export function WithdrawModal({
 
             {lockedSats > BigInt(0) && (
               <Badge variant="secondary" className="w-full">
-                {t("lockedInOptions", { amount: formatBtcWithSymbolBigint(lockedSats, 8) })}
+                {t("lockedInOptions", {
+                  amount: formatBtcWithSymbolBigint(lockedSats, 8),
+                })}
               </Badge>
             )}
 
@@ -265,7 +267,7 @@ export function WithdrawModal({
   if (isMobile) {
     return (
       <Drawer open={open} onOpenChange={handleClose}>
-        <DrawerContent className="px-5 pb-4">
+        <DrawerContent className="px-5 pb-4 min-h-[70vh]">
           <DrawerTitle className="sr-only">{t("title")}</DrawerTitle>
           {content}
         </DrawerContent>

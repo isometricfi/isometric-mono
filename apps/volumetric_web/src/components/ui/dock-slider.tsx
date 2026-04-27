@@ -51,7 +51,11 @@ export function DockSlider<T>({
   const maxLeft = -(values.length - 1) * itemWidth;
 
   return (
-    <div className="relative w-full overflow-hidden select-none" style={{ height }}>
+    <div
+      data-vaul-no-drag
+      className="relative w-full overflow-hidden select-none"
+      style={{ height }}
+    >
       <div
         aria-hidden
         className="absolute left-1/2 top-0 bottom-0 w-px bg-primary/40 -translate-x-1/2 pointer-events-none"
