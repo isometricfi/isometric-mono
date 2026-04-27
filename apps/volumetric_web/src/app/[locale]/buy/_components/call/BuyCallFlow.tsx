@@ -203,7 +203,7 @@ export function BuyCallFlow({ open, onOpenChange, onRequestDeposit }: BuyCallFlo
     <>
       {isMobile ? (
         <Drawer open={open} onOpenChange={handleContainerOpenChange}>
-          <DrawerContent className="min-h-[95vh] p-0 flex flex-col">
+          <DrawerContent className="min-h-[98vh] p-0 flex flex-col">
             <DrawerTitle className="sr-only">{t("title")}</DrawerTitle>
             <DrawerDescription className="sr-only">{t("description")}</DrawerDescription>
             {body}
@@ -291,19 +291,24 @@ function AmountStep({ model, onDepositClick }: { model: BuyModel; onDepositClick
             btcPrice={model.btcPrice}
             maxAmountSats={model.maxPremiumAmountSats}
             minAmountSats={model.depositMinSats}
+            availableBalanceSats={model.availableBalanceSats}
             onAmountSatsChange={model.setAmountSats}
             onDepositClick={onDepositClick}
           />
 
-          <Badge
-            className={cn(
-              "w-full flex justify-between px-4 mt-4",
-              model.leverage === 0 && "opacity-20",
-            )}
-          >
-            <span className="text-sm">{t("amount.leverage")}</span>
-            <span className="text-base font-bold tabular-nums">{roundToN(model.leverage, 0)}x</span>
-          </Badge>
+          {!model.needDepositMore && (
+            <Badge
+              className={cn(
+                "w-full flex justify-between px-4 mt-4",
+                model.leverage === 0 && "opacity-20",
+              )}
+            >
+              <span className="text-sm">{t("amount.leverage")}</span>
+              <span className="text-base font-bold tabular-nums">
+                {roundToN(model.leverage, 0)}x
+              </span>
+            </Badge>
+          )}
 
           <div className="mt-3">
             <FlowInfoPanel>{t("amount.explain")}</FlowInfoPanel>

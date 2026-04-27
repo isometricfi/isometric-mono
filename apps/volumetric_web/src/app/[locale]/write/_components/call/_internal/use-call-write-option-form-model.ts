@@ -213,6 +213,7 @@ export function useCallWriteOptionFormModel() {
   return {
     acceptOffer: createOffer,
     amountSats,
+    availableBalanceSats,
     btcPrice,
     competitiveness,
     competitivenessRankDisplay,
