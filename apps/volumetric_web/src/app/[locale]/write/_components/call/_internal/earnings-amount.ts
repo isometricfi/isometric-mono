@@ -5,6 +5,7 @@ export interface WriterCompetitiveness {
   fillSpeed: "firstOffer" | "fastFill" | "balanced" | "higherYield";
   rank: number;
   totalOffers: number;
+  isLargestAtPremium: boolean;
 }
 
 export function getEarningsSatsForPremiumPercent(
@@ -74,6 +75,7 @@ export function getWriterCompetitiveness(
       fillSpeed: "firstOffer",
       rank: 1,
       totalOffers: 1,
+      isLargestAtPremium: false,
     };
   }
 
@@ -81,36 +83,27 @@ export function getWriterCompetitiveness(
   let rank = 1;
 
   for (const offer of sortedOffers) {
-    if (wouldHypotheticalOfferRankBefore(offer, premiumPercent, amountSats)) {
-      break;
-    }
+    if (premiumPercent < offer.premium) break;
     rank += 1;
   }
+
+  const offersAtSamePremium = offers.filter((offer) => offer.premium === premiumPercent);
+  const isLargestAtPremium =
+    offersAtSamePremium.length > 0 &&
+    offersAtSamePremium.every((offer) => amountSats > offer.amountSats);
 
   return {
     bestPremiumPercent: sortedOffers[0]?.premium ?? null,
     fillSpeed: getFillSpeedLabel(rank, sortedOffers.length + 1),
     rank,
     totalOffers: sortedOffers.length + 1,
+    isLargestAtPremium,
   };
 }
 
 function compareOffersByCompetitiveness(a: OptionOffer, b: OptionOffer): number {
   if (a.premium !== b.premium) return a.premium - b.premium;
-  if (a.amountSats !== b.amountSats) return b.amountSats - a.amountSats;
   return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
-}
-
-function wouldHypotheticalOfferRankBefore(
-  existingOffer: OptionOffer,
-  premiumPercent: number,
-  amountSats: number,
-): boolean {
-  if (premiumPercent < existingOffer.premium) return true;
-  if (premiumPercent > existingOffer.premium) return false;
-
-  if (amountSats > existingOffer.amountSats) return true;
-  return false;
 }
 
 function getFillSpeedLabel(

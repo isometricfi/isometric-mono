@@ -1,6 +1,15 @@
 "use client";
 
-import { Info, Loader2, MoreHorizontal, Pencil, Trash, TrendingUp, Trophy } from "lucide-react";
+import {
+  Info,
+  Loader2,
+  MoreHorizontal,
+  Pencil,
+  Scale,
+  Trash,
+  TrendingUp,
+  Trophy,
+} from "lucide-react";
 import { useTranslations } from "next-intl";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -34,7 +43,12 @@ interface OfferCardProps {
   btcPrice: number;
   onCancel?: (id: string) => void;
   isCancelling?: boolean;
-  rankInfo?: { rank: number; totalOffers: number; isBest: boolean } | null;
+  rankInfo?: {
+    rank: number;
+    totalOffers: number;
+    isBest: boolean;
+    isLargestAtPremium: boolean;
+  } | null;
 }
 
 export function OfferCard({ offer, btcPrice, onCancel, isCancelling, rankInfo }: OfferCardProps) {
@@ -147,9 +161,17 @@ export function OfferCard({ offer, btcPrice, onCancel, isCancelling, rankInfo }:
                     {t("bestOffer")}
                   </Badge>
                 ) : (
-                  <Badge variant="outline" className="text-muted-foreground">
-                    {t("rank", { rank: rankInfo.rank })}
-                  </Badge>
+                  <>
+                    <Badge variant="outline" className="text-muted-foreground">
+                      {t("rank", { rank: rankInfo.rank })}
+                    </Badge>
+                    {rankInfo.isLargestAtPremium && (
+                      <Badge variant="secondary">
+                        <Scale className="size-3" />
+                        {t("largestOffer")}
+                      </Badge>
+                    )}
+                  </>
                 ))}
               <Dialog>
                 <DialogTrigger asChild>
@@ -173,14 +195,11 @@ export function OfferCard({ offer, btcPrice, onCancel, isCancelling, rankInfo }:
                         {t("lowestPremiumDesc")}
                       </li>
                       <li className="font-medium text-foreground">
-                        <span className="font-semibold">{t("largestSize")}</span>{" "}
-                        {t("largestSizeDesc")}
-                      </li>
-                      <li className="font-medium text-foreground">
                         <span className="font-semibold">{t("earliestCreated")}</span>{" "}
                         {t("earliestCreatedDesc")}
                       </li>
                     </ol>
+                    <p className="text-sm text-muted-foreground">{t("largestSizeNote")}</p>
                   </div>
                 </DialogContent>
               </Dialog>

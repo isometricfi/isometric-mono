@@ -10,6 +10,7 @@ import { basisPointsToPercent, roundToN, satsToBtc } from "@/lib/utils";
 interface CallWriteOptionSummaryProps {
   amountSats: number;
   competitivenessRankDisplay: string | null;
+  showLargestIndicator: boolean;
   earningsSats: number;
   term: number;
   strikePercent: number;
@@ -18,6 +19,7 @@ interface CallWriteOptionSummaryProps {
 export function CallWriteOptionSummary({
   amountSats,
   competitivenessRankDisplay,
+  showLargestIndicator,
   earningsSats,
   term,
   strikePercent,
@@ -105,17 +107,24 @@ export function CallWriteOptionSummary({
   };
 
   return (
-    <div className="border-border flex  w-full justify-between">
-      <div className="flex items-center justify-between text-sm gap-3">
+    <div className="border-border w-full flex flex-col md:flex-row md:items-center md:justify-between gap-2">
+      <div className="flex items-center text-sm gap-3 flex-wrap">
         <div className="rounded-lg bg-muted px-1.5 py-1">
           <p className="text-xs font-medium text-muted-foreground">{t("rank")}</p>
-          {competitivenessRankDisplay ? (
-            <div className="font-semibold flex items-center md:text-sm text-xs">
-              {competitivenessRankDisplay}
-            </div>
-          ) : (
-            <div className="text-muted-foreground text-xs">--</div>
-          )}
+          <div className="flex items-center gap-1.5">
+            {competitivenessRankDisplay ? (
+              <span className="font-semibold flex items-center md:text-sm text-xs">
+                {competitivenessRankDisplay}
+              </span>
+            ) : (
+              <span className="text-muted-foreground text-xs">--</span>
+            )}
+            {showLargestIndicator && (
+              <span className="text-[10px] font-semibold uppercase tracking-wide text-primary">
+                {t("largest")}
+              </span>
+            )}
+          </div>
         </div>
         <div className="rounded-lg bg-muted px-1.5 py-1">
           <p className="text-xs font-medium text-muted-foreground">{t("apy")}</p>
@@ -139,7 +148,7 @@ export function CallWriteOptionSummary({
         variant="outline"
         size="sm"
         onClick={handleOpenBreakdown}
-        className=" text-xs text-muted-foreground justify-between  px-2  md:h-11 h-10"
+        className="text-xs text-muted-foreground px-2 md:h-11 h-9 md:w-auto w-full md:self-auto self-end"
       >
         {t("terms")}
       </Button>

@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import { Globe, Linkedin } from "lucide-react";
 import Image from "next/image";
 import { useTranslations } from "next-intl";
+import { XIcon } from "@/lib/site-links";
 
 type Member = {
   name: string;
@@ -12,6 +13,7 @@ type Member = {
   image: string;
   linkedin: string;
   website: string;
+  x: string;
 };
 
 export function TeamSection() {
@@ -25,6 +27,7 @@ export function TeamSection() {
       image: "/landing/luke-profile.jpg",
       linkedin: "https://www.linkedin.com/in/luke-bowles-sa/",
       website: "https://luko.co.za",
+      x: "https://x.com/npm_luko",
     },
     {
       name: "Dylan van Heerden",
@@ -33,6 +36,7 @@ export function TeamSection() {
       image: "/landing/dylan-profile.jpg",
       linkedin: "https://www.linkedin.com/in/dylanvanheerden/",
       website: "https://www.dylanvh.com",
+      x: "https://x.com/obonobza",
     },
   ];
 
@@ -93,6 +97,15 @@ export function TeamSection() {
                         className="text-muted-foreground transition-colors hover:text-primary"
                       >
                         <Linkedin className="size-4" />
+                      </a>
+                      <a
+                        href={m.x}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        aria-label={`${m.name} X`}
+                        className="text-muted-foreground transition-colors hover:text-primary"
+                      >
+                        <XIcon className="size-4" />
                       </a>
                     </div>
                   </div>

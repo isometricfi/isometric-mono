@@ -22,6 +22,7 @@ export function CallWriteOptionForm() {
     amountSats,
     btcPrice,
     competitivenessRankDisplay,
+    showLargestIndicator,
     earningsSats,
     getButtonText,
     handleAmountSatsChange,
@@ -98,6 +99,7 @@ export function CallWriteOptionForm() {
         <CallWriteOptionSummary
           amountSats={amountSats}
           competitivenessRankDisplay={competitivenessRankDisplay}
+          showLargestIndicator={showLargestIndicator}
           earningsSats={earningsSats}
           strikePercent={selectedStrikePercent}
           term={selectedTermDay}
