@@ -8,7 +8,7 @@ const intlMiddleware = createIntlMiddleware(routing);
 
 const isDev = process.env.NODE_ENV === "development";
 
-const APP_PATH_PREFIXES = ["/buy", "/write", "/portfolio", "/history", "/testing"] as const;
+const APP_PATH_PREFIXES = ["/buy", "/write", "/portfolio", "/history"] as const;
 const LANDING_PAGE_PATH_PREFIXES = ["/privacy", "/terms", "/s"] as const;
 const LOCALE_PATH_PREFIXES = routing.locales.map((locale) => `/${locale}`);
 const HOMEPAGE_PATH = "/";
