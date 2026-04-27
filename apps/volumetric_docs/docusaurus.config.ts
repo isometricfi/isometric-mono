@@ -15,7 +15,7 @@ const config: Config = {
   },
 
   // Set the production url of your site here
-  url: 'https://isometric.fi',
+  url: 'https://docs.isometric.fi',
   // Set the /<baseUrl>/ pathname under which your site is served
   baseUrl: '/',
 
@@ -93,6 +93,11 @@ const config: Config = {
           label: 'Technical',
         },
         {
+          href: 'https://isometric.fi',
+          label: 'Open app',
+          position: 'right',
+        },
+        {
           type: 'localeDropdown',
           position: 'right',
         },
@@ -132,6 +137,14 @@ const config: Config = {
             {label: 'Overview', to: '/technical/'},
             {label: 'Mechanics', to: '/technical/mechanics'},
             {label: 'Price oracle', to: '/technical/price-oracle'},
+          ],
+        },
+        {
+          title: 'Isometric',
+          items: [
+            {label: 'App', href: 'https://isometric.fi'},
+            {label: 'Privacy', href: 'https://isometric.fi/privacy'},
+            {label: 'Terms', href: 'https://isometric.fi/terms'},
           ],
         },
       ],

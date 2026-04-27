@@ -141,7 +141,7 @@ export function DepositModal({
   };
 
   const content = (
-    <div className="flex flex-col space-y-6 md:pt-0 pt-3  min-h-[500px] md:min-h-[380px]">
+    <div className="flex flex-col space-y-6 md:pt-0 pt-3  min-h-[70vh] md:min-h-[380px]">
       <AnimatePresence mode="wait">
         {step === "input" && (
           <motion.div
