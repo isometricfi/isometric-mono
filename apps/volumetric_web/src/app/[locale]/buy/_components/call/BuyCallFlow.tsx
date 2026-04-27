@@ -68,12 +68,21 @@ export function BuyCallFlow({ open, onOpenChange, onRequestDeposit }: BuyCallFlo
   const goBack = () => setStepIndex((i) => Math.max(0, i - 1));
   const goNext = () => setStepIndex((i) => Math.min(STEPS.length - 1, i + 1));
 
-  const canAdvance =
-    step === "amount"
-      ? !model.isBalanceLoading && model.amountSats > 0
-      : step === "termStrike"
-        ? model.strikeUsdValues.length > 0
-        : true;
+  const canAdvance = (() => {
+    switch (step) {
+      case "termStrike":
+        return model.strikeUsdValues.length > 0;
+      case "amount":
+        return (
+          !model.isBalanceLoading &&
+          !model.needDepositMore &&
+          model.amountSats >= model.depositMinSats &&
+          model.amountSats <= model.maxPremiumAmountSats
+        );
+      default:
+        return true;
+    }
+  })();
 
   const handleSlideConfirm = () => {
     if (!primaryWallet) {
@@ -194,7 +203,7 @@ export function BuyCallFlow({ open, onOpenChange, onRequestDeposit }: BuyCallFlo
     <>
       {isMobile ? (
         <Drawer open={open} onOpenChange={handleContainerOpenChange}>
-          <DrawerContent className="h-[95dvh] p-0 flex flex-col">
+          <DrawerContent className="min-h-[95vh] p-0 flex flex-col">
             <DrawerTitle className="sr-only">{t("title")}</DrawerTitle>
             <DrawerDescription className="sr-only">{t("description")}</DrawerDescription>
             {body}

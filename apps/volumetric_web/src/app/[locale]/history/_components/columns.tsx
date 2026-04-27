@@ -8,20 +8,20 @@ import { Badge } from "@/components/ui/badge";
 import type { HistoryEntry } from "@/hooks";
 import { cn, formatBtcBigint, formatBtcWithSymbolBigint } from "@/lib/utils";
 
-const NS_PER_MS = BigInt(1_000_000);
+const MS_PER_SECOND = 1000;
 
 function formatUsd(cents: bigint): string {
   const dollars = Number(cents) / 100;
   return `$${dollars.toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
 }
 
-function formatDate(ns: bigint): string {
-  const ms = Number(ns / NS_PER_MS);
+function formatDate(settledAtUnixSeconds: bigint): string {
+  const ms = Number(settledAtUnixSeconds) * MS_PER_SECOND;
   return format(new Date(ms), "dd/MM/yyyy");
 }
 
-function formatTime(ns: bigint): string {
-  const ms = Number(ns / NS_PER_MS);
+function formatTime(settledAtUnixSeconds: bigint): string {
+  const ms = Number(settledAtUnixSeconds) * MS_PER_SECOND;
   return format(new Date(ms), "HH:mm ");
 }
 

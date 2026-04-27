@@ -1,0 +1,18 @@
+{
+  "version.label": {
+    "message": "Next",
+    "description": "The label for version current"
+  },
+  "sidebar.tutorialSidebar.category.Getting started": {
+    "message": "开始使用",
+    "description": "The label for category 'Getting started' in sidebar 'tutorialSidebar'"
+  },
+  "sidebar.tutorialSidebar.category.Trading": {
+    "message": "交易",
+    "description": "The label for category 'Trading' in sidebar 'tutorialSidebar'"
+  },
+  "sidebar.tutorialSidebar.category.Strategies": {
+    "message": "策略",
+    "description": "The label for category 'Strategies' in sidebar 'tutorialSidebar'"
+  }
+}

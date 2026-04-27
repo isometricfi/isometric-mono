@@ -25,7 +25,9 @@ export interface HistoryEntry {
   pnlPercent: number;
   result: TradeResult;
   moneyStatus: MoneyStatus;
+  /** Unix epoch seconds (IC event `*_seconds` / D1 JSON). */
   acceptedAt: bigint;
+  /** Unix epoch seconds (IC event `*_seconds` / D1 JSON). */
   settledAt: bigint;
 }
 
