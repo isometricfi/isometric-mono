@@ -7,10 +7,24 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatedToggle, type ToggleOption } from "@/components/navigation/AnimatedToggle";
 import { useAccount, useActiveOptions, useConfig, useOptions, usePrices } from "@/hooks";
 import { getStrikeUsd } from "@/lib/options-form";
-import { cn, formatBtc } from "@/lib/utils";
+import { cn, formatBtcWithSymbol } from "@/lib/utils";
 import type { StrikeBucket } from "@/types/options";
 import type { ViewerMode } from "@/types/ui";
 import { Card, CardContent } from "../ui/card";
+
+type Dataset = "orders" | "active";
+
+function formatExpiresAt(iso: string): string {
+  const d = new Date(iso);
+  const now = Date.now();
+  const ms = d.getTime() - now;
+  const minutes = Math.round(ms / 60_000);
+  if (ms <= 0) return "now";
+  if (minutes < 60) return `${minutes}m`;
+  const hours = Math.round(minutes / 60);
+  if (hours < 24) return `${hours}h`;
+  return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+}
 
 interface StrikeRowProps {
   bucket: StrikeBucket;
@@ -18,6 +32,7 @@ interface StrikeRowProps {
   isExpanded: boolean;
   onToggle: () => void;
   mode: ViewerMode;
+  dataset: Dataset;
   currentUserId?: string;
 }
 
@@ -27,6 +42,7 @@ function StrikeRow({
   isExpanded,
   onToggle,
   mode,
+  dataset,
   currentUserId,
 }: StrikeRowProps) {
   const t = useTranslations("OptionsViewer");
@@ -59,9 +75,13 @@ function StrikeRow({
           <ChevronRight className="size-4 text-muted-foreground" />
         </motion.div>
 
-        {/* strike - USD primary for buyers, % primary for writers */}
+        {/* strike - for orders: USD-primary (buyer) or %-primary (writer); for active: only %, since each position has its own absolute strike */}
         <div className="flex-1 text-left">
-          {mode === "buyer" ? (
+          {dataset === "active" ? (
+            <span className="text-sm md:text-base font-medium text-green-500">
+              +{bucket.strikePercent}%
+            </span>
+          ) : mode === "buyer" ? (
             <>
               {btcPrice > 0 && (
                 <span className="text-sm md:text-base font-medium">
@@ -98,9 +118,8 @@ function StrikeRow({
         {/* total liquidity */}
         <div className="w-20 md:w-28 text-right">
           <span className="text-sm md:text-base font-medium">
-            {formatBtc(bucket.totalLiquiditySats, 4)}
+            {formatBtcWithSymbol(bucket.totalLiquiditySats, 4)}
           </span>
-          <span className="text-xs text-muted-foreground ml-1">BTC</span>
         </div>
 
         {/* offer count - hidden on small screens */}
@@ -124,10 +143,17 @@ function StrikeRow({
               {/* offers header */}
               <div
                 className={cn(
-                  "px-4 py-2 grid text-xs text-muted-foreground border-b border-border/30 grid-cols-2",
+                  "px-4 py-2 grid text-xs text-muted-foreground border-b border-border/30",
+                  dataset === "active" ? "grid-cols-4" : "grid-cols-2",
                 )}
               >
                 <span className="pl-7">{t("premium")}</span>
+                {dataset === "active" && (
+                  <>
+                    <span className="text-right">{t("strike")}</span>
+                    <span className="text-right">{t("expires")}</span>
+                  </>
+                )}
                 <span className="text-right">{t("amount")}</span>
               </div>
 
@@ -140,7 +166,11 @@ function StrikeRow({
                 >
                   {/* individual offers */}
                   {bucket.offers
-                    .sort((a, b) => a.premium - b.premium)
+                    .sort((a, b) =>
+                      dataset === "active"
+                        ? new Date(a.expiresAt).getTime() - new Date(b.expiresAt).getTime()
+                        : a.premium - b.premium,
+                    )
                     .map((offer) => {
                       const isMine =
                         !!currentUserId &&
@@ -149,7 +179,8 @@ function StrikeRow({
                         <div
                           key={offer.id}
                           className={cn(
-                            "px-4 py-2.5 grid items-center text-sm hover:bg-secondary/30 transition-colors grid-cols-2",
+                            "relative px-4 py-2.5 grid items-center text-sm hover:bg-secondary/30 transition-colors",
+                            dataset === "active" ? "grid-cols-4" : "grid-cols-2",
                           )}
                         >
                           {isMine && (
@@ -158,7 +189,21 @@ function StrikeRow({
                             </div>
                           )}
                           <span className="pl-7 font-medium">{offer.premium}%</span>
-                          <span className="text-right">{formatBtc(offer.amountSats, 4)} BTC</span>
+                          {dataset === "active" && (
+                            <>
+                              <span className="text-right text-muted-foreground">
+                                {offer.strikeUsd != null
+                                  ? `$${offer.strikeUsd.toLocaleString()}`
+                                  : "—"}
+                              </span>
+                              <span className="text-right text-muted-foreground tabular-nums">
+                                {formatExpiresAt(offer.expiresAt)}
+                              </span>
+                            </>
+                          )}
+                          <span className="text-right">
+                            {formatBtcWithSymbol(offer.amountSats, 4)}
+                          </span>
                         </div>
                       );
                     })}
@@ -190,8 +235,6 @@ interface OptionsViewerProps {
   mode: ViewerMode;
 }
 
-type Dataset = "orders" | "active";
-
 export function OptionsViewer({ mode }: OptionsViewerProps) {
   const t = useTranslations("OptionsViewer");
   const { data: ordersData, isLoading: isLoadingOrders } = useOptions();
@@ -204,7 +247,6 @@ export function OptionsViewer({ mode }: OptionsViewerProps) {
 
   const [dataset, setDataset] = useState<Dataset>("orders");
 
-  const data = dataset === "orders" ? ordersData : activeData;
   const isLoading = dataset === "orders" ? isLoadingOrders : isLoadingActive;
 
   const datasetOptions: ToggleOption<Dataset>[] = useMemo(
@@ -228,7 +270,12 @@ export function OptionsViewer({ mode }: OptionsViewerProps) {
   const [selectedTerm, setSelectedTerm] = useState<string>(defaultTerm);
   const [expandedStrikePercent, setExpandedStrikePercent] = useState<number | null>(null);
 
-  const currentTermGroup = data?.termGroups.find((group) => group.term.toString() === selectedTerm);
+  const sourceData = dataset === "orders" ? ordersData : activeData;
+  const currentTermGroup = sourceData?.termGroups.find(
+    (group) => group.term.toString() === selectedTerm,
+  );
+
+  const visibleStrikes: StrikeBucket[] = currentTermGroup?.strikes ?? [];
 
   const handleToggleStrike = (strikePercent: number) => {
     setExpandedStrikePercent((prev) => (prev === strikePercent ? null : strikePercent));
@@ -261,12 +308,16 @@ export function OptionsViewer({ mode }: OptionsViewerProps) {
           />
         </div>
 
-        {currentTermGroup && (
+        {visibleStrikes.length > 0 && (
           <>
             <div className="flex items-center justify-between text-sm text-muted-foreground">
-              <span>
-                {t("expires")} {formatExpiryDate(currentTermGroup.expiryDate)}
-              </span>
+              {dataset === "orders" && currentTermGroup ? (
+                <span>
+                  {t("expires")} {formatExpiryDate(currentTermGroup.expiryDate)}
+                </span>
+              ) : (
+                <span />
+              )}
               {btcPrice > 0 && <span>BTC: ${btcPrice.toLocaleString()}</span>}
             </div>
 
@@ -274,7 +325,9 @@ export function OptionsViewer({ mode }: OptionsViewerProps) {
               <div className="pl-0 pr-2 md:px-4 rounded-lg py-2 grid grid-cols-[1fr_auto_auto] md:grid-cols-[1fr_auto_auto_auto] gap-2 md:gap-3 text-xs text-muted-foreground bg-secondary/30">
                 <span className="pl-6 md:pl-7">{t("strike")}</span>
                 <span className="w-16 md:w-24 text-right">{t("premium")}</span>
-                <span className="w-20 md:w-28 text-right">{t("liquidity")}</span>
+                <span className="w-20 md:w-28 text-right">
+                  {dataset === "orders" ? t("liquidity") : t("amount")}
+                </span>
                 <span className="hidden md:block w-16 text-right">
                   {dataset === "orders" ? t("offers") : t("positions")}
                 </span>
@@ -282,7 +335,7 @@ export function OptionsViewer({ mode }: OptionsViewerProps) {
 
               {/* strike rows */}
               <div className=" overflow-y-auto">
-                {currentTermGroup.strikes.map((bucket) => (
+                {visibleStrikes.map((bucket) => (
                   <StrikeRow
                     key={bucket.strikePercent}
                     bucket={bucket}
@@ -290,6 +343,7 @@ export function OptionsViewer({ mode }: OptionsViewerProps) {
                     isExpanded={expandedStrikePercent === bucket.strikePercent}
                     onToggle={() => handleToggleStrike(bucket.strikePercent)}
                     mode={mode}
+                    dataset={dataset}
                     currentUserId={currentUserId}
                   />
                 ))}
@@ -304,7 +358,7 @@ export function OptionsViewer({ mode }: OptionsViewerProps) {
           </div>
         )}
 
-        {!isLoading && (!currentTermGroup || currentTermGroup.strikes.length === 0) && (
+        {!isLoading && visibleStrikes.length === 0 && (
           <div className="text-center py-12">
             <p className="text-muted-foreground">
               {dataset === "orders" ? t("noOptionsAvailable") : t("noActiveOptions")}
