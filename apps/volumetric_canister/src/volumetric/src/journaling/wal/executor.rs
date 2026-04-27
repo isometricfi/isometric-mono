@@ -74,6 +74,10 @@ fn mark_wal_execution_in_progress_if_idle(operation_id: OperationId) -> bool {
 
 async fn execute_wal_entry_attempt(operation_id: OperationId) -> WalExecutionOutcome {
     let Some(mut wal_entry) = get_entry(operation_id) else {
+        logging::error!(
+            "wal entry missing during execution attempt operation_id={:?}",
+            operation_id
+        );
         return WalExecutionOutcome::FailedPermanent(WAL_ENTRY_NOT_FOUND_MESSAGE.to_string());
     };
 
@@ -84,6 +88,9 @@ async fn execute_wal_entry_attempt(operation_id: OperationId) -> WalExecutionOut
 
     // Persist attempt start before await so retries survive traps/upgrades.
     put_entry(wal_entry.clone());
+
+    let wal_kind = wal_entry.kind;
+    let wal_attempt_number = wal_entry.attempts;
 
     let payload_execution_result = execute_wal_payload(operation_id, &wal_entry.payload).await;
 
@@ -97,6 +104,12 @@ async fn execute_wal_entry_attempt(operation_id: OperationId) -> WalExecutionOut
             updated_wal_entry.result = Some(wal_result);
 
             put_entry(updated_wal_entry);
+            logging::log!(
+                "wal succeeded operation_id={:?} kind={:?} attempts={}",
+                operation_id,
+                wal_kind,
+                wal_attempt_number
+            );
             WalExecutionOutcome::Succeeded
         }
         Err(WalExecutionError::Retryable(retryable_error_message)) => {
@@ -108,6 +121,13 @@ async fn execute_wal_entry_attempt(operation_id: OperationId) -> WalExecutionOut
             updated_wal_entry.status = WalStatus::RecoveryRequired;
             updated_wal_entry.next_attempt_at_seconds = updated_wal_entry.last_update_seconds;
             put_entry(updated_wal_entry);
+            logging::warn!(
+                "wal recovery required operation_id={:?} kind={:?} attempts={} error={}",
+                operation_id,
+                wal_kind,
+                wal_attempt_number,
+                retryable_error_message
+            );
             WalExecutionOutcome::RecoveryRequired(retryable_error_message)
         }
         Err(WalExecutionError::Permanent(permanent_error_message)) => {
@@ -120,6 +140,13 @@ async fn execute_wal_entry_attempt(operation_id: OperationId) -> WalExecutionOut
 
             put_entry(updated_wal_entry);
             finalize_failed_wal_payload(&wal_payload, &permanent_error_message);
+            logging::error!(
+                "wal failed permanent operation_id={:?} kind={:?} attempts={} error={}",
+                operation_id,
+                wal_kind,
+                wal_attempt_number,
+                permanent_error_message
+            );
             WalExecutionOutcome::FailedPermanent(permanent_error_message)
         }
     }

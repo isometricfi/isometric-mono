@@ -90,6 +90,8 @@ pub fn withdraw_ckbtc_use_case(
         return Ok(existing_withdraw_receipt);
     }
 
+    let gross_withdraw_amount_sats = params.amount;
+
     let withdrawal_wal_execution_preparation = enqueue_ckbtc_withdraw_wal_after_debit(
         principal,
         params,
@@ -101,6 +103,14 @@ pub fn withdraw_ckbtc_use_case(
         withdrawal_id: withdrawal_wal_execution_preparation.withdrawal_id,
     };
     schedule_withdraw_wal_execution(withdraw_receipt.operation_id);
+
+    logging::log!(
+        "withdraw_ckbtc enqueued operation_id={:?} principal={} withdrawal_id={} gross_amount_sats={}",
+        withdraw_receipt.operation_id,
+        principal,
+        withdraw_receipt.withdrawal_id,
+        gross_withdraw_amount_sats
+    );
 
     Ok(withdraw_receipt)
 }

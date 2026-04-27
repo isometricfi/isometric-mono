@@ -89,6 +89,13 @@ pub fn create_offer_use_case(
         },
     );
 
+    logging::log!(
+        "offer created id={} writer={} quantity_sats={}",
+        offer.id,
+        writer,
+        params.quantity
+    );
+
     Ok(offer)
 }
 

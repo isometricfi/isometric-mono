@@ -4,7 +4,6 @@ use candid::{CandidType, Principal};
 use ic_stable_structures::memory_manager::MemoryId;
 use ic_stable_structures::StableBTreeMap;
 
-use crate::ic;
 use serde::{Deserialize, Serialize};
 
 use crate::time::current_time_seconds;
@@ -152,7 +151,7 @@ pub fn emit_event(principal: Principal, event_type: EventType, data: EventData) 
     match result {
         Ok(id) => Some(id),
         Err(_) => {
-            ic::log("Failed to emit event - continuing without event");
+            logging::warn!("failed to emit event; continuing without event");
             None
         }
     }

@@ -28,7 +28,13 @@ pub async fn recover_wal_operation(
     operation_id: OperationId,
 ) -> Result<WalExecutionOutcome, VolumetricError> {
     is_controller()?;
-    Ok(execute_wal_entry_now(operation_id).await)
+    let outcome = execute_wal_entry_now(operation_id).await;
+    logging::log!(
+        "recover_wal_operation operation_id={:?} outcome={:?}",
+        operation_id,
+        outcome
+    );
+    Ok(outcome)
 }
 
 fn normalize_wal_query_limit_entries(limit_requested: u32) -> usize {
