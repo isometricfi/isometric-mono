@@ -44,10 +44,10 @@ pub use offers::{
 };
 pub(crate) use options::finalize_failed_settlement_wal;
 pub use options::{
-    get_my_options_use_case, get_my_written_options_use_case, get_settlement_status_use_case,
-    run_settlement_wal, settle_expired_options_use_case, settle_option_by_id_use_case,
-    SettleExpiredOptionsResult, SettlementReceipt, SettlementResult, SettlementStatus,
-    SettlementWalResult,
+    get_active_options_use_case, get_my_options_use_case, get_my_written_options_use_case,
+    get_settlement_status_use_case, run_settlement_wal, settle_expired_options_use_case,
+    settle_option_by_id_use_case, SettleExpiredOptionsResult, SettlementReceipt, SettlementResult,
+    SettlementStatus, SettlementWalResult,
 };
 #[cfg(feature = "testing")]
 pub use options::{

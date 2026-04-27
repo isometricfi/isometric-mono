@@ -530,6 +530,7 @@ export interface _SERVICE {
   'get_account_info' : ActorMethod<[string, boolean], Result_9>,
   'get_account_nonce' : ActorMethod<[string], Result_3>,
   'get_active_option_by_id' : ActorMethod<[bigint], [] | [ActiveOption]>,
+  'get_active_options' : ActorMethod<[], Array<ActiveOption>>,
   'get_all_events' : ActorMethod<[[] | [bigint], [] | [number]], Result_10>,
   'get_cancel_offer_message' : ActorMethod<[string, bigint, bigint], Result_7>,
   'get_ckbtc_balance' : ActorMethod<[string], Result_11>,

@@ -123,6 +123,11 @@ pub fn get_active_option_by_id(option_id: u64) -> Option<ActiveOption> {
 }
 
 #[ic_cdk::query(guard = "no_replicated_call")]
+pub fn get_active_options() -> Vec<ActiveOption> {
+    usecases::get_active_options_use_case()
+}
+
+#[ic_cdk::query(guard = "no_replicated_call")]
 pub fn get_pending_accepts() -> Result<Vec<PendingAccept>, VolumetricError> {
     is_controller()?;
     Ok(list_pending_accepts())

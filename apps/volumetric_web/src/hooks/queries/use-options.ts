@@ -40,6 +40,15 @@ export function useOptions() {
   });
 }
 
+export function useActiveOptions() {
+  const trpc = useTRPC();
+
+  return useQuery({
+    ...trpc.options.listActiveOptions.queryOptions(),
+    staleTime: 30000,
+  });
+}
+
 export function findBestOffer(
   data: OptionsData | undefined,
   term: number,

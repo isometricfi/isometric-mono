@@ -50,9 +50,7 @@ export function CallWriteOptionForm() {
     <Card className="relative ">
       <CardContent className="space-y-5">
         <div className="flex items-center justify-between p-1 rounded-lg border">
-          <p className="md:text-base text-sm font-medium text-foreground ml-2">
-            {t("willBeBelow")}:{" "}
-          </p>
+          <p className="md:text-base text-sm font-medium text-foreground ml-2">{t("strike")}: </p>
           <div className="flex items-center">
             <p className="text-muted-foreground md:text-base text-sm md:mr-3 mr-2">
               {selectedStrikePercent}%
@@ -69,9 +67,7 @@ export function CallWriteOptionForm() {
         </div>
 
         <div className="flex items-center justify-between border p-1 rounded-lg">
-          <p className="md:text-base text-sm font-medium text-foreground ml-2  ">
-            {t("inLabel")}:{" "}
-          </p>
+          <p className="md:text-base text-sm font-medium text-foreground ml-2  ">{t("term")}: </p>
           <div className="md:min-w-[190px] min-w-[150px]">
             <NumberCarousel
               values={termDays}

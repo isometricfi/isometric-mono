@@ -597,6 +597,7 @@ export const idlFactory = ({ IDL }) => {
         [IDL.Opt(ActiveOption)],
         ['query'],
       ),
+    'get_active_options' : IDL.Func([], [IDL.Vec(ActiveOption)], ['query']),
     'get_all_events' : IDL.Func(
         [IDL.Opt(IDL.Nat64), IDL.Opt(IDL.Nat32)],
         [Result_10],

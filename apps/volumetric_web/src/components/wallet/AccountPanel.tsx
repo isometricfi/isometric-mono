@@ -58,13 +58,19 @@ export function AccountPanel({
         )}
       >
         <DrawerTitle className="sr-only">Account</DrawerTitle>
-        <AccountPanelContent onDisconnect={onDisconnect} />
+        <AccountPanelContent onDisconnect={onDisconnect} onClose={() => onOpenChange(false)} />
       </DrawerContent>
     </Drawer>
   );
 }
 
-function AccountPanelContent({ onDisconnect }: { onDisconnect: () => void }) {
+function AccountPanelContent({
+  onDisconnect,
+  onClose,
+}: {
+  onDisconnect: () => void;
+  onClose: () => void;
+}) {
   const { primaryWallet } = useDynamicContext();
   const { data: priceData } = usePrices();
   const { data: accountData, isLoading: isLoadingBalance } = useAccount();
@@ -202,7 +208,7 @@ function AccountPanelContent({ onDisconnect }: { onDisconnect: () => void }) {
               </div>
               <PendingDeposits />
               <div className="space-y-5 md:absolute right-0 w-full">
-                <Link href="/history" className="block w-full">
+                <Link href="/history" className="block w-full" onClick={onClose}>
                   <Button variant="outline" size="sm" className="w-full">
                     <History className="size-4 " /> {t("tradeHistory")}
                   </Button>
