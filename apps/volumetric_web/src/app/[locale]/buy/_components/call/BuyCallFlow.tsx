@@ -203,7 +203,7 @@ export function BuyCallFlow({ open, onOpenChange, onRequestDeposit }: BuyCallFlo
     <>
       {isMobile ? (
         <Drawer open={open} onOpenChange={handleContainerOpenChange}>
-          <DrawerContent className="min-h-[95vh] p-0 flex flex-col">
+          <DrawerContent className="min-h-[98vh] p-0 flex flex-col">
             <DrawerTitle className="sr-only">{t("title")}</DrawerTitle>
             <DrawerDescription className="sr-only">{t("description")}</DrawerDescription>
             {body}

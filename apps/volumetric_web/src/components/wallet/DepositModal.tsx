@@ -436,7 +436,7 @@ export function DepositModal({
 
   if (isMobile) {
     return (
-      <Drawer open={open} onOpenChange={handleClose} repositionInputs={false}>
+      <Drawer open={open} onOpenChange={handleClose}>
         <DrawerContent className="px-5 pb-5 ">
           <DrawerTitle className="sr-only">{t("title")}</DrawerTitle>
           {content}
