@@ -2,7 +2,10 @@ import { z } from "zod";
 import type { ConfigData, FeeConfig } from "@/types/config";
 
 const RangeU64Schema = z.object({ min: z.bigint(), max: z.bigint() });
-const RangeU16Schema = z.object({ min: z.number().or(z.bigint()), max: z.number().or(z.bigint()) });
+const RangeU16Schema = z.object({
+  min: z.number().or(z.bigint()),
+  max: z.number().or(z.bigint()),
+});
 
 const TradingLimitsSchema = z.object({
   create_offer_quantity_sats: RangeU64Schema,
@@ -23,7 +26,7 @@ const FeeConfigSchema = z.object({
 const BASIS_POINTS_PER_PERCENT = 100;
 const DEFAULT_TERM_OPTIONS = [1, 7, 14];
 const STRIKE_PERCENT_OPTIONS = [5, 10, 15, 20];
-const PREMIUM_STEP = 0.25;
+const PREMIUM_STEP = 0.2;
 const SECONDS_PER_DAY = 86_400;
 
 function mapFeeConfig(rawFeeConfig: unknown): FeeConfig {

@@ -1,7 +1,9 @@
 mod get_options;
 mod settle_option;
 
-pub use get_options::{get_my_options_use_case, get_my_written_options_use_case};
+pub use get_options::{
+    get_active_options_use_case, get_my_options_use_case, get_my_written_options_use_case,
+};
 pub(crate) use settle_option::finalize_failed_settlement_wal;
 pub use settle_option::{
     get_settlement_status_use_case, run_settlement_wal, settle_expired_options_use_case,

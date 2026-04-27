@@ -23,7 +23,7 @@ export function WriteEarningsSection({
 
   return (
     <div className="flex items-center justify-between p-1 rounded-lg border">
-      <p className="text-base font-medium text-foreground ml-2">{t("youEarn")}: </p>
+      <p className="text-base font-medium text-foreground ml-2">{t("premium")}: </p>
       <div className="min-w-[200px]">
         <NumberCarousel
           values={premiumValues}

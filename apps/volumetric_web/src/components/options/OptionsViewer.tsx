@@ -1,11 +1,11 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
-import { ChevronDown, ChevronRight, User } from "lucide-react";
+import { Atom, BookOpen, ChevronDown, ChevronRight, User } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatedToggle, type ToggleOption } from "@/components/navigation/AnimatedToggle";
-import { useAccount, useConfig, useOptions, usePrices } from "@/hooks";
+import { useAccount, useActiveOptions, useConfig, useOptions, usePrices } from "@/hooks";
 import { getStrikeUsd } from "@/lib/options-form";
 import { cn, formatBtc } from "@/lib/utils";
 import type { StrikeBucket } from "@/types/options";
@@ -141,22 +141,27 @@ function StrikeRow({
                   {/* individual offers */}
                   {bucket.offers
                     .sort((a, b) => a.premium - b.premium)
-                    .map((offer) => (
-                      <div
-                        key={offer.id}
-                        className={cn(
-                          "px-4 py-2.5 grid items-center text-sm hover:bg-secondary/30 transition-colors grid-cols-2",
-                        )}
-                      >
-                        {currentUserId && offer.writerId === currentUserId && (
-                          <div className="absolute left-4 top-1/2 -translate-y-1/2">
-                            <User className="size-4 text-primary fill-primary/20" />
-                          </div>
-                        )}
-                        <span className="pl-7 font-medium">{offer.premium}%</span>
-                        <span className="text-right">{formatBtc(offer.amountSats, 4)} BTC</span>
-                      </div>
-                    ))}
+                    .map((offer) => {
+                      const isMine =
+                        !!currentUserId &&
+                        (offer.writerId === currentUserId || offer.buyerId === currentUserId);
+                      return (
+                        <div
+                          key={offer.id}
+                          className={cn(
+                            "px-4 py-2.5 grid items-center text-sm hover:bg-secondary/30 transition-colors grid-cols-2",
+                          )}
+                        >
+                          {isMine && (
+                            <div className="absolute left-4 top-1/2 -translate-y-1/2">
+                              <User className="size-4 text-primary fill-primary/20" />
+                            </div>
+                          )}
+                          <span className="pl-7 font-medium">{offer.premium}%</span>
+                          <span className="text-right">{formatBtc(offer.amountSats, 4)} BTC</span>
+                        </div>
+                      );
+                    })}
                 </div>
                 {/* scroll indicator badge */}
                 <AnimatePresence>
@@ -185,14 +190,30 @@ interface OptionsViewerProps {
   mode: ViewerMode;
 }
 
+type Dataset = "orders" | "active";
+
 export function OptionsViewer({ mode }: OptionsViewerProps) {
   const t = useTranslations("OptionsViewer");
-  const { data, isLoading } = useOptions();
+  const { data: ordersData, isLoading: isLoadingOrders } = useOptions();
+  const { data: activeData, isLoading: isLoadingActive } = useActiveOptions();
   const { data: priceData } = usePrices();
   const { data: config } = useConfig();
   const { data: account } = useAccount();
   const btcPrice = priceData?.btc ?? 0;
   const currentUserId = account?.profile?.principal;
+
+  const [dataset, setDataset] = useState<Dataset>("orders");
+
+  const data = dataset === "orders" ? ordersData : activeData;
+  const isLoading = dataset === "orders" ? isLoadingOrders : isLoadingActive;
+
+  const datasetOptions: ToggleOption<Dataset>[] = useMemo(
+    () => [
+      { value: "orders", label: t("orders"), icon: BookOpen },
+      { value: "active", label: t("active"), icon: Atom },
+    ],
+    [t],
+  );
 
   const termOptions: ToggleOption<string>[] = useMemo(() => {
     if (!config) return [];
@@ -224,7 +245,13 @@ export function OptionsViewer({ mode }: OptionsViewerProps) {
     <Card>
       <CardContent className="space-y-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold">{t("availableOptions")}</h2>
+          <AnimatedToggle
+            options={datasetOptions}
+            value={dataset}
+            onChange={setDataset}
+            layoutId="optionsViewerDataset"
+            size="sm"
+          />
           <AnimatedToggle
             options={termOptions}
             value={selectedTerm}
@@ -248,7 +275,9 @@ export function OptionsViewer({ mode }: OptionsViewerProps) {
                 <span className="pl-6 md:pl-7">{t("strike")}</span>
                 <span className="w-16 md:w-24 text-right">{t("premium")}</span>
                 <span className="w-20 md:w-28 text-right">{t("liquidity")}</span>
-                <span className="hidden md:block w-16 text-right">{t("offers")}</span>
+                <span className="hidden md:block w-16 text-right">
+                  {dataset === "orders" ? t("offers") : t("positions")}
+                </span>
               </div>
 
               {/* strike rows */}
@@ -277,8 +306,12 @@ export function OptionsViewer({ mode }: OptionsViewerProps) {
 
         {!isLoading && (!currentTermGroup || currentTermGroup.strikes.length === 0) && (
           <div className="text-center py-12">
-            <p className="text-muted-foreground">{t("noOptionsAvailable")}</p>
-            <p className="text-sm text-muted-foreground mt-1">{t("beFirstToWrite")}</p>
+            <p className="text-muted-foreground">
+              {dataset === "orders" ? t("noOptionsAvailable") : t("noActiveOptions")}
+            </p>
+            {dataset === "orders" && (
+              <p className="text-sm text-muted-foreground mt-1">{t("beFirstToWrite")}</p>
+            )}
           </div>
         )}
       </CardContent>

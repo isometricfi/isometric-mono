@@ -441,11 +441,15 @@
     "offers": "Offers",
     "loadingOptions": "Loading options...",
     "noOptionsAvailable": "No options available",
+    "noActiveOptions": "No active options",
     "beFirstToWrite": "Be the first to write an option!",
     "expires": "Expires",
     "strike": "Strike",
     "liquidity": "Liquidity",
-    "daysShort": "d"
+    "daysShort": "d",
+    "orders": "Orders",
+    "active": "Active",
+    "positions": "Positions"
   },
   "ShareSummary": {
     "title": "Invite others",

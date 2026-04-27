@@ -251,6 +251,21 @@ pub fn list_active_options_by_writer(writer: Principal) -> Vec<ActiveOption> {
     })
 }
 
+pub fn list_active_options() -> Vec<ActiveOption> {
+    ACTIVE_OPTIONS.with_borrow(|a| {
+        a.iter()
+            .filter_map(|entry| {
+                let option = entry.value().0;
+                if matches!(option.status, ActiveOptionStatus::Active) {
+                    Some(option)
+                } else {
+                    None
+                }
+            })
+            .collect()
+    })
+}
+
 pub fn list_expired_active_options(current_time: u64) -> Vec<ActiveOption> {
     ACTIVE_OPTIONS.with_borrow(|a| {
         a.iter()

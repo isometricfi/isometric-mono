@@ -1,6 +1,7 @@
 export interface OptionOffer {
   id: string;
   writerId: string;
+  buyerId?: string;
   amountSats: number;
   premium: number;
   strikePercent: number;

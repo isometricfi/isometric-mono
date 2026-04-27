@@ -53,7 +53,7 @@ describe("mapConfig", () => {
       icHost: "https://ic0.app",
       termOptions: [1, 7, 14],
       strikePercentOptions: [5, 10, 15, 20],
-      premium: { min: 1, max: 50, step: 0.25 },
+      premium: { min: 1, max: 50, step: 0.2 },
       minCreateOfferAmountSats: 10_000,
       maxCreateOfferAmountSats: 1_000_000,
       minAcceptOfferAmountSats: 5_000,

@@ -47,6 +47,7 @@ export {
   getMaxLiquiditySats,
   getOfferRank,
   getStrikePercentsForTerm,
+  useActiveOptions,
   useOptions,
 } from "./queries/use-options";
 export {

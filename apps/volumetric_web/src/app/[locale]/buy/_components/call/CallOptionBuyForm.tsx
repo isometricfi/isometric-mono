@@ -46,9 +46,7 @@ export function CallOptionBuyForm() {
     <Card className="relative ">
       <CardContent className="space-y-5 ">
         <div className="flex items-center justify-between p-1 rounded-lg border">
-          <p className="md:text-base text-sm font-medium text-foreground ml-2">
-            {t("willBeAbove")}:{" "}
-          </p>
+          <p className="md:text-base text-sm font-medium text-foreground ml-2">{t("strike")}: </p>
           <div className="md:min-w-[190px] min-w-[150px]">
             <NumberCarousel
               values={strikeUsdValues}
@@ -59,7 +57,7 @@ export function CallOptionBuyForm() {
           </div>
         </div>
         <div className="flex items-center justify-between border p-1 rounded-lg    ">
-          <p className="md:text-base text-sm font-medium text-foreground ml-2">{t("inLabel")}: </p>
+          <p className="md:text-base text-sm font-medium text-foreground ml-2">{t("term")}: </p>
           <div className="md:min-w-[190px] min-w-[150px]">
             <NumberCarousel
               values={termDays}
@@ -70,7 +68,7 @@ export function CallOptionBuyForm() {
           </div>
         </div>
         <BtcUsdAmountSection
-          label={t("amount")}
+          label={t("premium")}
           amountSats={amountSats}
           btcPrice={btcPrice}
           maxAmountSats={maxPremiumAmountSats}
