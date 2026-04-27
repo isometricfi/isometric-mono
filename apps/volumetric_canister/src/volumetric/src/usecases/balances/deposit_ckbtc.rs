@@ -68,6 +68,11 @@ pub async fn mint_ckbtc_from_utxos(
                 amount_sats: total_minted,
             },
         );
+        logging::log!(
+            "deposit minted principal={} amount_sats={}",
+            principal,
+            total_minted
+        );
     }
 
     Ok(statuses)

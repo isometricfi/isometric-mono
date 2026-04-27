@@ -45,6 +45,12 @@ pub fn cancel_offer_use_case(writer: Principal, offer_id: u64) -> Result<Offer, 
         },
     );
 
+    logging::log!(
+        "offer cancelled id={} remaining_quantity_sats={}",
+        offer_id,
+        offer.remaining_quantity
+    );
+
     Ok(offer)
 }
 

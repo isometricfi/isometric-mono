@@ -66,6 +66,12 @@ pub fn accept_offers_use_case(
 
     let operation_id = accept_operation_id(buyer_principal, &accept_offer_items, request_nonce);
     if let Some(existing_receipt) = load_receipt_if_already_accepted(operation_id)? {
+        logging::log!(
+            "accept_offers idempotent replay operation_id={:?} buyer={} accept_journal_entry_id={}",
+            operation_id,
+            buyer_principal,
+            existing_receipt.accept_journal_entry_id
+        );
         return Ok(existing_receipt);
     }
 
@@ -84,6 +90,15 @@ pub fn accept_offers_use_case(
     )?;
 
     schedule_accept_wal_execution(accept_receipt.operation_id);
+
+    logging::log!(
+        "accept_offers enqueued operation_id={:?} buyer={} accept_journal_entry_id={} fill_group_id={} offer_items={}",
+        accept_receipt.operation_id,
+        buyer_principal,
+        accept_receipt.accept_journal_entry_id,
+        accept_receipt.fill_group_id,
+        accept_offer_items.len()
+    );
 
     Ok(accept_receipt)
 }

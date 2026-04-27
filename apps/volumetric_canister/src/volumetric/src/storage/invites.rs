@@ -10,7 +10,6 @@ use sha2::{Digest, Sha256};
 use super::accounts::{get_profile, list_all_profiles, update_profile};
 use super::state::{Memory, MemoryIndex, MEMORY_MANAGER};
 use crate::errors::{error_codes, VolumetricError};
-use crate::ic;
 
 const INVITE_CODE_LENGTH: usize = 6;
 const INVITE_ALPHABET: &[u8; 36] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
@@ -81,7 +80,7 @@ pub fn get_or_create_invite_code(principal: Principal) -> Option<String> {
         }
     }
 
-    ic::log("Invite code generation exhausted bounded attempts");
+    logging::warn!("invite code generation exhausted bounded attempts");
     None
 }
 

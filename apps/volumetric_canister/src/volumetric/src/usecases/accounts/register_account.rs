@@ -48,6 +48,8 @@ pub fn register_account_use_case(
         },
     );
 
+    logging::log!("account registered principal={}", principal);
+
     Ok(RegisterAccountResult {
         principal,
         subaccount,

@@ -207,7 +207,10 @@ async fn execute_wal_writer_and_fee_transfers(
                     .planned_platform_fee_sats
                     .saturating_add(payload.transfer_fee_sats),
             );
-            ic::log("accept_offers: platform fee transfer failed, waiving platform fee");
+            logging::warn!(
+                "accept_offers platform fee transfer failed; waiving platform fee operation_id={:?}",
+                operation_id
+            );
             return Ok(false);
         }
     }
