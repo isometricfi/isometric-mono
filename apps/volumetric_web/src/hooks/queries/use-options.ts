@@ -92,7 +92,7 @@ export function getOfferRank(
   offerId: string,
   term: number,
   strikePercent: number,
-): { rank: number; totalOffers: number; isBest: boolean } | null {
+): { rank: number; totalOffers: number; isBest: boolean; isLargestAtPremium: boolean } | null {
   if (!data) return null;
 
   const termGroup = data.termGroups.find((g) => g.term === term);
@@ -101,27 +101,27 @@ export function getOfferRank(
   const strikeBucket = termGroup.strikes.find((s) => s.strikePercent === strikePercent);
   if (!strikeBucket) return null;
 
-  // Sorting logic:
-  // 1. Lowest premium (asc)
-  // 2. Size of offer (desc) - assuming larger is better/more liquid
-  // 3. Date created (asc) - FIFO
+  // Match the buyer-side matcher (premium-amount.ts): premium asc, then FIFO.
   const sortedOffers = [...strikeBucket.offers].sort((a, b) => {
-    // 1. Premium
     if (a.premium !== b.premium) return a.premium - b.premium;
-
-    // 2. Size (desc)
-    if (a.amountSats !== b.amountSats) return b.amountSats - a.amountSats;
-
-    // 3. Created At (asc)
     return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
   });
 
   const index = sortedOffers.findIndex((o) => o.id === offerId);
   if (index === -1) return null;
 
+  const offer = sortedOffers[index];
+  const isLargestAtPremium = sortedOffers.every(
+    (other) =>
+      other.id === offer.id ||
+      other.premium !== offer.premium ||
+      other.amountSats < offer.amountSats,
+  );
+
   return {
     rank: index + 1,
     totalOffers: sortedOffers.length,
     isBest: index === 0,
+    isLargestAtPremium,
   };
 }

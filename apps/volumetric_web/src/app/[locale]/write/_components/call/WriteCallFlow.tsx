@@ -32,7 +32,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { SlideToConfirm } from "@/components/ui/slide-to-confirm";
 import { useConfig } from "@/hooks";
 import { Link } from "@/i18n/routing";
-import { basisPointsToPercent, cn, formatBtc, roundToN, satsToBtc } from "@/lib/utils";
+import { basisPointsToPercent, formatBtc, roundToN, satsToBtc } from "@/lib/utils";
 import { useCallWriteOptionFormModel } from "./_internal/use-call-write-option-form-model";
 
 interface WriteCallFlowProps {
@@ -310,8 +310,18 @@ function CollateralStep({
 
 function PremiumStep({ model, apy }: { model: WriteModel; apy: number }) {
   const t = useTranslations("WriteFlow");
-  const { rank, bestPremiumPercent } = model.competitiveness;
+  const { rank, totalOffers, bestPremiumPercent, isLargestAtPremium } = model.competitiveness;
   const isBest = rank === 1;
+  const isTiedAtBest = !isBest && bestPremiumPercent === model.premiumPercent;
+  const showLargestBadge = !isBest && isLargestAtPremium && model.amountSats > 0;
+
+  const handleUndercutBest = () => {
+    if (bestPremiumPercent === null) return;
+    const idx = model.premiumValues.indexOf(bestPremiumPercent);
+    if (idx === -1) return;
+    const target = idx === 0 ? model.premiumValues[0] : model.premiumValues[idx - 1];
+    model.handlePremiumPercentChange(target);
+  };
   const earningsBtc = satsToBtc(model.earningsSats);
   const earningsUsd = Math.round(earningsBtc * model.btcPrice);
 
@@ -335,17 +345,27 @@ function PremiumStep({ model, apy }: { model: WriteModel; apy: number }) {
             {earningsUsd.toLocaleString()}
           </span>
         </p>
-        <div
-          className={cn(
-            "mt-3 px-3 py-1 rounded-full text-xs font-semibold border tabular-nums",
-            isBest
-              ? "text-primary border-primary/40 bg-primary/10"
-              : "text-muted-foreground border-border bg-muted/30",
+        <div className="mt-3 flex items-center gap-2 flex-wrap justify-center">
+          {isBest ? (
+            <div className="px-3 py-1 rounded-full text-xs font-semibold border tabular-nums text-primary border-primary/40 bg-primary/10">
+              {t("premium.bestOffer")}
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={handleUndercutBest}
+              className="px-3 py-1 rounded-full text-xs font-semibold border tabular-nums text-muted-foreground border-border bg-muted/30 hover:text-foreground hover:bg-muted/60 transition-colors cursor-pointer"
+            >
+              {isTiedAtBest
+                ? t("premium.tiedRank", { rank, total: totalOffers })
+                : t("premium.underBest", { best: bestPremiumPercent ?? 0 })}
+            </button>
           )}
-        >
-          {isBest
-            ? t("premium.bestOffer")
-            : t("premium.underBest", { best: bestPremiumPercent ?? 0 })}
+          {showLargestBadge && (
+            <div className="px-3 py-1 rounded-full text-xs font-semibold border text-primary border-primary/40 bg-primary/10">
+              {t("premium.largest")}
+            </div>
+          )}
         </div>
         <div className="w-full mt-4 rounded-xl border bg-muted/20 ">
           <DockSlider
