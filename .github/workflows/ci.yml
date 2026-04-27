@@ -28,8 +28,7 @@ jobs:
           filters: |
             web:
               - 'apps/volumetric_web/**'
-              - 'packages/telemetry/**'
-              - 'packages/canister-types/**'
+              - 'packages/**'
               - 'package.json'
               - 'pnpm-lock.yaml'
               - 'pnpm-workspace.yaml'
