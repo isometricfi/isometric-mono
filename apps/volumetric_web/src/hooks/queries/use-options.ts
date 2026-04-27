@@ -6,6 +6,8 @@ import { useTRPC } from "@/trpc/react";
 import type { OptionOffer, OptionsData } from "@/types/options";
 import { useConfig } from "./use-config";
 
+const OPTIONS_STALE_TIME_30_SECONDS_MS = 30_000;
+
 export function useOptions() {
   const trpc = useTRPC();
   const { data: config } = useConfig();
@@ -14,7 +16,7 @@ export function useOptions() {
 
   return useQuery({
     ...trpc.options.listOptions.queryOptions(),
-    staleTime: 30000,
+    staleTime: OPTIONS_STALE_TIME_30_SECONDS_MS,
     select: (data) => {
       const filteredTermGroups = data.termGroups
         .map((termGroup) => {
@@ -45,7 +47,7 @@ export function useActiveOptions() {
 
   return useQuery({
     ...trpc.options.listActiveOptions.queryOptions(),
-    staleTime: 30000,
+    staleTime: OPTIONS_STALE_TIME_30_SECONDS_MS,
   });
 }
 

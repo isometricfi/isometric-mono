@@ -1,19 +1,6 @@
 import type { ActiveOption, Offer } from "@volumetric/canister-types";
 import type { OptionOffer, OptionsData, StrikeBucket, TermGroup } from "@/types/options";
-import { basisPointsToPercent, secondsToDays, secondsToISOString } from "./utils";
-
-function transformOffer(offer: Offer): OptionOffer {
-  return {
-    id: offer.id.toString(),
-    writerId: offer.writer.toText(),
-    amountSats: Number(offer.remaining_quantity),
-    premium: basisPointsToPercent(offer.premium_basis_points),
-    strikePercent: basisPointsToPercent(offer.strike_basis_points),
-    termDays: secondsToDays(offer.option_duration_seconds),
-    createdAt: secondsToISOString(offer.created_at_seconds),
-    expiresAt: secondsToISOString(offer.offer_valid_until_seconds),
-  };
-}
+import { basisPointsToPercent, roundToN, secondsToDays, secondsToISOString } from "./utils";
 
 export function groupOffersByTermAndStrike(offers: Offer[]): OptionsData {
   const termMap = new Map<number, Map<number, OptionOffer[]>>();
@@ -75,35 +62,6 @@ export function groupOffersByTermAndStrike(offers: Offer[]): OptionsData {
   return { termGroups };
 }
 
-function transformActiveOption(option: ActiveOption): OptionOffer {
-  const durationSeconds = option.expiry_seconds - option.accepted_at_seconds;
-  const termDays = secondsToDays(durationSeconds);
-
-  const entry = Number(option.entry_price_cents);
-  const strike = Number(option.strike_price_cents);
-  const strikePercent = entry > 0 ? ((strike - entry) / entry) * 100 : 0;
-
-  const quantity = Number(option.quantity);
-  const premiumPaid = Number(option.premium_paid);
-  const premium = quantity > 0 ? (premiumPaid / quantity) * 100 : 0;
-
-  return {
-    id: option.id.toString(),
-    writerId: option.writer.toText(),
-    buyerId: option.buyer.toText(),
-    amountSats: quantity,
-    premium: roundToTwo(premium),
-    strikePercent: roundToTwo(strikePercent),
-    termDays,
-    createdAt: secondsToISOString(option.accepted_at_seconds),
-    expiresAt: secondsToISOString(option.expiry_seconds),
-  };
-}
-
-function roundToTwo(n: number): number {
-  return Math.round(n * 100) / 100;
-}
-
 export function groupActiveOptionsByTermAndStrike(options: ActiveOption[]): OptionsData {
   const termMap = new Map<number, Map<number, OptionOffer[]>>();
 
@@ -160,4 +118,42 @@ export function groupActiveOptionsByTermAndStrike(options: ActiveOption[]): Opti
   termGroups.sort((a, b) => a.term - b.term);
 
   return { termGroups };
+}
+
+function transformOffer(offer: Offer): OptionOffer {
+  return {
+    id: offer.id.toString(),
+    writerId: offer.writer.toText(),
+    amountSats: Number(offer.remaining_quantity),
+    premium: basisPointsToPercent(offer.premium_basis_points),
+    strikePercent: basisPointsToPercent(offer.strike_basis_points),
+    termDays: secondsToDays(offer.option_duration_seconds),
+    createdAt: secondsToISOString(offer.created_at_seconds),
+    expiresAt: secondsToISOString(offer.offer_valid_until_seconds),
+  };
+}
+
+function transformActiveOption(option: ActiveOption): OptionOffer {
+  const durationSeconds = option.expiry_seconds - option.accepted_at_seconds;
+  const termDays = secondsToDays(durationSeconds);
+
+  const entry = Number(option.entry_price_cents);
+  const strike = Number(option.strike_price_cents);
+  const strikePercent = entry > 0 ? ((strike - entry) / entry) * 100 : 0;
+
+  const quantity = Number(option.quantity);
+  const premiumPaid = Number(option.premium_paid);
+  const premium = quantity > 0 ? (premiumPaid / quantity) * 100 : 0;
+
+  return {
+    id: option.id.toString(),
+    writerId: option.writer.toText(),
+    buyerId: option.buyer.toText(),
+    amountSats: quantity,
+    premium: roundToN(premium, 2),
+    strikePercent: roundToN(strikePercent, 2),
+    termDays,
+    createdAt: secondsToISOString(option.accepted_at_seconds),
+    expiresAt: secondsToISOString(option.expiry_seconds),
+  };
 }
