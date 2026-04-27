@@ -1,0 +1,64 @@
+@import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap");
+@source "../node_modules/@cloudflare/kumo/dist/**/*.{js,jsx,ts,tsx}";
+@import "@cloudflare/kumo/styles/tailwind";
+@import "tailwindcss";
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+:root {
+  color-scheme: dark;
+  --vol-accent: #863bff;
+  --vol-accent-soft: rgba(134, 59, 255, 0.14);
+  --vol-hairline: rgba(255, 255, 255, 0.06);
+  --vol-hairline-strong: rgba(255, 255, 255, 0.1);
+  --vol-ground: #0a0a0b;
+}
+
+body {
+  margin: 0;
+  background-color: var(--vol-ground);
+  color: var(--color-kumo-default, #e5e5e5);
+  font-family: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+  font-feature-settings: "ss01", "cv05";
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.font-mono,
+code,
+kbd,
+pre,
+samp {
+  font-family: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-feature-settings: "zero", "ss02";
+}
+
+.vol-hairline {
+  border-color: var(--vol-hairline);
+}
+
+.vol-hairline-strong {
+  border-color: var(--vol-hairline-strong);
+}
+
+.vol-grid-bg {
+  background-image:
+    linear-gradient(var(--vol-hairline) 1px, transparent 1px),
+    linear-gradient(90deg, var(--vol-hairline) 1px, transparent 1px);
+  background-size: 64px 64px;
+  background-position: -1px -1px;
+}
+
+.vol-accent-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--vol-accent);
+  box-shadow: 0 0 0 3px var(--vol-accent-soft);
+}

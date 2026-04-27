@@ -9,6 +9,7 @@
     "ignoreUnknown": true,
     "includes": [
       "apps/volumetric_web/**",
+      "apps/volumetric_admin/**",
       "apps/volumetric-bot/**",
       "packages/**",
       "!packages/canister-types",

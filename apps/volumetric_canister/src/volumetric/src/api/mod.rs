@@ -1,4 +1,5 @@
 pub mod accounts;
+pub mod audit;
 pub mod config;
 pub mod deposits;
 pub mod events;
@@ -15,6 +16,10 @@ pub use accounts::{
     create_account, get_account_info, get_account_nonce, get_message_to_sign,
     get_username_update_message, list_users, resolve_invite_code, update_username,
     validate_invite_code,
+};
+pub use audit::{
+    get_option_audit_report, AuditExpectedTransfer, AuditLedgerAccount, AuditTransferKind,
+    AuditUserBalance, OptionAuditReport,
 };
 pub use config::{
     clear_log_access_token, get_config, get_feature_flags, get_trading_limits,
