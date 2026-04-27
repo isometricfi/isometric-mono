@@ -315,11 +315,13 @@ function PremiumStep({ model, apy }: { model: WriteModel; apy: number }) {
   const isTiedAtBest = !isBest && bestPremiumPercent === model.premiumPercent;
   const showLargestBadge = !isBest && isLargestAtPremium && model.amountSats > 0;
 
+  const bestIdx =
+    bestPremiumPercent === null ? -1 : model.premiumValues.indexOf(bestPremiumPercent);
+  const canUndercutBest = bestIdx > 0 || (bestIdx === 0 && !isTiedAtBest);
+
   const handleUndercutBest = () => {
-    if (bestPremiumPercent === null) return;
-    const idx = model.premiumValues.indexOf(bestPremiumPercent);
-    if (idx === -1) return;
-    const target = idx === 0 ? model.premiumValues[0] : model.premiumValues[idx - 1];
+    if (!canUndercutBest) return;
+    const target = bestIdx === 0 ? model.premiumValues[0] : model.premiumValues[bestIdx - 1];
     model.handlePremiumPercentChange(target);
   };
   const earningsBtc = satsToBtc(model.earningsSats);
@@ -350,7 +352,7 @@ function PremiumStep({ model, apy }: { model: WriteModel; apy: number }) {
             <div className="px-3 py-1 rounded-full text-xs font-semibold border tabular-nums text-primary border-primary/40 bg-primary/10">
               {t("premium.bestOffer")}
             </div>
-          ) : (
+          ) : canUndercutBest ? (
             <button
               type="button"
               onClick={handleUndercutBest}
@@ -360,6 +362,10 @@ function PremiumStep({ model, apy }: { model: WriteModel; apy: number }) {
                 ? t("premium.tiedRank", { rank, total: totalOffers })
                 : t("premium.underBest", { best: bestPremiumPercent ?? 0 })}
             </button>
+          ) : (
+            <div className="px-3 py-1 rounded-full text-xs font-semibold border tabular-nums text-muted-foreground border-border bg-muted/30">
+              {t("premium.tiedRank", { rank, total: totalOffers })}
+            </div>
           )}
           {showLargestBadge && (
             <div className="px-3 py-1 rounded-full text-xs font-semibold border text-primary border-primary/40 bg-primary/10">

@@ -75,7 +75,7 @@ export function getWriterCompetitiveness(
       fillSpeed: "firstOffer",
       rank: 1,
       totalOffers: 1,
-      isLargestAtPremium: true,
+      isLargestAtPremium: false,
     };
   }
 
@@ -88,7 +88,9 @@ export function getWriterCompetitiveness(
   }
 
   const offersAtSamePremium = offers.filter((offer) => offer.premium === premiumPercent);
-  const isLargestAtPremium = offersAtSamePremium.every((offer) => amountSats > offer.amountSats);
+  const isLargestAtPremium =
+    offersAtSamePremium.length > 0 &&
+    offersAtSamePremium.every((offer) => amountSats > offer.amountSats);
 
   return {
     bestPremiumPercent: sortedOffers[0]?.premium ?? null,

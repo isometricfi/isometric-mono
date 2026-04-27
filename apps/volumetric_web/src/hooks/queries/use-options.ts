@@ -111,12 +111,12 @@ export function getOfferRank(
   if (index === -1) return null;
 
   const offer = sortedOffers[index];
-  const isLargestAtPremium = sortedOffers.every(
-    (other) =>
-      other.id === offer.id ||
-      other.premium !== offer.premium ||
-      other.amountSats < offer.amountSats,
+  const peersAtSamePremium = sortedOffers.filter(
+    (other) => other.id !== offer.id && other.premium === offer.premium,
   );
+  const isLargestAtPremium =
+    peersAtSamePremium.length > 0 &&
+    peersAtSamePremium.every((other) => other.amountSats < offer.amountSats);
 
   return {
     rank: index + 1,
