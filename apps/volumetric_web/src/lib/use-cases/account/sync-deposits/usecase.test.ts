@@ -1,3 +1,4 @@
+import { Principal } from "@dfinity/principal";
 import { beforeEach, describe, expect, test, vi } from "vitest";
 import type {
   BalanceSnapshot,
@@ -8,6 +9,16 @@ import { syncDepositsFromCanister } from "./usecase";
 
 const USER_ADDRESS = "tb1quser";
 const DEPOSIT_ADDRESS = "tb1qdeposit";
+
+const LIST_USERS_OK_SINGLE = {
+  Ok: [
+    {
+      address: USER_ADDRESS,
+      principal: Principal.anonymous(),
+      username: [],
+    },
+  ],
+} as const;
 
 const { getCanisterActorMock } = vi.hoisted(() => ({
   getCanisterActorMock: vi.fn(),
@@ -122,7 +133,7 @@ describe("syncDepositsFromCanister", () => {
     // given
     const repository = new InMemoryDepositSyncRepository();
     const actor = {
-      list_users: vi.fn().mockResolvedValue([{ address: USER_ADDRESS }]),
+      list_users: vi.fn().mockResolvedValue(LIST_USERS_OK_SINGLE),
       get_deposit_address: vi.fn().mockResolvedValue({ Ok: { btc_address: DEPOSIT_ADDRESS } }),
       get_user_balance: vi
         .fn()
@@ -204,7 +215,7 @@ describe("syncDepositsFromCanister", () => {
     const TOTAL_CREDITED_SATS = FIRST_DEPOSIT_SATS + SECOND_DEPOSIT_SATS + THIRD_DEPOSIT_SATS;
 
     const actor = {
-      list_users: vi.fn().mockResolvedValue([{ address: USER_ADDRESS }]),
+      list_users: vi.fn().mockResolvedValue(LIST_USERS_OK_SINGLE),
       get_deposit_address: vi.fn().mockResolvedValue({ Ok: { btc_address: DEPOSIT_ADDRESS } }),
       get_user_balance: vi
         .fn()
@@ -271,7 +282,7 @@ describe("syncDepositsFromCanister", () => {
     const nowValue = 1_700_000_000_000;
 
     const actor = {
-      list_users: vi.fn().mockResolvedValue([{ address: USER_ADDRESS }]),
+      list_users: vi.fn().mockResolvedValue(LIST_USERS_OK_SINGLE),
       get_deposit_address: vi.fn().mockResolvedValue({ Ok: { btc_address: DEPOSIT_ADDRESS } }),
       get_user_balance: vi
         .fn()
@@ -341,7 +352,7 @@ describe("syncDepositsFromCanister", () => {
     // given
     const repository = new InMemoryDepositSyncRepository();
     const actor = {
-      list_users: vi.fn().mockResolvedValue([{ address: USER_ADDRESS }]),
+      list_users: vi.fn().mockResolvedValue(LIST_USERS_OK_SINGLE),
       get_deposit_address: vi.fn().mockResolvedValue({ Ok: { btc_address: DEPOSIT_ADDRESS } }),
       get_user_balance: vi.fn(),
       update_ckbtc_balance: vi.fn(),
@@ -384,7 +395,7 @@ describe("syncDepositsFromCanister", () => {
     // given
     const repository = new InMemoryDepositSyncRepository();
     const actor = {
-      list_users: vi.fn().mockResolvedValue([{ address: USER_ADDRESS }]),
+      list_users: vi.fn().mockResolvedValue(LIST_USERS_OK_SINGLE),
       get_deposit_address: vi.fn().mockResolvedValue({ Ok: { btc_address: DEPOSIT_ADDRESS } }),
       get_user_balance: vi
         .fn()

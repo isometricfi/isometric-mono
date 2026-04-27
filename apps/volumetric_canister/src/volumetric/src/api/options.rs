@@ -41,7 +41,7 @@ impl SignableAction for AcceptOffersRequest {
     }
 }
 
-#[ic_cdk::query]
+#[ic_cdk::query(guard = "no_replicated_call")]
 pub fn get_accept_offers_message(
     wallet_address: String,
     items: Vec<AcceptOfferItem>,
@@ -97,7 +97,7 @@ pub fn get_accept_status(
     Ok(usecases::get_accept_status(operation_id)?)
 }
 
-#[ic_cdk::query]
+#[ic_cdk::query(guard = "no_replicated_call")]
 pub fn get_my_options(wallet_address: String) -> Result<Vec<ActiveOption>, VolumetricError> {
     let wallet_key = WalletKey::try_from_address(&wallet_address)?;
     let principal = get_principal_for_wallet(&wallet_key)
@@ -106,7 +106,7 @@ pub fn get_my_options(wallet_address: String) -> Result<Vec<ActiveOption>, Volum
     Ok(usecases::get_my_options_use_case(principal))
 }
 
-#[ic_cdk::query]
+#[ic_cdk::query(guard = "no_replicated_call")]
 pub fn get_my_written_options(
     wallet_address: String,
 ) -> Result<Vec<ActiveOption>, VolumetricError> {
@@ -117,42 +117,42 @@ pub fn get_my_written_options(
     Ok(usecases::get_my_written_options_use_case(principal))
 }
 
-#[ic_cdk::query]
+#[ic_cdk::query(guard = "no_replicated_call")]
 pub fn get_active_option_by_id(option_id: u64) -> Option<ActiveOption> {
     get_active_option(option_id)
 }
 
-#[ic_cdk::query]
+#[ic_cdk::query(guard = "no_replicated_call")]
 pub fn get_pending_accepts() -> Result<Vec<PendingAccept>, VolumetricError> {
     is_controller()?;
     Ok(list_pending_accepts())
 }
 
-#[ic_cdk::query]
+#[ic_cdk::query(guard = "no_replicated_call")]
 pub fn get_failed_accepts() -> Result<Vec<PendingAccept>, VolumetricError> {
     is_controller()?;
     Ok(list_failed_accepts())
 }
 
-#[ic_cdk::query]
+#[ic_cdk::query(guard = "no_replicated_call")]
 pub fn get_accept_by_id(id: u64) -> Result<Option<PendingAccept>, VolumetricError> {
     is_controller()?;
     Ok(get_accept(id))
 }
 
-#[ic_cdk::query]
+#[ic_cdk::query(guard = "no_replicated_call")]
 pub fn get_pending_settlements_journal() -> Result<Vec<PendingSettlement>, VolumetricError> {
     is_controller()?;
     Ok(list_pending_settlements_journal())
 }
 
-#[ic_cdk::query]
+#[ic_cdk::query(guard = "no_replicated_call")]
 pub fn get_failed_settlements() -> Result<Vec<PendingSettlement>, VolumetricError> {
     is_controller()?;
     Ok(list_failed_settlements())
 }
 
-#[ic_cdk::query]
+#[ic_cdk::query(guard = "no_replicated_call")]
 pub fn get_settlement_by_id(option_id: u64) -> Result<Option<PendingSettlement>, VolumetricError> {
     is_controller()?;
     Ok(get_settlement(option_id))

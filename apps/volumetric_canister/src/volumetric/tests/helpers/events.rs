@@ -9,11 +9,13 @@ pub fn get_events_for_principal(env: &TestEnv, principal: Principal) -> Vec<Even
         .pic
         .query_call(
             env.volumetric_canister,
-            candid::Principal::anonymous(),
+            env.controller,
             "get_events_for_principal",
             candid::encode_args((principal, None::<u64>, None::<u32>)).unwrap(),
         )
         .expect("Query failed");
 
-    Decode!(&response, Vec<Event>).unwrap()
+    Decode!(&response, Result<Vec<Event>, volumetric::VolumetricError>)
+        .unwrap()
+        .expect("get_events_for_principal should succeed for controller")
 }

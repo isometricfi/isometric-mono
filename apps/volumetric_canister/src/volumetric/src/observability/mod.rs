@@ -8,6 +8,8 @@ use ic_metrics_encoder::MetricsEncoder;
 use serde::{Deserialize, Serialize};
 
 use self::storage::collect_observability_storage_counts;
+use crate::errors::VolumetricError;
+use crate::guards::{is_controller, no_replicated_call};
 use crate::storage::get_log_access_token_hash;
 
 const OBSERVABILITY_METRICS_PATH: &str = "/observability/metrics";
@@ -34,15 +36,21 @@ pub struct ObservabilityMetrics {
     pub stable_memory_bytes: u64,
 }
 
-#[ic_cdk::query]
-pub fn observability_get_metrics() -> ObservabilityMetrics {
-    observability_collect_metrics()
+#[ic_cdk::query(guard = "no_replicated_call")]
+pub fn observability_get_metrics() -> Result<ObservabilityMetrics, VolumetricError> {
+    is_controller()?;
+    Ok(observability_collect_metrics())
 }
 
-#[ic_cdk::query(name = "http_request", hidden = true)]
+#[ic_cdk::query(name = "http_request", hidden = true, guard = "no_replicated_call")]
 pub fn http_request(request: HttpRequest) -> HttpResponse {
     match request.path() {
-        OBSERVABILITY_METRICS_PATH => observability_serve_metrics_response(),
+        OBSERVABILITY_METRICS_PATH => {
+            if is_controller().is_err() {
+                return observability_plain_text_response(403, "forbidden");
+            }
+            observability_serve_metrics_response()
+        }
         "/logs" => {
             let log_access_token_hash = get_log_access_token_hash();
             logging::do_reply_with_bearer_token_hash(request, log_access_token_hash.as_deref())

@@ -277,6 +277,19 @@ impl SignableAction for WithdrawCkbtcRequest {
     }
 }
 
+#[derive(Debug, Clone, CandidType, Serialize, Deserialize)]
+pub struct ListMyPendingWithdrawalsRequest {
+    pub expires_at_seconds: u64,
+}
+
+impl SignableAction for ListMyPendingWithdrawalsRequest {
+    const ACTION_NAME: &'static str = "list_my_pending_withdrawals";
+
+    fn action_fields(&self) -> Vec<(&'static str, String)> {
+        vec![]
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -351,6 +364,21 @@ mod tests {
         assert!(first.contains(&format!("\nexpires_at={}\n", context.expires_at_seconds)));
         assert!(first.contains("\namount_sats=42000"));
         assert!(first.contains("\nbtc_address=bc1qdst"));
+    }
+
+    #[test]
+    fn build_challenge_message_includes_list_my_pending_withdrawals_action() {
+        // given
+        let context = test_context();
+        let request = ListMyPendingWithdrawalsRequest {
+            expires_at_seconds: context.expires_at_seconds,
+        };
+
+        // when
+        let message = build_challenge_message(&request, VALID_ADDRESS, &context).unwrap();
+
+        // then
+        assert!(message.contains("\naction=list_my_pending_withdrawals\n"));
     }
 
     #[test]

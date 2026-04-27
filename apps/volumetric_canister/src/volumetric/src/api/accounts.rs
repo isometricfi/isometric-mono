@@ -8,7 +8,7 @@ use crate::auth::{
     verify_btc_signature,
 };
 use crate::errors::{error_codes, VolumetricError};
-use crate::guards::is_whitelisted;
+use crate::guards::{is_whitelisted, no_replicated_call};
 use crate::storage::{
     get_nonce, get_principal_for_wallet, get_profile, increment_nonce, is_wallet_registered,
     resolve_invite_code as resolve_invite_to_principal, validate_invite_code_for_principal,
@@ -75,13 +75,13 @@ pub fn create_account(
     ))
 }
 
-#[ic_cdk::query]
+#[ic_cdk::query(guard = "no_replicated_call")]
 pub fn get_account_nonce(address: String) -> Result<u64, VolumetricError> {
     let wallet_key = WalletKey::try_from_address(&address)?;
     Ok(get_nonce(&wallet_key))
 }
 
-#[ic_cdk::query]
+#[ic_cdk::query(guard = "no_replicated_call")]
 pub fn get_account_info(
     address: String,
     include_referral_count: bool,
@@ -97,7 +97,7 @@ pub fn get_account_info(
     }))
 }
 
-#[ic_cdk::query]
+#[ic_cdk::query(guard = "no_replicated_call")]
 pub fn get_message_to_sign(
     address: String,
     invite_code: Option<String>,
@@ -112,7 +112,7 @@ pub fn get_message_to_sign(
     build_challenge_message(&req, &address, &context)
 }
 
-#[ic_cdk::query]
+#[ic_cdk::query(guard = "no_replicated_call")]
 pub fn get_username_update_message(
     address: String,
     username: String,
@@ -164,26 +164,27 @@ pub fn update_username(
     ))
 }
 
-#[ic_cdk::query]
-pub fn list_users() -> Vec<UserInfo> {
-    usecases::list_users_use_case()
+#[ic_cdk::query(guard = "no_replicated_call")]
+pub fn list_users() -> Result<Vec<UserInfo>, VolumetricError> {
+    is_whitelisted()?;
+    Ok(usecases::list_users_use_case()
         .into_iter()
         .map(|u| UserInfo {
             principal: u.principal,
             address: u.address,
             username: u.username,
         })
-        .collect()
+        .collect())
 }
 
-#[ic_cdk::query]
+#[ic_cdk::query(guard = "no_replicated_call")]
 pub fn resolve_invite_code(code: String) -> Option<String> {
     let principal = resolve_invite_to_principal(&code)?;
     let profile = get_profile(&principal)?;
     Some(profile.wallet_address)
 }
 
-#[ic_cdk::query]
+#[ic_cdk::query(guard = "no_replicated_call")]
 pub fn validate_invite_code(code: String, address: String) -> bool {
     validate_invite_code_for_account_creation(Some(&code), &address).is_ok()
 }

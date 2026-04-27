@@ -66,7 +66,8 @@ pub fn get_settlement_status(
     Ok(usecases::get_settlement_status_use_case(operation_id)?)
 }
 
-#[ic_cdk::query]
-pub fn get_pending_settlements() -> Vec<ActiveOption> {
-    list_expired_active_options(current_time_seconds())
+#[ic_cdk::query(guard = "no_replicated_call")]
+pub fn get_pending_settlements() -> Result<Vec<ActiveOption>, VolumetricError> {
+    is_whitelisted()?;
+    Ok(list_expired_active_options(current_time_seconds()))
 }
