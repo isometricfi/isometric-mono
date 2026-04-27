@@ -10,6 +10,10 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+permissions:
+  contents: read
+  pull-requests: read
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -17,70 +21,103 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Detect changed components
+        id: changes
+        uses: dorny/paths-filter@v4
+        with:
+          filters: |
+            web:
+              - 'apps/volumetric_web/**'
+              - 'packages/**'
+              - 'package.json'
+              - 'pnpm-lock.yaml'
+              - 'pnpm-workspace.yaml'
+              - 'turbo.json'
+              - '.github/workflows/ci.yml'
+            canister:
+              - 'apps/volumetric_canister/**'
+              - '.github/workflows/ci.yml'
+
       - name: Setup pnpm
+        if: steps.changes.outputs.web == 'true'
         uses: pnpm/action-setup@v4
 
       - name: Setup Node.js
+        if: steps.changes.outputs.web == 'true'
         uses: actions/setup-node@v4
         with:
           node-version: '22'
           cache: 'pnpm'
 
       - name: Setup Rust
+        if: steps.changes.outputs.canister == 'true'
         uses: dtolnay/rust-toolchain@stable
         with:
           targets: wasm32-unknown-unknown
 
       - name: Cache Rust dependencies
+        if: steps.changes.outputs.canister == 'true'
         uses: Swatinem/rust-cache@v2
         with:
           workspaces: apps/volumetric_canister
           cache-on-failure: true
 
       - name: Cache Cargo binaries
+        if: steps.changes.outputs.canister == 'true'
         uses: actions/cache@v4
         with:
           path: ~/.cargo/bin
           key: cargo-bin-${{ runner.os }}-candid-extractor-ic-wasm
 
       - name: Cache test WASMs
+        if: steps.changes.outputs.canister == 'true'
         uses: actions/cache@v4
         with:
           path: apps/volumetric_canister/test-assets
           key: test-wasms-${{ hashFiles('apps/volumetric_canister/scripts/download-test-wasms.sh') }}
 
       - name: Setup DFX
+        if: steps.changes.outputs.canister == 'true'
         uses: dfinity/setup-dfx@main
 
       - name: Install Rust tools
+        if: steps.changes.outputs.canister == 'true'
         run: |
           command -v candid-extractor || cargo install candid-extractor
           command -v ic-wasm || cargo install ic-wasm
 
       - name: Install dependencies
+        if: steps.changes.outputs.web == 'true'
         run: pnpm install --frozen-lockfile
 
       - name: Lint
-        run: pnpm lint
+        if: steps.changes.outputs.web == 'true'
+        run: pnpm --filter @volumetric/web lint
 
       - name: Check canister formatting
+        if: steps.changes.outputs.canister == 'true'
         working-directory: apps/volumetric_canister
         run: cargo fmt --check
 
       - name: Build canister
+        if: steps.changes.outputs.canister == 'true'
         working-directory: apps/volumetric_canister
         run: make build
 
       - name: Download test WASMs
+        if: steps.changes.outputs.canister == 'true'
         working-directory: apps/volumetric_canister
         run: ./scripts/download-test-wasms.sh
 
       - name: Test canister
+        if: steps.changes.outputs.canister == 'true'
         working-directory: apps/volumetric_canister
         run: cargo test
 
       - name: Build web
-        run: pnpm build
+        if: steps.changes.outputs.web == 'true'
+        run: pnpm --filter @volumetric/web build
 
       - name: Test
-        run: pnpm test
+        if: steps.changes.outputs.web == 'true'
+        run: pnpm --filter @volumetric/web test
