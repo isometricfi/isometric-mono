@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500;600&family=Sora:wght@400;500;600;700&display=swap");
 @source "../node_modules/@cloudflare/kumo/dist/**/*.{js,jsx,ts,tsx}";
 @import "@cloudflare/kumo/styles/tailwind";
 @import "tailwindcss";
@@ -11,20 +11,67 @@ body,
 
 :root {
   color-scheme: dark;
-  --vol-accent: #863bff;
-  --vol-accent-soft: rgba(134, 59, 255, 0.14);
-  --vol-hairline: rgba(255, 255, 255, 0.06);
-  --vol-hairline-strong: rgba(255, 255, 255, 0.1);
-  --vol-ground: #0a0a0b;
+  --background: oklch(0.18 0.012 40);
+  --foreground: oklch(0.95 0.012 65);
+  --card: oklch(0.215 0.014 38);
+  --popover: oklch(0.235 0.016 38);
+  --primary: oklch(0.72 0.18 38);
+  --primary-foreground: oklch(0.16 0.02 35);
+  --secondary: oklch(0.27 0.018 38);
+  --muted: oklch(0.235 0.014 38);
+  --muted-foreground: oklch(0.66 0.014 55);
+  --accent: oklch(0.3 0.045 38);
+  --accent-foreground: oklch(0.78 0.16 38);
+  --border: oklch(0.3 0.025 38 / 0.6);
+  --input: oklch(0.3 0.025 38 / 0.5);
+  --ring: oklch(0.72 0.18 38 / 0.6);
+  --success: oklch(0.78 0.18 145);
+  --destructive: oklch(0.65 0.22 25);
+  --font-sans:
+    "Sora", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-serif: "Instrument Serif", ui-serif, Georgia, serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  --vol-accent: var(--primary);
+  --vol-accent-soft: oklch(0.72 0.18 38 / 0.14);
+  --vol-hairline: oklch(0.3 0.025 38 / 0.6);
+  --vol-hairline-strong: oklch(0.3 0.025 38 / 0.72);
+  --vol-ground: var(--background);
+  --text-color-kumo-default: var(--foreground);
+  --text-color-kumo-strong: var(--foreground);
+  --text-color-kumo-subtle: var(--muted-foreground);
+  --text-color-kumo-inactive: oklch(0.5 0.014 55);
+  --text-color-kumo-brand: var(--primary);
+  --text-color-kumo-link: var(--primary);
+  --color-kumo-canvas: var(--background);
+  --color-kumo-elevated: var(--card);
+  --color-kumo-recessed: var(--muted);
+  --color-kumo-base: var(--card);
+  --color-kumo-tint: var(--secondary);
+  --color-kumo-overlay: var(--popover);
+  --color-kumo-control: var(--popover);
+  --color-kumo-interact: var(--input);
+  --color-kumo-fill: var(--secondary);
+  --color-kumo-fill-hover: var(--accent);
+  --color-kumo-brand: var(--primary);
+  --color-kumo-brand-hover: oklch(0.78 0.16 38);
+  --color-kumo-line: var(--border);
+  --color-kumo-hairline: var(--border);
+  --color-kumo-success: oklch(0.3 0.09 145);
+  --color-kumo-success-tint: oklch(0.78 0.18 145 / 0.16);
+  --color-kumo-warning: oklch(0.32 0.08 90);
+  --color-kumo-warning-tint: oklch(0.86 0.16 90 / 0.16);
+  --color-kumo-danger: oklch(0.32 0.09 25);
+  --color-kumo-danger-tint: oklch(0.65 0.22 25 / 0.16);
 }
 
 body {
   margin: 0;
   background-color: var(--vol-ground);
-  color: var(--color-kumo-default, #e5e5e5);
-  font-family: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
-  font-feature-settings: "ss01", "cv05";
+  color: var(--text-color-kumo-default, #e5e5e5);
+  font-family: var(--font-sans);
+  font-feature-settings: "ss01", "cv11";
   font-synthesis: none;
+  letter-spacing: -0.005em;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -35,8 +82,9 @@ code,
 kbd,
 pre,
 samp {
-  font-family: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-feature-settings: "zero", "ss02";
+  font-family: var(--font-mono);
+  font-feature-settings: "zero";
+  font-variant-numeric: tabular-nums;
 }
 
 .vol-hairline {
