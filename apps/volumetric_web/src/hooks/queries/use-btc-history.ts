@@ -8,20 +8,18 @@ export interface BTCHistoryPoint {
   date: Date;
 }
 
-interface CoinGeckoMarketChartResponse {
+interface BTCHistoryResponse {
   prices: [number, number][];
 }
 
 async function fetchBTCHistory(days: number): Promise<BTCHistoryPoint[]> {
-  const response = await fetch(
-    `https://api.coingecko.com/api/v3/coins/bitcoin/market_chart?vs_currency=usd&days=${days}`,
-  );
+  const response = await fetch(`/api/btc/history?days=${days}`);
 
   if (!response.ok) {
     throw new Error("Failed to fetch BTC history");
   }
 
-  const data: CoinGeckoMarketChartResponse = await response.json();
+  const data = (await response.json()) as BTCHistoryResponse;
 
   return data.prices.map(([timestamp, price]) => ({
     timestamp,
@@ -34,7 +32,7 @@ export function useBTCHistory(days = 30) {
   return useQuery({
     queryKey: ["btc-history", days],
     queryFn: () => fetchBTCHistory(days),
-    staleTime: 60000,
-    refetchInterval: 60000,
+    staleTime: 5 * 60_000,
+    refetchInterval: 5 * 60_000,
   });
 }
