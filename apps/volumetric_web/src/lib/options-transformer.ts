@@ -152,6 +152,7 @@ function transformActiveOption(option: ActiveOption): OptionOffer {
     amountSats: quantity,
     premium: roundToN(premium, 2),
     strikePercent: roundToN(strikePercent, 2),
+    strikeUsd: roundToN(strike / 100, 0),
     termDays,
     createdAt: secondsToISOString(option.accepted_at_seconds),
     expiresAt: secondsToISOString(option.expiry_seconds),
