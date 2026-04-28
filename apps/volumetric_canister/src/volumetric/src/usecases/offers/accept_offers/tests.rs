@@ -13,13 +13,18 @@ use super::accept_offers::validate_accept_offer_request;
 use super::*;
 use crate::errors::{error_codes, VolumetricError};
 use crate::ic::{self, IcRuntime};
-use crate::journaling::{ledger_memo, principal_memo_part, u64_memo_part, LedgerMemoKind};
+use crate::journaling::{
+    get_entry, ledger_memo, principal_memo_part, u64_memo_part, LedgerMemoKind, WalPayload,
+};
 use crate::ledger::{self, LedgerClient, TESTING_CKBTC_TRANSFER_FEE_SATS};
 use crate::oracle::{set_oracle, StubOracle};
 use crate::storage::{
-    calculate_premium_fee, calculate_premium_in_sats, clear_active_options, clear_events,
-    clear_offers, get_balance, get_offer, get_platform_fees_collected, insert_offer, set_balance,
-    AcceptPhase, Asset, Config, FeatureFlags, Offer, OfferStatus, OptionType, UserBalance,
+    add_available, add_platform_fee, calculate_premium_fee, calculate_premium_in_sats,
+    calculate_strike_price_in_cents, clear_active_options, clear_events, clear_offers,
+    get_active_option, get_balance, get_offer, get_platform_fees_collected, insert_active_option,
+    insert_offer, set_balance, update_accept_execution_snapshot, update_accept_phase, update_offer,
+    AcceptPhase, ActiveOption, ActiveOptionStatus, Asset, Config, FeatureFlags, Offer, OfferStatus,
+    OptionType, UserBalance,
 };
 use crate::usecases::{withdraw_ckbtc_use_case, WithdrawParams};
 
@@ -661,6 +666,82 @@ async fn test_accept_offer_succeeds_when_platform_fee_transfer_fails() {
     assert_eq!(transfer_memos[0], Some(expected_writer_transfer_memo));
     assert_eq!(transfer_memos[1], Some(expected_platform_fee_memo));
     assert_ne!(transfer_memos[0], transfer_memos[1]);
+}
+
+/// Given: accept finalization already created an active option before a retry
+/// When: the accept WAL finalization is replayed from TransfersComplete
+/// Then: writer premium and platform fee accounting are not applied again
+#[tokio::test(flavor = "current_thread")]
+async fn test_accept_finalization_replay_does_not_double_credit_writer_or_platform_fee() {
+    // given
+    let writer = test_principal(101);
+    let buyer = test_principal(102);
+    setup_test_state(writer, buyer);
+    let receipt = accept_offers_use_case(buyer, vec![build_test_accept_offer_item()], 6).unwrap();
+    let wal_entry = get_entry(receipt.operation_id).expect("accept wal entry should exist");
+    let WalPayload::Accept(accept_payload) = wal_entry.payload else {
+        panic!("accept WAL entry should contain accept payload");
+    };
+    let prepared_accept = accept_payload
+        .prepared_accepts
+        .first()
+        .expect("prepared accept should exist");
+    let strike_price_cents =
+        calculate_strike_price_in_cents(TEST_PRICE_CENTS, prepared_accept.strike_basis_points);
+
+    update_accept_execution_snapshot(receipt.accept_journal_entry_id, TEST_PRICE_CENTS, true);
+    update_accept_phase(
+        receipt.accept_journal_entry_id,
+        AcceptPhase::TransfersComplete,
+    );
+    add_available(writer, prepared_accept.premium_to_writer_sats);
+    add_platform_fee(prepared_accept.premium_fee_sats);
+    insert_active_option(ActiveOption {
+        id: prepared_accept.option_id,
+        offer_id: prepared_accept.offer_id,
+        buyer,
+        writer,
+        asset: prepared_accept.asset,
+        option_type: prepared_accept.option_type,
+        quantity: prepared_accept.quantity_sats,
+        entry_price_cents: TEST_PRICE_CENTS,
+        strike_price_cents,
+        premium_paid: prepared_accept.premium_sats,
+        accepted_at_seconds: TEST_NOW_SECONDS,
+        expiry_seconds: prepared_accept.expiry_seconds,
+        status: ActiveOptionStatus::Active,
+        fill_group_id: Some(receipt.fill_group_id),
+        profit_fee_basis_points: prepared_accept.profit_fee_basis_points,
+    });
+    let mut offer = get_offer(TEST_OFFER_ID).expect("offer should exist");
+    offer.status = OfferStatus::Filled;
+    update_offer(offer);
+
+    let writer_balance_before_replay = get_balance(&writer);
+    let platform_fees_before_replay = get_platform_fees_collected();
+
+    // when
+    let replay_result = run_accept_wal(receipt.operation_id, &accept_payload).await;
+
+    // then
+    assert_eq!(
+        replay_result,
+        Ok(AcceptWalResult {
+            option_ids: vec![prepared_accept.option_id],
+            fill_group_id: receipt.fill_group_id,
+        })
+    );
+    let writer_balance_after_replay = get_balance(&writer);
+    assert_eq!(
+        writer_balance_after_replay.available,
+        writer_balance_before_replay.available
+    );
+    assert_eq!(
+        writer_balance_after_replay.locked_as_writer,
+        writer_balance_before_replay.locked_as_writer
+    );
+    assert_eq!(get_platform_fees_collected(), platform_fees_before_replay);
+    assert!(get_active_option(prepared_accept.option_id).is_some());
 }
 
 /// Given: one buyer has already started accepting and the offer is Processing
