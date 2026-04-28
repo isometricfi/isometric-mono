@@ -2,8 +2,8 @@ import { NextResponse } from "next/server";
 
 const COINGECKO_URL = "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd";
 
-const EDGE_TTL_SECONDS = 30;
-const SWR_SECONDS = 60;
+const EDGE_TTL_SECONDS = 60;
+const SWR_SECONDS = 120;
 const UPSTREAM_TIMEOUT_MS = 5_000;
 
 function upstreamError(message: string) {
