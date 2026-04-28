@@ -4,27 +4,40 @@ const COINGECKO_URL = "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin
 
 const EDGE_TTL_SECONDS = 30;
 const SWR_SECONDS = 60;
+const UPSTREAM_TIMEOUT_MS = 5_000;
+
+function upstreamError(message: string) {
+  return NextResponse.json(
+    { error: message },
+    { status: 502, headers: { "Cache-Control": "no-store" } },
+  );
+}
 
 export async function GET() {
-  const upstream = await fetch(COINGECKO_URL, {
-    next: { revalidate: EDGE_TTL_SECONDS },
-  });
-
-  if (!upstream.ok) {
-    return NextResponse.json(
-      { error: "Failed to fetch prices" },
-      { status: 502, headers: { "Cache-Control": "no-store" } },
-    );
+  let upstream: Response;
+  try {
+    upstream = await fetch(COINGECKO_URL, {
+      next: { revalidate: EDGE_TTL_SECONDS },
+      signal: AbortSignal.timeout(UPSTREAM_TIMEOUT_MS),
+    });
+  } catch {
+    return upstreamError("Upstream unreachable");
   }
 
-  const data = (await upstream.json()) as { bitcoin?: { usd?: number } };
-  const btc = data.bitcoin?.usd;
+  if (!upstream.ok) {
+    return upstreamError("Failed to fetch prices");
+  }
+
+  let btc: number | undefined;
+  try {
+    const data = (await upstream.json()) as { bitcoin?: { usd?: number } };
+    btc = data.bitcoin?.usd;
+  } catch {
+    return upstreamError("Failed to parse upstream payload");
+  }
 
   if (typeof btc !== "number") {
-    return NextResponse.json(
-      { error: "Unexpected upstream payload" },
-      { status: 502, headers: { "Cache-Control": "no-store" } },
-    );
+    return upstreamError("Unexpected upstream payload");
   }
 
   return NextResponse.json(
