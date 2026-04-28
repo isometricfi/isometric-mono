@@ -16,10 +16,9 @@ type Dataset = "orders" | "active";
 
 function formatExpiresAt(iso: string): string {
   const d = new Date(iso);
-  const now = Date.now();
-  const ms = d.getTime() - now;
+  const ms = d.getTime() - Date.now();
   const minutes = Math.round(ms / 60_000);
-  if (ms <= 0) return "now";
+  if (minutes <= 0) return "now";
   if (minutes < 60) return `${minutes}m`;
   const hours = Math.round(minutes / 60);
   if (hours < 24) return `${hours}h`;
@@ -165,7 +164,7 @@ function StrikeRow({
                   className="max-h-[230px] overflow-y-auto"
                 >
                   {/* individual offers */}
-                  {bucket.offers
+                  {[...bucket.offers]
                     .sort((a, b) =>
                       dataset === "active"
                         ? new Date(a.expiresAt).getTime() - new Date(b.expiresAt).getTime()
