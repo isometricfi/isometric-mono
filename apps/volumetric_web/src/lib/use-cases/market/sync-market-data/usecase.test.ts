@@ -25,13 +25,13 @@ describe("syncBtcMarketData", () => {
     const repository = createRepositoryMock(null);
     const fetchCurrentPriceQuote = vi.fn().mockResolvedValue({
       priceUsd: PRICE_USD,
-      source: "coingecko",
+      source: "coinbase_exchange",
     });
     const fetchHistoryQuotes = vi.fn().mockResolvedValue([
       {
         timestampMs: HISTORY_TIMESTAMP_MS,
         priceUsd: HISTORY_PRICE_USD,
-        source: "coingecko",
+        source: "coinbase_exchange",
       },
     ]);
 
@@ -46,7 +46,7 @@ describe("syncBtcMarketData", () => {
     // then
     expect(repository.saveCurrentBtcPrice).toHaveBeenCalledWith({
       priceUsd: PRICE_USD,
-      source: "coingecko",
+      source: "coinbase_exchange",
       updatedAtMs: NOW_MS,
     });
     expect(fetchHistoryQuotes).toHaveBeenCalledWith(DEFAULT_BTC_HISTORY_DAYS);
@@ -54,7 +54,7 @@ describe("syncBtcMarketData", () => {
       {
         timestampMs: HISTORY_TIMESTAMP_MS,
         priceUsd: HISTORY_PRICE_USD,
-        source: "coingecko",
+        source: "coinbase_exchange",
         updatedAtMs: NOW_MS,
       },
     ]);
@@ -66,6 +66,31 @@ describe("syncBtcMarketData", () => {
     });
   });
 
+  test("should reject sync when history refresh is due but provider returns no points", async () => {
+    // given
+    const NOW_MS = 1_700_000_000_000;
+    const PRICE_USD = 62_345.12;
+    const repository = createRepositoryMock(null);
+    const fetchCurrentPriceQuote = vi.fn().mockResolvedValue({
+      priceUsd: PRICE_USD,
+      source: "coinbase_exchange",
+    });
+    const fetchHistoryQuotes = vi.fn().mockResolvedValue([]);
+
+    // when
+    const result = syncBtcMarketData({
+      repository,
+      fetchCurrentPriceQuote,
+      fetchHistoryQuotes,
+      nowMs: () => NOW_MS,
+    });
+
+    // then
+    await expect(result).rejects.toThrow("Btc market history provider returned no data points");
+    expect(repository.saveCurrentBtcPrice).not.toHaveBeenCalled();
+    expect(repository.saveBtcHistoryPoints).not.toHaveBeenCalled();
+  });
+
   test("should skip history refresh while cached history is fresh", async () => {
     // given
     const NOW_MS = 1_700_000_000_000;
@@ -74,7 +99,7 @@ describe("syncBtcMarketData", () => {
     const repository = createRepositoryMock(FRESH_HISTORY_UPDATED_AT_MS);
     const fetchCurrentPriceQuote = vi.fn().mockResolvedValue({
       priceUsd: PRICE_USD,
-      source: "coingecko",
+      source: "coinbase_exchange",
     });
     const fetchHistoryQuotes = vi.fn();
 
