@@ -71,9 +71,9 @@ describe("fetchCurrentBtcPriceQuote", () => {
 describe("fetchBtcHistoryQuotes", () => {
   test("should parse valid Bitcoin USD candle closes", async () => {
     // given
-    const DAYS = 7;
+    const DAYS_WITHIN_SINGLE_WINDOW = 7;
     const OLDER_TIMESTAMP_SECONDS = 1_700_000_000;
-    const NEWER_TIMESTAMP_SECONDS = 1_700_021_600;
+    const NEWER_TIMESTAMP_SECONDS = 1_700_003_600;
     const OLDER_CLOSE_PRICE_USD = 61_111.25;
     const NEWER_CLOSE_PRICE_USD = 62_222.5;
     const fetchMock = vi.fn().mockResolvedValue({
@@ -85,7 +85,10 @@ describe("fetchBtcHistoryQuotes", () => {
     });
 
     // when
-    const quotes = await fetchBtcHistoryQuotes(DAYS, fetchMock as unknown as typeof fetch);
+    const quotes = await fetchBtcHistoryQuotes(
+      DAYS_WITHIN_SINGLE_WINDOW,
+      fetchMock as unknown as typeof fetch,
+    );
 
     // then
     expect(quotes).toEqual([
@@ -102,16 +105,92 @@ describe("fetchBtcHistoryQuotes", () => {
     ]);
   });
 
+  test("should paginate history fetches into multiple windows for long ranges", async () => {
+    // given
+    const DAYS_REQUIRING_MULTIPLE_WINDOWS = 30;
+    const FIRST_WINDOW_TIMESTAMP_SECONDS = 1_700_000_000;
+    const SECOND_WINDOW_TIMESTAMP_SECONDS = 1_700_900_000;
+    const THIRD_WINDOW_TIMESTAMP_SECONDS = 1_701_800_000;
+    const FIRST_WINDOW_CLOSE_PRICE_USD = 60_000;
+    const SECOND_WINDOW_CLOSE_PRICE_USD = 61_000;
+    const THIRD_WINDOW_CLOSE_PRICE_USD = 62_000;
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        json: vi
+          .fn()
+          .mockResolvedValue([
+            [
+              FIRST_WINDOW_TIMESTAMP_SECONDS,
+              59_000,
+              61_000,
+              59_500,
+              FIRST_WINDOW_CLOSE_PRICE_USD,
+              5,
+            ],
+          ]),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: vi
+          .fn()
+          .mockResolvedValue([
+            [
+              SECOND_WINDOW_TIMESTAMP_SECONDS,
+              60_000,
+              62_000,
+              60_500,
+              SECOND_WINDOW_CLOSE_PRICE_USD,
+              5,
+            ],
+          ]),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: vi
+          .fn()
+          .mockResolvedValue([
+            [
+              THIRD_WINDOW_TIMESTAMP_SECONDS,
+              61_000,
+              63_000,
+              61_500,
+              THIRD_WINDOW_CLOSE_PRICE_USD,
+              5,
+            ],
+          ]),
+      });
+
+    // when
+    const quotes = await fetchBtcHistoryQuotes(
+      DAYS_REQUIRING_MULTIPLE_WINDOWS,
+      fetchMock as unknown as typeof fetch,
+    );
+
+    // then
+    const EXPECTED_WINDOW_COUNT = 3;
+    expect(fetchMock).toHaveBeenCalledTimes(EXPECTED_WINDOW_COUNT);
+    expect(quotes.map((quote) => quote.priceUsd)).toEqual([
+      FIRST_WINDOW_CLOSE_PRICE_USD,
+      SECOND_WINDOW_CLOSE_PRICE_USD,
+      THIRD_WINDOW_CLOSE_PRICE_USD,
+    ]);
+  });
+
   test("should reject malformed history points", async () => {
     // given
-    const DAYS = 7;
+    const DAYS_WITHIN_SINGLE_WINDOW = 7;
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
       json: vi.fn().mockResolvedValue([[0, 61_111.25]]),
     });
 
     // when
-    const result = fetchBtcHistoryQuotes(DAYS, fetchMock as unknown as typeof fetch);
+    const result = fetchBtcHistoryQuotes(
+      DAYS_WITHIN_SINGLE_WINDOW,
+      fetchMock as unknown as typeof fetch,
+    );
 
     // then
     await expect(result).rejects.toThrow();
