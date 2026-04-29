@@ -44,10 +44,9 @@ export async function fetchBtcHistory(days: number): Promise<BtcHistoryPoint[]> 
   const startSeconds = endSeconds - days * SECONDS_PER_DAY;
   const windows = buildCandleRequestWindowsSeconds(startSeconds, endSeconds);
 
-  const pointsByTimestampMs = new Map<number, BtcHistoryPoint>();
-  for (const window of windows) {
-    const candles = await fetchCandleWindow(window);
-    for (const [timestampSeconds, _low, _high, _open, close] of candles) {
+  const candles = await Promise.all(windows.map((window) => fetchCandleWindow(window)));
+  for (const windowCandles of candles) {
+    for (const [timestampSeconds, _low, _high, _open, close] of windowCandles) {
       const timestampMs = timestampSeconds * MILLISECONDS_PER_SECOND;
       pointsByTimestampMs.set(timestampMs, { timestampMs, priceUsd: close });
     }
