@@ -241,6 +241,7 @@ mod tests {
             option_id: u64::from(seed),
             settlement_price_cents: 10_000_000 + u64::from(seed),
             created_at_time_ns: TEST_NOW_NS,
+            transfer_fee_sats: 10,
         })
     }
 

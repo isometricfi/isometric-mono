@@ -309,14 +309,26 @@ pub(crate) fn finalize_failed_withdrawal_wal(payload: &WithdrawalWalPayload, mes
         return;
     };
 
-    if matches!(
-        withdrawal.phase,
-        WithdrawalPhase::Failed { .. } | WithdrawalPhase::Completed { .. }
-    ) {
-        return;
-    }
+    let refund_sats = match withdrawal.phase {
+        WithdrawalPhase::Started => payload.gross_withdraw_amount_sats,
+        WithdrawalPhase::Approved | WithdrawalPhase::RetrieveRequested { .. } => {
+            // The ICRC-2 approve already executed on chain and consumed one ledger
+            // transfer fee from the user's deposit subaccount. Refund the gross minus
+            // that consumed fee so the user's book balance matches what is actually
+            // recoverable on chain. Without this, every approve-then-permanent-fail
+            // path over-credits the user by one transfer fee.
+            let approve_fee_consumed_sats = payload
+                .gross_withdraw_amount_sats
+                .saturating_sub(payload.withdraw_amount_after_fees_sats)
+                / 2;
+            payload
+                .gross_withdraw_amount_sats
+                .saturating_sub(approve_fee_consumed_sats)
+        }
+        WithdrawalPhase::Failed { .. } | WithdrawalPhase::Completed { .. } => return,
+    };
 
-    add_available(payload.principal, payload.gross_withdraw_amount_sats);
+    add_available(payload.principal, refund_sats);
     fail_withdrawal(payload.withdrawal_id, message.to_string());
 }
 
@@ -1061,8 +1073,14 @@ mod tests {
             crate::journaling::WalExecutionOutcome::FailedPermanent(_)
         ));
 
+        // The first attempt got past the approve before failing retryably, so the
+        // approve fee was already consumed on chain. The permanent-failure refund
+        // therefore returns gross minus that consumed approve fee, not the full gross.
         let balance = get_balance(&principal);
-        assert_eq!(balance.available, INITIAL_BALANCE_SATS);
+        assert_eq!(
+            balance.available,
+            INITIAL_BALANCE_SATS - TEST_TRANSFER_FEE_SATS
+        );
 
         let pending_withdrawals = get_pending_withdrawals_by_principal(principal);
         const EXPECTED_PENDING_WITHDRAWALS_LEN: usize = 0;
@@ -1094,5 +1112,79 @@ mod tests {
         // then
         let error = result.expect_err("withdraw should reject amount below configured minimum");
         assert_eq!(error.code, error_codes::QUANTITY_BELOW_MINIMUM.code);
+    }
+
+    /// Given: the WAL fails permanently while the withdrawal is still in `Started` phase
+    ///        (e.g. the approve call itself failed, so no on-chain fee was consumed)
+    /// When: finalize_failed_withdrawal_wal runs
+    /// Then: the user is refunded the full gross amount
+    #[test]
+    fn test_finalize_failed_withdrawal_refunds_full_gross_when_phase_started() {
+        // given
+        ic::set_runtime(Box::new(MockRuntime));
+        let principal = test_principal();
+        fund_principal(principal, INITIAL_BALANCE_SATS);
+        let withdrawal = create_withdrawal(
+            principal,
+            WITHDRAW_AMOUNT_SATS,
+            TEST_BTC_ADDRESS.to_string(),
+            TEST_NOW_NS,
+        );
+        let _ = subtract_available(principal, WITHDRAW_AMOUNT_SATS);
+        let payload = WithdrawalWalPayload {
+            withdrawal_id: withdrawal.id,
+            principal,
+            gross_withdraw_amount_sats: WITHDRAW_AMOUNT_SATS,
+            withdraw_amount_after_fees_sats: WITHDRAW_AMOUNT_SATS - 2 * TEST_TRANSFER_FEE_SATS,
+            btc_address: TEST_BTC_ADDRESS.to_string(),
+            created_at_time_ns: TEST_NOW_NS,
+        };
+
+        // when
+        finalize_failed_withdrawal_wal(&payload, "approve denied");
+
+        // then
+        let balance = get_balance(&principal);
+        assert_eq!(balance.available, INITIAL_BALANCE_SATS);
+    }
+
+    /// Given: the WAL fails permanently after the on-chain approve has already executed
+    ///        (phase is `Approved`), consuming one ledger transfer fee from the user's
+    ///        deposit subaccount
+    /// When: finalize_failed_withdrawal_wal runs
+    /// Then: the refund is gross minus the consumed approve fee, so the user's book
+    ///       balance matches what is actually recoverable on chain
+    #[test]
+    fn test_finalize_failed_withdrawal_refunds_minus_approve_fee_when_phase_approved() {
+        // given
+        ic::set_runtime(Box::new(MockRuntime));
+        let principal = test_principal();
+        fund_principal(principal, INITIAL_BALANCE_SATS);
+        let withdrawal = create_withdrawal(
+            principal,
+            WITHDRAW_AMOUNT_SATS,
+            TEST_BTC_ADDRESS.to_string(),
+            TEST_NOW_NS,
+        );
+        let _ = subtract_available(principal, WITHDRAW_AMOUNT_SATS);
+        update_withdrawal_phase(withdrawal.id, WithdrawalPhase::Approved);
+        let payload = WithdrawalWalPayload {
+            withdrawal_id: withdrawal.id,
+            principal,
+            gross_withdraw_amount_sats: WITHDRAW_AMOUNT_SATS,
+            withdraw_amount_after_fees_sats: WITHDRAW_AMOUNT_SATS - 2 * TEST_TRANSFER_FEE_SATS,
+            btc_address: TEST_BTC_ADDRESS.to_string(),
+            created_at_time_ns: TEST_NOW_NS,
+        };
+
+        // when
+        finalize_failed_withdrawal_wal(&payload, "retrieve_btc_with_approval insufficient funds");
+
+        // then
+        let balance = get_balance(&principal);
+        assert_eq!(
+            balance.available,
+            INITIAL_BALANCE_SATS - TEST_TRANSFER_FEE_SATS
+        );
     }
 }

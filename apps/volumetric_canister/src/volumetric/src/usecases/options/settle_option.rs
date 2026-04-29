@@ -161,6 +161,10 @@ fn prepare_settlement_execution(
     option_id: u64,
     settlement_price_cents: u64,
 ) -> Result<PreparedSettlementExecution, VolumetricError> {
+    // Snapshot the ledger transfer fee before mutating any state so we can debit the
+    // writer for it at finalize without an extra inter-canister call from the WAL.
+    let transfer_fee_sats = crate::ledger::get_cached_icrc1_transfer_fee_sats_for_sync_flow()?;
+
     let mut option = get_active_option(option_id).ok_or_else(|| {
         VolumetricError::from_def(
             error_codes::OPTION_NOT_FOUND,
@@ -230,6 +234,7 @@ fn prepare_settlement_execution(
             option_id: option.id,
             settlement_price_cents,
             created_at_time_ns,
+            transfer_fee_sats,
         }),
         default_policy(),
     );
@@ -378,6 +383,18 @@ pub async fn run_settlement_wal(
 
     if payout_to_writer > 0 {
         unlock_collateral(option.writer, payout_to_writer)
+            .map_err(map_balance_error_to_permanent)?;
+    }
+
+    // The buyer-payout and profit-fee transfers above each consumed one ledger transfer
+    // fee from the writer's deposit subaccount on chain. Mirror that consumption in the
+    // book by debiting the writer's available balance, otherwise book liabilities will
+    // exceed on-chain assets by the unaccounted fees.
+    let settlement_transfer_fees_consumed_sats = u64::from(payout_to_buyer > 0)
+        .saturating_mul(payload.transfer_fee_sats)
+        .saturating_add(u64::from(profit_fee > 0).saturating_mul(payload.transfer_fee_sats));
+    if settlement_transfer_fees_consumed_sats > 0 {
+        subtract_available(option.writer, settlement_transfer_fees_consumed_sats)
             .map_err(map_balance_error_to_permanent)?;
     }
 
@@ -1096,6 +1113,8 @@ mod tests {
         }
     }
 
+    const TEST_TRANSFER_FEE_SATS: u64 = 10;
+
     fn setup_test_state_with_ledger(
         writer: Principal,
         buyer: Principal,
@@ -1106,6 +1125,7 @@ mod tests {
         clear_settlement_journal();
         ic::set_runtime(Box::new(MockRuntime));
         ledger::set_ledger(ledger_client);
+        ledger::set_cached_transfer_fee_for_testing(TEST_TRANSFER_FEE_SATS, TEST_NOW_NS);
 
         set_balance(
             writer,
@@ -1150,6 +1170,7 @@ mod tests {
         clear_events();
         clear_settlement_journal();
         ic::set_runtime(Box::new(MockRuntime));
+        ledger::set_cached_transfer_fee_for_testing(TEST_TRANSFER_FEE_SATS, TEST_NOW_NS);
 
         set_balance(
             writer,
@@ -1466,8 +1487,10 @@ mod tests {
         const EXPECTED_PROFIT_FEE_SATS: u64 = 12_500;
         const EXPECTED_BUYER_PAYOUT_SATS: u64 =
             EXPECTED_GROSS_BUYER_PAYOUT_SATS - EXPECTED_PROFIT_FEE_SATS;
-        const EXPECTED_WRITER_PAYOUT_SATS: u64 =
-            TEST_QUANTITY_SATS - EXPECTED_GROSS_BUYER_PAYOUT_SATS;
+        const EXPECTED_SETTLEMENT_TRANSFER_FEES_SATS: u64 = TEST_TRANSFER_FEE_SATS * 2;
+        const EXPECTED_WRITER_PAYOUT_SATS: u64 = TEST_QUANTITY_SATS
+            - EXPECTED_GROSS_BUYER_PAYOUT_SATS
+            - EXPECTED_SETTLEMENT_TRANSFER_FEES_SATS;
         const EXPECTED_TRANSFER_CALL_COUNT: u64 = 3;
 
         assert_eq!(buyer_balance.available, EXPECTED_BUYER_PAYOUT_SATS);
@@ -1645,8 +1668,10 @@ mod tests {
         const EXPECTED_PROFIT_FEE_SATS: u64 = 12_500;
         const EXPECTED_BUYER_PAYOUT_SATS: u64 =
             EXPECTED_GROSS_BUYER_PAYOUT_SATS - EXPECTED_PROFIT_FEE_SATS;
-        const EXPECTED_WRITER_PAYOUT_SATS: u64 =
-            TEST_QUANTITY_SATS - EXPECTED_GROSS_BUYER_PAYOUT_SATS;
+        const EXPECTED_SETTLEMENT_TRANSFER_FEES_SATS: u64 = TEST_TRANSFER_FEE_SATS * 2;
+        const EXPECTED_WRITER_PAYOUT_SATS: u64 = TEST_QUANTITY_SATS
+            - EXPECTED_GROSS_BUYER_PAYOUT_SATS
+            - EXPECTED_SETTLEMENT_TRANSFER_FEES_SATS;
         const EXPECTED_TRANSFER_CALL_COUNT: u64 = 3;
         assert_eq!(buyer_balance.available, EXPECTED_BUYER_PAYOUT_SATS);
         assert_eq!(buyer_balance.locked_as_writer, 0);
@@ -1660,5 +1685,60 @@ mod tests {
             trap_once_ledger.transfer_call_count(),
             EXPECTED_TRANSFER_CALL_COUNT
         );
+    }
+
+    /// Given: an OTM settlement (no buyer payout, no profit fee, so no on-chain transfers)
+    /// When: settlement runs to completion
+    /// Then: the writer is paid back the full collateral with no fee deduction
+    #[tokio::test]
+    async fn test_settle_otm_does_not_charge_writer_for_settlement_transfer_fees() {
+        // given
+        let writer = test_principal(71);
+        let buyer = test_principal(72);
+        let (recording_ledger, _) = RecordingTransferLedger::new();
+        setup_test_state_with_ledger(writer, buyer, Rc::new(recording_ledger));
+
+        // when
+        settle_single_option(TEST_OPTION_ID, TEST_OTM_SETTLEMENT_PRICE_CENTS)
+            .await
+            .expect("OTM settlement should succeed");
+
+        // then
+        let writer_balance = get_balance(&writer);
+        assert_eq!(writer_balance.available, TEST_QUANTITY_SATS);
+        assert_eq!(writer_balance.locked_as_writer, 0);
+    }
+
+    /// Given: an ITM settlement that triggers both buyer-payout and profit-fee transfers
+    /// When: settlement runs to completion
+    /// Then: the writer's available is debited exactly two ledger transfer fees so book
+    ///       balances stay aligned with on-chain reality
+    #[tokio::test]
+    async fn test_settle_itm_debits_writer_for_two_settlement_transfer_fees() {
+        // given
+        let writer = test_principal(81);
+        let buyer = test_principal(82);
+        let (recording_ledger, _) = RecordingTransferLedger::new();
+        setup_test_state_with_ledger(writer, buyer, Rc::new(recording_ledger));
+
+        // when
+        settle_single_option(TEST_OPTION_ID, TEST_SETTLEMENT_PRICE_CENTS)
+            .await
+            .expect("ITM settlement should succeed");
+
+        // then
+        const EXPECTED_GROSS_BUYER_PAYOUT_SATS: u64 = 125_000;
+        const EXPECTED_PROFIT_FEE_SATS: u64 = 12_500;
+        const EXPECTED_BUYER_PAYOUT_SATS: u64 =
+            EXPECTED_GROSS_BUYER_PAYOUT_SATS - EXPECTED_PROFIT_FEE_SATS;
+        const EXPECTED_SETTLEMENT_TRANSFER_FEES_SATS: u64 = TEST_TRANSFER_FEE_SATS * 2;
+        const EXPECTED_WRITER_PAYOUT_SATS: u64 = TEST_QUANTITY_SATS
+            - EXPECTED_GROSS_BUYER_PAYOUT_SATS
+            - EXPECTED_SETTLEMENT_TRANSFER_FEES_SATS;
+        let writer_balance = get_balance(&writer);
+        let buyer_balance = get_balance(&buyer);
+        assert_eq!(writer_balance.available, EXPECTED_WRITER_PAYOUT_SATS);
+        assert_eq!(writer_balance.locked_as_writer, 0);
+        assert_eq!(buyer_balance.available, EXPECTED_BUYER_PAYOUT_SATS);
     }
 }
