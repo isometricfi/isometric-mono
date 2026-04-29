@@ -1,9 +1,5 @@
-export const dynamic = "force-dynamic";
-
-import { HydrationBoundary } from "@tanstack/react-query";
 import type { Metadata } from "next";
 import { generatePageMetadata } from "@/lib/metadata";
-import { prefetchOptionsPageData } from "@/lib/prefetch";
 import { WriteOptionsView } from "./_components/WriteOptionsView";
 
 export async function generateMetadata({
@@ -14,14 +10,10 @@ export async function generateMetadata({
   return generatePageMetadata({ params }, "Metadata.write");
 }
 
-export default async function WritePage() {
-  const dehydratedState = await prefetchOptionsPageData();
-
+export default function WritePage() {
   return (
-    <HydrationBoundary state={dehydratedState}>
-      <div className="container mx-auto md:py-5 py-4 max-w-5xl ">
-        <WriteOptionsView />
-      </div>
-    </HydrationBoundary>
+    <div className="container mx-auto md:py-5 py-4 max-w-5xl ">
+      <WriteOptionsView />
+    </div>
   );
 }
