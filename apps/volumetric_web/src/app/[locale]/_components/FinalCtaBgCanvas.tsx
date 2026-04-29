@@ -125,18 +125,20 @@ export function FinalCtaBgCanvas() {
 
     scene.add(new THREE.Mesh(geo, mat));
 
-    const clock = new THREE.Clock();
+    const timer = new THREE.Timer();
     let elapsed = 0;
     let rafId: number | null = null;
     function animate() {
-      elapsed += clock.getDelta();
+      timer.update();
+      elapsed += timer.getDelta();
       mat.uniforms.uTime.value = elapsed;
       renderer.render(scene, camera);
       rafId = requestAnimationFrame(animate);
     }
     const startLoop = () => {
       if (rafId !== null) return;
-      clock.getDelta();
+      // discard time accumulated while the loop was paused
+      timer.update();
       animate();
     };
     const stopLoop = () => {
