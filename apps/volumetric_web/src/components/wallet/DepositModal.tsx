@@ -36,6 +36,9 @@ import { Skeleton } from "../ui/skeleton";
 type DepositStep = "input" | "sending" | "waiting" | "success" | "error";
 type DepositTab = "wallet" | "address";
 
+// Wallets that do not support a native sendBitcoin flow.
+const WALLETS_WITHOUT_NATIVE_BTC_SEND = ["phantombtc"];
+
 export function DepositModal({
   open,
   onOpenChange,
@@ -62,6 +65,9 @@ export function DepositModal({
 
   const minDepositSats = BigInt(config?.minDepositAmountSats ?? DEFAULT_MIN_DEPOSIT_SATS);
   const isWalletReady = !!primaryWallet && isBitcoinWallet(primaryWallet);
+  const walletSupportsNativeSend =
+    !primaryWallet || !WALLETS_WITHOUT_NATIVE_BTC_SEND.includes(primaryWallet.key);
+  const effectiveTab: DepositTab = walletSupportsNativeSend ? tab : "address";
 
   const enteredAmountSats = useMemo(() => {
     const sats = parseBtcToSatsBigint(amountBtc);
@@ -161,16 +167,18 @@ export function DepositModal({
               </div>
             </div>
 
-            <AnimatedToggle
-              layoutId="depositTab"
-              className="w-full"
-              options={[
-                { value: "wallet", label: t("wallet") },
-                { value: "address", label: t("depositAddress") },
-              ]}
-              value={tab}
-              onChange={(v) => setTab(v as DepositTab)}
-            />
+            {walletSupportsNativeSend && (
+              <AnimatedToggle
+                layoutId="depositTab"
+                className="w-full"
+                options={[
+                  { value: "wallet", label: t("wallet") },
+                  { value: "address", label: t("depositAddress") },
+                ]}
+                value={tab}
+                onChange={(v) => setTab(v as DepositTab)}
+              />
+            )}
 
             {isLoadingDepositAddress ? (
               <div className=" space-y-4">
@@ -181,7 +189,7 @@ export function DepositModal({
               </div>
             ) : depositAddress ? (
               <div className="flex flex-col flex-1">
-                {tab === "wallet" && (
+                {effectiveTab === "wallet" && (
                   <div className="flex flex-col flex-1 gap-5">
                     <AmountInput
                       value={amountBtc}
@@ -227,7 +235,7 @@ export function DepositModal({
                   </div>
                 )}
 
-                {tab === "address" && (
+                {effectiveTab === "address" && (
                   <div className="flex flex-col flex-1 gap-5">
                     <div className="flex flex-col items-center space-y-4">
                       <div className=" gap-4 md:flex w-full">
