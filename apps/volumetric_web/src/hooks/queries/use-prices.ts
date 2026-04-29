@@ -1,32 +1,21 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
+import { useTRPC } from "@/trpc/react";
 
-interface PriceData {
-  btc: number;
-}
+const PRICE_REFETCH_INTERVAL_1_MINUTE_MS = 60_000;
 
-async function fetchPrices(): Promise<PriceData> {
-  const response = await fetch(
-    "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd",
-  );
-
-  if (!response.ok) {
-    throw new Error("Failed to fetch prices");
-  }
-
-  const data = await response.json();
-
-  return {
-    btc: data.bitcoin.usd,
-  };
+export interface PriceData {
+  btc: number | null;
+  updatedAtMs: number | null;
 }
 
 export function usePrices() {
+  const trpc = useTRPC();
+
   return useQuery({
-    queryKey: ["prices"],
-    queryFn: fetchPrices,
-    staleTime: 60000,
-    refetchInterval: 60000,
+    ...trpc.market.getPrices.queryOptions(),
+    staleTime: PRICE_REFETCH_INTERVAL_1_MINUTE_MS,
+    refetchInterval: PRICE_REFETCH_INTERVAL_1_MINUTE_MS,
   });
 }

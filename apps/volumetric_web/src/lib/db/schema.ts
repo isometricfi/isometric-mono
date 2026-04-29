@@ -113,3 +113,32 @@ export const depositSyncState = sqliteTable(
   },
   (table) => [check("deposit_sync_state_cursor_only", sql`${table.id} = 'cursor'`)],
 );
+
+export const btcCurrentPrice = sqliteTable(
+  "btc_current_price",
+  {
+    id: text("id").primaryKey(),
+    priceUsdMicros: integer("price_usd_micros").notNull(),
+    source: text("source").notNull(),
+    updatedAtMs: integer("updated_at_ms").notNull(),
+  },
+  (table) => [
+    check("btc_current_price_id_only", sql`${table.id} = 'bitcoin_usd'`),
+    check("btc_current_price_price_positive", sql`${table.priceUsdMicros} > 0`),
+  ],
+);
+
+export const btcHistoryPoints = sqliteTable(
+  "btc_history_points",
+  {
+    timestampMs: integer("timestamp_ms").primaryKey(),
+    priceUsdMicros: integer("price_usd_micros").notNull(),
+    source: text("source").notNull(),
+    updatedAtMs: integer("updated_at_ms").notNull(),
+  },
+  (table) => [
+    index("btc_history_points_timestamp_idx").on(table.timestampMs),
+    check("btc_history_points_timestamp_positive", sql`${table.timestampMs} > 0`),
+    check("btc_history_points_price_positive", sql`${table.priceUsdMicros} > 0`),
+  ],
+);

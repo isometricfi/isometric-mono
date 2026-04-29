@@ -3,6 +3,7 @@ import { accountRouter } from "./routers/account";
 import { configRouter } from "./routers/config";
 import { eventsRouter } from "./routers/events";
 import { historyRouter } from "./routers/history";
+import { marketRouter } from "./routers/market";
 import { optionsRouter } from "./routers/options";
 import { portfolioRouter } from "./routers/portfolio";
 import { waitlistRouter } from "./routers/waitlist";
@@ -12,6 +13,7 @@ export const appRouter = router({
   config: configRouter,
   events: eventsRouter,
   history: historyRouter,
+  market: marketRouter,
   options: optionsRouter,
   portfolio: portfolioRouter,
   waitlist: waitlistRouter,
