@@ -5,7 +5,7 @@ use crate::auth::{
     build_challenge_context, build_challenge_message, ensure_challenge_fresh, verify_btc_signature,
 };
 use crate::errors::{error_codes, VolumetricError};
-use crate::guards::{is_controller, is_whitelisted, no_replicated_call};
+use crate::guards::{is_whitelisted, no_replicated_call};
 use crate::journaling::OperationId;
 use crate::storage::{
     get_pending_withdrawals_by_principal, get_principal_for_wallet, get_withdrawal,
@@ -79,19 +79,19 @@ pub fn get_withdraw_status(
 
 #[ic_cdk::query(guard = "no_replicated_call")]
 pub fn get_pending_withdrawals() -> Result<Vec<PendingWithdrawal>, VolumetricError> {
-    is_controller()?;
+    is_whitelisted()?;
     Ok(list_pending_withdrawals())
 }
 
 #[ic_cdk::query(guard = "no_replicated_call")]
 pub fn get_failed_withdrawals() -> Result<Vec<PendingWithdrawal>, VolumetricError> {
-    is_controller()?;
+    is_whitelisted()?;
     Ok(list_failed_withdrawals())
 }
 
 #[ic_cdk::query(guard = "no_replicated_call")]
 pub fn get_withdrawal_by_id(id: u64) -> Result<Option<PendingWithdrawal>, VolumetricError> {
-    is_controller()?;
+    is_whitelisted()?;
     Ok(get_withdrawal(id))
 }
 

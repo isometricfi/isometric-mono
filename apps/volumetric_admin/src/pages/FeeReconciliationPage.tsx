@@ -1,14 +1,15 @@
 import { Button, Empty, InputArea, LayerCard, Table, Text } from "@cloudflare/kumo";
 import { ArrowsClockwise, Coins } from "@phosphor-icons/react";
-import type { FeeConfig } from "@volumetric/canister-types";
+import type { Event, FeeConfig, OptionAuditReport } from "@volumetric/canister-types";
+import { unwrapResult } from "@volumetric/canister-types";
 import { Eyebrow } from "../components/Eyebrow";
 import { MetricCard } from "../components/MetricCard";
 import { Mono } from "../components/Mono";
 import { PageShell } from "../components/PageShell";
 import { defaultAccount } from "../lib/account";
-import { sumIncomingTransfers } from "../lib/audit";
+import { buildExpectedTransferRows, sumIncomingTransfers } from "../lib/audit";
 import { type AccountTransaction, getAllAccountTransactions } from "../lib/ckbtc-index";
-import { useCreateCanisterClients } from "../lib/clients";
+import { type CanisterClients, useCreateCanisterClients } from "../lib/clients";
 import { useConnection } from "../lib/connection-context";
 import {
   bytesToHex,
@@ -21,14 +22,23 @@ import { useAsyncAction } from "../lib/use-async-action";
 
 const DEFAULT_MAX_RESULTS = 100;
 const DEFAULT_MAX_PAGES = 25;
-const TRANSACTION_PREVIEW_LIMIT = 20;
+const EVENT_PAGE_SIZE = 1000;
+const EVENT_MAX_PAGES = 25;
 const MEMO_PREVIEW_LENGTH = 18;
+
+type FeeTransactionContext = {
+  optionIds: bigint[];
+  step: string;
+  note: string;
+};
 
 type FeeResult = {
   feeConfig: FeeConfig;
   platformFeesCollectedSats: bigint;
   feeRecipientLedgerBalanceSats: bigint;
   feeTransactions: AccountTransaction[];
+  feeTransactionContexts: Map<string, FeeTransactionContext[]>;
+  optionReportsLoaded: number;
 };
 
 export function FeeReconciliationPage() {
@@ -59,11 +69,24 @@ export function FeeReconciliationPage() {
           }),
           ckBtcLedger.icrc1_balance_of(feeRecipientAccount),
         ]);
+      const auditEvents = await loadAllEvents(volumetric);
+      const optionIds = uniqueOptionIdsFromEvents(auditEvents);
+      const optionReports = await Promise.all(
+        optionIds.map((optionId) =>
+          volumetric.get_option_audit_report(optionId).then(unwrapResult),
+        ),
+      );
+
       return {
         feeConfig,
         platformFeesCollectedSats,
         feeRecipientLedgerBalanceSats,
         feeTransactions: feeTransactionsPage.transactions,
+        feeTransactionContexts: buildFeeTransactionContexts(
+          optionReports,
+          feeTransactionsPage.transactions,
+        ),
+        optionReportsLoaded: optionReports.length,
       };
     });
   }
@@ -120,6 +143,10 @@ export function FeeReconciliationPage() {
             value={formatSats(action.data.platformFeesCollectedSats)}
           />
           <MetricCard label="Known inbound total" value={formatSats(feeRecipientIncomingTotal)} />
+          <MetricCard
+            label="Option reports loaded"
+            value={action.data.optionReportsLoaded.toString()}
+          />
         </div>
       ) : (
         <Empty
@@ -142,18 +169,25 @@ export function FeeReconciliationPage() {
 
       <div>
         <div className="mb-2 flex items-center justify-between">
-          <Eyebrow>Recent fee-recipient transfers</Eyebrow>
+          <Eyebrow>Fee-recipient transfers</Eyebrow>
           <Eyebrow>{action.data?.feeTransactions.length ?? 0} loaded</Eyebrow>
         </div>
         <FeeTransactionTable
-          transactions={(action.data?.feeTransactions ?? []).slice(0, TRANSACTION_PREVIEW_LIMIT)}
+          transactions={action.data?.feeTransactions ?? []}
+          contexts={action.data?.feeTransactionContexts ?? new Map()}
         />
       </div>
     </PageShell>
   );
 }
 
-function FeeTransactionTable({ transactions }: { transactions: AccountTransaction[] }) {
+function FeeTransactionTable({
+  transactions,
+  contexts,
+}: {
+  transactions: AccountTransaction[];
+  contexts: Map<string, FeeTransactionContext[]>;
+}) {
   if (transactions.length === 0) {
     return (
       <Empty
@@ -172,6 +206,8 @@ function FeeTransactionTable({ transactions }: { transactions: AccountTransactio
           <Table.Row>
             <Table.Head>Tx id</Table.Head>
             <Table.Head>Amount</Table.Head>
+            <Table.Head>Step</Table.Head>
+            <Table.Head>Option ids</Table.Head>
             <Table.Head>From</Table.Head>
             <Table.Head>Time</Table.Head>
             <Table.Head>Memo</Table.Head>
@@ -180,6 +216,7 @@ function FeeTransactionTable({ transactions }: { transactions: AccountTransactio
         <Table.Body>
           {transactions.map((accountTransaction) => {
             const transfer = accountTransaction.transaction.transfer[0];
+            const transactionContexts = contexts.get(accountTransaction.id.toString()) ?? [];
             return (
               <Table.Row key={accountTransaction.id.toString()}>
                 <Table.Cell>
@@ -187,6 +224,12 @@ function FeeTransactionTable({ transactions }: { transactions: AccountTransactio
                 </Table.Cell>
                 <Table.Cell>
                   <Mono>{transfer ? formatSats(transfer.amount) : "—"}</Mono>
+                </Table.Cell>
+                <Table.Cell title={formatContextNotes(transactionContexts)}>
+                  {formatContextSteps(transactionContexts)}
+                </Table.Cell>
+                <Table.Cell>
+                  <Mono className="text-sm">{formatContextOptionIds(transactionContexts)}</Mono>
                 </Table.Cell>
                 <Table.Cell>
                   <Mono className="text-sm">
@@ -212,4 +255,110 @@ function FeeTransactionTable({ transactions }: { transactions: AccountTransactio
       </Table>
     </LayerCard>
   );
+}
+
+async function loadAllEvents(volumetric: CanisterClients["volumetric"]): Promise<Event[]> {
+  const events: Event[] = [];
+  let afterId: bigint | null = null;
+
+  for (let pageIndex = 0; pageIndex < EVENT_MAX_PAGES; pageIndex += 1) {
+    const page = unwrapResult(
+      await volumetric.get_all_events(afterId === null ? [] : [afterId], [EVENT_PAGE_SIZE]),
+    ) as Event[];
+    if (page.length === 0) {
+      break;
+    }
+
+    events.push(...page);
+    afterId = page[page.length - 1]?.id ?? afterId;
+    if (page.length < EVENT_PAGE_SIZE) {
+      break;
+    }
+  }
+
+  return events;
+}
+
+function uniqueOptionIdsFromEvents(events: Event[]): bigint[] {
+  const optionIdsByKey = new Map<string, bigint>();
+
+  for (const event of events) {
+    const optionId = getEventOptionId(event);
+    if (optionId === null) {
+      continue;
+    }
+
+    optionIdsByKey.set(optionId.toString(), optionId);
+  }
+
+  return Array.from(optionIdsByKey.values());
+}
+
+function getEventOptionId(event: Event): bigint | null {
+  if ("OfferAccepted" in event.data) {
+    return event.data.OfferAccepted.option_id;
+  }
+  if ("OptionSettled" in event.data) {
+    return event.data.OptionSettled.option_id;
+  }
+  if ("OptionSettlementFailed" in event.data) {
+    return event.data.OptionSettlementFailed.option_id;
+  }
+
+  return null;
+}
+
+function buildFeeTransactionContexts(
+  optionReports: OptionAuditReport[],
+  feeTransactions: AccountTransaction[],
+): Map<string, FeeTransactionContext[]> {
+  const contexts = new Map<string, FeeTransactionContext[]>();
+
+  for (const optionReport of optionReports) {
+    const rows = buildExpectedTransferRows(optionReport, feeTransactions).filter(
+      (row) => row.kind === "SettlementProfitFee" && row.matchedTransactionIds.length > 0,
+    );
+
+    for (const row of rows) {
+      for (const transactionId of row.matchedTransactionIds) {
+        const transactionKey = transactionId.toString();
+        const existingContexts = contexts.get(transactionKey) ?? [];
+        contexts.set(transactionKey, [
+          ...existingContexts,
+          {
+            optionIds: [optionReport.option_id],
+            step: "Settlement profit fee",
+            note: row.note,
+          },
+        ]);
+      }
+    }
+  }
+
+  return contexts;
+}
+
+function formatContextSteps(contexts: FeeTransactionContext[]): string {
+  if (contexts.length === 0) {
+    return "Unmatched fee transfer";
+  }
+
+  return Array.from(new Set(contexts.map((context) => context.step))).join(", ");
+}
+
+function formatContextOptionIds(contexts: FeeTransactionContext[]): string {
+  const optionIds = contexts.flatMap((context) => context.optionIds);
+  if (optionIds.length === 0) {
+    return "—";
+  }
+
+  return Array.from(new Set(optionIds.map((optionId) => optionId.toString()))).join(", ");
+}
+
+function formatContextNotes(contexts: FeeTransactionContext[]): string {
+  if (contexts.length === 0) {
+    return "No option-audit memo match. This may be an accept platform fee, an external transfer, or a transfer predating available audit context.";
+  }
+
+  return contexts.map((context) => context.note).join("\n");
 }

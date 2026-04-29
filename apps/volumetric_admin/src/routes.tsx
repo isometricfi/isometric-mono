@@ -10,6 +10,7 @@ import {
   ShieldCheck,
   Stack,
   UserCircle,
+  UserFocus,
   UsersThree,
   Wallet,
   WarningOctagon,
@@ -28,6 +29,7 @@ import { OptionAuditPage } from "./pages/OptionAuditPage";
 import { PendingSettlementsPage } from "./pages/PendingSettlementsPage";
 import { PendingWithdrawalsPage } from "./pages/PendingWithdrawalsPage";
 import { SolvencyPage } from "./pages/SolvencyPage";
+import { UserAuditPage } from "./pages/UserAuditPage";
 import { UserBalancePage } from "./pages/UserBalancePage";
 import { WalRecoveryPage } from "./pages/WalRecoveryPage";
 import { WhitelistPage } from "./pages/WhitelistPage";
@@ -73,6 +75,11 @@ export const ROUTES: Record<string, RouteDef> = {
     path: "/user-balance",
     label: "User Balance",
     render: () => <UserBalancePage />,
+  },
+  "/user-audit": {
+    path: "/user-audit",
+    label: "User Audit",
+    render: () => <UserAuditPage />,
   },
   "/failed": {
     path: "/failed",
@@ -127,6 +134,7 @@ export const SIDEBAR_GROUPS: SidebarGroup[] = [
       { path: "/pending-settlements", label: "Pending Settlements", icon: Stack },
       { path: "/pending-withdrawals", label: "Pending Withdrawals", icon: HandCoins },
       { path: "/user-balance", label: "User Balance", icon: UserCircle },
+      { path: "/user-audit", label: "User Audit", icon: UserFocus },
     ],
   },
   {

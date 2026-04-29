@@ -24,7 +24,7 @@ pub fn get_events_for_principal(
     after_id: Option<u64>,
     limit: Option<u32>,
 ) -> Result<Vec<Event>, VolumetricError> {
-    is_controller()?;
+    is_whitelisted()?;
     let limit = limit.unwrap_or(100).min(MAX_EVENTS_LIMIT);
     Ok(get_events_by_principal(principal, after_id, limit))
 }
