@@ -12,7 +12,11 @@ import type {
 
 const BTC_CURRENT_PRICE_ID = "bitcoin_usd";
 const USD_MICROS_PER_USD = 1_000_000;
-const SAVE_HISTORY_POINTS_BATCH_SIZE = 500;
+const MAX_D1_BOUND_PARAMETERS_PER_STATEMENT = 100;
+const BTC_HISTORY_POINT_SQL_VARIABLES = 4;
+const SAVE_HISTORY_POINTS_BATCH_SIZE = Math.floor(
+  MAX_D1_BOUND_PARAMETERS_PER_STATEMENT / BTC_HISTORY_POINT_SQL_VARIABLES,
+);
 
 export class DrizzleMarketDataRepository implements IMarketDataRepository {
   constructor(private db: DrizzleD1Database<typeof dbSchema>) {}
