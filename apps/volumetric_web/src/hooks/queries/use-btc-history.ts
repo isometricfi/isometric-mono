@@ -1,6 +1,14 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
+import {
+  DEFAULT_BTC_HISTORY_DAYS,
+  MAX_BTC_HISTORY_DAYS,
+  MIN_BTC_HISTORY_DAYS,
+} from "@/lib/market/btc-history-limits";
+import { useTRPC } from "@/trpc/react";
+
+const BTC_HISTORY_REFETCH_INTERVAL_1_MINUTE_MS = 60_000;
 
 export interface BTCHistoryPoint {
   timestamp: number;
@@ -8,33 +16,22 @@ export interface BTCHistoryPoint {
   date: Date;
 }
 
-interface CoinGeckoMarketChartResponse {
-  prices: [number, number][];
-}
+export function useBTCHistory(days = DEFAULT_BTC_HISTORY_DAYS) {
+  const trpc = useTRPC();
+  const historyDays = getBoundedHistoryDays(days);
 
-async function fetchBTCHistory(days: number): Promise<BTCHistoryPoint[]> {
-  const response = await fetch(
-    `https://api.coingecko.com/api/v3/coins/bitcoin/market_chart?vs_currency=usd&days=${days}`,
-  );
-
-  if (!response.ok) {
-    throw new Error("Failed to fetch BTC history");
-  }
-
-  const data: CoinGeckoMarketChartResponse = await response.json();
-
-  return data.prices.map(([timestamp, price]) => ({
-    timestamp,
-    price,
-    date: new Date(timestamp),
-  }));
-}
-
-export function useBTCHistory(days = 30) {
   return useQuery({
-    queryKey: ["btc-history", days],
-    queryFn: () => fetchBTCHistory(days),
-    staleTime: 60000,
-    refetchInterval: 60000,
+    ...trpc.market.getBtcHistory.queryOptions({ days: historyDays }),
+    staleTime: BTC_HISTORY_REFETCH_INTERVAL_1_MINUTE_MS,
+    refetchInterval: BTC_HISTORY_REFETCH_INTERVAL_1_MINUTE_MS,
+    select: (data): BTCHistoryPoint[] =>
+      data.map((point) => ({
+        ...point,
+        date: new Date(point.timestamp),
+      })),
   });
+}
+
+function getBoundedHistoryDays(days: number): number {
+  return Math.min(MAX_BTC_HISTORY_DAYS, Math.max(MIN_BTC_HISTORY_DAYS, Math.ceil(days)));
 }
