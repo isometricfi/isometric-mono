@@ -15,6 +15,3 @@ CREATE TABLE IF NOT EXISTS btc_history_points (
   CHECK (timestamp_ms > 0),
   CHECK (price_usd_micros > 0)
 );
-
-CREATE INDEX IF NOT EXISTS btc_history_points_timestamp_idx
-  ON btc_history_points (timestamp_ms);

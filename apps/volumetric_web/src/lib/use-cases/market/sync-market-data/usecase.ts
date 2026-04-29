@@ -1,3 +1,4 @@
+import { DEFAULT_BTC_HISTORY_DAYS } from "@/lib/market/btc-history-limits";
 import { fetchBtcHistoryQuotes, fetchCurrentBtcPriceQuote } from "@/lib/market/coingecko-client";
 import { getMarketDataRepository } from "@/lib/repositories/market/get-market-data-repository";
 import type { IMarketDataRepository } from "@/lib/repositories/market/market-data-repository.interface";
@@ -5,7 +6,6 @@ import { withSpan } from "@/lib/telemetry/withSpan";
 import { type Output, outputSchema } from "./schema";
 
 const SYNC_MARKET_DATA_SPAN_NAME = "usecase.market.sync_market_data";
-const BTC_HISTORY_SYNC_DAYS = 30;
 const HISTORY_REFRESH_INTERVAL_30_MINUTES_MS = 30 * 60 * 1_000;
 
 interface SyncMarketDataDependencies {
@@ -41,7 +41,7 @@ export async function syncBtcMarketData(
       });
     }
 
-    const historyQuotes = await fetchHistoryQuotes(BTC_HISTORY_SYNC_DAYS);
+    const historyQuotes = await fetchHistoryQuotes(DEFAULT_BTC_HISTORY_DAYS);
     await repository.saveBtcHistoryPoints(
       historyQuotes.map((quote) => ({
         timestampMs: quote.timestampMs,

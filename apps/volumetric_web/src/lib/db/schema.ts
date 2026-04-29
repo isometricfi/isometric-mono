@@ -137,7 +137,6 @@ export const btcHistoryPoints = sqliteTable(
     updatedAtMs: integer("updated_at_ms").notNull(),
   },
   (table) => [
-    index("btc_history_points_timestamp_idx").on(table.timestampMs),
     check("btc_history_points_timestamp_positive", sql`${table.timestampMs} > 0`),
     check("btc_history_points_price_positive", sql`${table.priceUsdMicros} > 0`),
   ],

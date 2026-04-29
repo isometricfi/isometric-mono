@@ -1,10 +1,13 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { MAX_BTC_HISTORY_DAYS, MIN_BTC_HISTORY_DAYS } from "@/lib/market/btc-history-limits";
+import {
+  DEFAULT_BTC_HISTORY_DAYS,
+  MAX_BTC_HISTORY_DAYS,
+  MIN_BTC_HISTORY_DAYS,
+} from "@/lib/market/btc-history-limits";
 import { useTRPC } from "@/trpc/react";
 
-const DEFAULT_BTC_HISTORY_DAYS = 30;
 const BTC_HISTORY_REFETCH_INTERVAL_1_MINUTE_MS = 60_000;
 
 export interface BTCHistoryPoint {

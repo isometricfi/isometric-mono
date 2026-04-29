@@ -1,4 +1,5 @@
 import { describe, expect, test, vi } from "vitest";
+import { DEFAULT_BTC_HISTORY_DAYS } from "@/lib/market/btc-history-limits";
 import type { IMarketDataRepository } from "@/lib/repositories/market/market-data-repository.interface";
 import { shouldRefreshBtcHistory, syncBtcMarketData } from "./usecase";
 
@@ -48,7 +49,7 @@ describe("syncBtcMarketData", () => {
       source: "coingecko",
       updatedAtMs: NOW_MS,
     });
-    expect(fetchHistoryQuotes).toHaveBeenCalledWith(30);
+    expect(fetchHistoryQuotes).toHaveBeenCalledWith(DEFAULT_BTC_HISTORY_DAYS);
     expect(repository.saveBtcHistoryPoints).toHaveBeenCalledWith([
       {
         timestampMs: HISTORY_TIMESTAMP_MS,
