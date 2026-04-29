@@ -11,6 +11,7 @@ import {
   Stack,
   UserCircle,
   UsersThree,
+  Wallet,
   WarningOctagon,
   Wrench,
 } from "@phosphor-icons/react";
@@ -21,6 +22,7 @@ import { ConnectionSettingsPage } from "./pages/ConnectionSettingsPage";
 import { DepositAddressPage } from "./pages/DepositAddressPage";
 import { EventStreamPage } from "./pages/EventStreamPage";
 import { FailedOperationsPage } from "./pages/FailedOperationsPage";
+import { FeeBalancePage } from "./pages/FeeBalancePage";
 import { FeeReconciliationPage } from "./pages/FeeReconciliationPage";
 import { OptionAuditPage } from "./pages/OptionAuditPage";
 import { PendingSettlementsPage } from "./pages/PendingSettlementsPage";
@@ -46,6 +48,11 @@ export const ROUTES: Record<string, RouteDef> = {
     path: "/fees",
     label: "Fee Reconciliation",
     render: () => <FeeReconciliationPage />,
+  },
+  "/fee-balance": {
+    path: "/fee-balance",
+    label: "Fee Balance",
+    render: () => <FeeBalancePage />,
   },
   "/options": {
     path: "/options",
@@ -115,6 +122,7 @@ export const SIDEBAR_GROUPS: SidebarGroup[] = [
     label: "Accounting",
     entries: [
       { path: "/fees", label: "Fee Reconciliation", icon: Coins },
+      { path: "/fee-balance", label: "Fee Balance", icon: Wallet },
       { path: "/options", label: "Option Audit", icon: Cube },
       { path: "/pending-settlements", label: "Pending Settlements", icon: Stack },
       { path: "/pending-withdrawals", label: "Pending Withdrawals", icon: HandCoins },
