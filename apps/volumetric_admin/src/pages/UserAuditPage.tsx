@@ -199,7 +199,7 @@ function UserSummary({ data }: { data: UserAuditData }) {
   const bookAvailable = data.bookBalance?.available ?? 0n;
   const bookLocked = data.bookBalance?.locked ?? 0n;
   const bookTotal = data.bookBalance?.total ?? 0n;
-  const drift = data.onChainBalanceSats - bookAvailable;
+  const bookTotalDrift = data.onChainBalanceSats - bookTotal;
 
   return (
     <>
@@ -216,12 +216,12 @@ function UserSummary({ data }: { data: UserAuditData }) {
         <MetricCard
           label="On-chain subaccount"
           value={formatSats(data.onChainBalanceSats)}
-          tone={drift === 0n ? "ok" : drift < 0n ? "danger" : "warn"}
+          tone={bookTotalDrift === 0n ? "ok" : bookTotalDrift < 0n ? "danger" : "warn"}
         />
         <MetricCard
-          label="Drift vs available"
-          value={formatSats(drift)}
-          tone={drift === 0n ? "ok" : drift < 0n ? "danger" : "warn"}
+          label="Drift vs book total"
+          value={formatSats(bookTotalDrift)}
+          tone={bookTotalDrift === 0n ? "ok" : bookTotalDrift < 0n ? "danger" : "warn"}
         />
         <MetricCard label="Events" value={data.events.length.toString()} />
         <MetricCard

@@ -1,6 +1,6 @@
 import { Badge, Button, Empty, LayerCard, Table } from "@cloudflare/kumo";
 import { Principal } from "@dfinity/principal";
-import { ArrowsClockwise, Scales } from "@phosphor-icons/react";
+import { ArrowsClockwise, Copy, Scales } from "@phosphor-icons/react";
 import { unwrapResult } from "@volumetric/canister-types";
 import { MetricCard } from "../components/MetricCard";
 import { Mono } from "../components/Mono";
@@ -8,18 +8,28 @@ import { PageShell } from "../components/PageShell";
 import { defaultAccount, deriveSubaccount } from "../lib/account";
 import { useCreateCanisterClients } from "../lib/clients";
 import { useConnection } from "../lib/connection-context";
-import { formatSats, shortPrincipal } from "../lib/format";
+import { formatSats } from "../lib/format";
 import { useAsyncAction } from "../lib/use-async-action";
+
+type SubaccountDriftKind = "aligned" | "unbooked_on_chain" | "fee_band" | "material";
 
 type UserRow = {
   principal: string;
+  depositAddress: string;
   available: bigint;
   locked: bigint;
   total: bigint;
+  onChainSubaccountSats: bigint;
+  bookAvailablePlusLockedSats: bigint;
+  subaccountDriftSats: bigint;
+  driftKind: SubaccountDriftKind;
 };
 
 type SolvencyData = {
   userRows: UserRow[];
+  usersWithMaterialSubaccountDriftCount: number;
+  usersWithFeeBandSubaccountDriftCount: number;
+  ledgerTransferFeeSats: bigint;
   totalLiabilitiesSats: bigint;
   platformFeesCollectedSats: bigint;
   ledgerDefaultAccountSats: bigint;
@@ -34,7 +44,7 @@ export function SolvencyPage() {
   const action = useAsyncAction<SolvencyData>({
     loadingStatus: "Summing balances across all users...",
     successStatus: (result) =>
-      `Checked ${result.userCount} users. Delta: ${formatSats(
+      `Checked ${result.userCount} users (${result.usersWithMaterialSubaccountDriftCount} material drift, ${result.usersWithFeeBandSubaccountDriftCount} within 1× ledger fee). Delta: ${formatSats(
         result.totalOnChainCkbtcHeldSats - result.totalLiabilitiesSats,
       )}.`,
   });
@@ -50,6 +60,7 @@ export function SolvencyPage() {
         balanceResults,
         ledgerDefaultAccountSats,
         userSubaccountLedgerBalances,
+        ledgerTransferFeeSats,
       ] = await Promise.all([
         volumetric.get_platform_fees_collected_total(),
         Promise.all(
@@ -67,24 +78,48 @@ export function SolvencyPage() {
             }),
           ),
         ),
+        ckBtcLedger.icrc1_fee(),
       ]);
 
       const totalOnChainCkbtcHeldSats =
         ledgerDefaultAccountSats +
         userSubaccountLedgerBalances.reduce((sum, balance) => sum + balance, 0n);
 
-      const userRows: UserRow[] = balanceResults.map(({ user, info }) => ({
-        principal: user.principal.toText(),
-        available: info.available,
-        locked: info.locked,
-        total: info.total,
-      }));
+      const userRows: UserRow[] = balanceResults.map(({ user, info }, index) => {
+        const onChainSubaccountSats = userSubaccountLedgerBalances[index] ?? 0n;
+        const bookAvailablePlusLockedSats = info.available + info.locked;
+        const subaccountDriftSats = onChainSubaccountSats - bookAvailablePlusLockedSats;
+        const base = {
+          principal: user.principal.toText(),
+          depositAddress: user.address,
+          available: info.available,
+          locked: info.locked,
+          total: info.total,
+          onChainSubaccountSats,
+          bookAvailablePlusLockedSats,
+          subaccountDriftSats,
+        };
+        return {
+          ...base,
+          driftKind: classifySubaccountDrift(base, ledgerTransferFeeSats),
+        };
+      });
+
+      const usersWithMaterialSubaccountDriftCount = userRows.filter(
+        (row) => row.driftKind === "material" || row.driftKind === "unbooked_on_chain",
+      ).length;
+      const usersWithFeeBandSubaccountDriftCount = userRows.filter(
+        (row) => row.driftKind === "fee_band",
+      ).length;
 
       const totalLiabilitiesSats =
         userRows.reduce((sum, row) => sum + row.total, 0n) + platformFeesCollectedSats;
 
       return {
         userRows,
+        usersWithMaterialSubaccountDriftCount,
+        usersWithFeeBandSubaccountDriftCount,
+        ledgerTransferFeeSats,
         totalLiabilitiesSats,
         platformFeesCollectedSats,
         ledgerDefaultAccountSats,
@@ -104,7 +139,7 @@ export function SolvencyPage() {
     <PageShell
       eyebrow="Overview"
       title="Protocol Solvency"
-      description="Sum book liabilities (user totals plus internal platform-fee counter) and compare to ckBTC on the ledger under this canister: the default account plus each user's deposit subaccount. A negative delta means on-chain assets trail book liabilities."
+      description="Sum book liabilities (user totals plus internal platform-fee counter) and compare to ckBTC on the ledger under this canister: the default account plus each user's deposit subaccount. A negative delta means on-chain assets trail book liabilities. Per user, the deposit subaccount on-chain should equal book available plus locked. Drift within one ckBTC ledger transfer fee is flagged separately from material mismatch (e.g. unsynced deposit, interrupted settlement WAL)."
       phase={action.phase}
       statusText={action.statusText}
       error={action.error}
@@ -121,7 +156,7 @@ export function SolvencyPage() {
     >
       {action.data ? (
         <>
-          <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5">
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-4 xl:grid-cols-8">
             <MetricCard
               label="On-chain ckBTC held"
               value={formatSats(action.data.totalOnChainCkbtcHeldSats)}
@@ -139,13 +174,30 @@ export function SolvencyPage() {
               value={formatSats(action.data.platformFeesCollectedSats)}
             />
             <MetricCard
+              label="ICRC-1 transfer fee"
+              value={formatSats(action.data.ledgerTransferFeeSats)}
+            />
+            <MetricCard
+              label="Material subaccount drift"
+              value={action.data.usersWithMaterialSubaccountDriftCount.toString()}
+              tone={action.data.usersWithMaterialSubaccountDriftCount === 0 ? "ok" : "danger"}
+            />
+            <MetricCard
+              label="Drift within 1× fee"
+              value={action.data.usersWithFeeBandSubaccountDriftCount.toString()}
+              tone={action.data.usersWithFeeBandSubaccountDriftCount === 0 ? "ok" : "warn"}
+            />
+            <MetricCard
               label="Delta (assets - liabilities)"
               value={formatSats(delta)}
               tone={deltaTone}
             />
           </div>
 
-          <SolvencyTable rows={action.data.userRows} />
+          <SolvencyTable
+            rows={action.data.userRows}
+            ledgerTransferFeeSats={action.data.ledgerTransferFeeSats}
+          />
         </>
       ) : (
         <Empty
@@ -159,51 +211,174 @@ export function SolvencyPage() {
   );
 }
 
-function SolvencyTable({ rows }: { rows: UserRow[] }) {
+function SolvencyTable({
+  rows,
+  ledgerTransferFeeSats,
+}: {
+  rows: UserRow[];
+  ledgerTransferFeeSats: bigint;
+}) {
   if (rows.length === 0) return null;
 
-  const sortedRows = [...rows].sort((a, b) => (b.total > a.total ? 1 : b.total < a.total ? -1 : 0));
+  const sortedRows = [...rows].sort((a, b) => {
+    const rankA = subaccountDriftKindRank(a.driftKind);
+    const rankB = subaccountDriftKindRank(b.driftKind);
+    if (rankA !== rankB) {
+      return rankB - rankA;
+    }
+    const absDriftA = absBigint(a.subaccountDriftSats);
+    const absDriftB = absBigint(b.subaccountDriftSats);
+    if (absDriftA < absDriftB) {
+      return 1;
+    }
+    if (absDriftA > absDriftB) {
+      return -1;
+    }
+    if (b.total > a.total) {
+      return 1;
+    }
+    if (b.total < a.total) {
+      return -1;
+    }
+    return 0;
+  });
 
   return (
-    <LayerCard className="p-0">
-      <Table>
-        <Table.Header>
-          <Table.Row>
-            <Table.Head>User</Table.Head>
-            <Table.Head>Available</Table.Head>
-            <Table.Head>Locked</Table.Head>
-            <Table.Head>Total</Table.Head>
-            <Table.Head>Status</Table.Head>
-          </Table.Row>
-        </Table.Header>
-        <Table.Body>
-          {sortedRows.map((row) => (
-            <Table.Row key={row.principal}>
-              <Table.Cell>
-                <Mono className="text-sm">{shortPrincipal(row.principal)}</Mono>
-              </Table.Cell>
-              <Table.Cell>
-                <Mono>{formatSats(row.available)}</Mono>
-              </Table.Cell>
-              <Table.Cell>
-                <Mono>{formatSats(row.locked)}</Mono>
-              </Table.Cell>
-              <Table.Cell>
-                <Mono>{formatSats(row.total)}</Mono>
-              </Table.Cell>
-              <Table.Cell>
-                {row.total === 0n ? (
-                  <Badge variant="neutral">empty</Badge>
-                ) : row.locked > 0n ? (
-                  <Badge variant="warning">has locked</Badge>
-                ) : (
-                  <Badge variant="success">free</Badge>
-                )}
-              </Table.Cell>
+    <div className="space-y-3">
+      <LayerCard className="p-0">
+        <Table>
+          <Table.Header>
+            <Table.Row>
+              <Table.Head>Principal</Table.Head>
+              <Table.Head>Deposit address</Table.Head>
+              <Table.Head>On-chain (subaccount)</Table.Head>
+              <Table.Head>Book available + locked</Table.Head>
+              <Table.Head>Available</Table.Head>
+              <Table.Head>Locked</Table.Head>
+              <Table.Head>Subaccount drift</Table.Head>
+              <Table.Head>Book total</Table.Head>
+              <Table.Head>Status</Table.Head>
             </Table.Row>
-          ))}
-        </Table.Body>
-      </Table>
-    </LayerCard>
+          </Table.Header>
+          <Table.Body>
+            {sortedRows.map((row) => (
+              <Table.Row key={row.principal}>
+                <Table.Cell>
+                  <CopyableField ariaLabel="principal" value={row.principal} />
+                </Table.Cell>
+                <Table.Cell>
+                  <CopyableField ariaLabel="deposit address" value={row.depositAddress} />
+                </Table.Cell>
+                <Table.Cell>
+                  <Mono>{formatSats(row.onChainSubaccountSats)}</Mono>
+                </Table.Cell>
+                <Table.Cell>
+                  <Mono>{formatSats(row.bookAvailablePlusLockedSats)}</Mono>
+                </Table.Cell>
+                <Table.Cell>
+                  <Mono>{formatSats(row.available)}</Mono>
+                </Table.Cell>
+                <Table.Cell>
+                  <Mono>{formatSats(row.locked)}</Mono>
+                </Table.Cell>
+                <Table.Cell>{driftBadge(row)}</Table.Cell>
+                <Table.Cell>
+                  <Mono>{formatSats(row.total)}</Mono>
+                </Table.Cell>
+                <Table.Cell>{statusBadge(row)}</Table.Cell>
+              </Table.Row>
+            ))}
+          </Table.Body>
+        </Table>
+      </LayerCard>
+      <p className="text-sm text-kumo-inactive">
+        ICRC-1 transfer fee (ledger): {formatSats(ledgerTransferFeeSats)}. &quot;Within 1× fee&quot;
+        means non-zero drift with magnitude at most that fee while the book still attributes balance
+        to the user. Unbooked on-chain means a positive subaccount balance with zero book
+        available+locked (often deposit not synced). Material drift warrants User Audit plus pending
+        settlements / accepts.
+      </p>
+    </div>
+  );
+}
+
+type DriftRowInput = Pick<
+  UserRow,
+  "subaccountDriftSats" | "bookAvailablePlusLockedSats" | "onChainSubaccountSats"
+>;
+
+function absBigint(value: bigint): bigint {
+  return value >= 0n ? value : -value;
+}
+
+function classifySubaccountDrift(
+  row: DriftRowInput,
+  ledgerTransferFeeSats: bigint,
+): SubaccountDriftKind {
+  if (row.subaccountDriftSats === 0n) {
+    return "aligned";
+  }
+  if (row.bookAvailablePlusLockedSats === 0n && row.onChainSubaccountSats > 0n) {
+    return "unbooked_on_chain";
+  }
+  if (absBigint(row.subaccountDriftSats) <= ledgerTransferFeeSats) {
+    return "fee_band";
+  }
+  return "material";
+}
+
+function subaccountDriftKindRank(kind: SubaccountDriftKind): number {
+  if (kind === "material" || kind === "unbooked_on_chain") {
+    return 2;
+  }
+  if (kind === "fee_band") {
+    return 1;
+  }
+  return 0;
+}
+
+function driftBadge(row: UserRow) {
+  const mono = <Mono>{formatSats(row.subaccountDriftSats)}</Mono>;
+  if (row.driftKind === "aligned") {
+    return <Badge variant="success">{mono}</Badge>;
+  }
+  if (row.driftKind === "fee_band") {
+    return <Badge variant="warning">{mono}</Badge>;
+  }
+  return <Badge variant="error">{mono}</Badge>;
+}
+
+function statusBadge(row: UserRow) {
+  if (row.driftKind === "unbooked_on_chain") {
+    return <Badge variant="error">unbooked on-chain</Badge>;
+  }
+  if (row.driftKind === "material") {
+    return <Badge variant="error">material drift</Badge>;
+  }
+  if (row.driftKind === "fee_band") {
+    return <Badge variant="warning">within 1× ledger fee</Badge>;
+  }
+  if (row.total === 0n) {
+    return <Badge variant="neutral">empty</Badge>;
+  }
+  if (row.locked > 0n) {
+    return <Badge variant="warning">has locked</Badge>;
+  }
+  return <Badge variant="success">aligned</Badge>;
+}
+
+function CopyableField({ ariaLabel, value }: { ariaLabel: string; value: string }) {
+  return (
+    <div className="flex max-w-md items-start gap-1.5">
+      <Mono className="min-w-0 flex-1 break-all text-sm">{value}</Mono>
+      <Button
+        type="button"
+        variant="secondary"
+        size="sm"
+        icon={<Copy />}
+        onClick={() => void navigator.clipboard.writeText(value)}
+        aria-label={`Copy ${ariaLabel}`}
+      />
+    </div>
   );
 }
