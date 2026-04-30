@@ -1,10 +1,10 @@
 import { Sparkles } from "lucide-react";
 import Image from "next/image";
 import { useTranslations } from "next-intl";
+import { OpenAppLink } from "@/components/marketing/OpenAppLink";
 import { WaitlistForm } from "@/components/marketing/WaitlistForm";
 import { Button } from "@/components/ui/button";
 import { isWaitlistMode } from "@/lib/site-links";
-import { appUrl } from "@/lib/urls";
 import { HeroBgCanvas } from "./HeroBgCanvas";
 
 export function HeroSection() {
@@ -37,9 +37,9 @@ export function HeroSection() {
                 <WaitlistForm size="lg" />
               </div>
             ) : (
-              <a href={appUrl("/buy")}>
+              <OpenAppLink path="/buy">
                 <Button className="mt-8">{t("openApp")}</Button>
-              </a>
+              </OpenAppLink>
             )}
           </div>
 
