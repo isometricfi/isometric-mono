@@ -14,8 +14,15 @@ export function OpenAppLink({ path, children, ...rest }: OpenAppLinkProps) {
   const [href, setHref] = useState(() => appUrl(path));
 
   useEffect(() => {
+    const base = appUrl(path);
     const code = readInviteCodeFromSession();
-    setHref(code ? `${appUrl(path)}?ref=${code}` : appUrl(path));
+    if (!code) {
+      setHref(base);
+      return;
+    }
+    const url = new URL(base, window.location.origin);
+    url.searchParams.set("ref", code);
+    setHref(url.toString());
   }, [path]);
 
   return (
