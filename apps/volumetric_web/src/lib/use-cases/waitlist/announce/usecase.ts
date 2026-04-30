@@ -5,6 +5,7 @@ import { renderWaitlistAnnouncement } from "@/lib/email/templates/waitlist-annou
 import { logError, logInfo } from "@/lib/telemetry/logs";
 
 const FROM_ADDRESS = "Isometric <noreply@isometric.fi>";
+const UNSUBSCRIBE_MAILTO = "unsubscribe@isometric.fi";
 const RESEND_BATCH_LIMIT = 100;
 
 export interface AnnounceInput {
@@ -60,6 +61,10 @@ export async function sendWaitlistAnnouncement(input: AnnounceInput): Promise<An
       subject,
       html,
       text,
+      headers: {
+        "List-Unsubscribe": `<mailto:${UNSUBSCRIBE_MAILTO}?subject=unsubscribe>`,
+        "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+      },
     }));
 
     try {

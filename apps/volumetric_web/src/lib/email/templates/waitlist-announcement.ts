@@ -46,6 +46,8 @@ export function renderWaitlistAnnouncement(
     `Open the app: ${appUrl}`,
     "",
     "Reach out to support@isometric.fi if you have any questions or suggestions. We would love to hear your feedback.",
+    "",
+    "Unsubscribe: mailto:unsubscribe@isometric.fi?subject=unsubscribe",
   ].join("\n");
 
   const html = `<!doctype html>
@@ -119,7 +121,8 @@ export function renderWaitlistAnnouncement(
             </tr>
           </table>
           <div style="max-width:520px;margin:18px auto 0;font-family:${FONT_STACK};font-size:11px;line-height:1.5;color:${COLORS.subtle};text-align:center;">
-            You're receiving this because you signed up at isometric.fi.
+            You're receiving this because you signed up at isometric.fi.<br />
+            <a href="mailto:unsubscribe@isometric.fi?subject=unsubscribe" style="color:${COLORS.subtle};text-decoration:underline;">Unsubscribe</a>
           </div>
         </td>
       </tr>
