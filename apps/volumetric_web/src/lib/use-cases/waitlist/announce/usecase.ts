@@ -63,7 +63,6 @@ export async function sendWaitlistAnnouncement(input: AnnounceInput): Promise<An
       text,
       headers: {
         "List-Unsubscribe": `<mailto:${UNSUBSCRIBE_MAILTO}?subject=unsubscribe>`,
-        "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
       },
     }));
 
