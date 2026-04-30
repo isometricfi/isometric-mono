@@ -9,6 +9,7 @@ import { Footer } from "@/components/layout/Footer";
 import { Navbar } from "@/components/layout/Navbar";
 import { PreferencesHydrator } from "@/components/layout/PreferencesHydrator";
 import { ThemeProvider } from "@/components/layout/ThemeProvider";
+import { CaptureInviteCodeFromQuery } from "@/components/marketing/CaptureInviteCodeFromQuery";
 import { routing } from "@/i18n/routing";
 import Providers from "../providers";
 import "../globals.css";
@@ -147,6 +148,7 @@ export default async function LocaleLayout({
         <NextIntlClientProvider messages={messages}>
           <ThemeProvider nonce={nonce}>
             <PreferencesHydrator />
+            <CaptureInviteCodeFromQuery />
             <Providers>
               <div className="flex min-h-screen flex-col px-4">
                 <Navbar />

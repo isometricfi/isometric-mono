@@ -8,12 +8,12 @@ import { useState } from "react";
 import { useDynamicConfig } from "@/app/providers/dynamic-provider";
 import { SettingsDropdown } from "@/components/layout/SettingsDropdown";
 import { SystemSettings } from "@/components/layout/SystemSettings";
+import { OpenAppLink } from "@/components/marketing/OpenAppLink";
 import { Button } from "@/components/ui/button";
 import { Drawer, DrawerContent, DrawerTitle, DrawerTrigger } from "@/components/ui/drawer";
 import { ConnectButton } from "@/components/wallet/ConnectButton";
 import { Link, usePathname } from "@/i18n/routing";
 import { isWaitlistMode } from "@/lib/site-links";
-import { appUrl } from "@/lib/urls";
 import { cn } from "@/lib/utils";
 
 export function Navbar() {
@@ -133,7 +133,7 @@ export function Navbar() {
 
             {hideAppNav ? null : isLandingPage ? (
               <Button asChild>
-                <a href={appUrl("/write")}>{t("openApp")}</a>
+                <OpenAppLink path="/write">{t("openApp")}</OpenAppLink>
               </Button>
             ) : isConfigured ? (
               <ConnectButton />

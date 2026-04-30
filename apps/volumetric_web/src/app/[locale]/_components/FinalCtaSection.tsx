@@ -3,10 +3,10 @@
 import { motion } from "framer-motion";
 import { ArrowRight } from "lucide-react";
 import { useTranslations } from "next-intl";
+import { OpenAppLink } from "@/components/marketing/OpenAppLink";
 import { WaitlistForm } from "@/components/marketing/WaitlistForm";
 import { Button } from "@/components/ui/button";
 import { isWaitlistMode } from "@/lib/site-links";
-import { appUrl } from "@/lib/urls";
 import { FinalCtaBgCanvas } from "./FinalCtaBgCanvas";
 
 export function FinalCtaSection() {
@@ -37,12 +37,12 @@ export function FinalCtaSection() {
                 <WaitlistForm size="lg" />
               </div>
             ) : (
-              <a href={appUrl("/buy")}>
+              <OpenAppLink path="/buy">
                 <Button size="lg" className="gap-2">
                   {t("openApp")}
                   <ArrowRight className="size-4" />
                 </Button>
-              </a>
+              </OpenAppLink>
             )}
           </div>
         </motion.div>
