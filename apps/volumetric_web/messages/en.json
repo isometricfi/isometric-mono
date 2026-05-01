@@ -615,6 +615,20 @@
     "offerLimitExceeded": "Maximum offers per term exceeded",
     "internalError": "An unexpected error occurred"
   },
+  "NotFound": {
+    "code": "404",
+    "heading": "This page expired worthless.",
+    "description": "Whatever you were looking for isn't here.",
+    "openApp": "Open the app"
+  },
+  "AppError": {
+    "title": "Error",
+    "heading": "We hit a snag on our end.",
+    "description": "Not your fault. We caught it, logged it, and we're already poking at it. Give it another shot.",
+    "tryAgain": "Try again",
+    "backHome": "Back to home",
+    "errorId": "Error ID"
+  },
   "Footer": {
     "tagline": "On-chain Bitcoin options.",
     "resources": "Resources",
