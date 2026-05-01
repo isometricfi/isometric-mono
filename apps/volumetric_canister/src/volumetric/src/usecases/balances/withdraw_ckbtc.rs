@@ -466,33 +466,9 @@ pub async fn run_withdrawal_wal(
             created_at_time: Some(payload.created_at_time_ns),
         };
 
-        logging::log!(
-            "withdraw_ckbtc approve start operation_id={:?} withdrawal_id={} principal={} approve_amount_sats={}",
-            operation_id,
-            payload.withdrawal_id,
-            payload.principal,
-            payload.withdraw_amount_after_fees_sats
-        );
-
         ledger::icrc2_approve(approve_args)
             .await
-            .map_err(|error| {
-                logging::warn!(
-                    "withdraw_ckbtc approve failed operation_id={:?} withdrawal_id={} principal={} error={}",
-                    operation_id,
-                    payload.withdrawal_id,
-                    payload.principal,
-                    error
-                );
-                map_withdrawal_approve_error(error)
-            })?;
-
-        logging::log!(
-            "withdraw_ckbtc approve ok operation_id={:?} withdrawal_id={} principal={}",
-            operation_id,
-            payload.withdrawal_id,
-            payload.principal
-        );
+            .map_err(map_withdrawal_approve_error)?;
 
         update_withdrawal_phase(payload.withdrawal_id, WithdrawalPhase::Approved);
     }
@@ -511,29 +487,10 @@ pub async fn run_withdrawal_wal(
             from_subaccount: Some(serde_bytes::ByteBuf::from(subaccount.to_vec())),
         };
 
-        logging::log!(
-            "withdraw_ckbtc retrieve start operation_id={:?} withdrawal_id={} principal={} retrieve_amount_sats={} btc_address={}",
-            operation_id,
-            payload.withdrawal_id,
-            payload.principal,
-            payload.withdraw_amount_after_fees_sats,
-            payload.btc_address
-        );
-
         let retrieve_result = minter::retrieve_btc_with_approval(retrieve_args).await;
         let retrieve_ok = match retrieve_result {
             Ok(ok) => ok,
-            Err(error) => {
-                logging::warn!(
-                    "withdraw_ckbtc retrieve failed operation_id={:?} withdrawal_id={} principal={} retrieve_amount_sats={} error={}",
-                    operation_id,
-                    payload.withdrawal_id,
-                    payload.principal,
-                    payload.withdraw_amount_after_fees_sats,
-                    error
-                );
-                return Err(map_withdrawal_error(error));
-            }
+            Err(error) => return Err(map_withdrawal_error(error)),
         };
 
         logging::log!(
