@@ -51,17 +51,17 @@ describe("mapConfig", () => {
     expect(result).toEqual({
       canisterId: undefined,
       icHost: "https://ic0.app",
-      termOptions: [1, 7, 14],
-      strikePercentOptions: [5, 10, 15, 20],
-      premium: { min: 1, max: 50, step: 0.2 },
+      termOptions: [3, 7],
+      strikePercentOptions: [3, 5, 8],
+      premium: { min: 1, max: 50, step: 0.1 },
       minCreateOfferAmountSats: 10_000,
       maxCreateOfferAmountSats: 1_000_000,
       minAcceptOfferAmountSats: 5_000,
       maxAcceptOfferAmountSats: 500_000,
       minDepositAmountSats: 5_000,
       minWithdrawAmountSats: 5_000,
-      minTermDays: 1,
-      maxTermDays: 14,
+      minTermDays: 3,
+      maxTermDays: 7,
       fees: {
         premiumFeeBasisPoints: BigInt(50),
         profitFeeBasisPoints: BigInt(100),
@@ -108,9 +108,9 @@ describe("mapConfig", () => {
     const result = mapConfig(limits, makeValidFeeConfig());
 
     // then
-    expect(result.termOptions).toEqual([1, 7, 14]);
-    expect(result.minTermDays).toBe(1);
-    expect(result.maxTermDays).toBe(14);
+    expect(result.termOptions).toEqual([3, 7]);
+    expect(result.minTermDays).toBe(3);
+    expect(result.maxTermDays).toBe(7);
   });
 
   test("should return empty term options when max is under one day", () => {
