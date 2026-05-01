@@ -13,8 +13,59 @@ import { useAsyncAction } from "../lib/use-async-action";
 
 type SubaccountDriftKind = "aligned" | "unbooked_on_chain" | "fee_band" | "material";
 
+const SOLVENCY_STATUS_LABELS = {
+  aligned: "aligned",
+  empty: "empty",
+  hasLocked: "has locked",
+  withinLedgerFee: "within 1× ledger fee",
+  materialDrift: "material drift",
+  unbookedOnChain: "unbooked on-chain",
+} as const;
+
+const SOLVENCY_STATUS_KEY_ENTRIES: ReadonlyArray<{
+  variant: "success" | "neutral" | "warning" | "error";
+  label: string;
+  description: string;
+}> = [
+  {
+    variant: "success",
+    label: SOLVENCY_STATUS_LABELS.aligned,
+    description:
+      "Zero drift between ledger subaccount and booked available plus locked; non-zero book total and no locked balance.",
+  },
+  {
+    variant: "neutral",
+    label: SOLVENCY_STATUS_LABELS.empty,
+    description: "Book total (available plus locked) is zero.",
+  },
+  {
+    variant: "warning",
+    label: SOLVENCY_STATUS_LABELS.hasLocked,
+    description: "User has a non-zero locked balance (e.g. open obligation or settlement hold).",
+  },
+  {
+    variant: "warning",
+    label: SOLVENCY_STATUS_LABELS.withinLedgerFee,
+    description:
+      "Non-zero drift between ledger subaccount and booked available plus locked, but magnitude is at most one ICRC-1 transfer fee.",
+  },
+  {
+    variant: "error",
+    label: SOLVENCY_STATUS_LABELS.materialDrift,
+    description:
+      "Drift exceeds one transfer fee; reconcile User Audit, pending deposits, and settlement flows.",
+  },
+  {
+    variant: "error",
+    label: SOLVENCY_STATUS_LABELS.unbookedOnChain,
+    description:
+      "Ledger balance on the deposit subaccount while booked available plus locked is zero (often deposit not yet synced to the book).",
+  },
+];
+
 type UserRow = {
   principal: string;
+  username: string;
   depositAddress: string;
   available: bigint;
   locked: bigint;
@@ -91,6 +142,7 @@ export function SolvencyPage() {
         const subaccountDriftSats = onChainSubaccountSats - bookAvailablePlusLockedSats;
         const base = {
           principal: user.principal.toText(),
+          username: user.username[0] ?? "—",
           depositAddress: user.address,
           available: info.available,
           locked: info.locked,
@@ -245,11 +297,13 @@ function SolvencyTable({
 
   return (
     <div className="space-y-3">
+      <SolvencyLegend ledgerTransferFeeSats={ledgerTransferFeeSats} />
       <LayerCard className="p-0">
         <Table>
           <Table.Header>
             <Table.Row>
               <Table.Head>Principal</Table.Head>
+              <Table.Head>Username</Table.Head>
               <Table.Head>Deposit address</Table.Head>
               <Table.Head>On-chain (subaccount)</Table.Head>
               <Table.Head>Book available + locked</Table.Head>
@@ -265,6 +319,9 @@ function SolvencyTable({
               <Table.Row key={row.principal}>
                 <Table.Cell>
                   <CopyableField ariaLabel="principal" value={row.principal} />
+                </Table.Cell>
+                <Table.Cell>
+                  <Mono className="text-sm">{row.username}</Mono>
                 </Table.Cell>
                 <Table.Cell>
                   <CopyableField ariaLabel="deposit address" value={row.depositAddress} />
@@ -350,21 +407,73 @@ function driftBadge(row: UserRow) {
 
 function statusBadge(row: UserRow) {
   if (row.driftKind === "unbooked_on_chain") {
-    return <Badge variant="error">unbooked on-chain</Badge>;
+    return <Badge variant="error">{SOLVENCY_STATUS_LABELS.unbookedOnChain}</Badge>;
   }
   if (row.driftKind === "material") {
-    return <Badge variant="error">material drift</Badge>;
+    return <Badge variant="error">{SOLVENCY_STATUS_LABELS.materialDrift}</Badge>;
   }
   if (row.driftKind === "fee_band") {
-    return <Badge variant="warning">within 1× ledger fee</Badge>;
+    return <Badge variant="warning">{SOLVENCY_STATUS_LABELS.withinLedgerFee}</Badge>;
   }
   if (row.total === 0n) {
-    return <Badge variant="neutral">empty</Badge>;
+    return <Badge variant="neutral">{SOLVENCY_STATUS_LABELS.empty}</Badge>;
   }
   if (row.locked > 0n) {
-    return <Badge variant="warning">has locked</Badge>;
+    return <Badge variant="warning">{SOLVENCY_STATUS_LABELS.hasLocked}</Badge>;
   }
-  return <Badge variant="success">aligned</Badge>;
+  return <Badge variant="success">{SOLVENCY_STATUS_LABELS.aligned}</Badge>;
+}
+
+function SolvencyLegend({ ledgerTransferFeeSats }: { ledgerTransferFeeSats: bigint }) {
+  const feeExampleDrift = ledgerTransferFeeSats > 0n ? ledgerTransferFeeSats : 1n;
+  const materialExampleDrift = ledgerTransferFeeSats > 0n ? ledgerTransferFeeSats + 1n : 2n;
+
+  return (
+    <LayerCard className="rounded-none border vol-hairline p-4">
+      <p className="mb-3 text-xs font-medium uppercase tracking-wide text-kumo-inactive">
+        Key — Status
+      </p>
+      <ul className="mb-6 flex flex-col gap-2.5">
+        {SOLVENCY_STATUS_KEY_ENTRIES.map((entry) => (
+          <li key={entry.label} className="flex flex-wrap items-start gap-2">
+            <Badge variant={entry.variant}>{entry.label}</Badge>
+            <span className="min-w-0 flex-1 text-sm text-kumo-inactive">{entry.description}</span>
+          </li>
+        ))}
+      </ul>
+      <p className="mb-3 text-xs font-medium uppercase tracking-wide text-kumo-inactive">
+        Key — Subaccount drift
+      </p>
+      <ul className="flex flex-col gap-2.5">
+        <li className="flex flex-wrap items-start gap-2">
+          <Badge variant="success">
+            <Mono>{formatSats(0n)}</Mono>
+          </Badge>
+          <span className="min-w-0 flex-1 text-sm text-kumo-inactive">
+            No mismatch: ledger subaccount equals booked available plus locked.
+          </span>
+        </li>
+        <li className="flex flex-wrap items-start gap-2">
+          <Badge variant="warning">
+            <Mono>{formatSats(feeExampleDrift)}</Mono>
+          </Badge>
+          <span className="min-w-0 flex-1 text-sm text-kumo-inactive">
+            Non-zero drift with magnitude at most one ICRC-1 transfer fee (same band as the metric
+            &quot;Drift within 1× fee&quot;).
+          </span>
+        </li>
+        <li className="flex flex-wrap items-start gap-2">
+          <Badge variant="error">
+            <Mono>{formatSats(materialExampleDrift)}</Mono>
+          </Badge>
+          <span className="min-w-0 flex-1 text-sm text-kumo-inactive">
+            Drift larger than one fee, or unbooked pattern (positive subaccount with zero booked
+            available plus locked). Amount in each row is the actual delta for that user.
+          </span>
+        </li>
+      </ul>
+    </LayerCard>
+  );
 }
 
 function CopyableField({ ariaLabel, value }: { ariaLabel: string; value: string }) {
