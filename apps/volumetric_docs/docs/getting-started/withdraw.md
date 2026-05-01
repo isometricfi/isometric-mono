@@ -1,6 +1,8 @@
 ---
 sidebar_position: 4
 title: Withdraw BTC
+description: How to withdraw BTC from Isometric back to any Bitcoin address. Available balance versus locked collateral, and confirmation timing on the network.
+keywords: [withdraw BTC, withdraw Bitcoin, Isometric withdrawal, BTC balance]
 ---
 
 # Withdraw BTC

@@ -1,6 +1,8 @@
 ---
 sidebar_position: 3
 title: Price oracle
+description: How Isometric prices BTC at settlement. The Internet Computer Exchange Rate Canister (XRC) provides the on-chain BTC/USD price used to settle every option.
+keywords: [BTC price oracle, Exchange Rate Canister, XRC, on-chain price feed, Bitcoin oracle]
 ---
 
 # Price oracle

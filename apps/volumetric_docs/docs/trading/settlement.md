@@ -1,6 +1,8 @@
 ---
 sidebar_position: 5
 title: Settlement
+description: How Bitcoin options settle on Isometric at expiry. Automatic on-chain payout, no signatures required, no exit timing, and how the settlement price is sourced.
+keywords: [options settlement, BTC options expiry, on-chain settlement, automatic exercise]
 ---
 
 # Settlement

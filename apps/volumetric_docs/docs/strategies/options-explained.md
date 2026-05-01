@@ -1,6 +1,8 @@
 ---
 sidebar_position: 1
 title: Options explained
+description: Bitcoin call options in plain English. What strike, expiry, and premium mean, how the two sides of an option pay out, and where leverage comes from.
+keywords: [Bitcoin options explained, BTC call options, options for beginners, strike, expiry, premium]
 ---
 
 # Options explained

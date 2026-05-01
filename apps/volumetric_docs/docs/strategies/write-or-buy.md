@@ -1,6 +1,8 @@
 ---
 sidebar_position: 2
 title: Write or Buy
+description: Should you write or buy Bitcoin options on Isometric? Compare both sides of the trade, the payoff profile, and which strategy fits your view on BTC.
+keywords: [write or buy options, Bitcoin options strategy, covered calls, leveraged BTC, BTC options payoff]
 ---
 
 # Write or Buy

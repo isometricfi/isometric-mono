@@ -1,6 +1,8 @@
 ---
 sidebar_position: 1
 title: Buy an option
+description: Buy a Bitcoin call option on Isometric for leveraged BTC upside with capped downside. The buy flow, strike selection, and how max loss is limited to what you put in.
+keywords: [buy Bitcoin options, BTC call options, leveraged BTC, Isometric buy flow, on-chain options]
 ---
 
 # Buy an option

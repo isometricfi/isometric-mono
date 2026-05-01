@@ -1,6 +1,8 @@
 ---
 sidebar_position: 4
 title: History
+description: Every settled BTC options trade you have made on Isometric, verifiable on-chain. P&L, win rate, settlement prices, and final payouts.
+keywords: [Bitcoin options history, BTC trade history, on-chain trade record, options settlements]
 ---
 
 # History

@@ -1,6 +1,8 @@
 ---
 sidebar_position: 2
 title: Write an option
+description: Write a Bitcoin call option on Isometric to earn premium upfront on your BTC. Set strike, term, and earnings, lock collateral, and learn the worst-case scenarios.
+keywords: [write Bitcoin options, covered calls, BTC yield, earn premium on BTC, options writer]
 ---
 
 # Write an option

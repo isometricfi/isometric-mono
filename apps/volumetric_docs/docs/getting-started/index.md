@@ -1,6 +1,8 @@
 ---
 sidebar_position: 1
 title: Getting started
+description: Three steps to your first BTC options trade on Isometric. Connect a wallet, deposit BTC, and write or buy your first on-chain Bitcoin option.
+keywords: [getting started, Bitcoin options tutorial, Isometric onboarding, first BTC option]
 ---
 
 # Getting started

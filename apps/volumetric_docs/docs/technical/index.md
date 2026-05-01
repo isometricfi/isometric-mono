@@ -1,6 +1,8 @@
 ---
 sidebar_position: 1
 title: How Isometric uses ICP
+description: How Isometric runs Bitcoin options on the Internet Computer. Threshold-ECDSA custody of native BTC, on-chain price oracle, and self-scheduled settlement with no off-chain server.
+keywords: [Internet Computer Bitcoin, ICP Bitcoin options, threshold ECDSA, ckBTC, on-chain Bitcoin smart contracts]
 ---
 
 # How Isometric uses ICP
