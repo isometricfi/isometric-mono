@@ -153,6 +153,7 @@
     "writeDescription": "Lock BTC for {term} days. If a buyer accepts and BTC stays below ${strike}, you keep your BTC plus the earnings.",
     "optionBreakdown": "Breakdown",
     "viewDocs": "View Docs",
+    "expires": "Expires",
     "buyExplainer": {
       "intro": "You pay <bold>{amount}</bold> upfront for <bold>{leverage}x</bold> exposure. If BTC rises above <bold>{strike}</bold> within <bold>{term}</bold>, you profit.",
       "ifRises": "BTC above {strike}:",
@@ -417,6 +418,7 @@
       "title": "<line>Here's your <highlight>position</highlight>.</line><line>Slide to confirm.</line>",
       "strike": "Strike",
       "term": "Term",
+      "expires": "Expires",
       "premium": "You pay",
       "leverage": "Leverage",
       "maxProfit": "Max profit",

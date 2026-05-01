@@ -7,9 +7,11 @@ import type { ConfigData } from "@/types/config";
 export function generatePremiumValues(config: ConfigData | undefined): number[] {
   if (!config) return [];
 
+  const { min, max, step } = config.premium;
+  const stepCount = Math.round((max - min) / step);
   const values: number[] = [];
-  for (let v = config.premium.min; v <= config.premium.max; v += config.premium.step) {
-    values.push(Number(v.toFixed(2)));
+  for (let i = 0; i <= stepCount; i++) {
+    values.push(Number((min + i * step).toFixed(2)));
   }
   return values;
 }

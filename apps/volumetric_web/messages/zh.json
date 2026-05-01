@@ -151,6 +151,7 @@
     "buyDescription": "预付 ₿{premium}。行权价锁定在约 ${strike}。如果 BTC 在 {term} 天内超过行权价，利润将自动行权。最大损失是溢价。",
     "writeDescription": "锁定 BTC {term} 天。如果有买家接受且 BTC 保持低于 ${strike}，您将保留 BTC 并获得收益。",
     "optionBreakdown": "明细",
+    "expires": "到期",
     "buyExplainer": {
       "intro": "您先支付 {premium}，获得在 {term} 内当 BTC 涨到 {strike} 以上时获利的权利。",
       "ifRises": "BTC 高于 {strike}：",
@@ -413,6 +414,7 @@
       "title": "<line>这是你的 <highlight>仓位</highlight>。</line><line>滑动确认。</line>",
       "strike": "行权价",
       "term": "期限",
+      "expires": "到期",
       "premium": "你支付",
       "leverage": "杠杆",
       "maxProfit": "最大利润",

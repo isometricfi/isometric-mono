@@ -2,7 +2,13 @@
 sidebar_position: 5
 title: Settlement
 description: How Bitcoin options settle on Isometric at expiry. Automatic on-chain payout, no signatures required, no exit timing, and how the settlement price is sourced.
-keywords: [options settlement, BTC options expiry, on-chain settlement, automatic exercise]
+keywords:
+  [
+    options settlement,
+    BTC options expiry,
+    on-chain settlement,
+    automatic exercise,
+  ]
 ---
 
 # Settlement
@@ -17,6 +23,10 @@ The app reads the BTC/USD price from an on-chain oracle and compares it to the o
 - **BTC above strike**: the buyer's profit, in BTC, is calculated from how much BTC moved above strike. The platform deducts the profit fee. The buyer receives the net payout. The remainder of the writer's BTC unlocks.
 
 The buyer's payout is capped at the writer's collateral. The writer can never lose more than the BTC they committed.
+
+## When expiry lands
+
+Every option settles on the hour. The clock starts at the next full hour after the buyer accepts, so a 7-day option accepted at 12:01 expires at 13:00 seven days later.
 
 ## What you'll see
 
