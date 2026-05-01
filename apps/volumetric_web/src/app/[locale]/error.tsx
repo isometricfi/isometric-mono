@@ -49,12 +49,12 @@ export default function LocaleError({
             <RotateCcw className="size-4" />
             {t("tryAgain")}
           </Button>
-          <Link href="/">
-            <Button size="lg" variant="outline">
+          <Button size="lg" variant="outline" asChild>
+            <Link href="/">
               <ArrowLeft className="size-4" />
               {t("backHome")}
-            </Button>
-          </Link>
+            </Link>
+          </Button>
         </div>
 
         {error.digest && (
