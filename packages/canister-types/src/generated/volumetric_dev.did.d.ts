@@ -413,9 +413,11 @@ export interface SettleExpiredOptionsResponse {
   'errors' : Array<string>,
 }
 export type SettlementPhase = { 'Started' : null } |
+  { 'ProfitFeeCollected' : null } |
   { 'Failed' : { 'reason' : string } } |
   { 'TransferComplete' : null } |
   { 'BalanceReleased' : null } |
+  { 'WriterPayoutReleased' : null } |
   { 'Completed' : null };
 export interface SettlementReceipt {
   'operation_id' : Uint8Array | number[],

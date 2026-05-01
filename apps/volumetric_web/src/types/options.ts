@@ -5,6 +5,7 @@ export interface OptionOffer {
   amountSats: number;
   premium: number;
   strikePercent: number;
+  strikeUsd?: number;
   termDays: number;
   createdAt: string;
   expiresAt: string;

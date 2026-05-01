@@ -1,9 +1,11 @@
 "use client";
 
+import { format } from "date-fns";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { SlidingNumber } from "@/components/ui/sliding-number";
 import { useConfig, useModal, usePrices } from "@/hooks";
+import { estimateExpiryDate } from "@/lib/expiry";
 import { getStrikeUsd } from "@/lib/options-form";
 import { basisPointsToPercent, satsToBtc } from "@/lib/utils";
 
@@ -35,10 +37,12 @@ export function CallBuyOptionSummary({
   const maxProfitBtc = satsToBtc(maxProfitSats);
   const maxProfitUsd = Math.round(maxProfitBtc * btcPrice);
   const strikeUsd = getStrikeUsd(btcPrice, strikePercent);
+  const strikeDisplay = `$${strikeUsd.toLocaleString()}`;
   const premiumDisplay = Number(premiumBtc.toFixed(6));
   const maxProfitDisplay = Number(maxProfitBtc.toFixed(6));
   const leverageDisplay = leverage > 0 ? Number(leverage.toFixed(1)) : 0;
   const termLabel = tForms(term === 1 ? "day" : "days").toLowerCase();
+  const expiryDisplay = format(estimateExpiryDate(term), "MMM d, yyyy 'at' HH:mm");
 
   const platformFeePercent = basisPointsToPercent(
     Number(config?.fees.profitFeeBasisPoints ?? BigInt(0)),
@@ -64,14 +68,18 @@ export function CallBuyOptionSummary({
               <div className="flex items-start gap-2">
                 <span className="text-muted-foreground">•</span>
                 <p className="text-muted-foreground flex-1">
-                  <span className="font-medium text-foreground">{t("buyExplainer.ifRises")}</span>{" "}
+                  <span className="font-medium text-foreground">
+                    {t("buyExplainer.ifRises", { strike: strikeDisplay })}
+                  </span>{" "}
                   {t("buyExplainer.ifRisesDesc", { maxProfit: `₿${maxProfitDisplay}` })}
                 </p>
               </div>
               <div className="flex items-start gap-2">
                 <span className="text-muted-foreground">•</span>
                 <p className="text-muted-foreground flex-1">
-                  <span className="font-medium text-foreground">{t("buyExplainer.ifBelow")}</span>{" "}
+                  <span className="font-medium text-foreground">
+                    {t("buyExplainer.ifBelow", { strike: strikeDisplay })}
+                  </span>{" "}
                   {t("buyExplainer.ifBelowDesc")}
                 </p>
               </div>
@@ -82,6 +90,13 @@ export function CallBuyOptionSummary({
                     {t("buyExplainer.platformFee")}
                   </span>{" "}
                   {t("buyExplainer.platformFeeDesc", { fee: platformFeePercent })}
+                </p>
+              </div>
+              <div className="flex items-start gap-2">
+                <span className="text-muted-foreground">•</span>
+                <p className="text-muted-foreground flex-1">
+                  <span className="font-medium text-foreground">{t("expires")}:</span>{" "}
+                  {expiryDisplay}
                 </p>
               </div>
             </div>

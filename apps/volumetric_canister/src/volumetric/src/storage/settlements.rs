@@ -17,6 +17,8 @@ pub enum SettlementPhase {
     Started,
     BalanceReleased,
     TransferComplete,
+    ProfitFeeCollected,
+    WriterPayoutReleased,
     Completed,
     Failed { reason: String },
 }

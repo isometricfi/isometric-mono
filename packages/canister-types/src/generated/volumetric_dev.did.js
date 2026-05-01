@@ -329,9 +329,11 @@ export const idlFactory = ({ IDL }) => {
   });
   const SettlementPhase = IDL.Variant({
     'Started' : IDL.Null,
+    'ProfitFeeCollected' : IDL.Null,
     'Failed' : IDL.Record({ 'reason' : IDL.Text }),
     'TransferComplete' : IDL.Null,
     'BalanceReleased' : IDL.Null,
+    'WriterPayoutReleased' : IDL.Null,
     'Completed' : IDL.Null,
   });
   const PendingSettlement = IDL.Record({

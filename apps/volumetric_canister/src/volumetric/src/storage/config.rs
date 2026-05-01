@@ -84,17 +84,11 @@ impl Default for TradingLimits {
         Self {
             create_offer_quantity_sats: default_offer_quantity_sats,
             accept_offer_quantity_sats: default_offer_quantity_sats,
-            premium_basis_points: Range {
-                min: 50,
-                max: 10_000,
-            },
-            strike_basis_points: Range {
-                min: 500,
-                max: 10_000,
-            },
+            premium_basis_points: Range { min: 10, max: 300 },
+            strike_basis_points: Range { min: 300, max: 800 },
             option_duration_seconds: Range {
-                min: 3_600,
-                max: 86400 * 30,
+                min: 86400 * 3,
+                max: 86400 * 7,
             },
             deposit_amount_sats: 50_000,
             withdraw_amount_sats: 50_000,

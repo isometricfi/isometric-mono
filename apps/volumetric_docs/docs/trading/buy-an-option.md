@@ -1,6 +1,8 @@
 ---
 sidebar_position: 1
 title: Buy an option
+description: Buy a Bitcoin call option on Isometric for leveraged BTC upside with capped downside. The buy flow, strike selection, and how max loss is limited to what you put in.
+keywords: [buy Bitcoin options, BTC call options, leveraged BTC, Isometric buy flow, on-chain options]
 ---
 
 # Buy an option
@@ -32,6 +34,8 @@ The review screen shows strike, term, amount, leverage, max profit, and the plat
 ## What happens next
 
 The option appears in your **Portfolio** under **Active**. At expiry it settles automatically.
+
+Expiries land on the top of the hour. A 7-day term accepted at 12:01 expires at 13:00 seven days later.
 
 - BTC closes **above** strike: profit settles to your account in BTC.
 - BTC closes **at or below** strike: the option expires worthless. You lose what you put in.

@@ -28,7 +28,11 @@ export {
 } from "./mutations/use-create-offer";
 export { useSyncDeposit } from "./mutations/use-sync-deposit";
 export { type UpdateUsernameParams, useUpdateUsername } from "./mutations/use-update-username";
-export { useWithdraw, type WithdrawParams } from "./mutations/use-withdraw";
+export {
+  useWithdraw,
+  type WithdrawParams,
+  type WithdrawStep,
+} from "./mutations/use-withdraw";
 // queries
 export { type AccountData, useAccount } from "./queries/use-account";
 export { type BtcAddressType, useBtcAddress, useBtcAddresses } from "./queries/use-btc-address";

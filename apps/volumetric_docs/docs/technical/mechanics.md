@@ -1,6 +1,8 @@
 ---
 sidebar_position: 2
 title: Mechanics
+description: How a Bitcoin option moves from offer to settlement on Isometric. Order matching, partial fills, collateral lock, and what happens at expiry.
+keywords: [options mechanics, Isometric protocol, options matching, collateral lock, partial fills]
 ---
 
 # Mechanics

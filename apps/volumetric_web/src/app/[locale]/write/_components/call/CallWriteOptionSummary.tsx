@@ -1,9 +1,11 @@
 "use client";
 
+import { format } from "date-fns";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { SlidingNumber } from "@/components/ui/sliding-number";
 import { useConfig, useModal, usePrices } from "@/hooks";
+import { estimateExpiryDate } from "@/lib/expiry";
 import { getStrikeUsd } from "@/lib/options-form";
 import { basisPointsToPercent, roundToN, satsToBtc } from "@/lib/utils";
 
@@ -38,6 +40,7 @@ export function CallWriteOptionSummary({
   const strikeUsd = getStrikeUsd(btcPrice, strikePercent);
   const strikeDisplay = `$${strikeUsd.toLocaleString()}`;
   const termLabel = tForms(term === 1 ? "day" : "days").toLowerCase();
+  const expiryDisplay = format(estimateExpiryDate(term), "MMM d, yyyy 'at' HH:mm");
 
   const apyPercent = roundToN(
     amountSats > 0 && term > 0 ? (earningsSats / amountSats) * (365 / term) * 100 : 0,
@@ -89,6 +92,13 @@ export function CallWriteOptionSummary({
                     {t("writeExplainer.platformFee")}
                   </span>{" "}
                   {t("writeExplainer.platformFeeDesc", { fee: platformFeePercent })}
+                </p>
+              </div>
+              <div className="flex items-start gap-2">
+                <span className="text-muted-foreground">•</span>
+                <p className="text-muted-foreground flex-1">
+                  <span className="font-medium text-foreground">{t("expires")}:</span>{" "}
+                  {expiryDisplay}
                 </p>
               </div>
             </div>

@@ -1,6 +1,8 @@
 ---
 sidebar_position: 6
 title: Fees
+description: Fees on Isometric. Platform fees on profits and earnings, what is charged to buyers, what is charged to writers, and when each fee applies.
+keywords: [Isometric fees, Bitcoin options fees, platform fee, options trading costs]
 ---
 
 # Fees

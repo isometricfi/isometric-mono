@@ -33,7 +33,7 @@ fn test_buyer_accepts_offer_creates_option_and_locks_writer_collateral() {
     const TEN_MILLION_SATS: u64 = 10_000_000; // 0.1 BTC
     const STRIKE_BPS: u16 = 500;
     const PREMIUM_BPS: u16 = 100;
-    const ONE_DAY_SECS: u64 = 86_400;
+    const ONE_DAY_SECS: u64 = 86_400 * 3;
     const BASIS_POINTS: u64 = 10_000;
     const CKBTC_TRANSFER_FEE: u64 = 10;
     const FIRST_OFFER_ID: u64 = 1;
@@ -165,7 +165,7 @@ fn test_partial_fill_creates_option_and_leaves_offer_open_for_remainder() {
     const TWENTY_MILLION_SATS: u64 = 20_000_000; // 0.2 BTC
     const STRIKE_BPS: u16 = 500;
     const PREMIUM_BPS: u16 = 100;
-    const ONE_DAY_SECS: u64 = 86_400;
+    const ONE_DAY_SECS: u64 = 86_400 * 3;
     const BASIS_POINTS: u64 = 10_000;
     const CKBTC_TRANSFER_FEE: u64 = 10;
     const FIRST_OFFER_ID: u64 = 1;
@@ -248,7 +248,7 @@ fn test_second_buyer_fails_when_offer_already_fully_accepted() {
     const TEN_MILLION_SATS: u64 = 10_000_000; // 0.1 BTC
     const STRIKE_BPS: u16 = 500;
     const PREMIUM_BPS: u16 = 100;
-    const ONE_DAY_SECS: u64 = 86_400;
+    const ONE_DAY_SECS: u64 = 86_400 * 3;
     const BASIS_POINTS: u64 = 10_000;
     const CKBTC_TRANSFER_FEE: u64 = 10;
     const FIRST_OFFER_ID: u64 = 1;
@@ -325,7 +325,7 @@ fn test_accept_own_offer_fails() {
     const TEN_MILLION_SATS: u64 = 10_000_000; // 0.1 BTC
     const STRIKE_BPS: u16 = 500;
     const PREMIUM_BPS: u16 = 100;
-    const ONE_DAY_SECS: u64 = 86_400;
+    const ONE_DAY_SECS: u64 = 86_400 * 3;
     const BASIS_POINTS: u64 = 10_000;
     const CKBTC_TRANSFER_FEE: u64 = 10;
     const FIRST_OFFER_ID: u64 = 1;
@@ -390,7 +390,7 @@ fn test_accept_expired_offer_fails() {
     const TEN_MILLION_SATS: u64 = 10_000_000; // 0.1 BTC
     const STRIKE_BPS: u16 = 500;
     const PREMIUM_BPS: u16 = 100;
-    const ONE_DAY_SECS: u64 = 86_400;
+    const ONE_DAY_SECS: u64 = 86_400 * 3;
     const TWO_HOURS_SECS: u64 = 7_200;
     const BASIS_POINTS: u64 = 10_000;
     const CKBTC_TRANSFER_FEE: u64 = 10;
@@ -455,7 +455,7 @@ fn test_accept_cancelled_offer_fails() {
     const TEN_MILLION_SATS: u64 = 10_000_000; // 0.1 BTC
     const STRIKE_BPS: u16 = 500;
     const PREMIUM_BPS: u16 = 100;
-    const ONE_DAY_SECS: u64 = 86_400;
+    const ONE_DAY_SECS: u64 = 86_400 * 3;
     const BASIS_POINTS: u64 = 10_000;
     const CKBTC_TRANSFER_FEE: u64 = 10;
     const FIRST_OFFER_ID: u64 = 1;
@@ -519,7 +519,7 @@ fn test_accept_with_insufficient_balance_fails() {
     const TEN_MILLION_SATS: u64 = 10_000_000; // 0.1 BTC
     const STRIKE_BPS: u16 = 500;
     const PREMIUM_BPS: u16 = 100;
-    const ONE_DAY_SECS: u64 = 86_400;
+    const ONE_DAY_SECS: u64 = 86_400 * 3;
     const BASIS_POINTS: u64 = 10_000;
     const FIRST_OFFER_ID: u64 = 1;
 
@@ -580,7 +580,7 @@ fn test_accept_quantity_exceeds_remaining_fails() {
     const TWENTY_MILLION_SATS: u64 = 20_000_000; // 0.2 BTC
     const STRIKE_BPS: u16 = 500;
     const PREMIUM_BPS: u16 = 100;
-    const ONE_DAY_SECS: u64 = 86_400;
+    const ONE_DAY_SECS: u64 = 86_400 * 3;
     const BASIS_POINTS: u64 = 10_000;
     const CKBTC_TRANSFER_FEE: u64 = 10;
     const FIRST_OFFER_ID: u64 = 1;
@@ -645,7 +645,7 @@ fn test_partial_fill_disabled_rejects_partial_quantity() {
     const TWENTY_MILLION_SATS: u64 = 20_000_000; // 0.2 BTC
     const STRIKE_BPS: u16 = 500;
     const PREMIUM_BPS: u16 = 100;
-    const ONE_DAY_SECS: u64 = 86_400;
+    const ONE_DAY_SECS: u64 = 86_400 * 3;
     const BASIS_POINTS: u64 = 10_000;
     const CKBTC_TRANSFER_FEE: u64 = 10;
     const FIRST_OFFER_ID: u64 = 1;
@@ -717,7 +717,7 @@ fn test_stitching_disabled_rejects_multi_item_accept_request() {
     const TWENTY_MILLION_SATS: u64 = 20_000_000; // 0.2 BTC
     const STRIKE_BPS: u16 = 500;
     const PREMIUM_BPS: u16 = 100;
-    const ONE_DAY_SECS: u64 = 86_400;
+    const ONE_DAY_SECS: u64 = 86_400 * 3;
     const BASIS_POINTS: u64 = 10_000;
     const CKBTC_TRANSFER_FEE: u64 = 10;
     const FIRST_OFFER_ID: u64 = 1;
@@ -812,7 +812,7 @@ fn test_stitching_enabled_accepts_multiple_offers_in_one_request() {
     const TWENTY_MILLION_SATS: u64 = 20_000_000; // 0.2 BTC
     const STRIKE_BPS: u16 = 500;
     const PREMIUM_BPS: u16 = 100;
-    const ONE_DAY_SECS: u64 = 86_400;
+    const ONE_DAY_SECS: u64 = 86_400 * 3;
     const BASIS_POINTS: u64 = 10_000;
     const CKBTC_TRANSFER_FEE: u64 = 10;
     const FIRST_OFFER_ID: u64 = 1;
@@ -938,7 +938,7 @@ fn test_multiple_partial_fills_exhaust_offer() {
     const THIRTY_MILLION_SATS: u64 = 30_000_000; // 0.3 BTC
     const STRIKE_BPS: u16 = 500;
     const PREMIUM_BPS: u16 = 100;
-    const ONE_DAY_SECS: u64 = 86_400;
+    const ONE_DAY_SECS: u64 = 86_400 * 3;
     const BASIS_POINTS: u64 = 10_000;
     const CKBTC_TRANSFER_FEE: u64 = 10;
     const FIRST_OFFER_ID: u64 = 1;
@@ -1060,7 +1060,7 @@ fn test_accepted_offers_lock_cumulative_collateral() {
     const TWENTY_MILLION_SATS: u64 = 20_000_000; // 0.2 BTC
     const STRIKE_BPS: u16 = 500;
     const PREMIUM_BPS: u16 = 100;
-    const ONE_DAY_SECS: u64 = 86_400;
+    const ONE_DAY_SECS: u64 = 86_400 * 3;
     const BASIS_POINTS: u64 = 10_000;
     const CKBTC_TRANSFER_FEE: u64 = 10;
     const FIRST_OFFER_ID: u64 = 1;

@@ -8,7 +8,7 @@ import {
   CircleArrowDown,
   ClockCheck,
   ExternalLink,
-  Loader2,
+  FileSignature,
   ScanSearch,
   XCircle,
 } from "lucide-react";
@@ -18,6 +18,7 @@ import QRCodeSVG from "react-qr-code";
 import { useMediaQuery } from "react-responsive";
 import { AnimatedToggle } from "@/components/navigation/AnimatedToggle";
 import { AmountInput } from "@/components/options/AmountInput";
+import { FlowStepper, type FlowStepperStep } from "@/components/options/MobileFlowParts";
 import { AlertDialog, AlertDialogContent, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { CopyButton } from "@/components/ui/copy-button";
@@ -35,6 +36,8 @@ import { Skeleton } from "../ui/skeleton";
 
 type DepositStep = "input" | "sending" | "waiting" | "success" | "error";
 type DepositTab = "wallet" | "address";
+
+const WALLETS_WITHOUT_NATIVE_BTC_SEND = ["phantombtc"];
 
 export function DepositModal({
   open,
@@ -62,23 +65,15 @@ export function DepositModal({
 
   const minDepositSats = BigInt(config?.minDepositAmountSats ?? DEFAULT_MIN_DEPOSIT_SATS);
   const isWalletReady = !!primaryWallet && isBitcoinWallet(primaryWallet);
+  const walletSupportsNativeSend =
+    !primaryWallet || !WALLETS_WITHOUT_NATIVE_BTC_SEND.includes(primaryWallet.key);
+  const effectiveTab: DepositTab = walletSupportsNativeSend ? tab : "address";
 
-  const enteredAmountSats = useMemo(() => {
-    const sats = parseBtcToSatsBigint(amountBtc);
-    return sats;
-  }, [amountBtc]);
+  const enteredAmountSats = useMemo(() => parseBtcToSatsBigint(amountBtc), [amountBtc]);
 
   const isBelowMinimum = enteredAmountSats < minDepositSats;
 
   const canDeposit = useMemo(() => {
-    console.log("[DepositModal] canDeposit check:", {
-      isWalletReady,
-      depositAddress,
-      amountBtc,
-      walletBalanceSats,
-      minDepositSats: minDepositSats.toString(),
-    });
-
     if (!isWalletReady) return false;
     if (!depositAddress) return false;
     const sats = parseBtcToSatsBigint(amountBtc);
@@ -111,21 +106,10 @@ export function DepositModal({
 
     try {
       const amountSats = parseBtcToSatsBigint(amountBtc);
-      const amountSatsNumber = Number(amountSats);
-
-      console.log("[DepositModal] Sending deposit:", {
-        amountBtc,
-        amountSats: amountSats.toString(),
-        amountSatsNumber,
-        depositAddress,
-      });
-
       const result = await primaryWallet.sendBitcoin({
         amount: amountSats,
         recipientAddress: depositAddress,
       });
-
-      console.log("[DepositModal] Send result:", result);
 
       if (result) {
         setTxid(result);
@@ -134,15 +118,46 @@ export function DepositModal({
         throw new Error(t("transactionCancelled"));
       }
     } catch (err) {
-      console.error("[DepositModal] Send error:", err);
       setError(err instanceof Error ? err.message : t("failedToSend"));
       setStep("error");
     }
   };
 
+  const stages: Record<Exclude<DepositStep, "input">, FlowStepperStep> = {
+    sending: {
+      id: "sending",
+      icon: FileSignature,
+      tone: "progress",
+      title: t("confirmInWallet"),
+      description: t("approveTransaction"),
+    },
+    waiting: {
+      id: "waiting",
+      icon: CheckCircle2,
+      tone: "success",
+      title: t("depositInitiated"),
+      description: t("depositInBlocks"),
+    },
+    success: {
+      id: "success",
+      icon: CheckCircle2,
+      tone: "success",
+      title: t("depositComplete"),
+      description: t("balanceUpdated"),
+    },
+    error: {
+      id: "error",
+      icon: XCircle,
+      tone: "error",
+      title: tCommon("somethingWentWrong"),
+      description: error ?? tCommon("somethingWentWrong"),
+    },
+  };
+  const stage = step === "input" ? null : stages[step];
+
   const content = (
-    <div className="flex flex-col space-y-6 md:pt-0 pt-3  min-h-[70vh] md:min-h-[380px]">
-      <AnimatePresence mode="wait">
+    <div className="flex flex-col flex-1 md:pt-0 pt-3 min-h-[70vh] md:min-h-[380px]">
+      <AnimatePresence mode="wait" initial={false}>
         {step === "input" && (
           <motion.div
             key="input"
@@ -161,16 +176,18 @@ export function DepositModal({
               </div>
             </div>
 
-            <AnimatedToggle
-              layoutId="depositTab"
-              className="w-full"
-              options={[
-                { value: "wallet", label: t("wallet") },
-                { value: "address", label: t("depositAddress") },
-              ]}
-              value={tab}
-              onChange={(v) => setTab(v as DepositTab)}
-            />
+            {walletSupportsNativeSend && (
+              <AnimatedToggle
+                layoutId="depositTab"
+                className="w-full"
+                options={[
+                  { value: "wallet", label: t("wallet") },
+                  { value: "address", label: t("depositAddress") },
+                ]}
+                value={tab}
+                onChange={(v) => setTab(v as DepositTab)}
+              />
+            )}
 
             {isLoadingDepositAddress ? (
               <div className=" space-y-4">
@@ -181,7 +198,7 @@ export function DepositModal({
               </div>
             ) : depositAddress ? (
               <div className="flex flex-col flex-1">
-                {tab === "wallet" && (
+                {effectiveTab === "wallet" && (
                   <div className="flex flex-col flex-1 gap-5">
                     <AmountInput
                       value={amountBtc}
@@ -206,19 +223,7 @@ export function DepositModal({
                       >
                         {tCommon("close")}
                       </Button>
-                      <Button
-                        className="flex-1"
-                        onClick={() => {
-                          console.log("[DepositModal] Deposit button clicked:", {
-                            amountBtc,
-                            canDeposit,
-                            isBelowMinimum,
-                          });
-                          handleDeposit();
-                        }}
-                        disabled={!canDeposit}
-                      >
-                        {" "}
+                      <Button className="flex-1" onClick={handleDeposit} disabled={!canDeposit}>
                         {isBelowMinimum
                           ? `${tCommon("min")}: ${formatBtcWithSymbol(Number(minDepositSats), 8)}`
                           : t("title")}
@@ -227,7 +232,7 @@ export function DepositModal({
                   </div>
                 )}
 
-                {tab === "address" && (
+                {effectiveTab === "address" && (
                   <div className="flex flex-col flex-1 gap-5">
                     <div className="flex flex-col items-center space-y-4">
                       <div className=" gap-4 md:flex w-full">
@@ -281,56 +286,19 @@ export function DepositModal({
           </motion.div>
         )}
 
-        {step === "sending" && (
+        {step !== "input" && stage && (
           <motion.div
-            key="sending"
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            className="flex flex-col items-center justify-center py-12 space-y-4"
-          >
-            <motion.div
-              animate={{ rotate: 360 }}
-              transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-            >
-              <Loader2 className="size-12 text-primary" />
-            </motion.div>
-            <div className="text-center">
-              <h3 className="font-semibold">{t("confirmInWallet")}</h3>
-              <p className="text-sm text-muted-foreground">{t("approveTransaction")}</p>
-            </div>
-          </motion.div>
-        )}
-
-        {step === "waiting" && (
-          <motion.div
-            key="waiting"
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
+            key={`status-${step}`}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="flex flex-col items-center justify-center space-y-4"
+            transition={{ duration: 0.15 }}
+            className="flex flex-col flex-1"
           >
-            <motion.div
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              transition={{
-                type: "spring",
-                stiffness: 200,
-                damping: 15,
-                delay: 0.1,
-              }}
-              className="size-16 rounded-full bg-green-500/10 flex items-center justify-center"
-            >
-              <CheckCircle2 className="size-8 text-green-500" />
-            </motion.div>
+            <FlowStepper step={stage} />
 
-            <div className="text-center space-y-2">
-              <h3 className="text-xl font-semibold">{t("depositInitiated")}</h3>
-              <p className="text-sm text-muted-foreground">{t("depositInBlocks")}</p>
-            </div>
-
-            {txid && (
-              <div className="w-full rounded-lg border p-4 bg-card/50">
+            {step === "waiting" && txid && (
+              <div className="w-full rounded-lg border p-4 bg-card/50 mb-4">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <div className="text-xs text-muted-foreground mb-1">{t("transactionId")}</div>
@@ -340,7 +308,6 @@ export function DepositModal({
                   </div>
                   <div className="flex items-center gap-2">
                     <CopyButton text={txid} />
-
                     <Button variant="outline" size="icon" asChild>
                       <Link
                         href={`${mempoolBaseUrl}/tx/${txid}`}
@@ -355,79 +322,28 @@ export function DepositModal({
               </div>
             )}
 
-            <Button className="w-full mt-2" onClick={() => handleClose(false)}>
-              {tCommon("close")}
-            </Button>
-          </motion.div>
-        )}
-
-        {step === "success" && (
-          <motion.div
-            key="success"
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0 }}
-            className="flex flex-col items-center justify-center space-y-4"
-          >
-            <motion.div
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              transition={{
-                type: "spring",
-                stiffness: 200,
-                damping: 15,
-                delay: 0.1,
-              }}
-              className="size-16 rounded-full bg-green-500/10 flex items-center justify-center"
-            >
-              <CheckCircle2 className="size-8 text-green-500" />
-            </motion.div>
-
-            <div className="text-center space-y-2">
-              <h3 className="text-xl font-semibold">{t("depositComplete")}</h3>
-              <p className="text-sm text-muted-foreground">{t("balanceUpdated")}</p>
-            </div>
-
-            <Button className="w-full mt-2" onClick={() => handleClose(false)}>
-              {tCommon("done")}
-            </Button>
-          </motion.div>
-        )}
-
-        {step === "error" && (
-          <motion.div
-            key="error"
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            className="flex flex-col items-center justify-center space-y-4"
-          >
-            <motion.div
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              transition={{
-                type: "spring",
-                stiffness: 200,
-                damping: 15,
-              }}
-              className="size-16 rounded-full bg-destructive/10 flex items-center justify-center"
-            >
-              <XCircle className="size-8 text-destructive" />
-            </motion.div>
-
-            <div className="text-center space-y-2">
-              <h3 className="text-xl font-semibold">{tCommon("somethingWentWrong")}</h3>
-              <p className="text-sm text-destructive max-w-xs">{error}</p>
-            </div>
-
-            <div className="flex gap-3 w-full pt-2">
-              <Button variant="outline" className="flex-1" onClick={() => handleClose(false)}>
+            {step === "waiting" && (
+              <Button className="w-full mt-auto" onClick={() => handleClose(false)}>
                 {tCommon("close")}
               </Button>
-              <Button className="flex-1" onClick={() => setStep("input")}>
-                {tCommon("tryAgain")}
+            )}
+
+            {step === "success" && (
+              <Button className="w-full mt-auto" onClick={() => handleClose(false)}>
+                {tCommon("done")}
               </Button>
-            </div>
+            )}
+
+            {step === "error" && (
+              <div className="flex gap-3 w-full mt-auto">
+                <Button variant="outline" className="flex-1" onClick={() => handleClose(false)}>
+                  {tCommon("close")}
+                </Button>
+                <Button className="flex-1" onClick={() => setStep("input")}>
+                  {tCommon("tryAgain")}
+                </Button>
+              </div>
+            )}
           </motion.div>
         )}
       </AnimatePresence>
@@ -437,7 +353,7 @@ export function DepositModal({
   if (isMobile) {
     return (
       <Drawer open={open} onOpenChange={handleClose}>
-        <DrawerContent className="px-5 pb-5 ">
+        <DrawerContent className="px-5 pb-5 flex flex-col">
           <DrawerTitle className="sr-only">{t("title")}</DrawerTitle>
           {content}
         </DrawerContent>
@@ -447,7 +363,7 @@ export function DepositModal({
 
   return (
     <AlertDialog open={open} onOpenChange={handleClose}>
-      <AlertDialogContent className="sm:max-w-md">
+      <AlertDialogContent className="sm:max-w-md flex flex-col">
         <AlertDialogTitle className="sr-only">{t("title")}</AlertDialogTitle>
         {content}
       </AlertDialogContent>

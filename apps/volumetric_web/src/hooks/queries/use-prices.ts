@@ -1,32 +1,24 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
+import { fetchCurrentBtcPrice } from "@/lib/market/coinbase-public-client";
 
-interface PriceData {
+const PRICE_REFETCH_INTERVAL_30_SECONDS_MS = 30_000;
+
+export interface PriceData {
   btc: number;
 }
 
 async function fetchPrices(): Promise<PriceData> {
-  const response = await fetch(
-    "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd",
-  );
-
-  if (!response.ok) {
-    throw new Error("Failed to fetch prices");
-  }
-
-  const data = await response.json();
-
-  return {
-    btc: data.bitcoin.usd,
-  };
+  const { priceUsd } = await fetchCurrentBtcPrice();
+  return { btc: priceUsd };
 }
 
 export function usePrices() {
   return useQuery({
     queryKey: ["prices"],
     queryFn: fetchPrices,
-    staleTime: 60000,
-    refetchInterval: 60000,
+    staleTime: PRICE_REFETCH_INTERVAL_30_SECONDS_MS,
+    refetchInterval: PRICE_REFETCH_INTERVAL_30_SECONDS_MS,
   });
 }

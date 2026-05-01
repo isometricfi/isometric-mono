@@ -360,9 +360,11 @@ type SettleExpiredOptionsResponse = record {
 };
 type SettlementPhase = variant {
   Started;
+  ProfitFeeCollected;
   Failed : record { reason : text };
   TransferComplete;
   BalanceReleased;
+  WriterPayoutReleased;
   Completed;
 };
 type SettlementReceipt = record { operation_id : blob; option_id : nat64 };

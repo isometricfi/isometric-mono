@@ -306,6 +306,12 @@ fn schedule_withdraw_wal_execution(operation_id: OperationId) {
 
 pub(crate) fn finalize_failed_withdrawal_wal(payload: &WithdrawalWalPayload, message: &str) {
     let Some(withdrawal) = get_withdrawal(payload.withdrawal_id) else {
+        logging::warn!(
+            "finalize_failed_withdrawal_wal missing journal withdrawal_id={} principal={} message={}",
+            payload.withdrawal_id,
+            payload.principal,
+            message
+        );
         return;
     };
 
@@ -313,11 +319,59 @@ pub(crate) fn finalize_failed_withdrawal_wal(payload: &WithdrawalWalPayload, mes
         withdrawal.phase,
         WithdrawalPhase::Failed { .. } | WithdrawalPhase::Completed { .. }
     ) {
+        logging::log!(
+            "finalize_failed_withdrawal_wal skipped withdrawal_id={} principal={} phase={:?} message={}",
+            payload.withdrawal_id,
+            payload.principal,
+            withdrawal.phase,
+            message
+        );
         return;
     }
 
-    add_available(payload.principal, payload.gross_withdraw_amount_sats);
+    let approve_fee_sats = withdrawal_approve_fee_sats(payload);
+    let refund_amount_sats = failed_withdrawal_refund_amount_sats(payload, &withdrawal.phase);
+    let withheld_approve_fee_sats = payload
+        .gross_withdraw_amount_sats
+        .saturating_sub(refund_amount_sats);
+
+    logging::error!(
+        "finalize_failed_withdrawal_wal refunding withdrawal_id={} principal={} phase={:?} \
+         gross_sats={} net_sats={} approve_fee_sats={} refund_sats={} withheld_approve_fee_sats={} message={}",
+        payload.withdrawal_id,
+        payload.principal,
+        withdrawal.phase,
+        payload.gross_withdraw_amount_sats,
+        payload.withdraw_amount_after_fees_sats,
+        approve_fee_sats,
+        refund_amount_sats,
+        withheld_approve_fee_sats,
+        message
+    );
+
+    add_available(payload.principal, refund_amount_sats);
     fail_withdrawal(payload.withdrawal_id, message.to_string());
+}
+
+fn failed_withdrawal_refund_amount_sats(
+    payload: &WithdrawalWalPayload,
+    phase: &WithdrawalPhase,
+) -> u64 {
+    if matches!(phase, WithdrawalPhase::Started) {
+        return payload.gross_withdraw_amount_sats;
+    }
+
+    payload
+        .gross_withdraw_amount_sats
+        .saturating_sub(withdrawal_approve_fee_sats(payload))
+}
+
+fn withdrawal_approve_fee_sats(payload: &WithdrawalWalPayload) -> u64 {
+    let reserved_ledger_fee_sats = payload
+        .gross_withdraw_amount_sats
+        .saturating_sub(payload.withdraw_amount_after_fees_sats);
+
+    reserved_ledger_fee_sats / ledger::CKBTC_WITHDRAW_ICRC2_LEDGER_FEE_CHARGE_COUNT
 }
 
 fn load_withdraw_wal_result(operation_id: OperationId) -> Result<WithdrawResult, VolumetricError> {
@@ -439,6 +493,14 @@ pub async fn run_withdrawal_wal(
             Err(error) => return Err(map_withdrawal_error(error)),
         };
 
+        logging::log!(
+            "withdraw_ckbtc retrieve ok operation_id={:?} withdrawal_id={} principal={} block_index={}",
+            operation_id,
+            payload.withdrawal_id,
+            payload.principal,
+            retrieve_ok.block_index
+        );
+
         update_withdrawal_phase(
             payload.withdrawal_id,
             WithdrawalPhase::RetrieveRequested {
@@ -538,6 +600,7 @@ mod tests {
     const EXPECTED_BLOCK_INDEX: u64 = 42;
     const TEST_BTC_ADDRESS: &str = "tb1qwithdraw";
     const TEST_TRANSFER_FEE_SATS: u64 = 10;
+    const EXPECTED_APPROVE_FEE_SATS: u64 = TEST_TRANSFER_FEE_SATS;
 
     fn test_principal() -> Principal {
         Principal::from_slice(&[2; 29])
@@ -925,9 +988,9 @@ mod tests {
         assert_eq!(error.code, error_codes::CONFIG_ERROR.code);
     }
 
-    /// Given: ledger approve fails
+    /// Given: ledger approve fails before ckBTC charges an approval fee
     /// When: withdraw_ckbtc_use_case is called
-    /// Then: returns error and leaves the withdrawal pending for WAL retry
+    /// Then: returns error and restores the full gross withdrawal amount
     #[tokio::test]
     async fn test_withdraw_approve_failure_restores_balance() {
         // given
@@ -1016,11 +1079,11 @@ mod tests {
         );
     }
 
-    /// Given: a withdrawal first fails retryably, then fails permanently on a later WAL attempt
+    /// Given: a withdrawal first fails retryably after approval, then fails permanently on a later WAL attempt
     /// When: WAL execution is retried after the initial request returns pending-retry
-    /// Then: the deducted amount is refunded and the withdrawal is marked failed
+    /// Then: the recoverable amount is refunded and the charged approve fee remains debited
     #[tokio::test]
-    async fn test_withdraw_retry_to_permanent_failure_refunds_and_marks_failed() {
+    async fn test_withdraw_retry_to_permanent_failure_refunds_after_approve_fee() {
         // given
         ic::set_runtime(Box::new(MockRuntime));
         ledger::set_ledger(Rc::new(MockLedger {
@@ -1062,7 +1125,8 @@ mod tests {
         ));
 
         let balance = get_balance(&principal);
-        assert_eq!(balance.available, INITIAL_BALANCE_SATS);
+        let expected_available_sats = INITIAL_BALANCE_SATS - EXPECTED_APPROVE_FEE_SATS;
+        assert_eq!(balance.available, expected_available_sats);
 
         let pending_withdrawals = get_pending_withdrawals_by_principal(principal);
         const EXPECTED_PENDING_WITHDRAWALS_LEN: usize = 0;
@@ -1075,6 +1139,35 @@ mod tests {
             failed_withdrawal.phase,
             WithdrawalPhase::Failed { .. }
         ));
+    }
+
+    /// Given: failed withdrawal payloads before and after approval
+    /// When: calculating the failed withdrawal refund
+    /// Then: only post-approval failures retain the one irrecoverable approve fee
+    #[test]
+    fn test_failed_withdrawal_refund_amount_depends_on_approval_phase() {
+        // given
+        let payload = WithdrawalWalPayload {
+            withdrawal_id: 1,
+            principal: test_principal(),
+            gross_withdraw_amount_sats: WITHDRAW_AMOUNT_SATS,
+            withdraw_amount_after_fees_sats: WITHDRAW_AMOUNT_SATS
+                - (TEST_TRANSFER_FEE_SATS * ledger::CKBTC_WITHDRAW_ICRC2_LEDGER_FEE_CHARGE_COUNT),
+            btc_address: TEST_BTC_ADDRESS.to_string(),
+            created_at_time_ns: TEST_NOW_NS,
+        };
+
+        // when
+        let started_refund_sats =
+            failed_withdrawal_refund_amount_sats(&payload, &WithdrawalPhase::Started);
+        let approved_refund_sats =
+            failed_withdrawal_refund_amount_sats(&payload, &WithdrawalPhase::Approved);
+
+        // then
+        const EXPECTED_STARTED_REFUND_SATS: u64 = WITHDRAW_AMOUNT_SATS;
+        const EXPECTED_APPROVED_REFUND_SATS: u64 = WITHDRAW_AMOUNT_SATS - EXPECTED_APPROVE_FEE_SATS;
+        assert_eq!(started_refund_sats, EXPECTED_STARTED_REFUND_SATS);
+        assert_eq!(approved_refund_sats, EXPECTED_APPROVED_REFUND_SATS);
     }
 
     /// Given: configured minimum withdraw amount exceeds requested amount

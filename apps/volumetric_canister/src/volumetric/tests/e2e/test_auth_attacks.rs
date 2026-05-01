@@ -28,7 +28,7 @@ const DESTINATION_BTC_ADDRESS: &str = "tb1qvolumetricwithdraw";
 const OFFER_QUANTITY_SATS: u64 = 100_000;
 const OFFER_STRIKE_BPS: u16 = 500;
 const OFFER_PREMIUM_BPS: u16 = 100;
-const OFFER_DURATION_SECS: u64 = 86_400;
+const OFFER_DURATION_SECS: u64 = 86_400 * 3;
 const ONE_HOUR_NS: u64 = 3_600_000_000_000;
 
 fn expires_at(env: &TestEnv) -> u64 {

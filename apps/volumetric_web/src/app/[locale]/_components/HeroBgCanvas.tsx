@@ -158,11 +158,12 @@ export function HeroBgCanvas() {
 
     scene.add(new THREE.Mesh(geo, mat));
 
-    const clock = new THREE.Clock();
+    const timer = new THREE.Timer();
     let rafId: number;
 
     function animate() {
-      mat.uniforms.uTime.value = clock.getElapsedTime();
+      timer.update();
+      mat.uniforms.uTime.value = timer.getElapsed();
       renderer.render(scene, camera);
       rafId = requestAnimationFrame(animate);
     }

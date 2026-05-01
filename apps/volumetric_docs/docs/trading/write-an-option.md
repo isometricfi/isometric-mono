@@ -1,6 +1,8 @@
 ---
 sidebar_position: 2
 title: Write an option
+description: Write a Bitcoin call option on Isometric to earn premium upfront on your BTC. Set strike, term, and earnings, lock collateral, and learn the worst-case scenarios.
+keywords: [write Bitcoin options, covered calls, BTC yield, earn premium on BTC, options writer]
 ---
 
 # Write an option
@@ -53,7 +55,7 @@ When a buyer accepts (in whole or in part):
 - Your premium credits to your **available** balance immediately.
 - The accepted portion appears in **Portfolio → Active** as a written option. Any remaining unfilled portion stays in **Portfolio → Offers**.
 
-At expiry, the option settles automatically.
+At expiry, the option settles automatically. Expiries land on the top of the hour: an offer accepted at 12:01 with a 7-day term expires at 13:00 seven days later.
 
 - BTC closes **at or below** strike: your locked BTC unlocks. You keep the premium and the full collateral.
 - BTC closes **above** strike: the buyer's profit is paid out from your locked BTC. Whatever's left unlocks back to you. You still keep the premium.

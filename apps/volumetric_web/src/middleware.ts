@@ -47,7 +47,7 @@ function generateCspHeaders(nonce: string): string {
     `style-src ${styleSrc}`,
     `img-src 'self' blob: data: https://cdn.jsdelivr.net ${DYNAMIC_CSP_SOURCES} ${TAWK_CSP_SOURCES}`,
     `font-src 'self' data: https://fonts.gstatic.com https://fonts.googleapis.com https://cdn.jsdelivr.net ${DYNAMIC_CSP_SOURCES} ${TAWK_CSP_SOURCES}`,
-    `connect-src 'self' ${DYNAMIC_CSP_SOURCES} ${TAWK_CONNECT_CSP_SOURCES} https://mempool.space wss://mempool.space wss://*.dynamic.xyz https://ic0.app https://api.coingecko.com`,
+    `connect-src 'self' ${DYNAMIC_CSP_SOURCES} ${TAWK_CONNECT_CSP_SOURCES} https://mempool.space wss://mempool.space wss://*.dynamic.xyz https://ic0.app https://api.exchange.coinbase.com`,
     `frame-src 'self' https://export.turnkey.com ${DYNAMIC_CSP_SOURCES} ${TAWK_CSP_SOURCES}`,
     "worker-src 'self' blob:",
     "object-src 'none'",

@@ -134,6 +134,24 @@ pub fn unlock_collateral(principal: Principal, amount: u64) -> Result<(), Insuff
     })
 }
 
+pub fn deduct_locked_collateral(
+    principal: Principal,
+    amount: u64,
+) -> Result<(), InsufficientBalance> {
+    BALANCES.with_borrow_mut(|b| {
+        let mut balance = b.get(&principal).map(|c| c.0).unwrap_or_default();
+        if balance.locked_as_writer < amount {
+            return Err(InsufficientBalance {
+                available: balance.locked_as_writer,
+                required: amount,
+            });
+        }
+        balance.locked_as_writer = balance.locked_as_writer.saturating_sub(amount);
+        b.insert(principal, Cbor(balance));
+        Ok(())
+    })
+}
+
 // Releases locked collateral from writer directly to buyer's available balance.
 // Both operations happen atomically (single-threaded canister).
 // Returns error if writer has insufficient locked funds.
