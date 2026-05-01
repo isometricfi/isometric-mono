@@ -127,6 +127,12 @@ export function OptionAuditPage() {
   );
 }
 
+const SECONDS_PER_DAY = 86400;
+
+function formatOptionalValue(value: string, fallback = "—"): string {
+  return value || fallback;
+}
+
 function OptionSummary({ report }: { report: OptionAuditReport | null }) {
   if (!report) {
     return (
@@ -141,12 +147,34 @@ function OptionSummary({ report }: { report: OptionAuditReport | null }) {
 
   const option = report.option[0];
 
+  let strikePrice: string | null = null;
+  let strikePercent: string | null = null;
+  let premiumPercent: string | null = null;
+  let termDays: string | null = null;
+
+  if (option) {
+    const entry = Number(option.entry_price_cents);
+    const strike = Number(option.strike_price_cents);
+    const quantity = Number(option.quantity);
+    const premiumPaid = Number(option.premium_paid);
+    const durationSeconds = Number(option.expiry_seconds - option.accepted_at_seconds);
+
+    strikePrice = `$${(strike / 100).toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
+    strikePercent = `${entry > 0 ? (((strike - entry) / entry) * 100).toFixed(1) : "0.0"}%`;
+    premiumPercent = `${quantity > 0 ? ((premiumPaid / quantity) * 100).toFixed(2) : "0.00"}%`;
+    termDays = `${Math.round(durationSeconds / SECONDS_PER_DAY)} days`;
+  }
+
   return (
     <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
       <MetricCard label="Option id" value={report.option_id.toString()} />
+      <MetricCard label="Strike price" value={formatOptionalValue(strikePrice)} />
+      <MetricCard label="Strike %" value={formatOptionalValue(strikePercent)} />
+      <MetricCard label="Premium %" value={formatOptionalValue(premiumPercent)} />
+      <MetricCard label="Term" value={formatOptionalValue(termDays)} />
+      <MetricCard label="Premium paid" value={formatSats(option?.premium_paid ?? 0n)} />
       <MetricCard label="Buyer" value={option ? shortPrincipal(option.buyer) : "unknown"} mono />
       <MetricCard label="Writer" value={option ? shortPrincipal(option.writer) : "unknown"} mono />
-      <MetricCard label="Premium paid" value={formatSats(option?.premium_paid ?? 0n)} />
       <MetricCard label="Option events" value={report.option_events.length.toString()} />
       <MetricCard label="Expected transfers" value={report.expected_transfers.length.toString()} />
     </div>
