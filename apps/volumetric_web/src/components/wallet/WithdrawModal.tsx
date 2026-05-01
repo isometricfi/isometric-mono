@@ -2,15 +2,16 @@
 
 import { useDynamicContext } from "@dynamic-labs/sdk-react-core";
 import { AnimatePresence, motion } from "framer-motion";
-import { CheckCircle2, CircleArrowUp, Loader2, XCircle } from "lucide-react";
+import { CheckCircle2, CircleArrowUp, FileSignature, Send, XCircle } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useMemo, useState } from "react";
 import { useMediaQuery } from "react-responsive";
 import { AmountInput } from "@/components/options/AmountInput";
+import { FlowStepper, type FlowStepperStep } from "@/components/options/MobileFlowParts";
 import { AlertDialog, AlertDialogContent, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Drawer, DrawerContent, DrawerTitle } from "@/components/ui/drawer";
-import { useAccount, useConfig, useWithdraw } from "@/hooks";
+import { useAccount, useConfig, useWithdraw, type WithdrawStep } from "@/hooks";
 import {
   DEFAULT_MIN_WITHDRAW_SATS,
   formatBtcBigint,
@@ -19,8 +20,7 @@ import {
   parseBtcToSatsBigint,
 } from "@/lib/utils";
 import { Badge } from "../ui/badge";
-
-type WithdrawStep = "input" | "signing" | "processing" | "success" | "error";
+import { Skeleton } from "../ui/skeleton";
 
 export function WithdrawModal({
   open,
@@ -32,7 +32,7 @@ export function WithdrawModal({
   const isMobile = useMediaQuery({ query: "(max-width: 768px)" });
   const { primaryWallet } = useDynamicContext();
   const { data: config } = useConfig();
-  const { data: accountData } = useAccount();
+  const { data: accountData, isLoading: isAccountLoading } = useAccount();
   const withdraw = useWithdraw();
   const t = useTranslations("Withdraw");
   const tCommon = useTranslations("Common");
@@ -43,9 +43,7 @@ export function WithdrawModal({
   const availableSats = balance?.available ?? BigInt(0);
   const destinationAddress = profile?.address ?? primaryWallet?.address ?? "";
 
-  const [step, setStep] = useState<WithdrawStep>("input");
   const [amountBtc, setAmountBtc] = useState("");
-  const [error, setError] = useState<string | null>(null);
 
   const minWithdrawSats = BigInt(config?.minWithdrawAmountSats ?? DEFAULT_MIN_WITHDRAW_SATS);
 
@@ -60,215 +58,180 @@ export function WithdrawModal({
     return true;
   }, [amountBtc, minWithdrawSats, availableSats, destinationAddress]);
 
-  const isProcessing = step === "signing" || step === "processing";
+  const step: WithdrawStep = withdraw.step;
+  const isProcessing = step === "signing" || step === "submitting";
+  const showStatus = step !== "idle";
 
   const handleClose = (nextOpen: boolean) => {
     if (isProcessing) return;
     if (!nextOpen) {
-      setStep("input");
+      withdraw.reset();
       setAmountBtc("");
-      setError(null);
     }
     onOpenChange(nextOpen);
   };
 
-  const handleWithdraw = async () => {
+  const handleWithdraw = () => {
     if (!canWithdraw) return;
-
-    setError(null);
-    setStep("signing");
-
-    try {
-      const amountSats = parseBtcToSatsBigint(amountBtc);
-
-      setStep("processing");
-      await withdraw.mutateAsync({
-        btcAddress: destinationAddress,
-        amountSats,
-      });
-
-      setStep("success");
-    } catch (err) {
-      setError(err instanceof Error ? err.message : t("failedToWithdraw"));
-      setStep("error");
-    }
+    withdraw.mutate({
+      btcAddress: destinationAddress,
+      amountSats: parseBtcToSatsBigint(amountBtc),
+    });
   };
 
+  const tryAgain = () => {
+    withdraw.reset();
+  };
+
+  const errorMessage = withdraw.error?.message ?? t("failedToWithdraw");
+
+  const stages: Record<Exclude<WithdrawStep, "idle">, FlowStepperStep> = {
+    signing: {
+      id: "signing",
+      icon: FileSignature,
+      tone: "progress",
+      title: t("signMessage"),
+      description: t("approveWithdrawal"),
+    },
+    submitting: {
+      id: "submitting",
+      icon: Send,
+      tone: "progress",
+      title: t("processingWithdrawal"),
+      description: t("mayTakeMoment"),
+    },
+    success: {
+      id: "success",
+      icon: CheckCircle2,
+      tone: "success",
+      title: t("withdrawalSubmitted"),
+      description: t("arrivesInMinutes"),
+    },
+    error: {
+      id: "error",
+      icon: XCircle,
+      tone: "error",
+      title: tCommon("somethingWentWrong"),
+      description: errorMessage,
+    },
+  };
+  const stage = step === "idle" ? null : stages[step];
+
   const content = (
-    <div className="space-y-6 md:pt-0 pt-4">
-      <AnimatePresence mode="wait">
-        {step === "input" && (
-          <motion.div
-            key="input"
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            className="space-y-5"
-          >
-            <div className="flex items-center gap-3">
-              <div className="size-10 rounded-full bg-primary/10 flex items-center justify-center">
-                <CircleArrowUp className="size-5 text-primary" />
+    <div className="flex flex-col flex-1 md:pt-0 pt-4">
+      <div className="flex-1 flex flex-col">
+        <AnimatePresence mode="wait" initial={false}>
+          {!showStatus ? (
+            <motion.div
+              key="input"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.15 }}
+              className="flex-1 flex flex-col space-y-5"
+            >
+              <div className="flex items-center gap-3">
+                <div className="size-10 rounded-full bg-primary/10 flex items-center justify-center">
+                  <CircleArrowUp className="size-5 text-primary" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-semibold">{t("title")}</h2>
+                  <p className="text-sm text-muted-foreground">{t("description")}</p>
+                </div>
               </div>
-              <div>
-                <h2 className="text-lg font-semibold">{t("title")}</h2>
-                <p className="text-sm text-muted-foreground">{t("description")}</p>
+
+              {isAccountLoading ? (
+                <>
+                  <Skeleton className="w-full h-[68px] rounded-2xl" />
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <Skeleton className="h-4 w-16" />
+                      <Skeleton className="h-4 w-24" />
+                    </div>
+                    <Skeleton className="w-full h-12 rounded-md" />
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="rounded-2xl border p-4 bg-card/50">
+                    <div className="text-xs text-muted-foreground mb-1">{t("destination")}</div>
+                    <div className="font-mono text-xs break-all">{destinationAddress}</div>
+                  </div>
+
+                  <AmountInput
+                    value={amountBtc}
+                    onChange={setAmountBtc}
+                    maxAmountSats={Number(availableSats)}
+                    minAmountSats={Number(minWithdrawSats)}
+                    maxDecimals={8}
+                    onMaxClick={() => setAmountBtc(formatBtcBigint(availableSats, 8))}
+                  />
+
+                  {lockedSats > BigInt(0) && (
+                    <Badge variant="secondary" className="w-full">
+                      {t("lockedInOptions", {
+                        amount: formatBtcWithSymbolBigint(lockedSats, 8),
+                      })}
+                    </Badge>
+                  )}
+                </>
+              )}
+
+              <div className="flex gap-3 mt-auto">
+                <Button variant="outline" className="flex-1" onClick={() => handleClose(false)}>
+                  {tCommon("close")}
+                </Button>
+                <Button
+                  className="flex-1"
+                  onClick={handleWithdraw}
+                  disabled={!canWithdraw || isAccountLoading}
+                >
+                  {isAccountLoading
+                    ? t("title")
+                    : isBelowMinimum
+                      ? `${tCommon("min")}: ${formatBtcWithSymbol(Number(minWithdrawSats), 8)}`
+                      : t("title")}
+                </Button>
               </div>
-            </div>
-
-            <div className="rounded-2xl border p-4 bg-card/50">
-              <div className="text-xs text-muted-foreground mb-1">{t("destination")}</div>
-              <div className="font-mono text-xs break-all">{destinationAddress}</div>
-            </div>
-
-            <AmountInput
-              value={amountBtc}
-              onChange={setAmountBtc}
-              maxAmountSats={Number(availableSats)}
-              minAmountSats={Number(minWithdrawSats)}
-              maxDecimals={8}
-              onMaxClick={() => setAmountBtc(formatBtcBigint(availableSats, 8))}
-            />
-
-            {lockedSats > BigInt(0) && (
-              <Badge variant="secondary" className="w-full">
-                {t("lockedInOptions", {
-                  amount: formatBtcWithSymbolBigint(lockedSats, 8),
-                })}
-              </Badge>
-            )}
-
-            <div className="flex gap-3">
-              <Button variant="outline" className="flex-1" onClick={() => handleClose(false)}>
-                {tCommon("close")}
-              </Button>
-              <Button className="flex-1" onClick={handleWithdraw} disabled={!canWithdraw}>
-                {isBelowMinimum
-                  ? `${tCommon("min")}: ${formatBtcWithSymbol(Number(minWithdrawSats), 8)}`
-                  : t("title")}
-              </Button>
-            </div>
-          </motion.div>
-        )}
-
-        {step === "signing" && (
-          <motion.div
-            key="signing"
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            className="flex flex-col items-center justify-center py-12 space-y-4"
-          >
-            <motion.div
-              animate={{ rotate: 360 }}
-              transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-            >
-              <Loader2 className="size-12 text-primary" />
             </motion.div>
-            <div className="text-center">
-              <h3 className="font-semibold">{t("signMessage")}</h3>
-              <p className="text-sm text-muted-foreground">{t("approveWithdrawal")}</p>
-            </div>
-          </motion.div>
-        )}
-
-        {step === "processing" && (
-          <motion.div
-            key="processing"
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            className="flex flex-col items-center justify-center py-12 space-y-4"
-          >
+          ) : (
             <motion.div
-              animate={{ rotate: 360 }}
-              transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+              key={`status-${step}`}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.15 }}
+              className="flex-1 flex flex-col"
             >
-              <Loader2 className="size-12 text-primary" />
+              {stage && <FlowStepper step={stage} />}
+
+              {step === "success" && (
+                <Button className="w-full mt-auto" onClick={() => handleClose(false)}>
+                  {tCommon("done")}
+                </Button>
+              )}
+
+              {step === "error" && (
+                <div className="flex gap-3 w-full mt-auto">
+                  <Button variant="outline" className="flex-1" onClick={() => handleClose(false)}>
+                    {tCommon("close")}
+                  </Button>
+                  <Button className="flex-1" onClick={tryAgain}>
+                    {tCommon("tryAgain")}
+                  </Button>
+                </div>
+              )}
             </motion.div>
-            <div className="text-center">
-              <h3 className="font-semibold">{t("processingWithdrawal")}</h3>
-              <p className="text-sm text-muted-foreground">{t("mayTakeMoment")}</p>
-            </div>
-          </motion.div>
-        )}
-
-        {step === "success" && (
-          <motion.div
-            key="success"
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0 }}
-            className="flex flex-col items-center justify-center space-y-4"
-          >
-            <motion.div
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              transition={{
-                type: "spring",
-                stiffness: 200,
-                damping: 15,
-                delay: 0.1,
-              }}
-              className="size-16 rounded-full bg-green-500/10 flex items-center justify-center"
-            >
-              <CheckCircle2 className="size-8 text-green-500" />
-            </motion.div>
-
-            <div className="text-center space-y-2">
-              <h3 className="text-xl font-semibold">{t("withdrawalSubmitted")}</h3>
-              <p className="text-sm text-muted-foreground">{t("btcOnWay")}</p>
-            </div>
-
-            <Button className="w-full mt-2" onClick={() => handleClose(false)}>
-              {tCommon("done")}
-            </Button>
-          </motion.div>
-        )}
-
-        {step === "error" && (
-          <motion.div
-            key="error"
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            className="flex flex-col items-center justify-center space-y-4"
-          >
-            <motion.div
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              transition={{
-                type: "spring",
-                stiffness: 200,
-                damping: 15,
-              }}
-              className="size-16 rounded-full bg-destructive/10 flex items-center justify-center"
-            >
-              <XCircle className="size-8 text-destructive" />
-            </motion.div>
-
-            <div className="text-center space-y-2">
-              <h3 className="text-xl font-semibold">{tCommon("somethingWentWrong")}</h3>
-              <p className="text-sm text-destructive max-w-xs">{error}</p>
-            </div>
-
-            <div className="flex gap-3 w-full pt-2">
-              <Button variant="outline" className="flex-1" onClick={() => handleClose(false)}>
-                {tCommon("close")}
-              </Button>
-              <Button className="flex-1" onClick={() => setStep("input")}>
-                {tCommon("tryAgain")}
-              </Button>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+          )}
+        </AnimatePresence>
+      </div>
     </div>
   );
 
   if (isMobile) {
     return (
       <Drawer open={open} onOpenChange={handleClose}>
-        <DrawerContent className="px-5 pb-4 min-h-[70vh]">
+        <DrawerContent className="px-5 pb-4 min-h-[70vh] flex flex-col">
           <DrawerTitle className="sr-only">{t("title")}</DrawerTitle>
           {content}
         </DrawerContent>
@@ -278,7 +241,7 @@ export function WithdrawModal({
 
   return (
     <AlertDialog open={open} onOpenChange={handleClose}>
-      <AlertDialogContent className="sm:max-w-md">
+      <AlertDialogContent className="sm:max-w-md min-h-[400px] max-h-[400px] flex flex-col">
         <AlertDialogTitle className="sr-only">{t("title")}</AlertDialogTitle>
         {content}
       </AlertDialogContent>

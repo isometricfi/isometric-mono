@@ -203,6 +203,7 @@
     "mayTakeMoment": "这可能需要一些时间...",
     "withdrawalSubmitted": "提取已提交",
     "btcOnWay": "您的 BTC 正在发送到您的钱包",
+    "arrivesInMinutes": "应在 1 到 2 分钟内到达您的钱包",
     "failedToWithdraw": "提取失败"
   },
   "Portfolio": {
