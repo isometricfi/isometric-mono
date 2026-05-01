@@ -1,6 +1,8 @@
 ---
 sidebar_position: 5
 title: FAQ
+description: Answers to common questions about trading Bitcoin options on Isometric. Deposits, settlement, fees, withdrawals, KYC, and how options work end to end.
+keywords: [Bitcoin options FAQ, Isometric help, BTC options support, on-chain options questions]
 ---
 
 # FAQ

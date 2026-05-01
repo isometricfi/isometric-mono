@@ -1,6 +1,8 @@
 ---
 sidebar_position: 7
 title: Risk
+description: Risk explained for buyers and writers of BTC options on Isometric. Worst-case losses, sharp moves above strike, and what covered calls actually cover.
+keywords: [Bitcoin options risk, covered call risk, options trading risk, BTC writer worst case]
 ---
 
 # Risk

@@ -1,6 +1,8 @@
 ---
 sidebar_position: 3
 title: Portfolio
+description: Track your active Bitcoin options positions on Isometric. Live mark-to-market, expiry timers, open offers, and on-chain settlement status.
+keywords: [Bitcoin options portfolio, BTC positions, options dashboard, active options]
 ---
 
 # Portfolio

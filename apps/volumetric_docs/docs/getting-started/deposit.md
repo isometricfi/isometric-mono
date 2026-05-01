@@ -1,6 +1,8 @@
 ---
 sidebar_position: 3
 title: Deposit BTC
+description: How to deposit BTC into Isometric. Send from your connected wallet or any external Bitcoin wallet. Confirmation timing, minimums, and how deposits credit.
+keywords: [deposit BTC, fund Isometric account, Bitcoin deposit, BTC confirmations]
 ---
 
 # Deposit BTC

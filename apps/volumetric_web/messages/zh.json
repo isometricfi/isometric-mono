@@ -264,10 +264,10 @@
     "twoPathsSubtitle": "卖出期权预先赚取权利金，或买入期权获得杠杆敞口。同一份协议，两种相反的玩法。",
     "forHodlers": "适合持有者",
     "earnYieldTitle": "在你的BTC上赚取权利金",
-    "earnYieldDescription": "按你设定的条款承接买家的另一方，预先收取权利金。",
+    "earnYieldDescription": "按你设定的条款，承接买家的杠杆看涨头寸，预先收取权利金。",
     "forTraders": "适合交易者",
-    "leverageTitle": "小注押入，收益放大",
-    "leverageDescription": "选择价格和时间。如果到期时BTC高于您的目标价格，您赢得大奖。最大亏损：您投入的金额。",
+    "leverageTitle": "下行有限，上行无限",
+    "leverageDescription": "选择价格和时间。若到期前BTC越过你的目标价，头寸即获利。最高100倍杠杆。",
     "btcNative": "原生比特币",
     "instantSettlement": "即时结算",
     "permissionless": "无需许可",
@@ -288,7 +288,7 @@
     "buyerStep3Title": "到期自动结算",
     "buyerStep3Desc": "若 BTC 收盘价高于您的执行价，利润将通过链上自动结算入账。无需择时退出，没有强制平仓。",
     "startEarning": "开始赚取",
-    "makeABet": "立即押注",
+    "makeABet": "建立头寸",
     "chainAbstraction": "链抽象",
     "nativeBitcoin": "原生比特币。",
     "smartContractPower": "智能合约功能。",
@@ -324,7 +324,7 @@
     "problem2Desc": "整片地区被默认封锁。即便可以访问，也得交出护照才能进入。",
     "problem3Title": "为专业人士而建",
     "problem3Desc": "订单簿、期权链、保证金模式、几十个标的界面。对非全职交易者来说摩擦太大。",
-    "problemResolution": "Isometric 将比特币期权搬上链上——无需许可、非托管，一分钟内即可上手。",
+    "problemResolution": "Isometric 将比特币期权搬上链上。无需许可、非托管，一分钟内即可上手。",
     "teamEyebrow": "谁在构建",
     "teamTitle": "由两位工程师打造。",
     "teamLukeRole": "产品架构负责人 ·",
@@ -345,8 +345,8 @@
   "Pages": {
     "buyOptions": "购买期权",
     "writeOptions": "卖出期权",
-    "buyOptionsDescription": "对BTC的下一步走势加杠杆下注。最大损失就是你投入的金额。",
-    "writeOptionsDescription": "按你设定的条款承接买家的另一方，预先收取权利金。",
+    "buyOptionsDescription": "对BTC的下一步走势加杠杆。最大损失就是你投入的金额。",
+    "writeOptionsDescription": "按你设定的条款，承接买家的杠杆看涨头寸，预先收取权利金。",
     "putsComingSoon": "看跌期权即将推出",
     "writeCta": "卖出一个期权",
     "buyCta": "购买一个期权",
@@ -492,21 +492,21 @@
     "strategies": {
       "title": "选择你的策略",
       "predictTitle": "预测",
-      "predictDesc": "我认为BTC在Y天内将超过$X。如果我对了，收益巨大。",
+      "predictDesc": "我认为BTC在Y天内将超过$X。如果我对了，头寸即获利。",
       "predictBadge": "最高100倍杠杆",
       "earnTitle": "赚取",
       "earnDesc": "我锁定BTC并收取权利金。价格可以在目标以下任何位置。",
-      "earnBadge": "最高1000% APY",
+      "earnBadge": "最高250% APY",
       "footnote": "大多数交易者两者都做"
     },
     "buying": {
       "title": "你的判断，被放大",
       "youPutIn": "你投入",
-      "yourBet": "你的预测",
+      "yourBet": "你的头寸",
       "betValue": "BTC在7天内超过$105k",
       "btcPrice": "BTC价格",
       "netGain": "净收益",
-      "keyFact": "非对称风险：小投入，大回报。"
+      "keyFact": "非对称回报：下行有限，上行无限。"
     },
     "writing": {
       "title": "按你的条款收取权利金",
@@ -621,11 +621,11 @@
     "copyright": "© {year} Isometric。保留所有权利。"
   },
   "Metadata": {
-    "title": "链上BTC期权 · 100倍杠杆或1000%年化",
+    "title": "链上BTC期权 · 最高100倍杠杆或250%年化",
     "siteName": "Isometric",
-    "description": "BTC期权最高100倍杠杆 — 最大损失仅为投入金额。或卖出备兑看涨期权赚取高达1000%年化收益。完全链上、自托管、无KYC、无清算。",
-    "keywords": "比特币期权, BTC杠杆, 100倍杠杆, BTC收益, BTC年化, 1000% APY, 链上期权, 无清算, 自托管, 无KYC, 加密货币杠杆, 比特币交易",
-    "ogImageAlt": "Isometric — 最高100倍BTC杠杆或1000%年化收益 · 链上",
+    "description": "BTC加杠杆最高100倍，下行有上限；或卖出备兑看涨期权预先赚取权利金，最高250%年化。完全链上、自托管、无KYC、无清算。",
+    "keywords": "比特币期权, BTC杠杆, 100倍杠杆, BTC收益, BTC年化, 链上比特币期权, 无清算, 自托管, 无KYC, 备兑看涨期权, 比特币权利金收入",
+    "ogImageAlt": "Isometric · 链上BTC期权，最高100倍杠杆或250%年化",
     "privacy": {
       "title": "隐私政策",
       "description": "Isometric 如何在链上自托管BTC期权平台上处理您的数据。",
@@ -635,42 +635,42 @@
     },
     "terms": {
       "title": "服务条款",
-      "description": "在 Isometric 交易BTC期权的条款 — 自托管、链上、无KYC。",
+      "description": "在 Isometric 交易BTC期权的条款。自托管、链上、无KYC。",
       "keywords": "服务条款, 用户协议, 比特币期权条款, 链上交易条款",
       "ogTitle": "服务条款",
       "ogImageAlt": "Isometric 服务条款"
     },
     "buy": {
       "title": "购买BTC期权 · 最高100倍杠杆",
-      "description": "BTC期权最高100倍杠杆，零清算风险。最大损失仅为投入金额，绝不更多。完全链上、自托管、无KYC。",
-      "keywords": "购买比特币期权, BTC杠杆, 100倍杠杆, 无清算, 比特币看涨期权, 加密货币杠杆, 不对称下注, 链上期权",
-      "ogTitle": "BTC期权 · 最高100倍杠杆",
-      "ogImageAlt": "在 Isometric 购买BTC期权 · 最高100倍杠杆"
+      "description": "BTC加杠杆最高100倍，零清算风险。最大损失仅为投入金额，绝不更多。链上、自托管、无KYC。",
+      "keywords": "购买比特币期权, BTC杠杆, 100倍杠杆, 无清算, 比特币看涨期权, 杠杆BTC交易, 链上比特币期权",
+      "ogTitle": "BTC加杠杆最高100倍",
+      "ogImageAlt": "在 Isometric 购买BTC期权，最高100倍杠杆"
     },
     "write": {
-      "title": "BTC赚取高达1000%年化收益",
-      "description": "让您的BTC为您工作。通过卖出备兑看涨期权，预先赚取高达1000%年化收益。完全链上、自托管、掌握私钥、无KYC。",
-      "keywords": "BTC收益, BTC年化, 1000% APY, 比特币赚取, 备兑看涨期权, 卖出比特币期权, 链上收益, 自托管收益, 被动比特币收入",
-      "ogTitle": "BTC赚取最高1000%年化收益",
-      "ogImageAlt": "通过BTC期权赚取最高1000%年化 — Isometric"
+      "title": "在你的BTC上赚取权利金 · 最高250%年化",
+      "description": "让你的BTC为你工作。卖出备兑看涨期权，预先赚取权利金，最高250%年化。链上、自托管、掌握私钥、无KYC。",
+      "keywords": "BTC收益, BTC年化, 比特币赚取, 备兑看涨期权, 卖出比特币期权, 链上收益, 自托管收益, 比特币权利金收入",
+      "ogTitle": "在你的BTC上赚取权利金，最高250%年化",
+      "ogImageAlt": "在 Isometric 卖出BTC备兑看涨期权赚取权利金"
     },
     "portfolio": {
       "title": "投资组合",
-      "description": "实时跟踪每笔BTC下注和收益持仓。到期时自动链上结算。自托管、无KYC。",
+      "description": "实时跟踪每笔BTC持仓。到期时自动链上结算。自托管、无KYC。",
       "keywords": "BTC投资组合, 比特币期权跟踪, 链上持仓, BTC收益仪表板, 备兑看涨仪表板",
       "ogTitle": "我在 Isometric 的BTC投资组合",
-      "ogImageAlt": "实时链上BTC期权投资组合 — Isometric"
+      "ogImageAlt": "在 Isometric 实时跟踪链上BTC期权投资组合"
     },
     "history": {
       "title": "交易历史",
-      "description": "所有BTC期权交易和结算，链上可验证。您完整的交易记录 — 无需盲目信任。",
+      "description": "所有BTC期权交易和结算，链上可验证。你完整的交易记录，无需盲目信任。",
       "keywords": "BTC交易历史, 链上交易历史, 可验证比特币交易, 期权结算历史, 交易记录",
       "ogTitle": "我在 Isometric 的BTC交易历史",
-      "ogImageAlt": "链上可验证BTC交易历史 — Isometric"
+      "ogImageAlt": "在 Isometric 链上可验证的BTC交易历史"
     },
     "share": {
       "title": "和我一起在 Isometric 交易BTC期权",
-      "description": "BTC最高100倍杠杆，或卖出看涨期权赚取高达1000%年化。完全链上、自托管、无KYC。查看我的数据，开始你的交易。",
+      "description": "BTC最高100倍杠杆，或卖出看涨期权赚取权利金。链上、自托管、无KYC。查看我的数据，开始你的交易。",
       "keywords": "比特币期权交易, BTC杠杆, BTC年化, 链上交易, 交易者数据, 加入 Isometric",
       "ogTitle": "加入我在 Isometric 交易BTC期权",
       "ogImageAlt": "加入我在 Isometric 交易BTC期权"
