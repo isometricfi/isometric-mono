@@ -258,14 +258,14 @@ mod tests {
 
     const MIN_QUANTITY_SATS: u64 = 90_000;
     const MAX_QUANTITY_SATS: u64 = 100_000_000;
-    const MIN_PREMIUM_BPS: u16 = 50;
-    const MAX_PREMIUM_BPS: u16 = 10_000;
-    const MIN_STRIKE_BPS: u16 = 500;
-    const MAX_STRIKE_BPS: u16 = 10_000;
+    const MIN_PREMIUM_BPS: u16 = 10;
+    const MAX_PREMIUM_BPS: u16 = 300;
+    const MIN_STRIKE_BPS: u16 = 300;
+    const MAX_STRIKE_BPS: u16 = 800;
     const SECONDS_PER_HOUR: u64 = 3_600;
-    const MIN_DURATION_SECS: u64 = SECONDS_PER_HOUR;
+    const MIN_DURATION_SECS: u64 = 86400 * 3;
     const SECONDS_PER_DAY: u64 = 86400;
-    const MAX_DURATION_DAYS: u64 = 30;
+    const MAX_DURATION_DAYS: u64 = 7;
     const MAX_DURATION_SECS: u64 = SECONDS_PER_DAY * MAX_DURATION_DAYS;
 
     fn test_limits() -> TradingLimits {
@@ -559,10 +559,10 @@ mod tests {
     }
 
     #[test]
-    fn test_validate_duration_one_day() {
+    fn test_validate_duration_three_days() {
         // given
         let limits = test_limits();
-        let duration = SECONDS_PER_DAY;
+        let duration = SECONDS_PER_DAY * 3;
 
         // when
         let result = validate_option_duration(duration, &limits);
@@ -575,7 +575,7 @@ mod tests {
     fn test_validate_duration_rejects_non_hour_multiple() {
         // given
         let limits = test_limits();
-        let duration = SECONDS_PER_HOUR + 60;
+        let duration = MIN_DURATION_SECS + 60;
 
         // when
         let result = validate_option_duration(duration, &limits);

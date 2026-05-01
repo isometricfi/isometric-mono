@@ -25,7 +25,7 @@ fn test_buyer_cannot_accept_offer_after_withdraw_debits_same_funds() {
     const OFFER_QUANTITY_SATS: u64 = 1_000_000;
     const STRIKE_BPS: u16 = 500;
     const PREMIUM_BPS: u16 = 100;
-    const ONE_DAY_SECS: u64 = 86_400;
+    const ONE_DAY_SECS: u64 = 86_400 * 3;
     const BUYER_INITIAL_BALANCE_SATS: u64 = 100_000;
     const WITHDRAW_LEDGER_FEE_CHARGE_COUNT: u64 = 2;
     const CKBTC_TRANSFER_FEE_SATS: u64 = 10;

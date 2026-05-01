@@ -10,9 +10,9 @@ use crate::journaling::{
 use crate::oracle::get_btc_usd_price_cents;
 use crate::storage::{
     add_available, add_platform_fee, calculate_strike_price_in_cents, complete_accept, emit_event,
-    fail_accept, get_accept, get_fee_recipient, get_offer, insert_active_option, remove_accept,
-    update_accept_execution_snapshot, update_accept_phase, update_offer, AcceptPhase, ActiveOption,
-    ActiveOptionStatus, EventData, EventType, OfferStatus, TradeRole,
+    fail_accept, get_accept, get_active_option, get_fee_recipient, get_offer, insert_active_option,
+    remove_accept, update_accept_execution_snapshot, update_accept_phase, update_offer,
+    AcceptPhase, ActiveOption, ActiveOptionStatus, EventData, EventType, OfferStatus, TradeRole,
 };
 use crate::usecases::balances::transfer_ckbtc;
 
@@ -225,6 +225,10 @@ fn create_active_options_from_wal_payload(
     platform_fee_collected: bool,
 ) -> Result<(), WalExecutionError> {
     for prepared_accept in &payload.prepared_accepts {
+        if get_active_option(prepared_accept.option_id).is_some() {
+            continue;
+        }
+
         let strike_price_cents =
             calculate_strike_price_in_cents(entry_price_cents, prepared_accept.strike_basis_points);
         let created_active_option = ActiveOption {

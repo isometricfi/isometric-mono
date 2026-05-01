@@ -18,9 +18,9 @@ use crate::oracle::get_btc_usd_price_cents_at_time_seconds;
 use crate::oracle::xrc_timestamp_seconds_for_time_seconds;
 use crate::storage::{
     add_platform_fee, calculate_call_option_payout, calculate_profit_fee, complete_settlement,
-    create_settlement, emit_event, fail_settlement, get_active_option, get_fee_recipient,
-    get_settlement, list_expired_active_options, release_locked_to_buyer, remove_settlement,
-    subtract_available, unlock_collateral, update_active_option, update_settlement_phase,
+    create_settlement, deduct_locked_collateral, emit_event, fail_settlement, get_active_option,
+    get_fee_recipient, get_settlement, list_expired_active_options, release_locked_to_buyer,
+    remove_settlement, unlock_collateral, update_active_option, update_settlement_phase,
     ActiveOption, ActiveOptionStatus, EventData, EventType, OptionType, PendingSettlement,
     SettlementPhase, TradeRole,
 };
@@ -337,11 +337,6 @@ pub async fn run_settlement_wal(
         if payout_to_buyer > 0 {
             release_locked_to_buyer(option.writer, option.buyer, payout_to_buyer)
                 .map_err(map_balance_error_to_permanent)?;
-
-            if profit_fee > 0 {
-                unlock_collateral(option.writer, profit_fee)
-                    .map_err(map_balance_error_to_permanent)?;
-            }
         }
 
         update_settlement_phase(option.id, SettlementPhase::BalanceReleased);
@@ -354,31 +349,61 @@ pub async fn run_settlement_wal(
         ))
     })?;
 
-    if settlement.phase == SettlementPhase::BalanceReleased && profit_fee > 0 {
-        transfer_ckbtc(
-            Some(writer_subaccount),
-            Account {
-                owner: get_fee_recipient(),
-                subaccount: None,
-            },
-            profit_fee,
-            payload.created_at_time_ns,
-            Some(ledger_memo(
-                operation_id,
-                LedgerMemoKind::SettlementProfitFee,
-                &[],
-            )),
-        )
-        .await
-        .map_err(register_retryable_error)?;
+    if settlement.phase == SettlementPhase::BalanceReleased {
+        if profit_fee > 0 {
+            transfer_ckbtc(
+                Some(writer_subaccount),
+                Account {
+                    owner: get_fee_recipient(),
+                    subaccount: None,
+                },
+                profit_fee,
+                payload.created_at_time_ns,
+                Some(ledger_memo(
+                    operation_id,
+                    LedgerMemoKind::SettlementProfitFee,
+                    &[],
+                )),
+            )
+            .await
+            .map_err(register_retryable_error)?;
 
-        add_platform_fee(profit_fee);
-        subtract_available(option.writer, profit_fee).map_err(map_balance_error_to_permanent)?;
+            add_platform_fee(profit_fee);
+            deduct_locked_collateral(option.writer, profit_fee)
+                .map_err(map_balance_error_to_permanent)?;
+        }
+
+        update_settlement_phase(option.id, SettlementPhase::ProfitFeeCollected);
     }
 
-    if payout_to_writer > 0 {
-        unlock_collateral(option.writer, payout_to_writer)
-            .map_err(map_balance_error_to_permanent)?;
+    let settlement = get_settlement(payload.option_id).ok_or_else(|| {
+        WalExecutionError::Permanent(format!(
+            "settlement journal {} missing before writer payout",
+            option.id
+        ))
+    })?;
+
+    if settlement.phase == SettlementPhase::ProfitFeeCollected {
+        if payout_to_writer > 0 {
+            unlock_collateral(option.writer, payout_to_writer)
+                .map_err(map_balance_error_to_permanent)?;
+        }
+
+        update_settlement_phase(option.id, SettlementPhase::WriterPayoutReleased);
+    }
+
+    let settlement = get_settlement(payload.option_id).ok_or_else(|| {
+        WalExecutionError::Permanent(format!(
+            "settlement journal {} missing before completion",
+            option.id
+        ))
+    })?;
+
+    if settlement.phase != SettlementPhase::WriterPayoutReleased {
+        return Err(WalExecutionError::Permanent(format!(
+            "settlement {} in unexpected phase {:?}",
+            option.id, settlement.phase
+        )));
     }
 
     option.status = ActiveOptionStatus::Settled;
@@ -725,7 +750,7 @@ pub fn testing_set_option_expiry_use_case(
 
 #[cfg(test)]
 mod tests {
-    use std::cell::RefCell;
+    use std::cell::{Cell, RefCell};
     use std::rc::Rc;
 
     use async_trait::async_trait;
@@ -738,8 +763,9 @@ mod tests {
     use crate::ledger::{self, LedgerClient};
     use crate::oracle::{set_oracle, PriceOracle, StubOracle};
     use crate::storage::{
-        clear_active_options, clear_events, get_balance, get_settlement, insert_active_option,
-        list_failed_settlements, list_pending_settlements_journal, remove_settlement, set_balance,
+        clear_active_options, clear_events, get_balance, get_platform_fees_collected,
+        get_settlement, insert_active_option, list_failed_settlements,
+        list_pending_settlements_journal, remove_settlement, set_balance, subtract_available,
         UserBalance,
     };
 
@@ -753,6 +779,11 @@ mod tests {
     const TEST_OTM_SETTLEMENT_PRICE_CENTS: u64 = 10_000_000;
     const TEST_NOW_SECONDS: u64 = TEST_NOW_NS / crate::time::NANOS_PER_SECOND;
     const TEST_ONE_HOUR_SECONDS: u64 = 3_600;
+    const EXPECTED_GROSS_BUYER_PAYOUT_SATS: u64 = 125_000;
+    const EXPECTED_PROFIT_FEE_SATS: u64 = 12_500;
+    const EXPECTED_BUYER_PAYOUT_SATS: u64 =
+        EXPECTED_GROSS_BUYER_PAYOUT_SATS - EXPECTED_PROFIT_FEE_SATS;
+    const EXPECTED_WRITER_PAYOUT_SATS: u64 = TEST_QUANTITY_SATS - EXPECTED_GROSS_BUYER_PAYOUT_SATS;
 
     struct MockRuntime;
 
@@ -821,6 +852,12 @@ mod tests {
         did_fail_profit_fee_transfer: RefCell<bool>,
     }
 
+    struct WriterSpendDuringProfitFeeTransferLedger {
+        writer: Principal,
+        transfer_call_count: RefCell<u64>,
+        writer_spend_succeeded: Rc<Cell<bool>>,
+    }
+
     impl RetryableProfitFeeTransferLedger {
         fn new() -> Self {
             Self {
@@ -858,6 +895,42 @@ mod tests {
                         None,
                     ));
                 }
+            }
+
+            Ok(*transfer_call_count)
+        }
+
+        async fn icrc1_balance_of(&self, _account: Account) -> Result<Nat, VolumetricError> {
+            Ok(Nat::from(0u64))
+        }
+
+        async fn icrc2_approve(&self, _args: ApproveArgs) -> Result<Nat, VolumetricError> {
+            Ok(Nat::from(0u64))
+        }
+
+        async fn icrc1_fee(&self) -> Result<u64, VolumetricError> {
+            Ok(10)
+        }
+    }
+
+    #[async_trait(?Send)]
+    impl LedgerClient for WriterSpendDuringProfitFeeTransferLedger {
+        async fn icrc1_transfer(
+            &self,
+            _from_subaccount: Option<[u8; 32]>,
+            _to: Account,
+            _amount: u64,
+            _created_at_time: u64,
+            _memo: Option<Memo>,
+        ) -> Result<u64, VolumetricError> {
+            let mut transfer_call_count = self.transfer_call_count.borrow_mut();
+            *transfer_call_count = transfer_call_count.saturating_add(1);
+
+            const PROFIT_FEE_TRANSFER_CALL_NUMBER: u64 = 2;
+            if *transfer_call_count == PROFIT_FEE_TRANSFER_CALL_NUMBER
+                && subtract_available(self.writer, EXPECTED_PROFIT_FEE_SATS).is_ok()
+            {
+                self.writer_spend_succeeded.set(true);
             }
 
             Ok(*transfer_call_count)
@@ -1425,6 +1498,7 @@ mod tests {
         let buyer = test_principal(12);
         let retryable_ledger = Rc::new(RetryableProfitFeeTransferLedger::new());
         setup_test_state_with_ledger(writer, buyer, retryable_ledger.clone());
+        let platform_fees_before = get_platform_fees_collected();
         let prepared_settlement_execution =
             prepare_settlement_execution(TEST_OPTION_ID, TEST_SETTLEMENT_PRICE_CENTS)
                 .expect("settlement should be prepared");
@@ -1483,6 +1557,10 @@ mod tests {
             retryable_ledger.transfer_call_count(),
             EXPECTED_TRANSFER_CALL_COUNT
         );
+        assert_eq!(
+            get_platform_fees_collected() - platform_fees_before,
+            EXPECTED_PROFIT_FEE_SATS
+        );
     }
 
     /// Given: settlement retries always fail at the first buyer transfer step
@@ -1536,6 +1614,59 @@ mod tests {
         assert_eq!(buyer_balance.locked_as_writer, 0);
         assert_eq!(option.status, ActiveOptionStatus::Settling);
         assert_eq!(settlement.phase, SettlementPhase::Started);
+    }
+
+    /// Given: a settlement needs to collect a profit fee from writer collateral
+    /// When: the profit-fee transfer is in progress and the writer attempts to spend that fee
+    /// Then: the fee never becomes available to the writer before settlement accounting completes
+    #[tokio::test]
+    async fn test_profit_fee_collateral_is_not_writer_spendable_during_fee_transfer() {
+        // given
+        let writer = test_principal(25);
+        let buyer = test_principal(26);
+        let writer_spend_succeeded = Rc::new(Cell::new(false));
+        let ledger = WriterSpendDuringProfitFeeTransferLedger {
+            writer,
+            transfer_call_count: RefCell::new(0),
+            writer_spend_succeeded: Rc::clone(&writer_spend_succeeded),
+        };
+        setup_test_state_with_ledger(writer, buyer, Rc::new(ledger));
+        let platform_fees_before = get_platform_fees_collected();
+        let prepared_settlement_execution =
+            prepare_settlement_execution(TEST_OPTION_ID, TEST_SETTLEMENT_PRICE_CENTS)
+                .expect("settlement should be prepared");
+        let wal_entry = get_entry(prepared_settlement_execution.operation_id)
+            .expect("settlement wal entry should exist");
+        let WalPayload::Settlement(settlement_payload) = wal_entry.payload else {
+            panic!("settlement WAL entry should contain settlement payload");
+        };
+
+        // when
+        let settlement_result = run_settlement_wal(
+            prepared_settlement_execution.operation_id,
+            &settlement_payload,
+        )
+        .await;
+
+        // then
+        assert_eq!(
+            settlement_result,
+            Ok(SettlementWalResult {
+                option_id: TEST_OPTION_ID
+            })
+        );
+        assert!(!writer_spend_succeeded.get());
+
+        let writer_balance = get_balance(&writer);
+        let buyer_balance = get_balance(&buyer);
+        assert_eq!(writer_balance.available, EXPECTED_WRITER_PAYOUT_SATS);
+        assert_eq!(writer_balance.locked_as_writer, 0);
+        assert_eq!(buyer_balance.available, EXPECTED_BUYER_PAYOUT_SATS);
+        assert_eq!(buyer_balance.locked_as_writer, 0);
+        assert_eq!(
+            get_platform_fees_collected() - platform_fees_before,
+            EXPECTED_PROFIT_FEE_SATS
+        );
     }
 
     /// Given: settlement retries fail at the buyer payout ledger transfer
