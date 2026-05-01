@@ -205,6 +205,7 @@
     "mayTakeMoment": "This may take a moment...",
     "withdrawalSubmitted": "Withdrawal submitted",
     "btcOnWay": "Your BTC is on its way to your wallet",
+    "arrivesInMinutes": "Your BTC will be sent to your wallet in 1 to 2 minutes",
     "failedToWithdraw": "Failed to withdraw"
   },
   "Portfolio": {
