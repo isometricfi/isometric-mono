@@ -606,6 +606,20 @@
     "offerLimitExceeded": "每个期限的最大报价数已超过",
     "internalError": "发生意外错误"
   },
+  "NotFound": {
+    "code": "404",
+    "heading": "此页面已到期作废。",
+    "description": "您要找的内容不在这里。也许链接被截断了，也许它从未存在。不管怎样，您的权利金是安全的。",
+    "openApp": "打开应用"
+  },
+  "AppError": {
+    "title": "波动性飙升。",
+    "heading": "我们这边遇到了一点小问题。",
+    "description": "不是您的错。我们已经捕获并记录了，正在排查。请再试一次。",
+    "tryAgain": "重试",
+    "backHome": "返回首页",
+    "errorId": "错误编号"
+  },
   "Footer": {
     "tagline": "链上比特币期权。无中介，无交易对手风险。",
     "resources": "资源",
