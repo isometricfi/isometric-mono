@@ -1,6 +1,7 @@
 "use client";
 
 import { useDynamicContext } from "@dynamic-labs/sdk-react-core";
+import { format } from "date-fns";
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 import { useTranslations } from "next-intl";
@@ -32,6 +33,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { SlideToConfirm } from "@/components/ui/slide-to-confirm";
 import { useConfig } from "@/hooks";
 import { Link } from "@/i18n/routing";
+import { estimateExpiryDate } from "@/lib/expiry";
 import { basisPointsToPercent, cn, formatBtc, roundToN, satsToBtc } from "@/lib/utils";
 import { useCallOptionBuyFormModel } from "./_internal/use-call-option-buy-form-model";
 
@@ -331,10 +333,12 @@ function ReviewStep({ model, feePercent }: { model: BuyModel; feePercent: number
   const maxProfitUsd = Math.round(maxProfitBtc * model.btcPrice);
   const strikeDisplay = `$${model.selectedStrikeUsd.toLocaleString()}`;
   const maxProfitDisplay = `₿${maxProfitBtc.toFixed(6)}`;
+  const expiryDisplay = format(estimateExpiryDate(model.selectedTermDay), "MMM d, yyyy 'at' HH:mm");
 
   const rows: SummaryRow[] = [
     { label: t("review.strike"), value: strikeDisplay },
     { label: t("review.term"), value: `${model.selectedTermDay} ${termLabel}` },
+    { label: t("review.expires"), value: expiryDisplay },
     {
       label: t("review.premium"),
       value: `₿${formatBtc(model.amountSats, 6)} · $${premiumUsd.toLocaleString()}`,

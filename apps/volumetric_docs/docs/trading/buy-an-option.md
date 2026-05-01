@@ -35,6 +35,8 @@ The review screen shows strike, term, amount, leverage, max profit, and the plat
 
 The option appears in your **Portfolio** under **Active**. At expiry it settles automatically.
 
+Expiries land on the top of the hour. A 7-day term accepted at 12:01 expires at 13:00 seven days later.
+
 - BTC closes **above** strike: profit settles to your account in BTC.
 - BTC closes **at or below** strike: the option expires worthless. You lose what you put in.
 
