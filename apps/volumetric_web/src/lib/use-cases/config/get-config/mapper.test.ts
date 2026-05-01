@@ -16,7 +16,7 @@ function makeValidLimits(overrides: Record<string, unknown> = {}) {
     accept_offer_quantity_sats: { min: BigInt(5_000), max: BigInt(500_000) },
     premium_basis_points: { min: 100, max: 5_000 },
     strike_basis_points: { min: 500, max: 2_000 },
-    option_duration_seconds: daysToSecondsRange(1, 14),
+    option_duration_seconds: daysToSecondsRange(3, 7),
     deposit_amount_sats: BigInt(5_000),
     withdraw_amount_sats: BigInt(5_000),
     ...overrides,
@@ -37,7 +37,7 @@ afterEach(() => {
 });
 
 describe("mapConfig", () => {
-  test("should map all fields with default 1-14 day range", () => {
+  test("should map all fields with default 3-7 day range", () => {
     // given
     delete process.env.CANISTER_ID;
     delete process.env.IC_HOST;

@@ -142,9 +142,9 @@ mod tests {
 
     const TEST_NOW_NS: u64 = 1_000_000_000_000;
     const VALID_QUANTITY_SATS: u64 = 1_000_000;
-    const VALID_STRIKE_BPS: u16 = 5_000;
-    const VALID_PREMIUM_BPS: u16 = 500;
-    const VALID_DURATION_SECS: u64 = 3600;
+    const VALID_STRIKE_BPS: u16 = 500;
+    const VALID_PREMIUM_BPS: u16 = 100;
+    const VALID_DURATION_SECS: u64 = 86400 * 3;
     const TEST_NOW_SECONDS: u64 = TEST_NOW_NS / crate::time::NANOS_PER_SECOND;
     const OFFER_VALID_UNTIL_SECONDS: u64 = TEST_NOW_SECONDS + 60;
 

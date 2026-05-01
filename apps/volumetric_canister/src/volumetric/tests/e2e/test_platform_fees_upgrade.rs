@@ -7,7 +7,7 @@ use crate::helpers::{
 use volumetric::AcceptOfferItem;
 
 const FIRST_OFFER_ID: u64 = 1;
-const ONE_DAY_SECS: u64 = 86_400;
+const ONE_DAY_SECS: u64 = 86_400 * 3;
 const ENTRY_PRICE_CENTS: u64 = 10_000_000;
 const ACCEPT_TRANSFER_COUNT: u64 = 2;
 const CKBTC_TRANSFER_FEE: u64 = 10;

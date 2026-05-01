@@ -26,7 +26,7 @@ fn test_writer_creates_offer_and_it_appears_in_open_offers() {
     const TEN_MILLION_SATS: u64 = 10_000_000; // 0.1 BTC
     const STRIKE_BPS: u16 = 500;
     const PREMIUM_BPS: u16 = 100;
-    const ONE_DAY_SECS: u64 = 86_400;
+    const ONE_DAY_SECS: u64 = 86_400 * 3;
     const QUANTITY_SATS: u64 = TEN_MILLION_SATS;
 
     mint_and_sync_balance(&env, &writer_profile, QUANTITY_SATS).expect("Mint balance failed");
@@ -93,7 +93,7 @@ fn test_writer_cancels_open_offer_successfully() {
     const TEN_MILLION_SATS: u64 = 10_000_000; // 0.1 BTC
     const STRIKE_BPS: u16 = 500;
     const PREMIUM_BPS: u16 = 100;
-    const ONE_DAY_SECS: u64 = 86_400;
+    const ONE_DAY_SECS: u64 = 86_400 * 3;
     const QUANTITY_SATS: u64 = TEN_MILLION_SATS;
     const FIRST_OFFER_ID: u64 = 1;
 
@@ -156,7 +156,7 @@ fn test_cancel_offer_fails_for_non_owner() {
     const TEN_MILLION_SATS: u64 = 10_000_000; // 0.1 BTC
     const STRIKE_BPS: u16 = 500;
     const PREMIUM_BPS: u16 = 100;
-    const ONE_DAY_SECS: u64 = 86_400;
+    const ONE_DAY_SECS: u64 = 86_400 * 3;
     const QUANTITY_SATS: u64 = TEN_MILLION_SATS;
     const FIRST_OFFER_ID: u64 = 1;
 
@@ -198,7 +198,7 @@ fn test_cancel_already_cancelled_offer_fails() {
     const TEN_MILLION_SATS: u64 = 10_000_000; // 0.1 BTC
     const STRIKE_BPS: u16 = 500;
     const PREMIUM_BPS: u16 = 100;
-    const ONE_DAY_SECS: u64 = 86_400;
+    const ONE_DAY_SECS: u64 = 86_400 * 3;
     const QUANTITY_SATS: u64 = TEN_MILLION_SATS;
     const FIRST_OFFER_ID: u64 = 1;
 
@@ -247,7 +247,7 @@ fn test_cancel_filled_offer_fails() {
     const TEN_MILLION_SATS: u64 = 10_000_000; // 0.1 BTC
     const STRIKE_BPS: u16 = 500;
     const PREMIUM_BPS: u16 = 100;
-    const ONE_DAY_SECS: u64 = 86_400;
+    const ONE_DAY_SECS: u64 = 86_400 * 3;
     const BASIS_POINTS: u64 = 10_000;
     const CKBTC_TRANSFER_FEE: u64 = 10;
     const FIRST_OFFER_ID: u64 = 1;
@@ -308,7 +308,7 @@ fn test_create_offer_with_insufficient_balance_fails() {
     const TEN_MILLION_SATS: u64 = 10_000_000; // 0.1 BTC
     const STRIKE_BPS: u16 = 500;
     const PREMIUM_BPS: u16 = 100;
-    const ONE_DAY_SECS: u64 = 86_400;
+    const ONE_DAY_SECS: u64 = 86_400 * 3;
 
     mint_and_sync_balance(&env, &writer_profile, FIVE_MILLION_SATS).expect("Mint balance failed");
 
@@ -345,7 +345,7 @@ fn test_create_offer_exceeds_limit_per_term_fails() {
     const ONE_MILLION_SATS: u64 = 1_000_000; // 0.01 BTC
     const STRIKE_BPS: u16 = 500;
     const PREMIUM_BPS: u16 = 100;
-    const ONE_DAY_SECS: u64 = 86_400;
+    const ONE_DAY_SECS: u64 = 86_400 * 3;
     const MAX_OFFERS_PER_TERM: usize = 5;
     const TOTAL_BALANCE_SATS: u64 = ONE_MILLION_SATS * (MAX_OFFERS_PER_TERM as u64 + 1);
 
@@ -403,7 +403,7 @@ fn test_create_offer_with_locked_balance_fails() {
     const SIX_MILLION_SATS: u64 = 6_000_000; // 0.06 BTC (second offer, should fail)
     const STRIKE_BPS: u16 = 500;
     const PREMIUM_BPS: u16 = 100;
-    const ONE_DAY_SECS: u64 = 86_400;
+    const ONE_DAY_SECS: u64 = 86_400 * 3;
     const BASIS_POINTS: u64 = 10_000;
     const CKBTC_TRANSFER_FEE: u64 = 10;
     const FIRST_OFFER_ID: u64 = 1;

@@ -14,7 +14,7 @@ const PREMIUM_BPS: u16 = 100;
 const PREMIUM_FEE_BPS: u64 = 500;
 const PROFIT_FEE_BPS: u64 = 2000;
 const ENTRY_PRICE_CENTS: u64 = 10_000_000;
-const ONE_DAY_SECS: u64 = 86_400;
+const ONE_DAY_SECS: u64 = 86_400 * 3;
 const ONE_HOUR_SECS: u64 = 3_600;
 const CKBTC_TRANSFER_FEE: u64 = 10;
 const FIRST_OFFER_ID: u64 = 1;
@@ -432,7 +432,7 @@ fn test_multiple_options_settle_in_single_cron_tick() {
     let buyer_2_profile = create_account(&env, &buyer_2_wallet).expect("Buyer 2 account failed");
 
     const STRIKE_BPS_ITM: u16 = 500;
-    const STRIKE_BPS_OTM: u16 = 1000;
+    const STRIKE_BPS_OTM: u16 = 800;
     const SETTLEMENT_PRICE_CENTS: u64 = 10_600_000;
     const SECOND_OFFER_ID: u64 = 2;
 
@@ -1059,7 +1059,7 @@ fn test_partial_quantity_itm_option_settles_with_correct_payouts_and_fees() {
 
     const WRITER_SEED: u64 = 61;
     const BUYER_SEED: u64 = 62;
-    const STRIKE_BPS: u16 = 900;
+    const STRIKE_BPS: u16 = 800;
     const OPTION_ID: u64 = 1;
     const PARTIAL_QUANTITY_SATS: u64 = 12_345_679;
     const PARTIAL_PREMIUM_SATS: u64 = PARTIAL_QUANTITY_SATS * PREMIUM_BPS as u64 / BASIS_POINTS;
@@ -1165,7 +1165,7 @@ fn test_two_itm_options_in_one_tick_aggregate_profit_fees_on_fee_recipient() {
     const WRITER_2_SEED: u64 = 73;
     const BUYER_2_SEED: u64 = 74;
     const STRIKE_BPS_1: u16 = 500;
-    const STRIKE_BPS_2: u16 = 900;
+    const STRIKE_BPS_2: u16 = 800;
     const OPTION_1_ID: u64 = 1;
     const OPTION_2_ID: u64 = 2;
     const OFFER_2_ID: u64 = 2;
