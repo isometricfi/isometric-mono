@@ -5,9 +5,12 @@ const MAX_BTC_DECIMALS = 6;
 const MAX_USD_INPUT = 10_000_000;
 const MAX_USD_DECIMALS = 2;
 
-export function sanitizeBtcInput(input: string): string | null {
+export function sanitizeBtcInput(
+  input: string,
+  maxDecimals: number = MAX_BTC_DECIMALS,
+): string | null {
   return sanitizeDecimalInput(input, {
-    maxDecimals: MAX_BTC_DECIMALS,
+    maxDecimals,
     maxValueExclusive: MAX_BTC_INPUT,
   });
 }

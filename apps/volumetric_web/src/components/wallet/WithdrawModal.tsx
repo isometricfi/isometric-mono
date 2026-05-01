@@ -125,6 +125,7 @@ export function WithdrawModal({
               onChange={setAmountBtc}
               maxAmountSats={Number(availableSats)}
               minAmountSats={Number(minWithdrawSats)}
+              maxDecimals={8}
               onMaxClick={() => setAmountBtc(formatBtcBigint(availableSats, 8))}
             />
 

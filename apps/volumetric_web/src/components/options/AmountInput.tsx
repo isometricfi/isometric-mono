@@ -13,6 +13,7 @@ export interface AmountInputProps {
   symbol?: string;
   maxAmountSats?: number;
   minAmountSats?: number;
+  maxDecimals?: number;
   onMaxClick?: () => void;
 }
 
@@ -22,6 +23,7 @@ export function AmountInput({
   symbol = "₿",
   maxAmountSats,
   minAmountSats: _minAmountSats,
+  maxDecimals = 6,
   onMaxClick,
 }: AmountInputProps) {
   const t = useTranslations("Forms");
@@ -29,7 +31,7 @@ export function AmountInput({
   const btcPrice = priceData?.btc ?? 0;
 
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
-    const sanitized = sanitizeBtcInput(e.target.value);
+    const sanitized = sanitizeBtcInput(e.target.value, maxDecimals);
     if (sanitized !== null) {
       onChange(sanitized);
     }
@@ -50,7 +52,7 @@ export function AmountInput({
             onClick={onMaxClick}
             className="text-sm text-muted-foreground hover:text-foreground transition-colors"
           >
-            {t("max")}: {formatBtcWithSymbol(maxAmountSats, 6)}
+            {t("max")}: {formatBtcWithSymbol(maxAmountSats, maxDecimals)}
           </button>
         )}
       </div>
