@@ -8,7 +8,6 @@ use volumetric::{WithdrawStatus, WithdrawalPhase};
 
 const WITHDRAW_AMOUNT_SATS: u64 = 100_000;
 const INITIAL_BALANCE_SATS: u64 = 500_000;
-const TEST_BTC_ADDRESS: &str = "tb1qvolumetricwithdraw";
 
 /// Given: a funded account with a valid withdrawal request
 /// When: withdraw_ckbtc is called
@@ -27,7 +26,7 @@ fn test_withdraw_returns_receipt_and_initial_pending_status() {
     configure_test_ledger(&env);
 
     // when
-    let receipt = withdraw_ckbtc(&env, &wallet, TEST_BTC_ADDRESS, WITHDRAW_AMOUNT_SATS)
+    let receipt = withdraw_ckbtc(&env, &wallet, WITHDRAW_AMOUNT_SATS)
         .expect("withdraw should enqueue");
     let status =
         get_withdraw_status(&env, receipt.operation_id).expect("status should load after enqueue");
@@ -72,7 +71,7 @@ fn test_withdraw_retryable_failure_keeps_pending_with_last_error() {
     mint_and_sync_balance(&env, &profile, INITIAL_BALANCE_SATS).expect("Funding failed");
     configure_test_ledger(&env);
 
-    let receipt = withdraw_ckbtc(&env, &wallet, TEST_BTC_ADDRESS, WITHDRAW_AMOUNT_SATS)
+    let receipt = withdraw_ckbtc(&env, &wallet, WITHDRAW_AMOUNT_SATS)
         .expect("withdraw should enqueue");
 
     // when
@@ -119,7 +118,7 @@ fn test_withdraw_retry_window_keeps_pending_and_balance_reserved() {
     let balance_before_withdraw =
         get_user_balance(&env, &wallet.address).expect("initial balance lookup failed");
 
-    let receipt = withdraw_ckbtc(&env, &wallet, TEST_BTC_ADDRESS, WITHDRAW_AMOUNT_SATS)
+    let receipt = withdraw_ckbtc(&env, &wallet, WITHDRAW_AMOUNT_SATS)
         .expect("withdraw should enqueue");
 
     // when
@@ -175,9 +174,9 @@ fn test_withdraw_rejects_second_request_while_first_is_pending() {
     configure_test_ledger(&env);
 
     // when
-    let _first_receipt = withdraw_ckbtc(&env, &wallet, TEST_BTC_ADDRESS, WITHDRAW_AMOUNT_SATS)
+    let _first_receipt = withdraw_ckbtc(&env, &wallet, WITHDRAW_AMOUNT_SATS)
         .expect("first withdraw should enqueue");
-    let second_result = withdraw_ckbtc(&env, &wallet, TEST_BTC_ADDRESS, WITHDRAW_AMOUNT_SATS);
+    let second_result = withdraw_ckbtc(&env, &wallet, WITHDRAW_AMOUNT_SATS);
 
     // then
     let second_error = second_result.expect_err("second withdraw should be blocked");
@@ -226,7 +225,7 @@ fn test_withdraw_accepts_full_available_balance_as_gross_when_net_meets_minimum(
     let balance = get_user_balance(&env, &wallet.address).expect("balance lookup failed");
 
     // when
-    let withdraw_result = withdraw_ckbtc(&env, &wallet, TEST_BTC_ADDRESS, balance.available);
+    let withdraw_result = withdraw_ckbtc(&env, &wallet, balance.available);
 
     // then
     let receipt = withdraw_result.expect("withdraw should enqueue for full available gross");

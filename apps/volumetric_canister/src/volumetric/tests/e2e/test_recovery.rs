@@ -7,7 +7,6 @@ use volumetric::{WalExecutionOutcome, WithdrawStatus};
 
 const WITHDRAW_AMOUNT_SATS: u64 = 100_000;
 const INITIAL_BALANCE_SATS: u64 = 500_000;
-const TEST_BTC_ADDRESS: &str = "tb1qvolumetricrecover";
 
 /// Given: a withdrawal enters recovery-required state after an ambiguous external failure
 /// When: controller lists recovery-required WAL entries
@@ -21,7 +20,7 @@ fn test_get_recovery_required_wal_entries_includes_withdraw_operation() {
     let wallet = generate_wallet(31);
     let profile = create_account(&env, &wallet).expect("Create account failed");
     mint_and_sync_balance(&env, &profile, INITIAL_BALANCE_SATS).expect("Funding failed");
-    let receipt = withdraw_ckbtc(&env, &wallet, TEST_BTC_ADDRESS, WITHDRAW_AMOUNT_SATS)
+    let receipt = withdraw_ckbtc(&env, &wallet, WITHDRAW_AMOUNT_SATS)
         .expect("withdraw should enqueue");
     env.advance_time_secs(3_600);
 
@@ -45,7 +44,7 @@ fn test_recover_wal_operation_replays_manual_recovery_attempt() {
     let wallet = generate_wallet(32);
     let profile = create_account(&env, &wallet).expect("Create account failed");
     mint_and_sync_balance(&env, &profile, INITIAL_BALANCE_SATS).expect("Funding failed");
-    let receipt = withdraw_ckbtc(&env, &wallet, TEST_BTC_ADDRESS, WITHDRAW_AMOUNT_SATS)
+    let receipt = withdraw_ckbtc(&env, &wallet, WITHDRAW_AMOUNT_SATS)
         .expect("withdraw should enqueue");
     env.advance_time_secs(3_600);
 
