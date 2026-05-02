@@ -11,6 +11,7 @@ use crate::journaling::{
     register_retryable_error, LedgerMemoKind, OperationId, SettlementWalPayload, WalEntry,
     WalExecutionError, WalExecutionOutcome, WalKind, WalPayload, WalResult, WalStatus,
 };
+use crate::ledger;
 use crate::locks::SettlementLock;
 #[cfg(feature = "testing")]
 use crate::oracle::get_btc_usd_price_cents;
@@ -18,11 +19,11 @@ use crate::oracle::get_btc_usd_price_cents_at_time_seconds;
 use crate::oracle::xrc_timestamp_seconds_for_time_seconds;
 use crate::storage::{
     add_platform_fee, calculate_call_option_payout, calculate_profit_fee, complete_settlement,
-    create_settlement, deduct_locked_collateral, emit_event, fail_settlement, get_active_option,
-    get_fee_recipient, get_settlement, list_expired_active_options, release_locked_to_buyer,
-    remove_settlement, unlock_collateral, update_active_option, update_settlement_phase,
-    ActiveOption, ActiveOptionStatus, EventData, EventType, OptionType, PendingSettlement,
-    SettlementPhase, TradeRole,
+    create_settlement, deduct_locked_collateral, deduct_writer_transfer_fees, emit_event,
+    fail_settlement, get_active_option, get_fee_recipient, get_settlement,
+    list_expired_active_options, release_locked_to_buyer, remove_settlement, unlock_collateral,
+    update_active_option, update_settlement_phase, ActiveOption, ActiveOptionStatus, EventData,
+    EventType, OptionType, PendingSettlement, SettlementPhase, TradeRole,
 };
 
 use crate::time::current_time_seconds;
@@ -199,18 +200,27 @@ fn prepare_settlement_execution(
             option.quantity,
         ),
     };
+
     let profit_fee = if gross_payout_to_buyer > 0 {
         calculate_profit_fee(gross_payout_to_buyer, option.profit_fee_basis_points)?
     } else {
         0
     };
+
     let payout_to_buyer = gross_payout_to_buyer.saturating_sub(profit_fee);
     let payout_to_writer = option.quantity.saturating_sub(gross_payout_to_buyer);
+
+    let transfer_fee_sats = if gross_payout_to_buyer > 0 {
+        ledger::get_cached_icrc1_transfer_fee_sats_for_sync_flow()?
+    } else {
+        0
+    };
+
     let created_at_time_ns = ic::time();
 
     ic::log(&format!(
-        "settle_single_option: quantity={}, gross_payout_buyer={}, profit_fee={}, net_payout_buyer={}, payout_writer={}",
-        option.quantity, gross_payout_to_buyer, profit_fee, payout_to_buyer, payout_to_writer
+        "settle_single_option: quantity={}, gross_payout_buyer={}, profit_fee={}, net_payout_buyer={}, payout_writer={}, transfer_fee_sats={}",
+        option.quantity, gross_payout_to_buyer, profit_fee, payout_to_buyer, payout_to_writer, transfer_fee_sats
     ));
 
     create_settlement(
@@ -230,6 +240,7 @@ fn prepare_settlement_execution(
             option_id: option.id,
             settlement_price_cents,
             created_at_time_ns,
+            transfer_fee_sats,
         }),
         default_policy(),
     );
@@ -278,7 +289,7 @@ pub async fn run_settlement_wal(
     operation_id: OperationId,
     payload: &SettlementWalPayload,
 ) -> Result<SettlementWalResult, WalExecutionError> {
-    let mut option = get_active_option(payload.option_id).ok_or_else(|| {
+    let mut active_option = get_active_option(payload.option_id).ok_or_else(|| {
         WalExecutionError::Permanent(format!("settlement option {} not found", payload.option_id))
     })?;
 
@@ -289,19 +300,22 @@ pub async fn run_settlement_wal(
         ))
     })?;
 
-    if option.status == ActiveOptionStatus::Settled {
+    if active_option.status == ActiveOptionStatus::Settled {
         return Ok(SettlementWalResult {
-            option_id: option.id,
+            option_id: active_option.id,
         });
     }
 
-    let writer_subaccount = derive_subaccount(option.writer);
-    let buyer_subaccount = derive_subaccount(option.buyer);
+    let writer_subaccount = derive_subaccount(active_option.writer);
+    let buyer_subaccount = derive_subaccount(active_option.buyer);
+
     let payout_to_buyer = settlement.payout_to_buyer;
     let payout_to_writer = settlement.payout_to_writer;
-    let gross_payout_to_buyer = option.quantity.saturating_sub(payout_to_writer);
+
+    let gross_payout_to_buyer = active_option.quantity.saturating_sub(payout_to_writer);
     let profit_fee = gross_payout_to_buyer.saturating_sub(payout_to_buyer);
 
+    // ITM
     if settlement.phase == SettlementPhase::Started && payout_to_buyer > 0 {
         transfer_ckbtc(
             Some(writer_subaccount),
@@ -320,13 +334,13 @@ pub async fn run_settlement_wal(
         .await
         .map_err(register_retryable_error)?;
 
-        update_settlement_phase(option.id, SettlementPhase::TransferComplete);
+        update_settlement_phase(active_option.id, SettlementPhase::TransferComplete);
     }
 
     let settlement = get_settlement(payload.option_id).ok_or_else(|| {
         WalExecutionError::Permanent(format!(
             "settlement journal {} missing after transfer",
-            option.id
+            active_option.id
         ))
     })?;
 
@@ -335,17 +349,17 @@ pub async fn run_settlement_wal(
         SettlementPhase::Started | SettlementPhase::TransferComplete
     ) {
         if payout_to_buyer > 0 {
-            release_locked_to_buyer(option.writer, option.buyer, payout_to_buyer)
+            release_locked_to_buyer(active_option.writer, active_option.buyer, payout_to_buyer)
                 .map_err(map_balance_error_to_permanent)?;
         }
 
-        update_settlement_phase(option.id, SettlementPhase::BalanceReleased);
+        update_settlement_phase(active_option.id, SettlementPhase::BalanceReleased);
     }
 
     let settlement = get_settlement(payload.option_id).ok_or_else(|| {
         WalExecutionError::Permanent(format!(
             "settlement journal {} missing before finalization",
-            option.id
+            active_option.id
         ))
     })?;
 
@@ -369,87 +383,104 @@ pub async fn run_settlement_wal(
             .map_err(register_retryable_error)?;
 
             add_platform_fee(profit_fee);
-            deduct_locked_collateral(option.writer, profit_fee)
+            deduct_locked_collateral(active_option.writer, profit_fee)
                 .map_err(map_balance_error_to_permanent)?;
         }
 
-        update_settlement_phase(option.id, SettlementPhase::ProfitFeeCollected);
+        let transfer_count: u64 = (payout_to_buyer > 0) as u64 + (profit_fee > 0) as u64;
+        let total_transfer_fees = transfer_count * payload.transfer_fee_sats;
+
+        if total_transfer_fees > 0 {
+            deduct_writer_transfer_fees(active_option.writer, total_transfer_fees)
+                .map_err(map_balance_error_to_permanent)?;
+        }
+
+        update_settlement_phase(active_option.id, SettlementPhase::ProfitFeeCollected);
     }
 
     let settlement = get_settlement(payload.option_id).ok_or_else(|| {
         WalExecutionError::Permanent(format!(
             "settlement journal {} missing before writer payout",
-            option.id
+            active_option.id
         ))
     })?;
 
     if settlement.phase == SettlementPhase::ProfitFeeCollected {
-        if payout_to_writer > 0 {
-            unlock_collateral(option.writer, payout_to_writer)
+        let transfer_count: u64 = (payout_to_buyer > 0) as u64 + (profit_fee > 0) as u64;
+        let total_transfer_fees = transfer_count * payload.transfer_fee_sats;
+        let effective_payout_to_writer = payout_to_writer.saturating_sub(total_transfer_fees);
+
+        if effective_payout_to_writer > 0 {
+            unlock_collateral(active_option.writer, effective_payout_to_writer)
                 .map_err(map_balance_error_to_permanent)?;
         }
 
-        update_settlement_phase(option.id, SettlementPhase::WriterPayoutReleased);
+        update_settlement_phase(active_option.id, SettlementPhase::WriterPayoutReleased);
     }
 
     let settlement = get_settlement(payload.option_id).ok_or_else(|| {
         WalExecutionError::Permanent(format!(
             "settlement journal {} missing before completion",
-            option.id
+            active_option.id
         ))
     })?;
 
     if settlement.phase != SettlementPhase::WriterPayoutReleased {
         return Err(WalExecutionError::Permanent(format!(
             "settlement {} in unexpected phase {:?}",
-            option.id, settlement.phase
+            active_option.id, settlement.phase
         )));
     }
 
-    option.status = ActiveOptionStatus::Settled;
-    update_active_option(option.clone());
+    active_option.status = ActiveOptionStatus::Settled;
+    update_active_option(active_option.clone());
 
-    complete_settlement(option.id);
-    remove_settlement(option.id);
+    complete_settlement(active_option.id);
+    remove_settlement(active_option.id);
 
     let settled_at_seconds = current_time_seconds();
 
+    let effective_payout_to_writer = {
+        let transfer_count: u64 = (payout_to_buyer > 0) as u64 + (profit_fee > 0) as u64;
+        payout_to_writer.saturating_sub(transfer_count * payload.transfer_fee_sats)
+    };
+
     emit_event(
-        option.buyer,
+        active_option.buyer,
         EventType::OptionSettled,
         EventData::OptionSettled {
-            option_id: option.id,
-            quantity_sats: option.quantity,
-            entry_price_cents: option.entry_price_cents,
-            strike_price_cents: option.strike_price_cents,
+            option_id: active_option.id,
+            quantity_sats: active_option.quantity,
+            entry_price_cents: active_option.entry_price_cents,
+            strike_price_cents: active_option.strike_price_cents,
             settlement_price_cents: payload.settlement_price_cents,
-            premium_sats: option.premium_paid,
+            premium_sats: active_option.premium_paid,
             payout_sats: payout_to_buyer,
-            accepted_at_seconds: option.accepted_at_seconds,
+            accepted_at_seconds: active_option.accepted_at_seconds,
             settled_at_seconds,
             role: TradeRole::Buyer,
         },
     );
 
     emit_event(
-        option.writer,
+        active_option.writer,
         EventType::OptionSettled,
         EventData::OptionSettled {
-            option_id: option.id,
-            quantity_sats: option.quantity,
-            entry_price_cents: option.entry_price_cents,
-            strike_price_cents: option.strike_price_cents,
+            option_id: active_option.id,
+            quantity_sats: active_option.quantity,
+            entry_price_cents: active_option.entry_price_cents,
+            strike_price_cents: active_option.strike_price_cents,
             settlement_price_cents: payload.settlement_price_cents,
-            premium_sats: option.premium_paid,
-            payout_sats: payout_to_writer,
-            accepted_at_seconds: option.accepted_at_seconds,
+            premium_sats: active_option.premium_paid,
+            payout_sats: effective_payout_to_writer,
+            accepted_at_seconds: active_option.accepted_at_seconds,
             settled_at_seconds,
             role: TradeRole::Writer,
         },
     );
 
     Ok(SettlementWalResult {
-        option_id: option.id,
+        option_id: active_option.id,
     })
 }
 
@@ -760,7 +791,7 @@ mod tests {
 
     use super::*;
     use crate::ic::IcRuntime;
-    use crate::ledger::{self, LedgerClient};
+    use crate::ledger::{self, set_cached_transfer_fee_for_testing, LedgerClient};
     use crate::oracle::{set_oracle, PriceOracle, StubOracle};
     use crate::storage::{
         clear_active_options, clear_events, get_balance, get_platform_fees_collected,
@@ -1179,6 +1210,7 @@ mod tests {
         clear_settlement_journal();
         ic::set_runtime(Box::new(MockRuntime));
         ledger::set_ledger(ledger_client);
+        set_cached_transfer_fee_for_testing(10, TEST_NOW_SECONDS);
 
         set_balance(
             writer,
@@ -1223,6 +1255,7 @@ mod tests {
         clear_events();
         clear_settlement_journal();
         ic::set_runtime(Box::new(MockRuntime));
+        set_cached_transfer_fee_for_testing(10, TEST_NOW_SECONDS);
 
         set_balance(
             writer,
@@ -1540,13 +1573,14 @@ mod tests {
         const EXPECTED_PROFIT_FEE_SATS: u64 = 12_500;
         const EXPECTED_BUYER_PAYOUT_SATS: u64 =
             EXPECTED_GROSS_BUYER_PAYOUT_SATS - EXPECTED_PROFIT_FEE_SATS;
-        const EXPECTED_WRITER_PAYOUT_SATS: u64 =
-            TEST_QUANTITY_SATS - EXPECTED_GROSS_BUYER_PAYOUT_SATS;
         const EXPECTED_TRANSFER_CALL_COUNT: u64 = 3;
 
         assert_eq!(buyer_balance.available, EXPECTED_BUYER_PAYOUT_SATS);
         assert_eq!(buyer_balance.locked_as_writer, 0);
-        assert_eq!(writer_balance.available, EXPECTED_WRITER_PAYOUT_SATS);
+        assert_eq!(
+            writer_balance.available,
+            EXPECTED_EFFECTIVE_WRITER_PAYOUT_SATS
+        );
         assert_eq!(writer_balance.locked_as_writer, 0);
         assert_eq!(option.status, ActiveOptionStatus::Settled);
         assert!(
@@ -1659,7 +1693,10 @@ mod tests {
 
         let writer_balance = get_balance(&writer);
         let buyer_balance = get_balance(&buyer);
-        assert_eq!(writer_balance.available, EXPECTED_WRITER_PAYOUT_SATS);
+        assert_eq!(
+            writer_balance.available,
+            EXPECTED_EFFECTIVE_WRITER_PAYOUT_SATS
+        );
         assert_eq!(writer_balance.locked_as_writer, 0);
         assert_eq!(buyer_balance.available, EXPECTED_BUYER_PAYOUT_SATS);
         assert_eq!(buyer_balance.locked_as_writer, 0);
@@ -1724,6 +1761,186 @@ mod tests {
         );
     }
 
+    const SETTLEMENT_TRANSFER_COUNT: u64 = 2;
+    const EXPECTED_SETTLEMENT_TRANSFER_FEES_SATS: u64 = SETTLEMENT_TRANSFER_COUNT * 10;
+    const EXPECTED_EFFECTIVE_WRITER_PAYOUT_SATS: u64 =
+        EXPECTED_WRITER_PAYOUT_SATS - EXPECTED_SETTLEMENT_TRANSFER_FEES_SATS;
+
+    struct FeeAwareMockLedger {
+        canister_self: Principal,
+        balances: RefCell<BTreeMap<Account, u64>>,
+        transfer_fee_sats: u64,
+    }
+
+    impl FeeAwareMockLedger {
+        fn new(canister_self: Principal, transfer_fee_sats: u64) -> Self {
+            Self {
+                canister_self,
+                balances: RefCell::new(BTreeMap::new()),
+                transfer_fee_sats,
+            }
+        }
+
+        fn set_balance(&self, account: Account, balance: u64) {
+            self.balances.borrow_mut().insert(account, balance);
+        }
+
+        fn balance_of_account(&self, account: &Account) -> u64 {
+            self.balances.borrow().get(account).copied().unwrap_or(0)
+        }
+    }
+
+    #[async_trait(?Send)]
+    impl LedgerClient for FeeAwareMockLedger {
+        async fn icrc1_transfer(
+            &self,
+            from_subaccount: Option<[u8; 32]>,
+            to: Account,
+            amount: u64,
+            _created_at_time: u64,
+            _memo: Option<Memo>,
+        ) -> Result<u64, VolumetricError> {
+            let from = Account {
+                owner: self.canister_self,
+                subaccount: from_subaccount,
+            };
+            let total_debit = amount.saturating_add(self.transfer_fee_sats);
+            let mut balances = self.balances.borrow_mut();
+            let from_balance = balances.get(&from).copied().unwrap_or(0);
+            if from_balance < total_debit {
+                return Err(VolumetricError::from_def(
+                    error_codes::INTER_CANISTER_CALL_FAILED,
+                    Some("insufficient funds in mock ledger"),
+                    None,
+                ));
+            }
+            balances.insert(from, from_balance - total_debit);
+            *balances.entry(to).or_insert(0) += amount;
+            Ok(1)
+        }
+
+        async fn icrc1_balance_of(&self, account: Account) -> Result<Nat, VolumetricError> {
+            Ok(Nat::from(
+                self.balances.borrow().get(&account).copied().unwrap_or(0),
+            ))
+        }
+
+        async fn icrc2_approve(&self, _args: ApproveArgs) -> Result<Nat, VolumetricError> {
+            Ok(Nat::from(0u64))
+        }
+
+        async fn icrc1_fee(&self) -> Result<u64, VolumetricError> {
+            Ok(self.transfer_fee_sats)
+        }
+    }
+
+    /// Given: a fee-aware mock ledger that deducts transfer fees from the sender's subaccount
+    /// When: an ITM option settles, making two transfers from the writer's subaccount
+    /// Then: the writer's internal balance matches the writer's ledger subaccount balance
+    #[tokio::test]
+    async fn test_settlement_writer_ledger_balance_accounts_for_transfer_fees() {
+        // given
+        const EXPECTED_TRANSFER_FEE_SATS: u64 = 10;
+        let writer = test_principal(81);
+        let buyer = test_principal(82);
+        let canister_self = Principal::anonymous();
+        let writer_subaccount = derive_subaccount(writer);
+
+        let mock_ledger = Rc::new(FeeAwareMockLedger::new(
+            canister_self,
+            EXPECTED_TRANSFER_FEE_SATS,
+        ));
+        mock_ledger.set_balance(
+            Account {
+                owner: canister_self,
+                subaccount: Some(writer_subaccount),
+            },
+            TEST_QUANTITY_SATS,
+        );
+        setup_test_state_with_ledger(writer, buyer, mock_ledger.clone());
+        set_cached_transfer_fee_for_testing(EXPECTED_TRANSFER_FEE_SATS, TEST_NOW_SECONDS);
+
+        // when
+        let settlement_result =
+            settle_single_option(TEST_OPTION_ID, TEST_SETTLEMENT_PRICE_CENTS).await;
+        assert!(settlement_result.is_ok(), "settlement should succeed");
+
+        // then
+        let writer_internal = get_balance(&writer);
+        let writer_internal_total = writer_internal.available + writer_internal.locked_as_writer;
+        let writer_ledger_balance = mock_ledger.balance_of_account(&Account {
+            owner: canister_self,
+            subaccount: Some(writer_subaccount),
+        });
+
+        assert_eq!(
+            writer_internal_total,
+            writer_ledger_balance,
+            "writer internal balance ({}) should match writer ledger subaccount balance ({}) \
+             after {} transfers * {} sats fee",
+            writer_internal_total,
+            writer_ledger_balance,
+            SETTLEMENT_TRANSFER_COUNT,
+            EXPECTED_TRANSFER_FEE_SATS,
+        );
+    }
+
+    /// Given: an extremely ITM option whose writer residual is smaller than settlement transfer fees
+    /// When: the writer subaccount has enough total funds for the ledger transfers
+    /// Then: settlement succeeds and internal accounting matches the writer ledger subaccount
+    #[tokio::test]
+    async fn test_extreme_itm_settlement_uses_available_balance_for_fee_residual() {
+        // given
+        const EXPECTED_TRANSFER_FEE_SATS: u64 = 10;
+        const EXTRA_WRITER_AVAILABLE_SATS: u64 = 100;
+        const EXTREME_SETTLEMENT_PRICE_CENTS: u64 = 1_000_000_000_000;
+
+        let writer = test_principal(83);
+        let buyer = test_principal(84);
+        let canister_self = Principal::anonymous();
+        let writer_subaccount = derive_subaccount(writer);
+
+        let mock_ledger = Rc::new(FeeAwareMockLedger::new(
+            canister_self,
+            EXPECTED_TRANSFER_FEE_SATS,
+        ));
+        mock_ledger.set_balance(
+            Account {
+                owner: canister_self,
+                subaccount: Some(writer_subaccount),
+            },
+            TEST_QUANTITY_SATS + EXTRA_WRITER_AVAILABLE_SATS,
+        );
+        setup_test_state_with_ledger(writer, buyer, mock_ledger.clone());
+        set_cached_transfer_fee_for_testing(EXPECTED_TRANSFER_FEE_SATS, TEST_NOW_SECONDS);
+        set_balance(
+            writer,
+            UserBalance {
+                available: EXTRA_WRITER_AVAILABLE_SATS,
+                locked_as_writer: TEST_QUANTITY_SATS,
+            },
+        );
+
+        // when
+        let settlement_result =
+            settle_single_option(TEST_OPTION_ID, EXTREME_SETTLEMENT_PRICE_CENTS).await;
+
+        // then
+        assert!(
+            settlement_result.is_ok(),
+            "settlement should use writer available balance for residual fees"
+        );
+
+        let writer_internal = get_balance(&writer);
+        let writer_internal_total = writer_internal.available + writer_internal.locked_as_writer;
+        let writer_ledger_balance = mock_ledger.balance_of_account(&Account {
+            owner: canister_self,
+            subaccount: Some(writer_subaccount),
+        });
+
+        assert_eq!(writer_internal_total, writer_ledger_balance);
+    }
+
     /// Given: settlement traps after the first transfer and leaves WAL attempt in-flight
     /// When: stale in-flight WAL is promoted and manually replayed
     /// Then: recovery succeeds without duplicating buyer payout or corrupting balances
@@ -1776,12 +1993,16 @@ mod tests {
         const EXPECTED_PROFIT_FEE_SATS: u64 = 12_500;
         const EXPECTED_BUYER_PAYOUT_SATS: u64 =
             EXPECTED_GROSS_BUYER_PAYOUT_SATS - EXPECTED_PROFIT_FEE_SATS;
-        const EXPECTED_WRITER_PAYOUT_SATS: u64 =
-            TEST_QUANTITY_SATS - EXPECTED_GROSS_BUYER_PAYOUT_SATS;
+        const EXPECTED_EFFECTIVE_WRITER_PAYOUT_SATS: u64 = (TEST_QUANTITY_SATS
+            - EXPECTED_GROSS_BUYER_PAYOUT_SATS)
+            .saturating_sub(EXPECTED_SETTLEMENT_TRANSFER_FEES_SATS);
         const EXPECTED_TRANSFER_CALL_COUNT: u64 = 3;
         assert_eq!(buyer_balance.available, EXPECTED_BUYER_PAYOUT_SATS);
         assert_eq!(buyer_balance.locked_as_writer, 0);
-        assert_eq!(writer_balance.available, EXPECTED_WRITER_PAYOUT_SATS);
+        assert_eq!(
+            writer_balance.available,
+            EXPECTED_EFFECTIVE_WRITER_PAYOUT_SATS
+        );
         assert_eq!(writer_balance.locked_as_writer, 0);
         assert!(
             get_settlement(TEST_OPTION_ID).is_none(),

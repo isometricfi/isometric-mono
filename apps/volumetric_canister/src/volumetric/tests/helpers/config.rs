@@ -89,10 +89,15 @@ pub fn get_fee_recipient_ledger_balance(env: &TestEnv) -> u64 {
 }
 
 pub fn get_principal_ledger_balance(env: &TestEnv, principal: Principal) -> u64 {
-    let account = Account {
-        owner: principal,
-        subaccount: None,
-    };
+    get_subaccount_ledger_balance(env, principal, None)
+}
+
+pub fn get_subaccount_ledger_balance(
+    env: &TestEnv,
+    owner: Principal,
+    subaccount: Option<[u8; 32]>,
+) -> u64 {
+    let account = Account { owner, subaccount };
 
     let response = env
         .pic
