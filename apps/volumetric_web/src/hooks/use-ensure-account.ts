@@ -6,9 +6,9 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { unwrapResult } from "@volumetric/canister-types";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { openOnboardingModal } from "@/components/wallet/OnboardingModal";
+import { getNiceErrorMessage } from "@/lib/error-message";
 import { clearInviteCodeFromSession, readInviteCodeFromSession } from "@/lib/referrals/invite-code";
 import { validateInviteCode } from "@/lib/referrals/validate-invite-code";
-import { toSafeErrorMessage } from "@/lib/safe-error-message";
 import { computeExpiresAtSeconds } from "@/lib/use-cases/_shared/wallet-proof";
 import type { Output as CreateAccountOutput } from "@/lib/use-cases/account/create-account/schema";
 import { trpcClient } from "@/trpc/react";
@@ -101,7 +101,7 @@ export function useEnsureAccount() {
     },
     onError: (err) => {
       setStep("error");
-      setError(toSafeErrorMessage(err));
+      setError(getNiceErrorMessage(err));
     },
   });
 

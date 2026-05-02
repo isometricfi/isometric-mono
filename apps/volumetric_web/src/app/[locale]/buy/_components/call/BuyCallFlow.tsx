@@ -33,8 +33,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { SlideToConfirm } from "@/components/ui/slide-to-confirm";
 import { useConfig } from "@/hooks";
 import { Link } from "@/i18n/routing";
+import { getNiceErrorMessage } from "@/lib/error-message";
 import { estimateExpiryDate } from "@/lib/expiry";
-import { toSafeErrorMessage } from "@/lib/safe-error-message";
 import { basisPointsToPercent, cn, formatBtc, roundToN, satsToBtc } from "@/lib/utils";
 import { useCallOptionBuyFormModel } from "./_internal/use-call-option-buy-form-model";
 
@@ -134,7 +134,7 @@ export function BuyCallFlow({ open, onOpenChange, onRequestDeposit }: BuyCallFlo
                 <FlowOfferStatus
                   type="buy"
                   step={offerStep}
-                  errorMessage={toSafeErrorMessage(model.acceptOffer.error) ?? undefined}
+                  errorMessage={getNiceErrorMessage(model.acceptOffer.error) ?? undefined}
                 />
               ) : (
                 <ReviewStep

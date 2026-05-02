@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { NumberCarousel } from "@/components/ui/number-carousel";
 import { DepositModal } from "@/components/wallet/DepositModal";
-import { toSafeErrorMessage } from "@/lib/safe-error-message";
+import { getNiceErrorMessage } from "@/lib/error-message";
 import { useCallOptionBuyFormModel } from "./_internal/use-call-option-buy-form-model";
 import { CallBuyOptionSummary } from "./CallBuyOptionSummary";
 
@@ -105,7 +105,7 @@ export function CallOptionBuyForm() {
           type="buy"
           step={acceptOffer.step}
           fillGroupId={acceptOffer.data?.fillGroupId}
-          errorMessage={toSafeErrorMessage(acceptOffer.error) ?? undefined}
+          errorMessage={getNiceErrorMessage(acceptOffer.error) ?? undefined}
         />
       </CardContent>
     </Card>

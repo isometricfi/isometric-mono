@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { NumberCarousel } from "@/components/ui/number-carousel";
 import { DepositModal } from "@/components/wallet/DepositModal";
-import { toSafeErrorMessage } from "@/lib/safe-error-message";
+import { getNiceErrorMessage } from "@/lib/error-message";
 import { useCallWriteOptionFormModel } from "./_internal/use-call-write-option-form-model";
 import { CallWriteOptionSummary } from "./CallWriteOptionSummary";
 import { WriteEarningsSection } from "./WriteEarningsSection";
@@ -125,7 +125,7 @@ export function CallWriteOptionForm() {
           type="create"
           step={acceptOffer.step}
           offerId={acceptOffer.data?.offerId}
-          errorMessage={toSafeErrorMessage(acceptOffer.error) ?? undefined}
+          errorMessage={getNiceErrorMessage(acceptOffer.error) ?? undefined}
         />
       </CardContent>
     </Card>

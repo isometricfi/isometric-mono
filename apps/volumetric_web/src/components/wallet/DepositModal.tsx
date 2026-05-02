@@ -30,7 +30,7 @@ import {
   useWalletBalance,
 } from "@/hooks";
 import { Link } from "@/i18n/routing";
-import { toSafeErrorMessage } from "@/lib/safe-error-message";
+import { getNiceErrorMessage } from "@/lib/error-message";
 import {
   DEFAULT_MIN_DEPOSIT_SATS,
   formatBtc,
@@ -125,10 +125,11 @@ export function DepositModal({
         setTxid(result);
         setStep("waiting");
       } else {
-        throw new Error(t("transactionCancelled"));
+        setError(t("transactionCancelled"));
+        setStep("error");
       }
     } catch (err) {
-      setError(toSafeErrorMessage(err));
+      setError(getNiceErrorMessage(err));
       setStep("error");
     }
   };

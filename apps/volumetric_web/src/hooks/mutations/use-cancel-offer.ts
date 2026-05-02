@@ -6,7 +6,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { unwrapResult } from "@volumetric/canister-types";
 import { useState } from "react";
 import { toast } from "sonner";
-import { toSafeErrorMessage } from "@/lib/safe-error-message";
+import { getNiceErrorMessage } from "@/lib/error-message";
 import { computeExpiresAtSeconds } from "@/lib/use-cases/_shared/wallet-proof";
 import type { Output as CancelOfferOutput } from "@/lib/use-cases/options/cancel-offer/schema";
 import { trpcClient } from "@/trpc/react";
@@ -63,7 +63,7 @@ export function useCancelOffer() {
       })();
 
       cancelPromise.catch((err) => {
-        toast.error(toSafeErrorMessage(err) ?? `Failed to cancel offer #${offerId}`, {
+        toast.error(getNiceErrorMessage(err) ?? `Failed to cancel offer #${offerId}`, {
           id: toastId,
         });
       });
