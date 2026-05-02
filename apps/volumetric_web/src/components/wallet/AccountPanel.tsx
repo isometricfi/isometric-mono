@@ -113,7 +113,7 @@ function AccountPanelContent({
                 aria-label="Copy address"
                 className="-ml-0.5 px-0.5 py-0.5 text-xs text-muted-foreground hover:text-foreground"
               >
-                <span className="truncate">{addressLabel}</span>
+                <span>{addressLabel}</span>
               </Copyable>
             ) : (
               <div className="text-xs text-muted-foreground truncate">—</div>

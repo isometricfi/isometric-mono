@@ -25,9 +25,13 @@ export function Copyable({
 
   const handleCopy = async (e: React.MouseEvent<HTMLButtonElement>) => {
     e.stopPropagation();
-    await navigator.clipboard.writeText(text);
-    setCopied(true);
-    setTimeout(() => setCopied(false), resetMs);
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), resetMs);
+    } catch {
+      // clipboard write can reject (permission denied, non-secure context, unfocused doc)
+    }
   };
 
   return (
