@@ -64,7 +64,6 @@ describe("withdraw usecase", () => {
       address: "tb1quser",
       signature: "signature",
       expiresAtSeconds: "1700000000",
-      btcAddress: "tb1qdest",
       amount: "1000",
     });
 
@@ -113,7 +112,6 @@ describe("withdraw usecase", () => {
       address: "tb1quser",
       signature: "signature",
       expiresAtSeconds: "1700000000",
-      btcAddress: "tb1qdest",
       amount: "1000",
     });
 
@@ -152,7 +150,6 @@ describe("withdraw usecase", () => {
       address: "tb1quser",
       signature: "signature",
       expiresAtSeconds: "1700000000",
-      btcAddress: "tb1qdest",
       amount: "1000",
     });
     const timeoutExpectation = expect(run).rejects.toThrow("terminal state");

@@ -19,7 +19,6 @@ export async function withdraw(input: Input): Promise<Output> {
 
     const result = await actor.withdraw_ckbtc({
       data: {
-        btc_address: input.btcAddress,
         amount: BigInt(input.amount),
         expires_at_seconds: BigInt(input.expiresAtSeconds),
       },
