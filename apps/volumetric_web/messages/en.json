@@ -213,7 +213,7 @@
   },
   "PendingWithdrawals": {
     "pending": "withdrawing",
-    "broadcasting": "Broadcasting to Bitcoin",
+    "broadcasting": "Pending broadcast",
     "confirming": "{count}/1 blocks",
     "completed": "Sent",
     "failed": "Withdrawal failed"

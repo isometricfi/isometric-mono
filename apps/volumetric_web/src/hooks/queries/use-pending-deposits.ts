@@ -138,7 +138,9 @@ export function usePendingDeposits() {
   });
 
   const serverPendingQuery = useQuery({
-    ...trpc.account.getPendingDeposits.queryOptions({ address: userAddress ?? "" }),
+    ...trpc.account.getPendingDeposits.queryOptions({
+      address: userAddress ?? "",
+    }),
     enabled: !!userAddress,
     refetchInterval: 15_000,
   });
