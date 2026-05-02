@@ -566,7 +566,6 @@ export const idlFactory = ({ IDL }) => {
   const WithdrawCkbtcRequest = IDL.Record({
     'expires_at_seconds' : IDL.Nat64,
     'amount' : IDL.Nat64,
-    'btc_address' : IDL.Text,
   });
   const AuthenticatedPayload_6 = IDL.Record({
     'data' : WithdrawCkbtcRequest,
@@ -690,7 +689,7 @@ export const idlFactory = ({ IDL }) => {
         ['query'],
       ),
     'get_withdraw_message' : IDL.Func(
-        [IDL.Text, IDL.Text, IDL.Nat64, IDL.Nat64],
+        [IDL.Text, IDL.Nat64, IDL.Nat64],
         [Result_7],
         ['query'],
       ),
