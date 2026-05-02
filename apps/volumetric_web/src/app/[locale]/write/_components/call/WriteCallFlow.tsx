@@ -32,6 +32,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { SlideToConfirm } from "@/components/ui/slide-to-confirm";
 import { useConfig } from "@/hooks";
 import { Link } from "@/i18n/routing";
+import { getNiceErrorMessage } from "@/lib/error-message";
 import { basisPointsToPercent, formatBtc, roundToN, satsToBtc } from "@/lib/utils";
 import { useCallWriteOptionFormModel } from "./_internal/use-call-write-option-form-model";
 
@@ -132,7 +133,7 @@ export function WriteCallFlow({ open, onOpenChange, onRequestDeposit }: WriteCal
                 <FlowOfferStatus
                   type="create"
                   step={offerStep}
-                  errorMessage={model.acceptOffer.error?.message}
+                  errorMessage={getNiceErrorMessage(model.acceptOffer.error) ?? undefined}
                 />
               ) : (
                 <ReviewStep
