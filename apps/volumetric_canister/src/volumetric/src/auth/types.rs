@@ -261,7 +261,6 @@ impl SignableAction for UpdateUsernameRequest {
 
 #[derive(Debug, Clone, CandidType, Serialize, Deserialize)]
 pub struct WithdrawCkbtcRequest {
-    pub btc_address: String,
     pub amount: u64,
     pub expires_at_seconds: u64,
 }
@@ -270,10 +269,7 @@ impl SignableAction for WithdrawCkbtcRequest {
     const ACTION_NAME: &'static str = "withdraw_ckbtc";
 
     fn action_fields(&self) -> Vec<(&'static str, String)> {
-        vec![
-            ("amount_sats", self.amount.to_string()),
-            ("btc_address", self.btc_address.clone()),
-        ]
+        vec![("amount_sats", self.amount.to_string())]
     }
 }
 
@@ -347,7 +343,6 @@ mod tests {
         // given
         let context = test_context();
         let request = WithdrawCkbtcRequest {
-            btc_address: "bc1qdst".to_string(),
             amount: 42_000,
             expires_at_seconds: context.expires_at_seconds,
         };
@@ -363,7 +358,6 @@ mod tests {
         assert!(first.contains(&format!("\nnonce={}\n", context.nonce)));
         assert!(first.contains(&format!("\nexpires_at={}\n", context.expires_at_seconds)));
         assert!(first.contains("\namount_sats=42000"));
-        assert!(first.contains("\nbtc_address=bc1qdst"));
     }
 
     #[test]
@@ -386,7 +380,6 @@ mod tests {
         // given
         let context = test_context();
         let base = WithdrawCkbtcRequest {
-            btc_address: "bc1qdst".to_string(),
             amount: 1_000,
             expires_at_seconds: context.expires_at_seconds,
         };
