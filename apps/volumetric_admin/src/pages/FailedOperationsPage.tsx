@@ -11,7 +11,7 @@ import { MetricCard } from "../components/MetricCard";
 import { Mono } from "../components/Mono";
 import { PageShell } from "../components/PageShell";
 import { useCreateCanisterClients } from "../lib/clients";
-import { formatSats, shortPrincipal } from "../lib/format";
+import { formatSats, formatUnixSecondsUtc, shortPrincipal } from "../lib/format";
 import { useAsyncAction } from "../lib/use-async-action";
 
 type FailedData = {
@@ -107,6 +107,7 @@ function FailedSettlementsSection({ entries }: { entries: PendingSettlement[] })
             <Table.Header>
               <Table.Row>
                 <Table.Head>Option</Table.Head>
+                <Table.Head>Updated (UTC)</Table.Head>
                 <Table.Head>Reason</Table.Head>
                 <Table.Head>Buyer</Table.Head>
                 <Table.Head>Writer</Table.Head>
@@ -119,6 +120,11 @@ function FailedSettlementsSection({ entries }: { entries: PendingSettlement[] })
                 <Table.Row key={entry.option_id.toString()}>
                   <Table.Cell>
                     <Mono>{entry.option_id.toString()}</Mono>
+                  </Table.Cell>
+                  <Table.Cell>
+                    <Mono className="text-xs whitespace-nowrap">
+                      {formatUnixSecondsUtc(entry.updated_at_seconds)}
+                    </Mono>
                   </Table.Cell>
                   <Table.Cell>
                     <Mono className="text-sm">{extractPhaseReason(entry.phase)}</Mono>
@@ -156,6 +162,7 @@ function FailedAcceptsSection({ entries }: { entries: PendingAccept[] }) {
             <Table.Header>
               <Table.Row>
                 <Table.Head>Fill group</Table.Head>
+                <Table.Head>Updated (UTC)</Table.Head>
                 <Table.Head>Buyer</Table.Head>
                 <Table.Head>Reason</Table.Head>
                 <Table.Head>Debit required</Table.Head>
@@ -167,6 +174,11 @@ function FailedAcceptsSection({ entries }: { entries: PendingAccept[] }) {
                 <Table.Row key={entry.id.toString()}>
                   <Table.Cell>
                     <Mono>{entry.fill_group_id.toString()}</Mono>
+                  </Table.Cell>
+                  <Table.Cell>
+                    <Mono className="text-xs whitespace-nowrap">
+                      {formatUnixSecondsUtc(entry.updated_at_seconds)}
+                    </Mono>
                   </Table.Cell>
                   <Table.Cell>
                     <Mono className="text-sm">{shortPrincipal(entry.buyer)}</Mono>
@@ -201,6 +213,7 @@ function FailedWithdrawalsSection({ entries }: { entries: PendingWithdrawal[] })
             <Table.Header>
               <Table.Row>
                 <Table.Head>ID</Table.Head>
+                <Table.Head>Updated (UTC)</Table.Head>
                 <Table.Head>Principal</Table.Head>
                 <Table.Head>Amount</Table.Head>
                 <Table.Head>Reason</Table.Head>
@@ -212,6 +225,11 @@ function FailedWithdrawalsSection({ entries }: { entries: PendingWithdrawal[] })
                 <Table.Row key={entry.id.toString()}>
                   <Table.Cell>
                     <Mono>{entry.id.toString()}</Mono>
+                  </Table.Cell>
+                  <Table.Cell>
+                    <Mono className="text-xs whitespace-nowrap">
+                      {formatUnixSecondsUtc(entry.updated_at_seconds)}
+                    </Mono>
                   </Table.Cell>
                   <Table.Cell>
                     <Mono className="text-sm">{shortPrincipal(entry.principal)}</Mono>

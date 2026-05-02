@@ -25,8 +25,11 @@ export function useHashRoute(knownPaths: readonly string[]): RouteHandle {
 
   function navigate(next: string) {
     const normalized = next.startsWith("/") ? next : `/${next}`;
-    if (window.location.hash !== `#${normalized}`) {
-      window.location.hash = `#${normalized}`;
+    const candidateHash = `#${normalized}`;
+    setPath(normalizePath(candidateHash, knownPaths));
+
+    if (window.location.hash !== candidateHash) {
+      window.location.hash = candidateHash;
     }
   }
 

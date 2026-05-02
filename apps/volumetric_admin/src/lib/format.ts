@@ -12,6 +12,26 @@ export function formatBasisPoints(basisPoints: bigint | number): string {
   })}%`;
 }
 
+const UNIX_EPOCH_MS_PER_SECOND = 1000;
+
+export function formatUnixSecondsUtc(seconds: bigint | number): string {
+  const sec = typeof seconds === "bigint" ? Number(seconds) : seconds;
+  if (!Number.isFinite(sec) || sec < 0) {
+    return "—";
+  }
+  const date = new Date(sec * UNIX_EPOCH_MS_PER_SECOND);
+  return `${date.toLocaleString("en-GB", {
+    timeZone: "UTC",
+    year: "numeric",
+    month: "short",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+  })} UTC`;
+}
+
 export function formatTimestampNs(timestampNs: bigint | number): string {
   const value = typeof timestampNs === "bigint" ? timestampNs : BigInt(timestampNs);
   if (value === 0n) {

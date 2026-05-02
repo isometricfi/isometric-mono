@@ -9,10 +9,15 @@ import {
 } from "@phosphor-icons/react";
 import type { OptionAuditReport } from "@volumetric/canister-types";
 import { unwrapResult } from "@volumetric/canister-types";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { MetricCard } from "../components/MetricCard";
 import { Mono } from "../components/Mono";
 import { PageShell } from "../components/PageShell";
+import {
+  formatDollarsFromCents,
+  PredictionSummaryMetrics,
+  PredictionsTable,
+} from "../components/PayoutPredictionResults";
 import { accountKey } from "../lib/account";
 import {
   accountLabel,
@@ -23,6 +28,7 @@ import {
 import { getAllAccountTransactions } from "../lib/ckbtc-index";
 import { useCreateCanisterClients } from "../lib/clients";
 import { formatSats, shortPrincipal } from "../lib/format";
+import { predictPayouts } from "../lib/settlement-math";
 import { useAsyncAction } from "../lib/use-async-action";
 
 const DEFAULT_MAX_RESULTS = 100;
@@ -33,6 +39,7 @@ type OptionAuditData = {
   report: OptionAuditReport;
   rows: ExpectedTransferAuditRow[];
   relatedTransactionCount: number;
+  icrc1TransferFeeSats: bigint;
 };
 
 export function OptionAuditPage() {
@@ -52,8 +59,11 @@ export function OptionAuditPage() {
     }
 
     await action.run(async () => {
-      const { volumetric, ckBtcIndex } = createClients();
-      const report = unwrapResult(await volumetric.get_option_audit_report(BigInt(parsedOptionId)));
+      const { volumetric, ckBtcIndex, ckBtcLedger } = createClients();
+      const [report, icrc1TransferFeeSats] = await Promise.all([
+        unwrapResult(await volumetric.get_option_audit_report(BigInt(parsedOptionId))),
+        ckBtcLedger.icrc1_fee(),
+      ]);
       const accountsToQuery = new Map(
         report.expected_transfers.map((expectedTransfer) => {
           const account = toLedgerAccount(expectedTransfer.to);
@@ -76,6 +86,7 @@ export function OptionAuditPage() {
         report,
         rows: buildExpectedTransferRows(report, transactions),
         relatedTransactionCount: transactions.length,
+        icrc1TransferFeeSats,
       };
     });
   }
@@ -87,6 +98,20 @@ export function OptionAuditPage() {
       /* handled via action.error */
     }
   }
+
+  const settlementPayoutModel = useMemo(() => {
+    const option = action.data?.report.option[0];
+    const settlement = action.data?.report.settlement[0];
+    if (!option || !action.data || !settlement) {
+      return null;
+    }
+    return predictPayouts({
+      options: [option],
+      settlementPriceCents: settlement.settlement_price_cents,
+      profitFeeBasisPoints: option.profit_fee_basis_points,
+      icrc1TransferFeeSats: action.data.icrc1TransferFeeSats,
+    });
+  }, [action.data]);
 
   return (
     <PageShell
@@ -122,6 +147,34 @@ export function OptionAuditPage() {
       </div>
 
       <OptionSummary report={action.data?.report ?? null} />
+      {action.data?.report.option[0] ? (
+        <div className="space-y-3">
+          <h2 className="text-lg font-semibold text-kumo-primary">Settlement payout model</h2>
+          {action.data.report.settlement[0] ? (
+            <>
+              <p className="text-sm text-kumo-inactive max-w-3xl">
+                Same math as Payout Predictor at the recorded settlement price{" "}
+                {formatDollarsFromCents(action.data.report.settlement[0].settlement_price_cents)}.
+                Uses this option&apos;s profit fee (
+                {action.data.report.option[0].profit_fee_basis_points.toString()} bp) and the
+                current ICRC-1 transfer fee ({formatSats(action.data.icrc1TransferFeeSats)}).
+              </p>
+              {settlementPayoutModel ? (
+                <>
+                  <PredictionSummaryMetrics summary={settlementPayoutModel.summary} />
+                  <PredictionsTable predictions={settlementPayoutModel.predictions} />
+                </>
+              ) : null}
+            </>
+          ) : (
+            <Empty
+              size="sm"
+              title="No settlement price on record"
+              description="Payout modeling appears once this option has a settlement entry in the audit report (settled options)."
+            />
+          )}
+        </div>
+      ) : null}
       <ExpectedTransferTable rows={action.data?.rows ?? []} />
     </PageShell>
   );
