@@ -19,6 +19,7 @@ import { ShareSummaryModal } from "@/app/[locale]/history/_components/ShareSumma
 import { SystemSettings } from "@/components/layout/SystemSettings";
 import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { Copyable } from "@/components/ui/copyable";
 import { Drawer, DrawerContent, DrawerTitle } from "@/components/ui/drawer";
 import { DepositModal } from "@/components/wallet/DepositModal";
 import { PendingActivity } from "@/components/wallet/PendingActivity";
@@ -106,7 +107,17 @@ function AccountPanelContent({
           <Avatar seed={avatarSeed} width={50} height={50} className="size-10 rounded-md" />
           <div className="min-w-0">
             <div className="font-semibold leading-none truncate">{displayName}</div>
-            <div className="text-xs text-muted-foreground truncate">{addressLabel ?? "—"}</div>
+            {connectedAddress ? (
+              <Copyable
+                text={connectedAddress}
+                aria-label="Copy address"
+                className="-ml-0.5 px-0.5 py-0.5 text-xs text-muted-foreground hover:text-foreground"
+              >
+                <span>{addressLabel}</span>
+              </Copyable>
+            ) : (
+              <div className="text-xs text-muted-foreground truncate">—</div>
+            )}
           </div>
         </div>
 

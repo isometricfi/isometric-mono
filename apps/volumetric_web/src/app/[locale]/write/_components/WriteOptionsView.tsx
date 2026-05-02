@@ -53,7 +53,7 @@ export function WriteOptionsView() {
             <OptionTypeToggle value={optionType} onChange={setOptionType} />
           </div>
         </div>
-        <p className="text-sm text-muted-foreground max-w-xl md:block hidden">
+        <p className="text-sm text-muted-foreground max-w-2xl md:block hidden">
           {t("writeOptionsDescription")}
         </p>
         <div className="text-xs text-muted-foreground mt-4 bg-muted py-2 px-3 rounded-xl flex items-center gap-3 md:hidden">
