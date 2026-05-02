@@ -20,8 +20,8 @@ fn test_get_recovery_required_wal_entries_includes_withdraw_operation() {
     let wallet = generate_wallet(31);
     let profile = create_account(&env, &wallet).expect("Create account failed");
     mint_and_sync_balance(&env, &profile, INITIAL_BALANCE_SATS).expect("Funding failed");
-    let receipt = withdraw_ckbtc(&env, &wallet, WITHDRAW_AMOUNT_SATS)
-        .expect("withdraw should enqueue");
+    let receipt =
+        withdraw_ckbtc(&env, &wallet, WITHDRAW_AMOUNT_SATS).expect("withdraw should enqueue");
     env.advance_time_secs(3_600);
 
     // when
@@ -44,8 +44,8 @@ fn test_recover_wal_operation_replays_manual_recovery_attempt() {
     let wallet = generate_wallet(32);
     let profile = create_account(&env, &wallet).expect("Create account failed");
     mint_and_sync_balance(&env, &profile, INITIAL_BALANCE_SATS).expect("Funding failed");
-    let receipt = withdraw_ckbtc(&env, &wallet, WITHDRAW_AMOUNT_SATS)
-        .expect("withdraw should enqueue");
+    let receipt =
+        withdraw_ckbtc(&env, &wallet, WITHDRAW_AMOUNT_SATS).expect("withdraw should enqueue");
     env.advance_time_secs(3_600);
 
     // when

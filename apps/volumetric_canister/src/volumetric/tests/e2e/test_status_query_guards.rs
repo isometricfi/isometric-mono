@@ -194,8 +194,8 @@ fn test_get_withdraw_status_rejects_replicated_calls() {
     let profile = create_account(&env, &wallet).expect("Create account failed");
     mint_and_sync_balance(&env, &profile, 500_000).expect("Funding failed");
 
-    let withdraw_receipt = withdraw_ckbtc(&env, &wallet, WITHDRAW_AMOUNT_SATS)
-        .expect("withdraw should enqueue");
+    let withdraw_receipt =
+        withdraw_ckbtc(&env, &wallet, WITHDRAW_AMOUNT_SATS).expect("withdraw should enqueue");
 
     // when
     let replicated_query_call = env.pic.update_call(

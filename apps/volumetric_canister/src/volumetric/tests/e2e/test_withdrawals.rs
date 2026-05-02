@@ -26,8 +26,8 @@ fn test_withdraw_returns_receipt_and_initial_pending_status() {
     configure_test_ledger(&env);
 
     // when
-    let receipt = withdraw_ckbtc(&env, &wallet, WITHDRAW_AMOUNT_SATS)
-        .expect("withdraw should enqueue");
+    let receipt =
+        withdraw_ckbtc(&env, &wallet, WITHDRAW_AMOUNT_SATS).expect("withdraw should enqueue");
     let status =
         get_withdraw_status(&env, receipt.operation_id).expect("status should load after enqueue");
 
@@ -71,8 +71,8 @@ fn test_withdraw_retryable_failure_keeps_pending_with_last_error() {
     mint_and_sync_balance(&env, &profile, INITIAL_BALANCE_SATS).expect("Funding failed");
     configure_test_ledger(&env);
 
-    let receipt = withdraw_ckbtc(&env, &wallet, WITHDRAW_AMOUNT_SATS)
-        .expect("withdraw should enqueue");
+    let receipt =
+        withdraw_ckbtc(&env, &wallet, WITHDRAW_AMOUNT_SATS).expect("withdraw should enqueue");
 
     // when
     env.advance_time_secs(3_600);
@@ -118,8 +118,8 @@ fn test_withdraw_retry_window_keeps_pending_and_balance_reserved() {
     let balance_before_withdraw =
         get_user_balance(&env, &wallet.address).expect("initial balance lookup failed");
 
-    let receipt = withdraw_ckbtc(&env, &wallet, WITHDRAW_AMOUNT_SATS)
-        .expect("withdraw should enqueue");
+    let receipt =
+        withdraw_ckbtc(&env, &wallet, WITHDRAW_AMOUNT_SATS).expect("withdraw should enqueue");
 
     // when
     for _ in 0..8 {
@@ -174,8 +174,8 @@ fn test_withdraw_rejects_second_request_while_first_is_pending() {
     configure_test_ledger(&env);
 
     // when
-    let _first_receipt = withdraw_ckbtc(&env, &wallet, WITHDRAW_AMOUNT_SATS)
-        .expect("first withdraw should enqueue");
+    let _first_receipt =
+        withdraw_ckbtc(&env, &wallet, WITHDRAW_AMOUNT_SATS).expect("first withdraw should enqueue");
     let second_result = withdraw_ckbtc(&env, &wallet, WITHDRAW_AMOUNT_SATS);
 
     // then

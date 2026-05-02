@@ -53,8 +53,8 @@ fn test_buyer_cannot_accept_offer_after_withdraw_debits_same_funds() {
     )
     .expect("create offer failed");
 
-    let _withdraw_receipt = withdraw_ckbtc(&env, &buyer_wallet, WITHDRAW_AMOUNT_SATS)
-        .expect("withdraw should enqueue");
+    let _withdraw_receipt =
+        withdraw_ckbtc(&env, &buyer_wallet, WITHDRAW_AMOUNT_SATS).expect("withdraw should enqueue");
 
     // when
     let accept_result = accept_offers(
