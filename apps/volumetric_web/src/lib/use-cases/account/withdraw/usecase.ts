@@ -34,7 +34,7 @@ export async function withdraw(input: Input): Promise<Output> {
       operationId: operationIdHex,
       userAddress: input.address,
       withdrawalId: Number(receipt.withdrawal_id),
-      destinationAddress: input.btcAddress,
+      destinationAddress: input.address,
       amountSats: Number(input.amount),
       blockIndex: null,
       bitcoinTxid: null,
