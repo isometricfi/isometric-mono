@@ -190,9 +190,6 @@ fn prepare_settlement_execution(
         ));
     }
 
-    option.status = ActiveOptionStatus::Settling;
-    update_active_option(option.clone());
-
     let buyer_payout_before_profit_fee_sats = match option.option_type {
         OptionType::Call => calculate_call_option_payout(
             settlement_price_cents,
@@ -219,6 +216,9 @@ fn prepare_settlement_execution(
         0
     };
     let created_at_time_ns = ic::time();
+
+    option.status = ActiveOptionStatus::Settling;
+    update_active_option(option.clone());
 
     ic::log(&format!(
         "settle_single_option: quantity={}, buyer_payout_before_profit_fee_sats={}, profit_fee_sats={}, buyer_payout_after_profit_fee_sats={}, writer_payout_before_transfer_fees_sats={}, transfer_fee_sats={}",
@@ -1386,6 +1386,34 @@ mod tests {
             }
             _ => panic!("settlement should be pending before WAL execution"),
         }
+    }
+
+    /// Given: a valid expired in-the-money option with a stale ckBTC transfer fee cache
+    /// When: settle_option_by_id_use_case is called
+    /// Then: it rejects before marking the option as settling so the option can be retried
+    #[tokio::test]
+    async fn test_settle_option_by_id_releases_option_status_when_fee_cache_is_stale() {
+        // given
+        const STALE_TRANSFER_FEE_FETCHED_AT_SECONDS: u64 = TEST_NOW_SECONDS - 91;
+        let writer = test_principal(31);
+        let buyer = test_principal(32);
+        setup_test_state(writer, buyer);
+        set_oracle(Rc::new(StubOracle::new(TEST_SETTLEMENT_PRICE_CENTS)));
+        ledger::set_cached_transfer_fee_for_testing(10, STALE_TRANSFER_FEE_FETCHED_AT_SECONDS);
+
+        // when
+        let result = settle_option_by_id_use_case(TEST_OPTION_ID).await;
+
+        // then
+        let error = result.expect_err("stale fee cache should reject settlement");
+        assert_eq!(error.code, error_codes::CONFIG_ERROR.code);
+
+        let option = get_active_option(TEST_OPTION_ID).expect("option should remain in storage");
+        assert_eq!(option.status, ActiveOptionStatus::Active);
+
+        let retry_result = settle_option_by_id_use_case(TEST_OPTION_ID).await;
+        let retry_error = retry_result.expect_err("stale fee cache should still reject retry");
+        assert_eq!(retry_error.code, error_codes::CONFIG_ERROR.code);
     }
 
     /// Given: a valid expired option and a deterministic oracle that records requested times
