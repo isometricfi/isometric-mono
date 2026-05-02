@@ -1,8 +1,15 @@
 import { getEventsRepository } from "@/lib/repositories/events/get-events-repository";
 import { ATTR_RESULT_COUNT } from "@/lib/telemetry/traceConstants";
 import { withSpan } from "@/lib/telemetry/withSpan";
+import { getConfig } from "@/lib/use-cases/config/get-config/usecase";
 import { eventDataSchema } from "@/lib/use-cases/events/get-events/schema";
-import { calculatePnl, calculatePnlPercent, getMoneyStatus, getTradeResult } from "./pnl";
+import {
+  calculatePnl,
+  calculatePnlPercent,
+  getMoneyStatus,
+  getTradeResult,
+  netPremiumSatsForRole,
+} from "./pnl";
 import type { HistoryEntry, Output, TradeRole } from "./schema";
 
 const GET_HISTORY_SPAN_NAME = "usecase.history.get_history";
@@ -10,7 +17,11 @@ const GET_HISTORY_SPAN_NAME = "usecase.history.get_history";
 export async function getHistory(principal: string): Promise<Output> {
   return withSpan(GET_HISTORY_SPAN_NAME, async (span) => {
     const repository = getEventsRepository();
-    const events = await repository.getEventsByPrincipal(principal, { limit: 1000 });
+    const [events, config] = await Promise.all([
+      repository.getEventsByPrincipal(principal, { limit: 1000 }),
+      getConfig(),
+    ]);
+    const premiumFeeBps = config.fees.premiumFeeBasisPoints;
     const entries: HistoryEntry[] = [];
 
     for (const event of events) {
@@ -22,7 +33,7 @@ export async function getHistory(principal: string): Promise<Output> {
       const data = parsedData.data;
       const role: TradeRole = data.role === "Buyer" ? "buyer" : "writer";
       const quantitySats = BigInt(data.quantitySats);
-      const premiumSats = BigInt(data.premiumSats);
+      const premiumSats = netPremiumSatsForRole(BigInt(data.premiumSats), premiumFeeBps, role);
       const payoutSats = BigInt(data.payoutSats);
       const strikePriceCents = BigInt(data.strikePriceCents);
       const entryPriceCents = BigInt(data.entryPriceCents);

@@ -1,6 +1,17 @@
 import type { MoneyStatus, TradeResult, TradeRole } from "./schema";
 
 const ZERO = BigInt(0);
+const BASIS_POINTS_DENOMINATOR = BigInt(10_000);
+
+export function netPremiumSatsForRole(
+  grossPremiumSats: bigint,
+  premiumFeeBps: bigint,
+  role: TradeRole,
+): bigint {
+  if (role !== "writer" || premiumFeeBps <= ZERO) return grossPremiumSats;
+  const feeSats = (grossPremiumSats * premiumFeeBps) / BASIS_POINTS_DENOMINATOR;
+  return grossPremiumSats - feeSats;
+}
 
 export function calculatePnl(
   role: TradeRole,
