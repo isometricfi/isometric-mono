@@ -5,12 +5,17 @@ import { getHistory } from "./usecase";
 
 const PRINCIPAL = "a4jnl-aaotm-42cjq-mustg-7ujpq-m4uql-mjfuv-pa7h7-pvrci-alv7i-vqe";
 
-const { getEventsRepositoryMock } = vi.hoisted(() => ({
+const { getEventsRepositoryMock, getConfigMock } = vi.hoisted(() => ({
   getEventsRepositoryMock: vi.fn(),
+  getConfigMock: vi.fn(),
 }));
 
 vi.mock("@/lib/repositories/events/get-events-repository", () => ({
   getEventsRepository: getEventsRepositoryMock,
+}));
+
+vi.mock("@/lib/use-cases/config/get-config/usecase", () => ({
+  getConfig: getConfigMock,
 }));
 
 function makeRepositoryMock(): IEventsRepository {
@@ -49,6 +54,9 @@ function makeValidOptionSettledEvent(overrides: Partial<Event> = {}): Event {
 describe("getHistory", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    getConfigMock.mockResolvedValue({
+      fees: { premiumFeeBasisPoints: BigInt(500), profitFeeBasisPoints: BigInt(2000) },
+    });
   });
 
   test("should skip OptionSettled rows with missing numeric fields and return valid entries", async () => {

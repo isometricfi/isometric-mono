@@ -6,11 +6,16 @@ import { useAccount } from "./use-account";
 
 export function useHistory() {
   const trpc = useTRPC();
-  const { data: account } = useAccount();
+  const { data: account, isLoading: isAccountLoading } = useAccount();
   const principal = account?.profile?.principal;
 
-  return useQuery({
+  const query = useQuery({
     ...trpc.history.getHistory.queryOptions({ principal: principal ?? "" }),
     enabled: !!principal,
   });
+
+  return {
+    ...query,
+    isLoading: isAccountLoading || query.isLoading,
+  };
 }

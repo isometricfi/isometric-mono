@@ -8,7 +8,7 @@ use crate::errors::{error_codes, VolumetricError};
 use crate::guards::{is_controller, is_whitelisted, no_replicated_call};
 use crate::journaling::OperationId;
 use crate::storage::{
-    get_pending_withdrawals_by_principal, get_principal_for_wallet, get_withdrawal,
+    get_pending_withdrawals_by_principal, get_principal_for_wallet, get_profile, get_withdrawal,
     increment_nonce, list_failed_withdrawals, list_pending_withdrawals, PendingWithdrawal,
 };
 use crate::usecases;
@@ -27,14 +27,12 @@ pub fn get_my_pending_withdrawals_message(
 #[ic_cdk::query(guard = "no_replicated_call")]
 pub fn get_withdraw_message(
     address: String,
-    btc_address: String,
     amount: u64,
     expires_at_seconds: u64,
 ) -> Result<String, VolumetricError> {
     let wallet_key = WalletKey::try_from_address(&address)?;
     let context = build_challenge_context(&wallet_key, expires_at_seconds);
     let req = WithdrawCkbtcRequest {
-        btc_address,
         amount,
         expires_at_seconds,
     };
@@ -61,9 +59,15 @@ pub fn withdraw_ckbtc(
 
     let principal = get_principal_for_wallet(&wallet_key)
         .ok_or_else(|| VolumetricError::from_def(error_codes::PROFILE_NOT_FOUND, None, None))?;
+    let profile = get_profile(&principal)
+        .ok_or_else(|| VolumetricError::from_def(error_codes::PROFILE_NOT_FOUND, None, None))?;
 
+    // Destination is hard-coded to the registered wallet address. The
+    // request cannot redirect funds elsewhere — even if a signature were
+    // somehow obtained by a third party, the payout still goes to the
+    // address the user set when they registered the account.
     let params = usecases::WithdrawParams {
-        btc_address: req.data.btc_address,
+        btc_address: profile.wallet_address,
         amount: req.data.amount,
     };
 
