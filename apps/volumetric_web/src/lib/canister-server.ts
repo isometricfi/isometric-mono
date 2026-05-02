@@ -28,6 +28,10 @@ function getIdentity(): Identity {
   return Ed25519KeyIdentity.fromSecretKey(privateKeyBytes.buffer);
 }
 
+export async function getSharedAgent(): Promise<HttpAgent> {
+  return getAgent();
+}
+
 async function getAgent(): Promise<HttpAgent> {
   if (cachedAgent) {
     return cachedAgent;

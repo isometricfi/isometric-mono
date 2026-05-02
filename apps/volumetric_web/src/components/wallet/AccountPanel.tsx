@@ -21,7 +21,7 @@ import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Drawer, DrawerContent, DrawerTitle } from "@/components/ui/drawer";
 import { DepositModal } from "@/components/wallet/DepositModal";
-import { PendingDeposits } from "@/components/wallet/PendingDeposits";
+import { PendingActivity } from "@/components/wallet/PendingActivity";
 import { WithdrawModal } from "@/components/wallet/WithdrawModal";
 import { useAccount, useModal, usePrices, useUpdateUsername } from "@/hooks";
 import { Link } from "@/i18n/routing";
@@ -206,7 +206,7 @@ function AccountPanelContent({
                   <p>{t("withdraw")}</p>
                 </Button>
               </div>
-              <PendingDeposits />
+              <PendingActivity />
               <div className="space-y-5 md:absolute right-0 w-full">
                 <Link href="/history" className="block w-full" onClick={onClose}>
                   <Button variant="outline" size="sm" className="w-full">
