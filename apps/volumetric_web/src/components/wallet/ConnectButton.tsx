@@ -6,7 +6,7 @@ import { useState } from "react";
 import { useMediaQuery } from "react-responsive";
 import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { useAccount, useEnsureAccount, usePendingDeposits } from "@/hooks";
+import { useAccount, useEnsureAccount, usePendingDeposits, usePendingWithdrawals } from "@/hooks";
 import { AccountCreationModal } from "./AccountCreationModal";
 import { AccountPanel } from "./AccountPanel";
 
@@ -27,14 +27,17 @@ export function ConnectButton() {
   const { data: accountData } = useAccount();
   const isMobile = useMediaQuery({ query: "(max-width: 768px)" });
   const t = useTranslations("ConnectButton");
-  const { hasPending } = usePendingDeposits();
+  const { hasPending: hasPendingDeposits } = usePendingDeposits();
+  const { hasPending: hasPendingWithdrawals } = usePendingWithdrawals();
+  const hasPending = hasPendingDeposits || hasPendingWithdrawals;
 
   if (primaryWallet) {
-    const address = primaryWallet.address;
-    const shortAddress = `${address.slice(0, 3)}...${address.slice(-3)}`;
+    const address = accountData?.profile?.address ?? primaryWallet.address;
+    const shortAddress =
+      address.length <= 14 ? address : `${address.slice(0, 4)}...${address.slice(-3)}`;
     const username = accountData?.profile?.username ?? null;
     const displayName = username ? (isMobile ? getInitials(username) : username) : shortAddress;
-    const seed = accountData?.profile?.address ?? address;
+    const seed = address;
     return (
       <>
         <Button

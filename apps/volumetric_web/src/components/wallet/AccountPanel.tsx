@@ -19,14 +19,16 @@ import { ShareSummaryModal } from "@/app/[locale]/history/_components/ShareSumma
 import { SystemSettings } from "@/components/layout/SystemSettings";
 import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { Copyable } from "@/components/ui/copyable";
 import { Drawer, DrawerContent, DrawerTitle } from "@/components/ui/drawer";
 import { DepositModal } from "@/components/wallet/DepositModal";
-import { PendingDeposits } from "@/components/wallet/PendingDeposits";
+import { PendingActivity } from "@/components/wallet/PendingActivity";
 import { WithdrawModal } from "@/components/wallet/WithdrawModal";
 import { useAccount, useModal, usePrices, useUpdateUsername } from "@/hooks";
 import { Link } from "@/i18n/routing";
 import { cn, formatBtcWithSymbolBigint, roundToN } from "@/lib/utils";
 import { Badge } from "../ui/badge";
+import { Skeleton } from "../ui/skeleton";
 
 function shortenAddress(address: string) {
   if (address.length <= 14) return address;
@@ -106,7 +108,17 @@ function AccountPanelContent({
           <Avatar seed={avatarSeed} width={50} height={50} className="size-10 rounded-md" />
           <div className="min-w-0">
             <div className="font-semibold leading-none truncate">{displayName}</div>
-            <div className="text-xs text-muted-foreground truncate">{addressLabel ?? "—"}</div>
+            {connectedAddress ? (
+              <Copyable
+                text={connectedAddress}
+                aria-label="Copy address"
+                className="-ml-0.5 px-0.5 py-0.5 text-xs text-muted-foreground hover:text-foreground"
+              >
+                <span>{addressLabel}</span>
+              </Copyable>
+            ) : (
+              <div className="text-xs text-muted-foreground truncate">—</div>
+            )}
           </div>
         </div>
 
@@ -175,18 +187,26 @@ function AccountPanelContent({
               <div className="space-y-1">
                 <p className="text-sm text-muted-foreground">{t("available")}</p>
                 <div className="flex items-center gap-2 justify-between">
-                  <p className="text-3xl font-semibold tracking-tight">
-                    {isLoadingBalance ? "—" : formatBtcWithSymbolBigint(available, 8)}
-                  </p>
+                  <div className="text-3xl font-semibold tracking-tight">
+                    {isLoadingBalance ? (
+                      <Skeleton className="h-9 w-32" />
+                    ) : (
+                      formatBtcWithSymbolBigint(available, 8)
+                    )}
+                  </div>
                   {!isLoadingBalance && availableUsd > 0 && (
                     <div className="text-muted-foreground text-sm bg-muted px-2 py-1 rounded-sm">
                       ${availableUsd.toLocaleString()}
                     </div>
                   )}
                 </div>
-                <Badge variant="secondary">
-                  {t("deposited")} {formatBtcWithSymbolBigint(deposited, 8)}
-                </Badge>
+                {isLoadingBalance ? (
+                  <Skeleton className="h-6.5 w-20 rounded-full" />
+                ) : (
+                  <Badge variant="secondary">
+                    {t("deposited")} {formatBtcWithSymbolBigint(deposited, 8)}
+                  </Badge>
+                )}
               </div>
 
               <div className="grid grid-cols-2 gap-3">
@@ -206,7 +226,7 @@ function AccountPanelContent({
                   <p>{t("withdraw")}</p>
                 </Button>
               </div>
-              <PendingDeposits />
+              <PendingActivity />
               <div className="space-y-5 md:absolute right-0 w-full">
                 <Link href="/history" className="block w-full" onClick={onClose}>
                   <Button variant="outline" size="sm" className="w-full">

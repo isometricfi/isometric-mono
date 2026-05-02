@@ -108,7 +108,7 @@ export function getColumns(t: ReturnType<typeof useTranslations>): ColumnDef<His
         </button>
       ),
       cell: ({ row }) => (
-        <span className="font-mono">₿{formatBtcBigint(row.getValue("quantitySats"), 4)}</span>
+        <span className="font-mono">₿{formatBtcBigint(row.getValue("quantitySats"), 8)}</span>
       ),
       sortingFn: (rowA, rowB) => {
         const a = rowA.getValue("quantitySats") as bigint;

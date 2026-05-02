@@ -15,7 +15,6 @@ export type WithdrawStep = "idle" | "signing" | "submitting" | "success" | "erro
 
 export interface WithdrawParams {
   amountSats: bigint;
-  btcAddress: string;
 }
 
 export function useWithdraw() {
@@ -27,15 +26,12 @@ export function useWithdraw() {
   const [step, setStep] = useState<WithdrawStep>("idle");
 
   const mutation = useMutation<WithdrawOutput, Error, WithdrawParams>({
-    mutationFn: async ({ amountSats, btcAddress }: WithdrawParams): Promise<WithdrawOutput> => {
+    mutationFn: async ({ amountSats }: WithdrawParams): Promise<WithdrawOutput> => {
       if (!canister || !address) {
         throw new Error("Wallet not connected");
       }
       if (!primaryWallet || !isBitcoinWallet(primaryWallet)) {
         throw new Error("Bitcoin wallet not connected");
-      }
-      if (!btcAddress) {
-        throw new Error("Missing destination address");
       }
       if (amountSats <= BigInt(0)) {
         throw new Error("Enter an amount");
@@ -45,7 +41,7 @@ export function useWithdraw() {
 
       const expiresAtSeconds = computeExpiresAtSeconds();
       const message = unwrapResult(
-        await canister.get_withdraw_message(address, btcAddress, amountSats, expiresAtSeconds),
+        await canister.get_withdraw_message(address, amountSats, expiresAtSeconds),
       );
       const signature = await primaryWallet.signMessage(message, { addressType: "payment" });
 
@@ -59,13 +55,13 @@ export function useWithdraw() {
         address,
         signature,
         expiresAtSeconds: expiresAtSeconds.toString(),
-        btcAddress,
         amount: amountSats.toString(),
       });
     },
     onSuccess: () => {
       setStep("success");
       queryClient.invalidateQueries({ queryKey: [["account"]] });
+      queryClient.invalidateQueries({ queryKey: [["account", "getPendingWithdrawals"]] });
     },
     onError: () => {
       setStep("error");

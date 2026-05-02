@@ -19,7 +19,6 @@ const ONE_DAY_SECS: u64 = 86_400 * 3;
 const CKBTC_TRANSFER_FEE_SATS: u64 = 10;
 const BASIS_POINTS: u64 = 10_000;
 const OFFER_ID: u64 = 1;
-const TEST_BTC_ADDRESS: &str = "tb1qstatusguard";
 const WITHDRAW_AMOUNT_SATS: u64 = 100_000;
 
 fn assert_replicated_query_guard_rejects<T, E: std::fmt::Debug>(result: Result<T, E>) {
@@ -195,8 +194,8 @@ fn test_get_withdraw_status_rejects_replicated_calls() {
     let profile = create_account(&env, &wallet).expect("Create account failed");
     mint_and_sync_balance(&env, &profile, 500_000).expect("Funding failed");
 
-    let withdraw_receipt = withdraw_ckbtc(&env, &wallet, TEST_BTC_ADDRESS, WITHDRAW_AMOUNT_SATS)
-        .expect("withdraw should enqueue");
+    let withdraw_receipt =
+        withdraw_ckbtc(&env, &wallet, WITHDRAW_AMOUNT_SATS).expect("withdraw should enqueue");
 
     // when
     let replicated_query_call = env.pic.update_call(

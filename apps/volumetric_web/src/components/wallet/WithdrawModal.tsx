@@ -74,7 +74,6 @@ export function WithdrawModal({
   const handleWithdraw = () => {
     if (!canWithdraw) return;
     withdraw.mutate({
-      btcAddress: destinationAddress,
       amountSats: parseBtcToSatsBigint(amountBtc),
     });
   };

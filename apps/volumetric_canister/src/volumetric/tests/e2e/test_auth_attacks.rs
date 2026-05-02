@@ -24,7 +24,6 @@ use crate::helpers::{offers, withdrawals};
 const SIGNING_WINDOW_SECONDS: u64 = 300;
 const INITIAL_BALANCE_SATS: u64 = 500_000;
 const WITHDRAW_AMOUNT_SATS: u64 = 100_000;
-const DESTINATION_BTC_ADDRESS: &str = "tb1qvolumetricwithdraw";
 const OFFER_QUANTITY_SATS: u64 = 100_000;
 const OFFER_STRIKE_BPS: u16 = 500;
 const OFFER_PREMIUM_BPS: u16 = 100;
@@ -157,7 +156,6 @@ fn test_cross_address_replay_rejected_when_wallet_proof_address_mutated() {
     let message = withdrawals::get_withdraw_message(
         &env,
         &signer_wallet.address,
-        DESTINATION_BTC_ADDRESS,
         WITHDRAW_AMOUNT_SATS,
         expires_at_seconds,
     );
@@ -166,7 +164,6 @@ fn test_cross_address_replay_rejected_when_wallet_proof_address_mutated() {
     // when
     let mutated_payload = AuthenticatedPayload {
         data: WithdrawCkbtcRequest {
-            btc_address: DESTINATION_BTC_ADDRESS.to_string(),
             amount: WITHDRAW_AMOUNT_SATS,
             expires_at_seconds,
         },
@@ -222,7 +219,6 @@ fn test_cross_user_impersonation_rejected() {
     let attacker_message = withdrawals::get_withdraw_message(
         &env,
         &attacker_wallet.address,
-        DESTINATION_BTC_ADDRESS,
         WITHDRAW_AMOUNT_SATS,
         expires_at_seconds,
     );
@@ -231,7 +227,6 @@ fn test_cross_user_impersonation_rejected() {
     // when
     let impersonation_payload = AuthenticatedPayload {
         data: WithdrawCkbtcRequest {
-            btc_address: DESTINATION_BTC_ADDRESS.to_string(),
             amount: WITHDRAW_AMOUNT_SATS,
             expires_at_seconds,
         },
@@ -276,14 +271,12 @@ fn test_nonce_replay_same_payload_submitted_twice_is_rejected_on_second_call() {
     let message = withdrawals::get_withdraw_message(
         &env,
         &wallet.address,
-        DESTINATION_BTC_ADDRESS,
         WITHDRAW_AMOUNT_SATS,
         expires_at_seconds,
     );
     let signature = wallets::sign_message(&wallet, &message);
     let payload = AuthenticatedPayload {
         data: WithdrawCkbtcRequest {
-            btc_address: DESTINATION_BTC_ADDRESS.to_string(),
             amount: WITHDRAW_AMOUNT_SATS,
             expires_at_seconds,
         },
@@ -341,14 +334,12 @@ fn test_expiry_in_the_past_is_rejected_with_challenge_expired() {
     let message = withdrawals::get_withdraw_message(
         &env,
         &wallet.address,
-        DESTINATION_BTC_ADDRESS,
         WITHDRAW_AMOUNT_SATS,
         already_expired,
     );
     let signature = wallets::sign_message(&wallet, &message);
     let payload = AuthenticatedPayload {
         data: WithdrawCkbtcRequest {
-            btc_address: DESTINATION_BTC_ADDRESS.to_string(),
             amount: WITHDRAW_AMOUNT_SATS,
             expires_at_seconds: already_expired,
         },
@@ -395,14 +386,12 @@ fn test_expiry_too_far_in_future_is_rejected() {
     let message = withdrawals::get_withdraw_message(
         &env,
         &wallet.address,
-        DESTINATION_BTC_ADDRESS,
         WITHDRAW_AMOUNT_SATS,
         too_far_future,
     );
     let signature = wallets::sign_message(&wallet, &message);
     let payload = AuthenticatedPayload {
         data: WithdrawCkbtcRequest {
-            btc_address: DESTINATION_BTC_ADDRESS.to_string(),
             amount: WITHDRAW_AMOUNT_SATS,
             expires_at_seconds: too_far_future,
         },
@@ -446,14 +435,12 @@ fn test_expiry_lapses_between_signing_and_submission_is_rejected() {
     let message = withdrawals::get_withdraw_message(
         &env,
         &wallet.address,
-        DESTINATION_BTC_ADDRESS,
         WITHDRAW_AMOUNT_SATS,
         expires_at_seconds,
     );
     let signature = wallets::sign_message(&wallet, &message);
     let payload = AuthenticatedPayload {
         data: WithdrawCkbtcRequest {
-            btc_address: DESTINATION_BTC_ADDRESS.to_string(),
             amount: WITHDRAW_AMOUNT_SATS,
             expires_at_seconds,
         },
@@ -562,7 +549,6 @@ fn test_action_field_tampering_withdraw_amount_swap_is_rejected() {
     let message = withdrawals::get_withdraw_message(
         &env,
         &wallet.address,
-        DESTINATION_BTC_ADDRESS,
         WITHDRAW_AMOUNT_SATS,
         expires_at_seconds,
     );
@@ -571,7 +557,6 @@ fn test_action_field_tampering_withdraw_amount_swap_is_rejected() {
     // when
     let payload = AuthenticatedPayload {
         data: WithdrawCkbtcRequest {
-            btc_address: DESTINATION_BTC_ADDRESS.to_string(),
             amount: WITHDRAW_AMOUNT_SATS * AMOUNT_UPLIFT_FACTOR,
             expires_at_seconds,
         },

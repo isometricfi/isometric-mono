@@ -536,17 +536,6 @@ export const idlFactory = ({ IDL }) => {
     'Ok' : ObservabilityMetrics,
     'Err' : VolumetricError,
   });
-  const WalExecutionOutcome = IDL.Variant({
-    'SucceededAlready' : IDL.Null,
-    'RecoveryRequired' : IDL.Text,
-    'FailedPermanent' : IDL.Text,
-    'Succeeded' : IDL.Null,
-    'SkippedAlreadyInFlight' : IDL.Null,
-  });
-  const Result_28 = IDL.Variant({
-    'Ok' : WalExecutionOutcome,
-    'Err' : VolumetricError,
-  });
   const SettlementResult = IDL.Record({
     'status' : ActiveOptionStatus,
     'payout_to_buyer' : IDL.Nat64,
@@ -600,7 +589,6 @@ export const idlFactory = ({ IDL }) => {
   const WithdrawCkbtcRequest = IDL.Record({
     'expires_at_seconds' : IDL.Nat64,
     'amount' : IDL.Nat64,
-    'btc_address' : IDL.Text,
   });
   const AuthenticatedPayload_6 = IDL.Record({
     'data' : WithdrawCkbtcRequest,
@@ -731,14 +719,14 @@ export const idlFactory = ({ IDL }) => {
       ),
     'get_withdraw_status' : IDL.Func(
         [IDL.Vec(IDL.Nat8)],
-        [Result_23],
+        [Result_22],
         ['query'],
       ),
-    'get_withdrawal_by_id' : IDL.Func([IDL.Nat64], [Result_24], ['query']),
-    'list_users' : IDL.Func([], [Result_25], ['query']),
-    'list_whitelisted' : IDL.Func([], [Result_26], ['query']),
-    'observability_get_metrics' : IDL.Func([], [Result_27], ['query']),
-    'recover_wal_operation' : IDL.Func([IDL.Vec(IDL.Nat8)], [Result_28], []),
+    'get_withdrawal_by_id' : IDL.Func([IDL.Nat64], [Result_23], ['query']),
+    'list_users' : IDL.Func([], [Result_24], ['query']),
+    'list_whitelisted' : IDL.Func([], [Result_25], ['query']),
+    'observability_get_metrics' : IDL.Func([], [Result_26], ['query']),
+    'recover_wal_operation' : IDL.Func([IDL.Vec(IDL.Nat8)], [Result_27], []),
     'remove_whitelisted' : IDL.Func([IDL.Principal], [Result_1], []),
     'resolve_invite_code' : IDL.Func(
         [IDL.Text],

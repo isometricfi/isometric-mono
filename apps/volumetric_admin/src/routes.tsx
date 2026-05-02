@@ -9,6 +9,7 @@ import {
   Scales,
   ShieldCheck,
   Stack,
+  TrendUp,
   UserCircle,
   UserFocus,
   UsersThree,
@@ -26,6 +27,7 @@ import { FailedOperationsPage } from "./pages/FailedOperationsPage";
 import { FeeBalancePage } from "./pages/FeeBalancePage";
 import { FeeReconciliationPage } from "./pages/FeeReconciliationPage";
 import { OptionAuditPage } from "./pages/OptionAuditPage";
+import { PayoutPredictorPage } from "./pages/PayoutPredictorPage";
 import { PendingSettlementsPage } from "./pages/PendingSettlementsPage";
 import { PendingWithdrawalsPage } from "./pages/PendingWithdrawalsPage";
 import { SolvencyPage } from "./pages/SolvencyPage";
@@ -55,6 +57,11 @@ export const ROUTES: Record<string, RouteDef> = {
     path: "/fee-balance",
     label: "Fee Balance",
     render: () => <FeeBalancePage />,
+  },
+  "/payout-predictor": {
+    path: "/payout-predictor",
+    label: "Payout Predictor",
+    render: () => <PayoutPredictorPage />,
   },
   "/options": {
     path: "/options",
@@ -130,6 +137,7 @@ export const SIDEBAR_GROUPS: SidebarGroup[] = [
     entries: [
       { path: "/fees", label: "Fee Reconciliation", icon: Coins },
       { path: "/fee-balance", label: "Fee Balance", icon: Wallet },
+      { path: "/payout-predictor", label: "Payout Predictor", icon: TrendUp },
       { path: "/options", label: "Option Audit", icon: Cube },
       { path: "/pending-settlements", label: "Pending Settlements", icon: Stack },
       { path: "/pending-withdrawals", label: "Pending Withdrawals", icon: HandCoins },

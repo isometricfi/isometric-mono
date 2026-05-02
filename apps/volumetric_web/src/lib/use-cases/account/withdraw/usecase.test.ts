@@ -1,12 +1,19 @@
 import { beforeEach, describe, expect, test, vi } from "vitest";
 import { withdraw } from "./usecase";
 
-const { getCanisterActorMock } = vi.hoisted(() => ({
+const { getCanisterActorMock, saveTrackedWithdrawalMock } = vi.hoisted(() => ({
   getCanisterActorMock: vi.fn(),
+  saveTrackedWithdrawalMock: vi.fn().mockResolvedValue(undefined),
 }));
 
 vi.mock("@/lib/canister-server", () => ({
   getCanisterActor: getCanisterActorMock,
+}));
+
+vi.mock("@/lib/repositories/withdrawal-sync/get-withdrawal-sync-repository", () => ({
+  getWithdrawalSyncRepository: () => ({
+    saveTrackedWithdrawal: saveTrackedWithdrawalMock,
+  }),
 }));
 
 describe("withdraw usecase", () => {
@@ -57,13 +64,23 @@ describe("withdraw usecase", () => {
       address: "tb1quser",
       signature: "signature",
       expiresAtSeconds: "1700000000",
-      btcAddress: "tb1qdest",
       amount: "1000",
     });
 
     // then
     expect(result).toEqual({ blockIndex: BigInt(777) });
     expect(actor.get_withdraw_status).toHaveBeenCalledTimes(2);
+    expect(saveTrackedWithdrawalMock).toHaveBeenCalled();
+    const initialCall = saveTrackedWithdrawalMock.mock.calls[0]?.[0];
+    expect(initialCall).toMatchObject({
+      operationId: "010203",
+      userAddress: "tb1quser",
+      withdrawalId: 2,
+      destinationAddress: "tb1quser",
+      amountSats: 1000,
+      status: "broadcasting",
+      phase: "started",
+    });
   });
 
   test("should throw failed terminal message", async () => {
@@ -95,7 +112,6 @@ describe("withdraw usecase", () => {
       address: "tb1quser",
       signature: "signature",
       expiresAtSeconds: "1700000000",
-      btcAddress: "tb1qdest",
       amount: "1000",
     });
 
@@ -134,7 +150,6 @@ describe("withdraw usecase", () => {
       address: "tb1quser",
       signature: "signature",
       expiresAtSeconds: "1700000000",
-      btcAddress: "tb1qdest",
       amount: "1000",
     });
     const timeoutExpectation = expect(run).rejects.toThrow("terminal state");

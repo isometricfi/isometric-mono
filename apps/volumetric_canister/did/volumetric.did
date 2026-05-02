@@ -437,7 +437,6 @@ type WalletProof = record { signature : text; address : text };
 type WithdrawCkbtcRequest = record {
   expires_at_seconds : nat64;
   amount : nat64;
-  btc_address : text;
 };
 type WithdrawReceipt = record { withdrawal_id : nat64; operation_id : blob };
 type WithdrawResult = record { block_index : nat64 };
@@ -525,12 +524,12 @@ service : (opt BtcNetwork) -> {
   get_user_balance : (text) -> (Result_22) query;
   get_username_update_message : (text, text, nat64) -> (Result_7) query;
   get_withdraw_message : (text, text, nat64, nat64) -> (Result_7) query;
-  get_withdraw_status : (blob) -> (Result_23) query;
-  get_withdrawal_by_id : (nat64) -> (Result_24) query;
-  list_users : () -> (Result_25) query;
-  list_whitelisted : () -> (Result_26) query;
-  observability_get_metrics : () -> (Result_27) query;
-  recover_wal_operation : (blob) -> (Result_28);
+  get_withdraw_status : (blob) -> (Result_22) query;
+  get_withdrawal_by_id : (nat64) -> (Result_23) query;
+  list_users : () -> (Result_24) query;
+  list_whitelisted : () -> (Result_25) query;
+  observability_get_metrics : () -> (Result_26) query;
+  recover_wal_operation : (blob) -> (Result_27);
   remove_whitelisted : (principal) -> (Result_1);
   resolve_invite_code : (text) -> (opt text) query;
   set_accept_offer_quantity_sats_range_config : (nat64, nat64) -> (Result_1);
