@@ -152,6 +152,29 @@ pub fn deduct_locked_collateral(
     })
 }
 
+pub fn deduct_writer_transfer_fees(
+    principal: Principal,
+    amount: u64,
+) -> Result<(), InsufficientBalance> {
+    BALANCES.with_borrow_mut(|b| {
+        let mut balance = b.get(&principal).map(|c| c.0).unwrap_or_default();
+        let total_balance = balance.total();
+        if total_balance < amount {
+            return Err(InsufficientBalance {
+                available: total_balance,
+                required: amount,
+            });
+        }
+
+        let locked_fee_sats = balance.locked_as_writer.min(amount);
+        let available_fee_sats = amount.saturating_sub(locked_fee_sats);
+        balance.locked_as_writer = balance.locked_as_writer.saturating_sub(locked_fee_sats);
+        balance.available = balance.available.saturating_sub(available_fee_sats);
+        b.insert(principal, Cbor(balance));
+        Ok(())
+    })
+}
+
 // Releases locked collateral from writer directly to buyer's available balance.
 // Both operations happen atomically (single-threaded canister).
 // Returns error if writer has insufficient locked funds.

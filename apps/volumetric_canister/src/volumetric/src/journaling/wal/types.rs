@@ -38,6 +38,7 @@ pub struct SettlementWalPayload {
     pub option_id: u64,
     pub settlement_price_cents: u64,
     pub created_at_time_ns: u64,
+    pub transfer_fee_sats: u64,
 }
 
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]

@@ -23,9 +23,10 @@ pub use accounts::{
 };
 pub use balances::{
     add_available, add_platform_fee, calculate_premium_fee, calculate_profit_fee,
-    deduct_locked_collateral, get_balance, get_fee_recipient, get_platform_fees_collected,
-    lock_collateral, release_locked_to_buyer, reverse_release_locked_to_buyer, set_balance,
-    subtract_available, unlock_collateral, InsufficientBalance, UserBalance,
+    deduct_locked_collateral, deduct_writer_transfer_fees, get_balance, get_fee_recipient,
+    get_platform_fees_collected, lock_collateral, release_locked_to_buyer,
+    reverse_release_locked_to_buyer, set_balance, subtract_available, unlock_collateral,
+    InsufficientBalance, UserBalance,
 };
 pub use cbor::Cbor;
 pub use config::{BtcNetwork, Config, FeatureFlags, FeeConfig, Range, TradingLimits};
