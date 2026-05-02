@@ -8,6 +8,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { openOnboardingModal } from "@/components/wallet/OnboardingModal";
 import { clearInviteCodeFromSession, readInviteCodeFromSession } from "@/lib/referrals/invite-code";
 import { validateInviteCode } from "@/lib/referrals/validate-invite-code";
+import { toSafeErrorMessage } from "@/lib/safe-error-message";
 import { computeExpiresAtSeconds } from "@/lib/use-cases/_shared/wallet-proof";
 import type { Output as CreateAccountOutput } from "@/lib/use-cases/account/create-account/schema";
 import { trpcClient } from "@/trpc/react";
@@ -100,7 +101,7 @@ export function useEnsureAccount() {
     },
     onError: (err) => {
       setStep("error");
-      setError(err instanceof Error ? err.message : "Failed to create account");
+      setError(toSafeErrorMessage(err));
     },
   });
 

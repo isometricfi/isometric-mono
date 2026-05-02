@@ -12,6 +12,7 @@ import { AlertDialog, AlertDialogContent, AlertDialogTitle } from "@/components/
 import { Button } from "@/components/ui/button";
 import { Drawer, DrawerContent, DrawerTitle } from "@/components/ui/drawer";
 import { useAccount, useConfig, useWithdraw, type WithdrawStep } from "@/hooks";
+import { toSafeErrorMessage } from "@/lib/safe-error-message";
 import {
   DEFAULT_MIN_WITHDRAW_SATS,
   formatBtcBigint,
@@ -82,7 +83,7 @@ export function WithdrawModal({
     withdraw.reset();
   };
 
-  const errorMessage = withdraw.error?.message ?? t("failedToWithdraw");
+  const errorMessage = toSafeErrorMessage(withdraw.error) ?? undefined;
 
   const stages: Record<Exclude<WithdrawStep, "idle">, FlowStepperStep> = {
     signing: {

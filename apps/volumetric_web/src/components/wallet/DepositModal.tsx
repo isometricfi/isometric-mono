@@ -30,6 +30,7 @@ import {
   useWalletBalance,
 } from "@/hooks";
 import { Link } from "@/i18n/routing";
+import { toSafeErrorMessage } from "@/lib/safe-error-message";
 import {
   DEFAULT_MIN_DEPOSIT_SATS,
   formatBtc,
@@ -127,8 +128,7 @@ export function DepositModal({
         throw new Error(t("transactionCancelled"));
       }
     } catch (err) {
-      console.log(err);
-      setError(err instanceof Error ? err.message : t("failedToSend"));
+      setError(toSafeErrorMessage(err));
       setStep("error");
     }
   };
@@ -160,7 +160,7 @@ export function DepositModal({
       icon: XCircle,
       tone: "error",
       title: tCommon("somethingWentWrong"),
-      description: error ?? tCommon("somethingWentWrong"),
+      description: error ?? undefined,
     },
   };
   const stage = step === "input" ? null : stages[step];
