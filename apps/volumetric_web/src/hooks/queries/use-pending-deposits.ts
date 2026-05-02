@@ -7,7 +7,6 @@ import { useTRPC } from "@/trpc/react";
 import { useBtcAddress } from "./use-btc-address";
 import { useDepositAddress } from "./use-deposit-address";
 
-const MEMPOOL_FALLBACK_BASE_URL = "https://mempool.space";
 const DEPOSIT_ADDRESS_CACHE_PREFIX = "deposit-address-cache";
 const REQUIRED_CONFIRMATIONS = 4;
 
@@ -27,16 +26,6 @@ function getBackendPendingStatus(confirmations: number): PendingDepositStatus {
   }
 
   return "processing";
-}
-
-function getMempoolBaseUrl(): string | null {
-  const configuredBaseUrl = process.env.NEXT_PUBLIC_MEMPOOL_URL?.trim().replace(/\/$/, "");
-
-  if (configuredBaseUrl) {
-    return configuredBaseUrl;
-  }
-
-  return MEMPOOL_FALLBACK_BASE_URL;
 }
 
 function getDepositAddressCacheKey(userAddress: string): string {
@@ -103,10 +92,9 @@ export function usePendingDeposits() {
   const { data: depositAddressData } = useDepositAddress();
   const depositAddressFromServer = depositAddressData?.btcAddress ?? null;
   const [cachedDepositAddress, setCachedDepositAddress] = useState<string | null>(null);
-  const mempoolBaseUrl = getMempoolBaseUrl();
   const depositAddress = depositAddressFromServer ?? cachedDepositAddress;
 
-  const enabled = !!depositAddress && !!mempoolBaseUrl;
+  const enabled = !!depositAddress;
 
   useEffect(() => {
     if (!userAddress) {
@@ -131,7 +119,7 @@ export function usePendingDeposits() {
 
   const mempoolTxQuery = useQuery({
     queryKey: ["mempool", "address-txs-mempool", depositAddress],
-    queryFn: () => fetchAddressTransactions(mempoolBaseUrl!, depositAddress!),
+    queryFn: () => fetchAddressTransactions(depositAddress!),
     enabled,
     refetchInterval: 30_000,
     staleTime: 10_000,
@@ -150,7 +138,7 @@ export function usePendingDeposits() {
   useEffect(() => {
     if (!enabled) return;
 
-    const tracker = new MempoolAddressTracker(mempoolBaseUrl!, depositAddress!, {
+    const tracker = new MempoolAddressTracker(depositAddress!, {
       onTransaction: () => {
         queryClient.invalidateQueries({
           queryKey: ["mempool", "address-txs-mempool", depositAddress],
@@ -170,7 +158,7 @@ export function usePendingDeposits() {
       tracker.disconnect();
       trackerRef.current = null;
     };
-  }, [enabled, mempoolBaseUrl, depositAddress, queryClient]);
+  }, [enabled, depositAddress, queryClient]);
 
   const deposits = useMemo<PendingDeposit[]>(() => {
     const mempoolTxs = mempoolTxQuery.data ?? [];
