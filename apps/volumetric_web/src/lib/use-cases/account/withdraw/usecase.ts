@@ -1,37 +1,17 @@
-import type { WithdrawalPhase, WithdrawStatus } from "@volumetric/canister-types";
+import type { WithdrawStatus } from "@volumetric/canister-types";
 import { unwrapResult } from "@volumetric/canister-types";
 import { getCanisterActor } from "@/lib/canister-server";
 import { bytesToHex } from "@/lib/ckbtc-minter-server";
 import { getWithdrawalSyncRepository } from "@/lib/repositories/withdrawal-sync/get-withdrawal-sync-repository";
-import type {
-  TrackedWithdrawal,
-  WithdrawalPhase as TrackedWithdrawalPhase,
-} from "@/lib/repositories/withdrawal-sync/withdrawal-sync-repository.interface";
+import type { TrackedWithdrawal } from "@/lib/repositories/withdrawal-sync/withdrawal-sync-repository.interface";
 import { withSpan } from "@/lib/telemetry/withSpan";
+import { mapCanisterWithdrawalPhase } from "../../_shared/map-canister-withdrawal-phase";
 import { pollOperationStatusUntilTerminal } from "../../_shared/poll-operation-status";
 import { toCanisterWalletProof } from "../../_shared/wallet-proof";
 import { mapResult } from "./mapper";
 import type { Input, Output } from "./schema";
 
 const WITHDRAW_SPAN_NAME = "usecase.account.withdraw";
-
-function mapCanisterPhase(phase: WithdrawalPhase): {
-  phase: TrackedWithdrawalPhase;
-  blockIndex: number | null;
-} {
-  if ("Started" in phase) return { phase: "started", blockIndex: null };
-  if ("Approved" in phase) return { phase: "approved", blockIndex: null };
-  if ("RetrieveRequested" in phase) {
-    return {
-      phase: "retrieve_requested",
-      blockIndex: Number(phase.RetrieveRequested.block_index),
-    };
-  }
-  if ("Completed" in phase) {
-    return { phase: "completed", blockIndex: Number(phase.Completed.block_index) };
-  }
-  return { phase: "started", blockIndex: null };
-}
 
 export async function withdraw(input: Input): Promise<Output> {
   return withSpan(WITHDRAW_SPAN_NAME, async () => {
@@ -79,7 +59,7 @@ export async function withdraw(input: Input): Promise<Output> {
         const status = unwrapResult(withdrawStatusResult);
 
         if ("Pending" in status) {
-          const mapped = mapCanisterPhase(status.Pending.phase);
+          const mapped = mapCanisterWithdrawalPhase(status.Pending.phase);
           latestRow = {
             ...latestRow,
             phase: mapped.phase,

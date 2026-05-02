@@ -42,7 +42,7 @@
     "referralLink": "Invite"
   },
   "PendingActivity": {
-    "title": "{count, plural, one {# pending} other {# pending}}"
+    "title": "{count} pending"
   },
   "PendingDeposits": {
     "pending": "pending",

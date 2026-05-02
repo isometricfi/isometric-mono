@@ -60,6 +60,7 @@ describe("reconcileTrackedWithdrawal", () => {
   });
 
   test("resolves block index from canister when phase is RetrieveRequested", async () => {
+    // given
     const repository = makeRepository();
     const actor = {
       get_withdraw_status: vi.fn().mockResolvedValue({
@@ -73,6 +74,7 @@ describe("reconcileTrackedWithdrawal", () => {
       }),
     };
 
+    // when
     const totals = await reconcileTrackedWithdrawal({
       repository,
       // biome-ignore lint/suspicious/noExplicitAny: minimal actor shape for test
@@ -85,6 +87,7 @@ describe("reconcileTrackedWithdrawal", () => {
       getBackoffDelayMs: () => 60_000,
     });
 
+    // then
     expect(totals.blockIndexResolved).toBe(1);
     const saved = (repository.saveTrackedWithdrawal as unknown as ReturnType<typeof vi.fn>).mock
       .calls[0]?.[0] as TrackedWithdrawal;
@@ -93,6 +96,7 @@ describe("reconcileTrackedWithdrawal", () => {
   });
 
   test("marks failed when canister returns Failed status", async () => {
+    // given
     const repository = makeRepository();
     const actor = {
       get_withdraw_status: vi.fn().mockResolvedValue({
@@ -105,6 +109,7 @@ describe("reconcileTrackedWithdrawal", () => {
       }),
     };
 
+    // when
     const totals = await reconcileTrackedWithdrawal({
       repository,
       // biome-ignore lint/suspicious/noExplicitAny: minimal actor shape for test
@@ -117,6 +122,7 @@ describe("reconcileTrackedWithdrawal", () => {
       getBackoffDelayMs: () => 60_000,
     });
 
+    // then
     expect(totals.failed).toBe(1);
     const saved = (repository.saveTrackedWithdrawal as unknown as ReturnType<typeof vi.fn>).mock
       .calls[0]?.[0] as TrackedWithdrawal;
@@ -125,9 +131,11 @@ describe("reconcileTrackedWithdrawal", () => {
   });
 
   test("resolves bitcoin txid from minter when block index is known", async () => {
+    // given
     const repository = makeRepository();
     resolveBitcoinTxidFromMinterMock.mockResolvedValue({ kind: "txid", txid: "ffaa" });
 
+    // when
     const totals = await reconcileTrackedWithdrawal({
       repository,
       actor: {} as never,
@@ -139,6 +147,7 @@ describe("reconcileTrackedWithdrawal", () => {
       getBackoffDelayMs: () => 60_000,
     });
 
+    // then
     expect(totals.txidResolved).toBe(1);
     const saved = (repository.saveTrackedWithdrawal as unknown as ReturnType<typeof vi.fn>).mock
       .calls[0]?.[0] as TrackedWithdrawal;
@@ -147,9 +156,11 @@ describe("reconcileTrackedWithdrawal", () => {
   });
 
   test("marks completed once mempool reports the required confirmations", async () => {
+    // given
     const repository = makeRepository();
     getMempoolTxStatusMock.mockResolvedValue({ confirmed: true, block_height: 800_000 });
 
+    // when
     const totals = await reconcileTrackedWithdrawal({
       repository,
       actor: {} as never,
@@ -161,6 +172,7 @@ describe("reconcileTrackedWithdrawal", () => {
       getBackoffDelayMs: () => 60_000,
     });
 
+    // then
     expect(totals.completed).toBe(1);
     const saved = (repository.saveTrackedWithdrawal as unknown as ReturnType<typeof vi.fn>).mock
       .calls[0]?.[0] as TrackedWithdrawal;
@@ -169,8 +181,10 @@ describe("reconcileTrackedWithdrawal", () => {
   });
 
   test("expires rows older than maxAgeMs", async () => {
+    // given
     const repository = makeRepository();
 
+    // when
     const totals = await reconcileTrackedWithdrawal({
       repository,
       actor: {} as never,
@@ -182,6 +196,7 @@ describe("reconcileTrackedWithdrawal", () => {
       getBackoffDelayMs: () => 60_000,
     });
 
+    // then
     expect(totals.expired).toBe(1);
     const saved = (repository.saveTrackedWithdrawal as unknown as ReturnType<typeof vi.fn>).mock
       .calls[0]?.[0] as TrackedWithdrawal;

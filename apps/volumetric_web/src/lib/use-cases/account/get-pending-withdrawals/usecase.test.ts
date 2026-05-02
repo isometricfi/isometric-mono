@@ -40,24 +40,30 @@ describe("getPendingWithdrawals usecase", () => {
   });
 
   test("sorts results by createdAtMs ascending and exposes required confirmations", async () => {
+    // given
     listUserPendingWithdrawalsMock.mockResolvedValue([
       makeRow({ operationId: "b", createdAtMs: 200 }),
       makeRow({ operationId: "a", createdAtMs: 100 }),
     ]);
 
+    // when
     const result = await getPendingWithdrawals("tb1quser");
 
+    // then
     expect(result.requiredConfirmations).toBe(1);
     expect(result.pendingWithdrawals.map((row) => row.operationId)).toEqual(["a", "b"]);
   });
 
   test("maps pending status to 'pending' once a bitcoin txid is present", async () => {
+    // given
     listUserPendingWithdrawalsMock.mockResolvedValue([
       makeRow({ status: "pending", bitcoinTxid: "abcd", confirmations: 0 }),
     ]);
 
+    // when
     const result = await getPendingWithdrawals("tb1quser");
 
+    // then
     expect(result.pendingWithdrawals[0]).toMatchObject({
       status: "pending",
       bitcoinTxid: "abcd",

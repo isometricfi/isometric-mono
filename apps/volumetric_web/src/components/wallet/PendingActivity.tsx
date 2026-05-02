@@ -193,7 +193,7 @@ export function PendingActivity() {
           {inProgress ? (
             <Loader2 className="size-3.5 animate-spin text-card-foreground" />
           ) : (
-            <ArrowDownLeft className="size-3.5 text-card-foreground" />
+            <ArrowUpRight className="size-3.5 text-card-foreground" />
           )}
           <span className="font-medium">{t("title", { count: rows.length })}</span>
         </div>

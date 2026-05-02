@@ -1,4 +1,4 @@
-import type { _SERVICE, WithdrawalPhase } from "@volumetric/canister-types";
+import type { _SERVICE } from "@volumetric/canister-types";
 import { unwrapResult } from "@volumetric/canister-types";
 import { getMempoolTipHeight, getMempoolTxStatus } from "@/lib/mempool-client";
 import type {
@@ -6,6 +6,7 @@ import type {
   TrackedWithdrawal,
   WithdrawalPhase as TrackedWithdrawalPhase,
 } from "@/lib/repositories/withdrawal-sync/withdrawal-sync-repository.interface";
+import { mapCanisterWithdrawalPhase } from "../../../_shared/map-canister-withdrawal-phase";
 import { resolveBitcoinTxidFromMinter } from "./minter-client";
 import { hexToBytes } from "./operation-id";
 
@@ -26,24 +27,6 @@ export interface ReconcileWithdrawalParams {
   requiredConfirmations: number;
   maxAgeMs: number;
   getBackoffDelayMs: (attemptCount: number, ageMs: number) => number;
-}
-
-function mapCanisterPhase(phase: WithdrawalPhase): {
-  phase: TrackedWithdrawalPhase;
-  blockIndex: number | null;
-} {
-  if ("Started" in phase) return { phase: "started", blockIndex: null };
-  if ("Approved" in phase) return { phase: "approved", blockIndex: null };
-  if ("RetrieveRequested" in phase) {
-    return {
-      phase: "retrieve_requested",
-      blockIndex: Number(phase.RetrieveRequested.block_index),
-    };
-  }
-  if ("Completed" in phase) {
-    return { phase: "completed", blockIndex: Number(phase.Completed.block_index) };
-  }
-  return { phase: "started", blockIndex: null };
 }
 
 export async function reconcileTrackedWithdrawal(
@@ -99,14 +82,14 @@ export async function reconcileTrackedWithdrawal(
       let resolvedBlockIndex: number | null = null;
 
       if ("Pending" in status) {
-        const mapped = mapCanisterPhase(status.Pending.phase);
+        const mapped = mapCanisterWithdrawalPhase(status.Pending.phase);
         mappedPhase = mapped.phase;
         resolvedBlockIndex = mapped.blockIndex;
       } else if ("Succeeded" in status) {
         mappedPhase = "completed";
         resolvedBlockIndex = Number(status.Succeeded.result.block_index);
       } else if ("RecoveryRequired" in status) {
-        const mapped = mapCanisterPhase(status.RecoveryRequired.phase);
+        const mapped = mapCanisterWithdrawalPhase(status.RecoveryRequired.phase);
         mappedPhase = mapped.phase;
         resolvedBlockIndex = mapped.blockIndex;
       }
