@@ -1,5 +1,5 @@
 import {
-  bytesToHex,
+  bitcoinTxidBlobToExplorerHex,
   getCkbtcMinterActor,
   type RetrieveBtcStatusV2,
 } from "@/lib/ckbtc-minter-server";
@@ -16,13 +16,13 @@ export async function resolveBitcoinTxidFromMinter(blockIndex: number): Promise<
   });
 
   if ("Confirmed" in status) {
-    return { kind: "txid", txid: bytesToHex(status.Confirmed.txid) };
+    return { kind: "txid", txid: bitcoinTxidBlobToExplorerHex(status.Confirmed.txid) };
   }
   if ("Sending" in status) {
-    return { kind: "txid", txid: bytesToHex(status.Sending.txid) };
+    return { kind: "txid", txid: bitcoinTxidBlobToExplorerHex(status.Sending.txid) };
   }
   if ("Submitted" in status) {
-    return { kind: "txid", txid: bytesToHex(status.Submitted.txid) };
+    return { kind: "txid", txid: bitcoinTxidBlobToExplorerHex(status.Submitted.txid) };
   }
   if ("AmountTooLow" in status) {
     return { kind: "failed", reason: "amount too low" };

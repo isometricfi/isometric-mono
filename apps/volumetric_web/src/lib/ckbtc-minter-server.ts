@@ -88,3 +88,12 @@ export function bytesToHex(bytes: Uint8Array | number[]): string {
     .map((b) => b.toString(16).padStart(2, "0"))
     .join("");
 }
+
+export function bitcoinTxidBlobToExplorerHex(bytes: Uint8Array | number[]): string {
+  const arr = bytes instanceof Uint8Array ? bytes : Uint8Array.from(bytes);
+  const reversed = new Uint8Array(arr.length);
+  for (let i = 0; i < arr.length; i += 1) {
+    reversed[i] = arr[arr.length - 1 - i]!;
+  }
+  return bytesToHex(reversed);
+}
