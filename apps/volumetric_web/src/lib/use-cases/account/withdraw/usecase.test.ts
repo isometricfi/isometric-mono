@@ -76,7 +76,7 @@ describe("withdraw usecase", () => {
       operationId: "010203",
       userAddress: "tb1quser",
       withdrawalId: 2,
-      destinationAddress: "tb1qdest",
+      destinationAddress: "tb1quser",
       amountSats: 1000,
       status: "broadcasting",
       phase: "started",
