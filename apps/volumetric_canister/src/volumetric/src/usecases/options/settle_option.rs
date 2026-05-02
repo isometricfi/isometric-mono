@@ -301,18 +301,18 @@ pub async fn run_settlement_wal(
         WalExecutionError::Permanent(format!("settlement option {} not found", payload.option_id))
     })?;
 
+    if active_option.status == ActiveOptionStatus::Settled {
+        return Ok(SettlementWalResult {
+            option_id: active_option.id,
+        });
+    }
+
     let settlement = get_settlement(payload.option_id).ok_or_else(|| {
         WalExecutionError::Permanent(format!(
             "settlement journal {} not found",
             payload.option_id
         ))
     })?;
-
-    if active_option.status == ActiveOptionStatus::Settled {
-        return Ok(SettlementWalResult {
-            option_id: active_option.id,
-        });
-    }
 
     let writer_subaccount = derive_subaccount(active_option.writer);
     let buyer_subaccount = derive_subaccount(active_option.buyer);
@@ -793,6 +793,7 @@ pub fn testing_set_option_expiry_use_case(
 #[cfg(test)]
 mod tests {
     use std::cell::{Cell, RefCell};
+    use std::collections::BTreeSet;
     use std::rc::Rc;
 
     use async_trait::async_trait;
@@ -1558,6 +1559,8 @@ mod tests {
             &settlement_payload,
         )
         .await;
+        let running_total_after_first_attempt =
+            settlement_replay_running_total_sats(writer, buyer, platform_fees_before);
         let second_attempt_result = run_settlement_wal(
             prepared_settlement_execution.operation_id,
             &settlement_payload,
@@ -1569,6 +1572,7 @@ mod tests {
             first_attempt_result,
             Err(WalExecutionError::Retryable(_))
         ));
+        assert_eq!(running_total_after_first_attempt, TEST_QUANTITY_SATS);
         assert_eq!(
             second_attempt_result,
             Ok(SettlementWalResult {
@@ -1605,6 +1609,10 @@ mod tests {
         assert_eq!(
             get_platform_fees_collected() - platform_fees_before,
             EXPECTED_PROFIT_FEE_SATS
+        );
+        assert_eq!(
+            settlement_replay_running_total_sats(writer, buyer, platform_fees_before),
+            TEST_QUANTITY_SATS - EXPECTED_SETTLEMENT_TRANSFER_FEES_SATS
         );
     }
 
@@ -1783,6 +1791,24 @@ mod tests {
         transfer_fee_sats: u64,
     }
 
+    #[derive(Clone, Copy, PartialEq, Eq)]
+    enum TrapAfterCommittedTransfer {
+        None,
+        BuyerPayout,
+        ProfitFee,
+    }
+
+    struct ReplayAwareSettlementLedger {
+        canister_self: Principal,
+        balances: RefCell<BTreeMap<Account, u64>>,
+        seen_transfer_keys: RefCell<BTreeSet<(u64, String)>>,
+        transfer_call_count: RefCell<u64>,
+        economic_transfer_count: RefCell<u64>,
+        trap_after_committed_transfer: TrapAfterCommittedTransfer,
+        did_trap_after_committed_transfer: RefCell<bool>,
+        transfer_fee_sats: u64,
+    }
+
     impl FeeAwareMockLedger {
         fn new(canister_self: Principal, transfer_fee_sats: u64) -> Self {
             Self {
@@ -1798,6 +1824,53 @@ mod tests {
 
         fn balance_of_account(&self, account: &Account) -> u64 {
             self.balances.borrow().get(account).copied().unwrap_or(0)
+        }
+    }
+
+    impl ReplayAwareSettlementLedger {
+        fn new(
+            canister_self: Principal,
+            transfer_fee_sats: u64,
+            trap_after_committed_transfer: TrapAfterCommittedTransfer,
+        ) -> Self {
+            Self {
+                canister_self,
+                balances: RefCell::new(BTreeMap::new()),
+                seen_transfer_keys: RefCell::new(BTreeSet::new()),
+                transfer_call_count: RefCell::new(0),
+                economic_transfer_count: RefCell::new(0),
+                trap_after_committed_transfer,
+                did_trap_after_committed_transfer: RefCell::new(false),
+                transfer_fee_sats,
+            }
+        }
+
+        fn set_balance(&self, account: Account, balance: u64) {
+            self.balances.borrow_mut().insert(account, balance);
+        }
+
+        fn balance_of_account(&self, account: &Account) -> u64 {
+            self.balances.borrow().get(account).copied().unwrap_or(0)
+        }
+
+        fn transfer_call_count(&self) -> u64 {
+            *self.transfer_call_count.borrow()
+        }
+
+        fn economic_transfer_count(&self) -> u64 {
+            *self.economic_transfer_count.borrow()
+        }
+
+        fn should_trap_after_committed_transfer(&self, amount: u64) -> bool {
+            if *self.did_trap_after_committed_transfer.borrow() {
+                return false;
+            }
+
+            match self.trap_after_committed_transfer {
+                TrapAfterCommittedTransfer::None => false,
+                TrapAfterCommittedTransfer::BuyerPayout => amount == EXPECTED_BUYER_PAYOUT_SATS,
+                TrapAfterCommittedTransfer::ProfitFee => amount == EXPECTED_PROFIT_FEE_SATS,
+            }
         }
     }
 
@@ -1843,6 +1916,537 @@ mod tests {
         async fn icrc1_fee(&self) -> Result<u64, VolumetricError> {
             Ok(self.transfer_fee_sats)
         }
+    }
+
+    #[async_trait(?Send)]
+    impl LedgerClient for ReplayAwareSettlementLedger {
+        async fn icrc1_transfer(
+            &self,
+            from_subaccount: Option<[u8; 32]>,
+            to: Account,
+            amount: u64,
+            created_at_time: u64,
+            memo: Option<Memo>,
+        ) -> Result<u64, VolumetricError> {
+            let next_transfer_call_count = self.transfer_call_count().saturating_add(1);
+            *self.transfer_call_count.borrow_mut() = next_transfer_call_count;
+
+            let transfer_key = (created_at_time, format!("{memo:?}"));
+            if !self.seen_transfer_keys.borrow_mut().insert(transfer_key) {
+                return Ok(self.economic_transfer_count());
+            }
+
+            let from = Account {
+                owner: self.canister_self,
+                subaccount: from_subaccount,
+            };
+            let total_debit = amount.saturating_add(self.transfer_fee_sats);
+            {
+                let mut balances = self.balances.borrow_mut();
+                let from_balance = balances.get(&from).copied().unwrap_or(0);
+                if from_balance < total_debit {
+                    return Err(VolumetricError::from_def(
+                        error_codes::INTER_CANISTER_CALL_FAILED,
+                        Some("insufficient funds in mock ledger"),
+                        None,
+                    ));
+                }
+                balances.insert(from, from_balance - total_debit);
+                *balances.entry(to).or_insert(0) += amount;
+            }
+
+            let next_economic_transfer_count = self.economic_transfer_count().saturating_add(1);
+            *self.economic_transfer_count.borrow_mut() = next_economic_transfer_count;
+
+            if self.should_trap_after_committed_transfer(amount) {
+                *self.did_trap_after_committed_transfer.borrow_mut() = true;
+                panic!("simulated callback trap after committed settlement transfer");
+            }
+
+            Ok(self.economic_transfer_count())
+        }
+
+        async fn icrc1_balance_of(&self, account: Account) -> Result<Nat, VolumetricError> {
+            Ok(Nat::from(self.balance_of_account(&account)))
+        }
+
+        async fn icrc2_approve(&self, _args: ApproveArgs) -> Result<Nat, VolumetricError> {
+            Ok(Nat::from(0u64))
+        }
+
+        async fn icrc1_fee(&self) -> Result<u64, VolumetricError> {
+            Ok(self.transfer_fee_sats)
+        }
+    }
+
+    fn settlement_replay_running_total_sats(
+        writer: Principal,
+        buyer: Principal,
+        platform_fees_before: u64,
+    ) -> u64 {
+        let writer_balance = get_balance(&writer);
+        let buyer_balance = get_balance(&buyer);
+        let platform_fee_delta = get_platform_fees_collected().saturating_sub(platform_fees_before);
+
+        writer_balance
+            .total()
+            .saturating_add(buyer_balance.total())
+            .saturating_add(platform_fee_delta)
+    }
+
+    fn prepare_standard_settlement_wal_payload() -> (OperationId, SettlementWalPayload) {
+        let prepared_settlement_execution =
+            prepare_settlement_execution(TEST_OPTION_ID, TEST_SETTLEMENT_PRICE_CENTS)
+                .expect("settlement should be prepared");
+        let wal_entry = get_entry(prepared_settlement_execution.operation_id)
+            .expect("settlement WAL entry should exist");
+        let WalPayload::Settlement(settlement_payload) = wal_entry.payload else {
+            panic!("settlement WAL entry should contain settlement payload");
+        };
+
+        (
+            prepared_settlement_execution.operation_id,
+            settlement_payload,
+        )
+    }
+
+    fn account_for_test_subaccount(owner: Principal, principal: Principal) -> Account {
+        Account {
+            owner,
+            subaccount: Some(derive_subaccount(principal)),
+        }
+    }
+
+    fn fee_recipient_account() -> Account {
+        Account {
+            owner: get_fee_recipient(),
+            subaccount: None,
+        }
+    }
+
+    fn seed_replay_ledger_after_buyer_payout(
+        ledger: &ReplayAwareSettlementLedger,
+        canister_self: Principal,
+        writer: Principal,
+        buyer: Principal,
+        transfer_fee_sats: u64,
+    ) {
+        ledger.set_balance(
+            account_for_test_subaccount(canister_self, writer),
+            TEST_QUANTITY_SATS
+                .saturating_sub(EXPECTED_BUYER_PAYOUT_SATS)
+                .saturating_sub(transfer_fee_sats),
+        );
+        ledger.set_balance(
+            account_for_test_subaccount(canister_self, buyer),
+            EXPECTED_BUYER_PAYOUT_SATS,
+        );
+    }
+
+    fn seed_replay_ledger_after_profit_fee(
+        ledger: &ReplayAwareSettlementLedger,
+        canister_self: Principal,
+        writer: Principal,
+        buyer: Principal,
+        transfer_fee_sats: u64,
+    ) {
+        seed_replay_ledger_after_buyer_payout(
+            ledger,
+            canister_self,
+            writer,
+            buyer,
+            transfer_fee_sats,
+        );
+        ledger.set_balance(
+            account_for_test_subaccount(canister_self, writer),
+            EXPECTED_EFFECTIVE_WRITER_PAYOUT_SATS,
+        );
+        ledger.set_balance(fee_recipient_account(), EXPECTED_PROFIT_FEE_SATS);
+    }
+
+    fn assert_standard_replay_balances(
+        writer: Principal,
+        buyer: Principal,
+        platform_fees_before: u64,
+    ) {
+        let writer_balance = get_balance(&writer);
+        let buyer_balance = get_balance(&buyer);
+
+        assert_eq!(buyer_balance.available, EXPECTED_BUYER_PAYOUT_SATS);
+        assert_eq!(buyer_balance.locked_as_writer, 0);
+        assert_eq!(
+            writer_balance.available,
+            EXPECTED_EFFECTIVE_WRITER_PAYOUT_SATS
+        );
+        assert_eq!(writer_balance.locked_as_writer, 0);
+        assert_eq!(
+            get_platform_fees_collected().saturating_sub(platform_fees_before),
+            EXPECTED_PROFIT_FEE_SATS
+        );
+        assert_eq!(
+            settlement_replay_running_total_sats(writer, buyer, platform_fees_before),
+            TEST_QUANTITY_SATS.saturating_sub(EXPECTED_SETTLEMENT_TRANSFER_FEES_SATS)
+        );
+    }
+
+    /// Given: buyer payout commits on the ledger but the callback traps before TransferComplete
+    /// When: stale InFlight settlement WAL is replayed
+    /// Then: buyer payout is not double-spent and internal balances settle once
+    #[test]
+    fn test_settlement_wal_replay_after_committed_buyer_payout_preserves_balances() {
+        // given
+        const EXPECTED_TRANSFER_FEE_SATS: u64 = 10;
+        const EXPECTED_TRANSFER_CALL_COUNT: u64 = 3;
+        let writer = test_principal(87);
+        let buyer = test_principal(88);
+        let canister_self = Principal::anonymous();
+        let writer_account = account_for_test_subaccount(canister_self, writer);
+        let buyer_account = account_for_test_subaccount(canister_self, buyer);
+        let replay_ledger = Rc::new(ReplayAwareSettlementLedger::new(
+            canister_self,
+            EXPECTED_TRANSFER_FEE_SATS,
+            TrapAfterCommittedTransfer::BuyerPayout,
+        ));
+        replay_ledger.set_balance(writer_account, TEST_QUANTITY_SATS);
+        setup_test_state_with_ledger(writer, buyer, replay_ledger.clone());
+        set_cached_transfer_fee_for_testing(EXPECTED_TRANSFER_FEE_SATS, TEST_NOW_SECONDS);
+        let platform_fees_before = get_platform_fees_collected();
+        let (operation_id, _) = prepare_standard_settlement_wal_payload();
+
+        // when
+        let first_attempt = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            let _ = execute_wal_entry_now_blocking(operation_id);
+        }));
+        assert!(first_attempt.is_err(), "first attempt should trap");
+
+        let wal_entry_after_trap = get_entry(operation_id).expect("wal entry should exist");
+        let settlement_after_trap =
+            get_settlement(TEST_OPTION_ID).expect("settlement should remain pending");
+        const SIXTEEN_MINUTES_NS: u64 = 16 * 60 * 1_000_000_000;
+        ic::set_runtime(Box::new(RuntimeAt {
+            now_ns: TEST_NOW_NS.saturating_add(SIXTEEN_MINUTES_NS),
+        }));
+        let promoted_count = crate::journaling::promote_stale_in_flight_to_recovery_required();
+        let replay_outcome = execute_wal_entry_now_blocking(operation_id);
+
+        // then
+        assert_eq!(wal_entry_after_trap.status, WalStatus::InFlight);
+        assert_eq!(settlement_after_trap.phase, SettlementPhase::Started);
+        assert_eq!(promoted_count, 1);
+        assert_eq!(replay_outcome, WalExecutionOutcome::Succeeded);
+        assert_standard_replay_balances(writer, buyer, platform_fees_before);
+        assert_eq!(
+            replay_ledger.transfer_call_count(),
+            EXPECTED_TRANSFER_CALL_COUNT
+        );
+        assert_eq!(
+            replay_ledger.economic_transfer_count(),
+            SETTLEMENT_TRANSFER_COUNT
+        );
+        assert_eq!(
+            replay_ledger.balance_of_account(&buyer_account),
+            EXPECTED_BUYER_PAYOUT_SATS
+        );
+        assert_eq!(
+            replay_ledger.balance_of_account(&fee_recipient_account()),
+            EXPECTED_PROFIT_FEE_SATS
+        );
+        assert_eq!(
+            get_balance(&writer).total(),
+            replay_ledger.balance_of_account(&writer_account)
+        );
+        assert!(get_settlement(TEST_OPTION_ID).is_none());
+    }
+
+    /// Given: buyer payout reached TransferComplete but internal balance release has not run
+    /// When: settlement WAL resumes from TransferComplete
+    /// Then: locked collateral is released to the buyer exactly once
+    #[tokio::test]
+    async fn test_settlement_wal_replay_from_transfer_complete_releases_buyer_once() {
+        // given
+        const EXPECTED_TRANSFER_FEE_SATS: u64 = 10;
+        let writer = test_principal(89);
+        let buyer = test_principal(90);
+        let canister_self = Principal::anonymous();
+        let writer_account = account_for_test_subaccount(canister_self, writer);
+        let replay_ledger = Rc::new(ReplayAwareSettlementLedger::new(
+            canister_self,
+            EXPECTED_TRANSFER_FEE_SATS,
+            TrapAfterCommittedTransfer::None,
+        ));
+        seed_replay_ledger_after_buyer_payout(
+            &replay_ledger,
+            canister_self,
+            writer,
+            buyer,
+            EXPECTED_TRANSFER_FEE_SATS,
+        );
+        setup_test_state_with_ledger(writer, buyer, replay_ledger.clone());
+        set_cached_transfer_fee_for_testing(EXPECTED_TRANSFER_FEE_SATS, TEST_NOW_SECONDS);
+        let platform_fees_before = get_platform_fees_collected();
+        let (operation_id, settlement_payload) = prepare_standard_settlement_wal_payload();
+        update_settlement_phase(TEST_OPTION_ID, SettlementPhase::TransferComplete);
+
+        // when
+        let settlement_result = run_settlement_wal(operation_id, &settlement_payload).await;
+
+        // then
+        assert_eq!(
+            settlement_result,
+            Ok(SettlementWalResult {
+                option_id: TEST_OPTION_ID
+            })
+        );
+        assert_standard_replay_balances(writer, buyer, platform_fees_before);
+        assert_eq!(replay_ledger.transfer_call_count(), 1);
+        assert_eq!(replay_ledger.economic_transfer_count(), 1);
+        assert_eq!(
+            get_balance(&writer).total(),
+            replay_ledger.balance_of_account(&writer_account)
+        );
+    }
+
+    /// Given: internal buyer release completed and profit-fee transfer is unavailable
+    /// When: settlement WAL resumes from BalanceReleased
+    /// Then: buyer credit and writer locks are preserved without counting platform fees
+    #[tokio::test]
+    async fn test_settlement_wal_replay_from_balance_released_preserves_state_on_fee_retry() {
+        // given
+        const EXPECTED_TRANSFER_FEE_SATS: u64 = 10;
+        let writer = test_principal(91);
+        let buyer = test_principal(92);
+        let failing_ledger = Rc::new(FailingBuyerTransferLedger);
+        setup_test_state_with_ledger(writer, buyer, failing_ledger);
+        set_cached_transfer_fee_for_testing(EXPECTED_TRANSFER_FEE_SATS, TEST_NOW_SECONDS);
+        let platform_fees_before = get_platform_fees_collected();
+        let (operation_id, settlement_payload) = prepare_standard_settlement_wal_payload();
+        release_locked_to_buyer(writer, buyer, EXPECTED_BUYER_PAYOUT_SATS)
+            .expect("buyer release should succeed");
+        update_settlement_phase(TEST_OPTION_ID, SettlementPhase::BalanceReleased);
+
+        // when
+        let settlement_result = run_settlement_wal(operation_id, &settlement_payload).await;
+
+        // then
+        assert!(matches!(
+            settlement_result,
+            Err(WalExecutionError::Retryable(_))
+        ));
+        let writer_balance = get_balance(&writer);
+        let buyer_balance = get_balance(&buyer);
+        let settlement = get_settlement(TEST_OPTION_ID).expect("settlement should remain pending");
+        assert_eq!(writer_balance.available, 0);
+        assert_eq!(
+            writer_balance.locked_as_writer,
+            TEST_QUANTITY_SATS - EXPECTED_BUYER_PAYOUT_SATS
+        );
+        assert_eq!(buyer_balance.available, EXPECTED_BUYER_PAYOUT_SATS);
+        assert_eq!(buyer_balance.locked_as_writer, 0);
+        assert_eq!(
+            get_platform_fees_collected().saturating_sub(platform_fees_before),
+            0
+        );
+        assert_eq!(settlement.phase, SettlementPhase::BalanceReleased);
+        assert_eq!(
+            settlement_replay_running_total_sats(writer, buyer, platform_fees_before),
+            TEST_QUANTITY_SATS
+        );
+    }
+
+    /// Given: profit-fee accounting reached ProfitFeeCollected but writer payout unlock has not run
+    /// When: settlement WAL resumes from ProfitFeeCollected
+    /// Then: platform fees are not double-counted and writer payout unlocks once
+    #[tokio::test]
+    async fn test_settlement_wal_replay_from_profit_fee_collected_unlocks_writer_once() {
+        // given
+        const EXPECTED_TRANSFER_FEE_SATS: u64 = 10;
+        let writer = test_principal(93);
+        let buyer = test_principal(94);
+        let canister_self = Principal::anonymous();
+        let writer_account = account_for_test_subaccount(canister_self, writer);
+        let replay_ledger = Rc::new(ReplayAwareSettlementLedger::new(
+            canister_self,
+            EXPECTED_TRANSFER_FEE_SATS,
+            TrapAfterCommittedTransfer::None,
+        ));
+        seed_replay_ledger_after_profit_fee(
+            &replay_ledger,
+            canister_self,
+            writer,
+            buyer,
+            EXPECTED_TRANSFER_FEE_SATS,
+        );
+        setup_test_state_with_ledger(writer, buyer, replay_ledger.clone());
+        set_cached_transfer_fee_for_testing(EXPECTED_TRANSFER_FEE_SATS, TEST_NOW_SECONDS);
+        let platform_fees_before = get_platform_fees_collected();
+        let (operation_id, settlement_payload) = prepare_standard_settlement_wal_payload();
+        release_locked_to_buyer(writer, buyer, EXPECTED_BUYER_PAYOUT_SATS)
+            .expect("buyer release should succeed");
+        add_platform_fee(EXPECTED_PROFIT_FEE_SATS);
+        deduct_locked_collateral(writer, EXPECTED_PROFIT_FEE_SATS)
+            .expect("profit fee deduction should succeed");
+        deduct_writer_transfer_fees(writer, EXPECTED_SETTLEMENT_TRANSFER_FEES_SATS)
+            .expect("transfer fee deduction should succeed");
+        update_settlement_phase(TEST_OPTION_ID, SettlementPhase::ProfitFeeCollected);
+
+        // when
+        let settlement_result = run_settlement_wal(operation_id, &settlement_payload).await;
+
+        // then
+        assert_eq!(
+            settlement_result,
+            Ok(SettlementWalResult {
+                option_id: TEST_OPTION_ID
+            })
+        );
+        assert_standard_replay_balances(writer, buyer, platform_fees_before);
+        assert_eq!(replay_ledger.transfer_call_count(), 0);
+        assert_eq!(replay_ledger.economic_transfer_count(), 0);
+        assert_eq!(
+            get_balance(&writer).total(),
+            replay_ledger.balance_of_account(&writer_account)
+        );
+    }
+
+    /// Given: writer payout is already released and only finalization remains
+    /// When: settlement WAL resumes from WriterPayoutReleased
+    /// Then: finalization removes the journal without touching balances or ledger
+    #[tokio::test]
+    async fn test_settlement_wal_replay_from_writer_payout_released_finalizes_once() {
+        // given
+        const EXPECTED_TRANSFER_FEE_SATS: u64 = 10;
+        let writer = test_principal(95);
+        let buyer = test_principal(96);
+        let canister_self = Principal::anonymous();
+        let replay_ledger = Rc::new(ReplayAwareSettlementLedger::new(
+            canister_self,
+            EXPECTED_TRANSFER_FEE_SATS,
+            TrapAfterCommittedTransfer::None,
+        ));
+        seed_replay_ledger_after_profit_fee(
+            &replay_ledger,
+            canister_self,
+            writer,
+            buyer,
+            EXPECTED_TRANSFER_FEE_SATS,
+        );
+        setup_test_state_with_ledger(writer, buyer, replay_ledger.clone());
+        set_cached_transfer_fee_for_testing(EXPECTED_TRANSFER_FEE_SATS, TEST_NOW_SECONDS);
+        let platform_fees_before = get_platform_fees_collected();
+        let (operation_id, settlement_payload) = prepare_standard_settlement_wal_payload();
+        set_balance(
+            writer,
+            UserBalance {
+                available: EXPECTED_EFFECTIVE_WRITER_PAYOUT_SATS,
+                locked_as_writer: 0,
+            },
+        );
+        set_balance(
+            buyer,
+            UserBalance {
+                available: EXPECTED_BUYER_PAYOUT_SATS,
+                locked_as_writer: 0,
+            },
+        );
+        add_platform_fee(EXPECTED_PROFIT_FEE_SATS);
+        update_settlement_phase(TEST_OPTION_ID, SettlementPhase::WriterPayoutReleased);
+
+        // when
+        let settlement_result = run_settlement_wal(operation_id, &settlement_payload).await;
+
+        // then
+        assert_eq!(
+            settlement_result,
+            Ok(SettlementWalResult {
+                option_id: TEST_OPTION_ID
+            })
+        );
+        assert_standard_replay_balances(writer, buyer, platform_fees_before);
+        assert_eq!(replay_ledger.transfer_call_count(), 0);
+        assert_eq!(replay_ledger.economic_transfer_count(), 0);
+        assert!(get_settlement(TEST_OPTION_ID).is_none());
+        let option = get_active_option(TEST_OPTION_ID).expect("option should remain in storage");
+        assert_eq!(option.status, ActiveOptionStatus::Settled);
+    }
+
+    /// Given: settlement has already succeeded through WAL execution
+    /// When: the same WAL payload is executed again
+    /// Then: terminal Settled state is a no-op for balances, fees, and ledger transfers
+    #[tokio::test]
+    async fn test_settlement_wal_replay_after_terminal_settled_is_noop() {
+        // given
+        const EXPECTED_TRANSFER_FEE_SATS: u64 = 10;
+        let writer = test_principal(97);
+        let buyer = test_principal(98);
+        let canister_self = Principal::anonymous();
+        let replay_ledger = Rc::new(ReplayAwareSettlementLedger::new(
+            canister_self,
+            EXPECTED_TRANSFER_FEE_SATS,
+            TrapAfterCommittedTransfer::None,
+        ));
+        replay_ledger.set_balance(
+            account_for_test_subaccount(canister_self, writer),
+            TEST_QUANTITY_SATS,
+        );
+        setup_test_state_with_ledger(writer, buyer, replay_ledger.clone());
+        set_cached_transfer_fee_for_testing(EXPECTED_TRANSFER_FEE_SATS, TEST_NOW_SECONDS);
+        let platform_fees_before = get_platform_fees_collected();
+        let (operation_id, settlement_payload) = prepare_standard_settlement_wal_payload();
+        let first_result = run_settlement_wal(operation_id, &settlement_payload)
+            .await
+            .expect("first WAL execution should settle");
+        let writer_balance_after_first = get_balance(&writer);
+        let buyer_balance_after_first = get_balance(&buyer);
+        let platform_fee_delta_after_first =
+            get_platform_fees_collected().saturating_sub(platform_fees_before);
+        let transfer_call_count_after_first = replay_ledger.transfer_call_count();
+        let economic_transfer_count_after_first = replay_ledger.economic_transfer_count();
+
+        // when
+        let second_result = run_settlement_wal(operation_id, &settlement_payload).await;
+
+        // then
+        assert_eq!(
+            first_result,
+            SettlementWalResult {
+                option_id: TEST_OPTION_ID
+            }
+        );
+        assert_eq!(
+            second_result,
+            Ok(SettlementWalResult {
+                option_id: TEST_OPTION_ID
+            })
+        );
+        assert_eq!(
+            get_balance(&writer).available,
+            writer_balance_after_first.available
+        );
+        assert_eq!(
+            get_balance(&writer).locked_as_writer,
+            writer_balance_after_first.locked_as_writer
+        );
+        assert_eq!(
+            get_balance(&buyer).available,
+            buyer_balance_after_first.available
+        );
+        assert_eq!(
+            get_balance(&buyer).locked_as_writer,
+            buyer_balance_after_first.locked_as_writer
+        );
+        assert_eq!(
+            get_platform_fees_collected().saturating_sub(platform_fees_before),
+            platform_fee_delta_after_first
+        );
+        assert_eq!(
+            replay_ledger.transfer_call_count(),
+            transfer_call_count_after_first
+        );
+        assert_eq!(
+            replay_ledger.economic_transfer_count(),
+            economic_transfer_count_after_first
+        );
+        assert!(get_settlement(TEST_OPTION_ID).is_none());
     }
 
     /// Given: a fee-aware mock ledger that deducts transfer fees from the sender's subaccount
@@ -1951,6 +2555,118 @@ mod tests {
         });
 
         assert_eq!(writer_internal_total, writer_ledger_balance);
+    }
+
+    /// Given: settlement traps after the profit-fee ledger transfer commits but before internal accounting
+    /// When: the stale WAL is promoted and replayed
+    /// Then: duplicate ledger detection prevents a double spend and all internal sums settle once
+    #[test]
+    fn test_settlement_replay_after_committed_profit_fee_transfer_preserves_balances() {
+        // given
+        const EXPECTED_TRANSFER_FEE_SATS: u64 = 10;
+        const EXPECTED_TRANSFER_CALL_COUNT: u64 = 3;
+        let writer = test_principal(85);
+        let buyer = test_principal(86);
+        let canister_self = Principal::anonymous();
+        let writer_subaccount = derive_subaccount(writer);
+        let buyer_subaccount = derive_subaccount(buyer);
+
+        let mock_ledger = Rc::new(ReplayAwareSettlementLedger::new(
+            canister_self,
+            EXPECTED_TRANSFER_FEE_SATS,
+            TrapAfterCommittedTransfer::ProfitFee,
+        ));
+        let writer_account = Account {
+            owner: canister_self,
+            subaccount: Some(writer_subaccount),
+        };
+        let buyer_account = Account {
+            owner: canister_self,
+            subaccount: Some(buyer_subaccount),
+        };
+        mock_ledger.set_balance(writer_account, TEST_QUANTITY_SATS);
+        setup_test_state_with_ledger(writer, buyer, mock_ledger.clone());
+        set_cached_transfer_fee_for_testing(EXPECTED_TRANSFER_FEE_SATS, TEST_NOW_SECONDS);
+        let platform_fees_before = get_platform_fees_collected();
+        let prepared_settlement_execution =
+            prepare_settlement_execution(TEST_OPTION_ID, TEST_SETTLEMENT_PRICE_CENTS)
+                .expect("settlement should be prepared");
+        let operation_id = prepared_settlement_execution.operation_id;
+
+        // when
+        let first_attempt = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            let _ = execute_wal_entry_now_blocking(operation_id);
+        }));
+        assert!(first_attempt.is_err(), "first attempt should trap");
+
+        let wal_entry_after_trap = get_entry(operation_id).expect("wal entry should exist");
+        let settlement_after_trap =
+            get_settlement(TEST_OPTION_ID).expect("settlement should remain pending");
+
+        const SIXTEEN_MINUTES_NS: u64 = 16 * 60 * 1_000_000_000;
+        ic::set_runtime(Box::new(RuntimeAt {
+            now_ns: TEST_NOW_NS.saturating_add(SIXTEEN_MINUTES_NS),
+        }));
+        let promoted_count = crate::journaling::promote_stale_in_flight_to_recovery_required();
+        let replay_outcome = execute_wal_entry_now_blocking(operation_id);
+        let settlement_status = get_settlement_status_use_case(operation_id)
+            .expect("settlement status should load after replay");
+
+        // then
+        assert_eq!(wal_entry_after_trap.status, WalStatus::InFlight);
+        assert_eq!(
+            settlement_after_trap.phase,
+            SettlementPhase::BalanceReleased
+        );
+        assert_eq!(promoted_count, 1);
+        assert_eq!(replay_outcome, WalExecutionOutcome::Succeeded);
+        assert!(matches!(
+            settlement_status,
+            SettlementStatus::Succeeded { .. }
+        ));
+
+        let writer_balance = get_balance(&writer);
+        let buyer_balance = get_balance(&buyer);
+        assert_eq!(buyer_balance.available, EXPECTED_BUYER_PAYOUT_SATS);
+        assert_eq!(buyer_balance.locked_as_writer, 0);
+        assert_eq!(
+            writer_balance.available,
+            EXPECTED_EFFECTIVE_WRITER_PAYOUT_SATS
+        );
+        assert_eq!(writer_balance.locked_as_writer, 0);
+        assert_eq!(
+            get_platform_fees_collected() - platform_fees_before,
+            EXPECTED_PROFIT_FEE_SATS
+        );
+        assert_eq!(
+            settlement_replay_running_total_sats(writer, buyer, platform_fees_before),
+            TEST_QUANTITY_SATS - EXPECTED_SETTLEMENT_TRANSFER_FEES_SATS
+        );
+
+        assert_eq!(
+            mock_ledger.transfer_call_count(),
+            EXPECTED_TRANSFER_CALL_COUNT
+        );
+        assert_eq!(
+            mock_ledger.economic_transfer_count(),
+            SETTLEMENT_TRANSFER_COUNT
+        );
+        assert_eq!(
+            mock_ledger.balance_of_account(&buyer_account),
+            EXPECTED_BUYER_PAYOUT_SATS
+        );
+        assert_eq!(
+            mock_ledger.balance_of_account(&Account {
+                owner: get_fee_recipient(),
+                subaccount: None,
+            }),
+            EXPECTED_PROFIT_FEE_SATS
+        );
+        assert_eq!(
+            writer_balance.total(),
+            mock_ledger.balance_of_account(&writer_account)
+        );
+        assert!(get_settlement(TEST_OPTION_ID).is_none());
     }
 
     /// Given: settlement traps after the first transfer and leaves WAL attempt in-flight
