@@ -484,7 +484,6 @@ export interface WalletProof { 'signature' : string, 'address' : string }
 export interface WithdrawCkbtcRequest {
   'expires_at_seconds' : bigint,
   'amount' : bigint,
-  'btc_address' : string,
 }
 export interface WithdrawReceipt {
   'withdrawal_id' : bigint,
@@ -584,10 +583,7 @@ export interface _SERVICE {
     [string, string, bigint],
     Result_7
   >,
-  'get_withdraw_message' : ActorMethod<
-    [string, string, bigint, bigint],
-    Result_7
-  >,
+  'get_withdraw_message' : ActorMethod<[string, bigint, bigint], Result_7>,
   'get_withdraw_status' : ActorMethod<[Uint8Array | number[]], Result_22>,
   'get_withdrawal_by_id' : ActorMethod<[bigint], Result_23>,
   'list_users' : ActorMethod<[], Result_24>,

@@ -406,7 +406,6 @@ type WalletProof = record { signature : text; address : text };
 type WithdrawCkbtcRequest = record {
   expires_at_seconds : nat64;
   amount : nat64;
-  btc_address : text;
 };
 type WithdrawReceipt = record { withdrawal_id : nat64; operation_id : blob };
 type WithdrawResult = record { block_index : nat64 };
@@ -492,7 +491,7 @@ service : (opt BtcNetwork) -> {
   get_trading_limits : () -> (TradingLimits) query;
   get_user_balance : (text) -> (Result_21) query;
   get_username_update_message : (text, text, nat64) -> (Result_7) query;
-  get_withdraw_message : (text, text, nat64, nat64) -> (Result_7) query;
+  get_withdraw_message : (text, nat64, nat64) -> (Result_7) query;
   get_withdraw_status : (blob) -> (Result_22) query;
   get_withdrawal_by_id : (nat64) -> (Result_23) query;
   list_users : () -> (Result_24) query;
