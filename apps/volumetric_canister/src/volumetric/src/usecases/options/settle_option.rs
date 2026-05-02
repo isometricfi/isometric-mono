@@ -82,9 +82,9 @@ struct PreparedSettlementExecution {
     operation_id: OperationId,
     option_id: u64,
     settlement_price_cents: u64,
-    payout_to_buyer: u64,
-    payout_to_writer: u64,
-    profit_fee: u64,
+    buyer_payout_after_profit_fee_sats: u64,
+    writer_payout_before_transfer_fees_sats: u64,
+    profit_fee_sats: u64,
 }
 
 pub async fn settle_expired_options_use_case() -> SettleExpiredOptionsResult {
@@ -193,42 +193,49 @@ fn prepare_settlement_execution(
     option.status = ActiveOptionStatus::Settling;
     update_active_option(option.clone());
 
-    let gross_payout_to_buyer = match option.option_type {
+    let buyer_payout_before_profit_fee_sats = match option.option_type {
         OptionType::Call => calculate_call_option_payout(
             settlement_price_cents,
             option.strike_price_cents,
             option.quantity,
         ),
     };
-
-    let profit_fee = if gross_payout_to_buyer > 0 {
-        calculate_profit_fee(gross_payout_to_buyer, option.profit_fee_basis_points)?
+    let profit_fee_sats = if buyer_payout_before_profit_fee_sats > 0 {
+        calculate_profit_fee(
+            buyer_payout_before_profit_fee_sats,
+            option.profit_fee_basis_points,
+        )?
     } else {
         0
     };
-
-    let payout_to_buyer = gross_payout_to_buyer.saturating_sub(profit_fee);
-    let payout_to_writer = option.quantity.saturating_sub(gross_payout_to_buyer);
-
-    let transfer_fee_sats = if gross_payout_to_buyer > 0 {
+    let buyer_payout_after_profit_fee_sats =
+        buyer_payout_before_profit_fee_sats.saturating_sub(profit_fee_sats);
+    let writer_payout_before_transfer_fees_sats = option
+        .quantity
+        .saturating_sub(buyer_payout_before_profit_fee_sats);
+    let transfer_fee_sats = if buyer_payout_before_profit_fee_sats > 0 {
         ledger::get_cached_icrc1_transfer_fee_sats_for_sync_flow()?
     } else {
         0
     };
-
     let created_at_time_ns = ic::time();
 
     ic::log(&format!(
-        "settle_single_option: quantity={}, gross_payout_buyer={}, profit_fee={}, net_payout_buyer={}, payout_writer={}, transfer_fee_sats={}",
-        option.quantity, gross_payout_to_buyer, profit_fee, payout_to_buyer, payout_to_writer, transfer_fee_sats
+        "settle_single_option: quantity={}, buyer_payout_before_profit_fee_sats={}, profit_fee_sats={}, buyer_payout_after_profit_fee_sats={}, writer_payout_before_transfer_fees_sats={}, transfer_fee_sats={}",
+        option.quantity,
+        buyer_payout_before_profit_fee_sats,
+        profit_fee_sats,
+        buyer_payout_after_profit_fee_sats,
+        writer_payout_before_transfer_fees_sats,
+        transfer_fee_sats,
     ));
 
     create_settlement(
         option.id,
         option.writer,
         option.buyer,
-        payout_to_buyer,
-        payout_to_writer,
+        buyer_payout_after_profit_fee_sats,
+        writer_payout_before_transfer_fees_sats,
         settlement_price_cents,
     );
 
@@ -249,9 +256,9 @@ fn prepare_settlement_execution(
         operation_id,
         option_id: option.id,
         settlement_price_cents,
-        payout_to_buyer,
-        payout_to_writer,
-        profit_fee,
+        buyer_payout_after_profit_fee_sats,
+        writer_payout_before_transfer_fees_sats,
+        profit_fee_sats,
     })
 }
 
@@ -264,9 +271,10 @@ fn finish_settlement_execution(
             Ok(SettlementResult {
                 option_id: prepared_settlement_execution.option_id,
                 settlement_price_cents: prepared_settlement_execution.settlement_price_cents,
-                payout_to_buyer: prepared_settlement_execution.payout_to_buyer,
-                payout_to_writer: prepared_settlement_execution.payout_to_writer,
-                profit_fee: prepared_settlement_execution.profit_fee,
+                payout_to_buyer: prepared_settlement_execution.buyer_payout_after_profit_fee_sats,
+                payout_to_writer: prepared_settlement_execution
+                    .writer_payout_before_transfer_fees_sats,
+                profit_fee: prepared_settlement_execution.profit_fee_sats,
                 status: ActiveOptionStatus::Settled,
             })
         }
@@ -309,21 +317,32 @@ pub async fn run_settlement_wal(
     let writer_subaccount = derive_subaccount(active_option.writer);
     let buyer_subaccount = derive_subaccount(active_option.buyer);
 
-    let payout_to_buyer = settlement.payout_to_buyer;
-    let payout_to_writer = settlement.payout_to_writer;
+    let buyer_payout_after_profit_fee_sats = settlement.payout_to_buyer;
+    let writer_payout_before_transfer_fees_sats = settlement.payout_to_writer;
 
-    let gross_payout_to_buyer = active_option.quantity.saturating_sub(payout_to_writer);
-    let profit_fee = gross_payout_to_buyer.saturating_sub(payout_to_buyer);
+    let buyer_payout_before_profit_fee_sats = active_option
+        .quantity
+        .saturating_sub(writer_payout_before_transfer_fees_sats);
 
-    // ITM
-    if settlement.phase == SettlementPhase::Started && payout_to_buyer > 0 {
+    let profit_fee_sats =
+        buyer_payout_before_profit_fee_sats.saturating_sub(buyer_payout_after_profit_fee_sats);
+
+    let transfer_fee_sats = payload.transfer_fee_sats;
+    let transfer_count: u64 =
+        (buyer_payout_after_profit_fee_sats > 0) as u64 + (profit_fee_sats > 0) as u64;
+    let total_transfer_fees_sats = transfer_count * transfer_fee_sats;
+
+    let writer_payout_after_transfer_fees_sats =
+        writer_payout_before_transfer_fees_sats.saturating_sub(total_transfer_fees_sats);
+
+    if settlement.phase == SettlementPhase::Started && buyer_payout_after_profit_fee_sats > 0 {
         transfer_ckbtc(
             Some(writer_subaccount),
             Account {
                 owner: ic::canister_self(),
                 subaccount: Some(buyer_subaccount),
             },
-            payout_to_buyer,
+            buyer_payout_after_profit_fee_sats,
             payload.created_at_time_ns,
             Some(ledger_memo(
                 operation_id,
@@ -348,9 +367,13 @@ pub async fn run_settlement_wal(
         settlement.phase,
         SettlementPhase::Started | SettlementPhase::TransferComplete
     ) {
-        if payout_to_buyer > 0 {
-            release_locked_to_buyer(active_option.writer, active_option.buyer, payout_to_buyer)
-                .map_err(map_balance_error_to_permanent)?;
+        if buyer_payout_after_profit_fee_sats > 0 {
+            release_locked_to_buyer(
+                active_option.writer,
+                active_option.buyer,
+                buyer_payout_after_profit_fee_sats,
+            )
+            .map_err(map_balance_error_to_permanent)?;
         }
 
         update_settlement_phase(active_option.id, SettlementPhase::BalanceReleased);
@@ -364,14 +387,14 @@ pub async fn run_settlement_wal(
     })?;
 
     if settlement.phase == SettlementPhase::BalanceReleased {
-        if profit_fee > 0 {
+        if profit_fee_sats > 0 {
             transfer_ckbtc(
                 Some(writer_subaccount),
                 Account {
                     owner: get_fee_recipient(),
                     subaccount: None,
                 },
-                profit_fee,
+                profit_fee_sats,
                 payload.created_at_time_ns,
                 Some(ledger_memo(
                     operation_id,
@@ -382,16 +405,13 @@ pub async fn run_settlement_wal(
             .await
             .map_err(register_retryable_error)?;
 
-            add_platform_fee(profit_fee);
-            deduct_locked_collateral(active_option.writer, profit_fee)
+            add_platform_fee(profit_fee_sats);
+            deduct_locked_collateral(active_option.writer, profit_fee_sats)
                 .map_err(map_balance_error_to_permanent)?;
         }
 
-        let transfer_count: u64 = (payout_to_buyer > 0) as u64 + (profit_fee > 0) as u64;
-        let total_transfer_fees = transfer_count * payload.transfer_fee_sats;
-
-        if total_transfer_fees > 0 {
-            deduct_writer_transfer_fees(active_option.writer, total_transfer_fees)
+        if total_transfer_fees_sats > 0 {
+            deduct_writer_transfer_fees(active_option.writer, total_transfer_fees_sats)
                 .map_err(map_balance_error_to_permanent)?;
         }
 
@@ -406,12 +426,8 @@ pub async fn run_settlement_wal(
     })?;
 
     if settlement.phase == SettlementPhase::ProfitFeeCollected {
-        let transfer_count: u64 = (payout_to_buyer > 0) as u64 + (profit_fee > 0) as u64;
-        let total_transfer_fees = transfer_count * payload.transfer_fee_sats;
-        let effective_payout_to_writer = payout_to_writer.saturating_sub(total_transfer_fees);
-
-        if effective_payout_to_writer > 0 {
-            unlock_collateral(active_option.writer, effective_payout_to_writer)
+        if writer_payout_after_transfer_fees_sats > 0 {
+            unlock_collateral(active_option.writer, writer_payout_after_transfer_fees_sats)
                 .map_err(map_balance_error_to_permanent)?;
         }
 
@@ -440,11 +456,6 @@ pub async fn run_settlement_wal(
 
     let settled_at_seconds = current_time_seconds();
 
-    let effective_payout_to_writer = {
-        let transfer_count: u64 = (payout_to_buyer > 0) as u64 + (profit_fee > 0) as u64;
-        payout_to_writer.saturating_sub(transfer_count * payload.transfer_fee_sats)
-    };
-
     emit_event(
         active_option.buyer,
         EventType::OptionSettled,
@@ -455,7 +466,7 @@ pub async fn run_settlement_wal(
             strike_price_cents: active_option.strike_price_cents,
             settlement_price_cents: payload.settlement_price_cents,
             premium_sats: active_option.premium_paid,
-            payout_sats: payout_to_buyer,
+            payout_sats: buyer_payout_after_profit_fee_sats,
             accepted_at_seconds: active_option.accepted_at_seconds,
             settled_at_seconds,
             role: TradeRole::Buyer,
@@ -472,7 +483,7 @@ pub async fn run_settlement_wal(
             strike_price_cents: active_option.strike_price_cents,
             settlement_price_cents: payload.settlement_price_cents,
             premium_sats: active_option.premium_paid,
-            payout_sats: effective_payout_to_writer,
+            payout_sats: writer_payout_after_transfer_fees_sats,
             accepted_at_seconds: active_option.accepted_at_seconds,
             settled_at_seconds,
             role: TradeRole::Writer,
@@ -1885,11 +1896,12 @@ mod tests {
         );
     }
 
-    /// Given: an extremely ITM option whose writer residual is smaller than settlement transfer fees
+    /// Given: an extremely ITM option whose writer payout is smaller than settlement transfer fees
     /// When: the writer subaccount has enough total funds for the ledger transfers
     /// Then: settlement succeeds and internal accounting matches the writer ledger subaccount
     #[tokio::test]
-    async fn test_extreme_itm_settlement_uses_available_balance_for_fee_residual() {
+    async fn test_extreme_itm_settlement_uses_available_balance_when_writer_payout_smaller_than_fees(
+    ) {
         // given
         const EXPECTED_TRANSFER_FEE_SATS: u64 = 10;
         const EXTRA_WRITER_AVAILABLE_SATS: u64 = 100;
@@ -1928,7 +1940,7 @@ mod tests {
         // then
         assert!(
             settlement_result.is_ok(),
-            "settlement should use writer available balance for residual fees"
+            "settlement should use writer available balance to cover transfer fees"
         );
 
         let writer_internal = get_balance(&writer);
