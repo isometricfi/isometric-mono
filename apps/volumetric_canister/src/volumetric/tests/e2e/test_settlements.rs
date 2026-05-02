@@ -2,10 +2,11 @@ use crate::common::{create_test_env, generate_wallet};
 use crate::helpers::{
     accept_offers, configure_test_ledger, create_account, create_offer, get_events_for_principal,
     get_fee_recipient_ledger_balance, get_pending_settlements, get_settlement_status,
-    get_user_balance, mint_and_sync_balance, set_oracle_price, settle_expired_options,
-    settle_option_by_id, testing_set_option_expiry_seconds, wait_for_settlement_terminal_status,
-    whitelist_controller,
+    get_subaccount_ledger_balance, get_user_balance, mint_and_sync_balance, set_oracle_price,
+    settle_expired_options, settle_option_by_id, testing_set_option_expiry_seconds,
+    wait_for_settlement_terminal_status, whitelist_controller,
 };
+use volumetric::auth::derive_subaccount;
 use volumetric::{AcceptOfferItem, EventData, EventType, SettlementStatus, TradeRole};
 
 const ONE_BTC_SATS: u64 = 100_000_000; // 1 BTC
@@ -17,6 +18,7 @@ const ENTRY_PRICE_CENTS: u64 = 10_000_000;
 const ONE_DAY_SECS: u64 = 86_400 * 3;
 const ONE_HOUR_SECS: u64 = 3_600;
 const CKBTC_TRANSFER_FEE: u64 = 10;
+const CKBTC_SETTLEMENT_TRANSFER_FEES: u64 = 2 * CKBTC_TRANSFER_FEE;
 const FIRST_OFFER_ID: u64 = 1;
 
 const QUANTITY_SATS: u64 = ONE_BTC_SATS;
@@ -234,7 +236,10 @@ fn test_expired_itm_option_auto_settles_with_correct_payouts() {
     let buyer_received = buyer_balance_after.available - buyer_balance_before.available;
 
     assert_eq!(buyer_received, EXPECTED_BUYER_PAYOUT_SATS);
-    assert_eq!(writer_received, EXPECTED_WRITER_BALANCE_INCREASE_SATS);
+    assert_eq!(
+        writer_received,
+        EXPECTED_WRITER_BALANCE_INCREASE_SATS - CKBTC_SETTLEMENT_TRANSFER_FEES
+    );
 
     let fee_recipient_balance_after_settle = get_fee_recipient_ledger_balance(&env);
     let profit_fee_received =
@@ -303,7 +308,7 @@ fn test_expired_itm_option_auto_settles_with_correct_payouts() {
             strike_price_cents: STRIKE_PRICE_CENTS,
             settlement_price_cents: SETTLEMENT_PRICE_CENTS,
             premium_sats: PREMIUM_SATS,
-            payout_sats: EXPECTED_WRITER_PAYOUT_SATS,
+            payout_sats: EXPECTED_WRITER_PAYOUT_SATS - CKBTC_SETTLEMENT_TRANSFER_FEES,
             accepted_at_seconds: *writer_accepted_at,
             settled_at_seconds: *writer_settled_at,
             role: TradeRole::Writer,
@@ -542,7 +547,10 @@ fn test_multiple_options_settle_in_single_cron_tick() {
     let writer_2_received = writer_2_balance_after.available - writer_2_balance_before.available;
     let buyer_2_received = buyer_2_balance_after.available - buyer_2_balance_before.available;
 
-    assert_eq!(writer_1_received, EXPECTED_WRITER_1_PAYOUT_SATS);
+    assert_eq!(
+        writer_1_received,
+        EXPECTED_WRITER_1_PAYOUT_SATS - CKBTC_SETTLEMENT_TRANSFER_FEES
+    );
     assert_eq!(buyer_1_received, EXPECTED_BUYER_1_PAYOUT_SATS);
     assert_eq!(writer_2_received, EXPECTED_WRITER_2_PAYOUT_SATS);
     assert_eq!(buyer_2_received, EXPECTED_BUYER_2_PAYOUT_SATS);
@@ -748,7 +756,10 @@ fn test_option_with_extreme_price_increase_settles_correctly() {
     let buyer_received = buyer_balance_after.available - buyer_balance_before.available;
 
     assert_eq!(buyer_received, EXPECTED_BUYER_PAYOUT_SATS);
-    assert_eq!(writer_received, EXPECTED_WRITER_PAYOUT_SATS);
+    assert_eq!(
+        writer_received,
+        EXPECTED_WRITER_PAYOUT_SATS - CKBTC_SETTLEMENT_TRANSFER_FEES
+    );
 
     let fee_recipient_balance_after_settle = get_fee_recipient_ledger_balance(&env);
     let profit_fee_received =
@@ -1039,10 +1050,16 @@ fn test_settlement_conserves_collateral_across_writer_buyer_and_profit_fee() {
     let expected_writer_payout_sats = QUANTITY_SATS - gross_payout_to_buyer_sats;
 
     assert_eq!(buyer_received_sats, expected_buyer_payout_sats);
-    assert_eq!(writer_received_sats, expected_writer_payout_sats);
+    assert_eq!(
+        writer_received_sats,
+        expected_writer_payout_sats - CKBTC_SETTLEMENT_TRANSFER_FEES
+    );
     assert_eq!(profit_fee_received_sats, expected_profit_fee_sats);
     assert_eq!(
-        writer_received_sats + buyer_received_sats + profit_fee_received_sats,
+        writer_received_sats
+            + buyer_received_sats
+            + profit_fee_received_sats
+            + CKBTC_SETTLEMENT_TRANSFER_FEES,
         QUANTITY_SATS
     );
 }
@@ -1138,10 +1155,16 @@ fn test_partial_quantity_itm_option_settles_with_correct_payouts_and_fees() {
     let expected_premium_fee_sats = PARTIAL_PREMIUM_SATS * PREMIUM_FEE_BPS / BASIS_POINTS;
 
     assert_eq!(buyer_received_sats, expected_buyer_payout_sats);
-    assert_eq!(writer_received_sats, expected_writer_payout_sats);
+    assert_eq!(
+        writer_received_sats,
+        expected_writer_payout_sats - CKBTC_SETTLEMENT_TRANSFER_FEES
+    );
     assert_eq!(profit_fee_received_sats, expected_profit_fee_sats);
     assert_eq!(
-        writer_received_sats + buyer_received_sats + profit_fee_received_sats,
+        writer_received_sats
+            + buyer_received_sats
+            + profit_fee_received_sats
+            + CKBTC_SETTLEMENT_TRANSFER_FEES,
         PARTIAL_QUANTITY_SATS
     );
     assert_eq!(
@@ -1358,4 +1381,88 @@ fn test_settle_option_by_id_status_transitions_from_pending_to_terminal() {
         terminal_status,
         SettlementStatus::Succeeded { .. } | SettlementStatus::Failed { .. }
     ));
+}
+
+/// Given: an ITM option that settles normally with a real ckBTC ledger
+/// When: comparing the writer's internal balance against the writer's actual ledger subaccount balance
+/// Then: the 20 sats fee drift is exposed (internal balance exceeds ledger balance by 2 transfer fees)
+#[test]
+fn test_itm_settlement_writer_ledger_subaccount_misses_transfer_fees() {
+    // given
+    let env = create_test_env();
+    whitelist_controller(&env);
+    configure_test_ledger(&env);
+
+    const WRITER_SEED: u64 = 91;
+    const BUYER_SEED: u64 = 92;
+    const STRIKE_BPS: u16 = 500;
+    const OPTION_ID: u64 = 1;
+    const TEST_SETTLEMENT_PRICE_CENTS: u64 = 12_345_678;
+
+    let writer_wallet = generate_wallet(WRITER_SEED);
+    let buyer_wallet = generate_wallet(BUYER_SEED);
+    let writer_profile = create_account(&env, &writer_wallet).expect("Writer account failed");
+    let buyer_profile = create_account(&env, &buyer_wallet).expect("Buyer account failed");
+
+    mint_and_sync_balance(&env, &writer_profile, QUANTITY_SATS).expect("Writer mint failed");
+    mint_and_sync_balance(&env, &buyer_profile, PREMIUM_SATS + ACCEPT_TRANSFER_FEES)
+        .expect("Buyer mint failed");
+
+    set_oracle_price(&env, ENTRY_PRICE_CENTS);
+    create_offer(
+        &env,
+        &writer_wallet,
+        QUANTITY_SATS,
+        STRIKE_BPS,
+        PREMIUM_BPS,
+        ONE_DAY_SECS,
+    )
+    .expect("Create offer failed");
+    accept_offers(
+        &env,
+        &buyer_wallet,
+        vec![AcceptOfferItem {
+            offer_id: FIRST_OFFER_ID,
+            quantity: QUANTITY_SATS,
+        }],
+    )
+    .expect("Accept offer failed");
+
+    let writer_subaccount = derive_subaccount(writer_profile.principal);
+
+    let writer_balance_before =
+        get_user_balance(&env, &writer_wallet.address).expect("Writer balance before failed");
+    let writer_ledger_before =
+        get_subaccount_ledger_balance(&env, env.volumetric_canister, Some(writer_subaccount));
+
+    set_oracle_price(&env, TEST_SETTLEMENT_PRICE_CENTS);
+    testing_set_option_expiry_seconds(&env, OPTION_ID, 0).expect("Set expiry failed");
+
+    // when
+    let response = settle_expired_options(&env).expect("Settle expired options failed");
+    assert!(response.errors.is_empty());
+    assert_eq!(response.settled.len(), 1);
+
+    // then
+    let writer_balance_after =
+        get_user_balance(&env, &writer_wallet.address).expect("Writer balance after failed");
+    let writer_ledger_after =
+        get_subaccount_ledger_balance(&env, env.volumetric_canister, Some(writer_subaccount));
+
+    let writer_internal_total_after = writer_balance_after.available + writer_balance_after.locked;
+    let writer_internal_total_before =
+        writer_balance_before.available + writer_balance_before.locked;
+
+    let internal_delta = writer_internal_total_after as i64 - writer_internal_total_before as i64;
+    let ledger_delta = writer_ledger_after as i64 - writer_ledger_before as i64;
+
+    assert_eq!(
+        internal_delta,
+        ledger_delta,
+        "internal balance delta ({}) should match ledger subaccount delta ({}); \
+         expected drift of {} sats",
+        internal_delta,
+        ledger_delta,
+        2 * CKBTC_TRANSFER_FEE,
+    );
 }
