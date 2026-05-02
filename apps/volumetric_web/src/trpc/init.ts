@@ -14,7 +14,7 @@ const t = initTRPC.create({
     if (cause instanceof CanisterError) {
       return {
         ...shape,
-        message: getErrorMessage(cause),
+        message: getErrorMessage(cause) || shape.message,
         data: {
           ...shape.data,
           canisterErrorCode: cause.code,
