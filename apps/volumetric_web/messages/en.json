@@ -41,6 +41,9 @@
     "inviteUsers": "Invite users",
     "referralLink": "Invite"
   },
+  "PendingActivity": {
+    "title": "{count, plural, one {# pending} other {# pending}}"
+  },
   "PendingDeposits": {
     "pending": "pending",
     "unconfirmed": "0/4 blocks",
@@ -202,11 +205,18 @@
     "signMessage": "Sign message",
     "approveWithdrawal": "Approve the withdrawal in your wallet",
     "processingWithdrawal": "Processing withdrawal",
-    "mayTakeMoment": "This may take a moment...",
-    "withdrawalSubmitted": "Withdrawal submitted",
+    "mayTakeMoment": "Broadcasting to the Bitcoin network...",
+    "withdrawalSubmitted": "Sent to Bitcoin network",
     "btcOnWay": "Your BTC is on its way to your wallet",
-    "arrivesInMinutes": "Your BTC will be sent to your wallet in 1 to 2 minutes",
+    "arrivesInMinutes": "Track confirmations from your wallet",
     "failedToWithdraw": "Failed to withdraw"
+  },
+  "PendingWithdrawals": {
+    "pending": "withdrawing",
+    "broadcasting": "Broadcasting to Bitcoin",
+    "confirming": "{count}/1 blocks",
+    "completed": "Sent",
+    "failed": "Withdrawal failed"
   },
   "Portfolio": {
     "title": "Portfolio",

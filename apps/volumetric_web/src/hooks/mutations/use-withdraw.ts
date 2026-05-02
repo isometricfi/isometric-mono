@@ -66,6 +66,7 @@ export function useWithdraw() {
     onSuccess: () => {
       setStep("success");
       queryClient.invalidateQueries({ queryKey: [["account"]] });
+      queryClient.invalidateQueries({ queryKey: [["account", "getPendingWithdrawals"]] });
     },
     onError: () => {
       setStep("error");

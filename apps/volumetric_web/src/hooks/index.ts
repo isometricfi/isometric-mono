@@ -59,6 +59,11 @@ export {
   type PendingDepositStatus,
   usePendingDeposits,
 } from "./queries/use-pending-deposits";
+export {
+  type PendingWithdrawal,
+  type PendingWithdrawalStatus,
+  usePendingWithdrawals,
+} from "./queries/use-pending-withdrawals";
 export { usePortfolio } from "./queries/use-portfolio";
 export { usePrices } from "./queries/use-prices";
 export { useWalletBalance } from "./queries/use-wallet-balance";

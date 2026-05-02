@@ -41,6 +41,9 @@
     "inviteUsers": "邀请用户",
     "referralLink": "邀请"
   },
+  "PendingActivity": {
+    "title": "{count} 笔待处理"
+  },
   "PendingDeposits": {
     "pending": "待确认",
     "unconfirmed": "0/4 区块",
@@ -200,11 +203,18 @@
     "signMessage": "签署消息",
     "approveWithdrawal": "在您的钱包中批准提取",
     "processingWithdrawal": "正在处理提取",
-    "mayTakeMoment": "这可能需要一些时间...",
-    "withdrawalSubmitted": "提取已提交",
+    "mayTakeMoment": "正在广播到比特币网络...",
+    "withdrawalSubmitted": "已发送至比特币网络",
     "btcOnWay": "您的 BTC 正在发送到您的钱包",
-    "arrivesInMinutes": "应在 1 到 2 分钟内到达您的钱包",
+    "arrivesInMinutes": "请在您的钱包中跟踪确认",
     "failedToWithdraw": "提取失败"
+  },
+  "PendingWithdrawals": {
+    "pending": "提取中",
+    "broadcasting": "正在广播到比特币",
+    "confirming": "{count}/1 区块",
+    "completed": "已发送",
+    "failed": "提取失败"
   },
   "Portfolio": {
     "title": "投资组合",

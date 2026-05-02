@@ -32,6 +32,28 @@ async function fetchMempool(path: string): Promise<Response> {
   return response;
 }
 
+export interface MempoolTxStatus {
+  confirmed: boolean;
+  block_height?: number;
+  block_hash?: string;
+  block_time?: number;
+}
+
+export async function getMempoolTxStatus(txid: string): Promise<MempoolTxStatus | null> {
+  const baseUrl = getMempoolApiBaseUrl();
+  const response = await fetch(`${baseUrl}/tx/${txid}/status`);
+
+  if (response.status === 404) {
+    return null;
+  }
+
+  if (!response.ok) {
+    throw new Error(`Mempool request failed (${response.status}) for /tx/${txid}/status`);
+  }
+
+  return (await response.json()) as MempoolTxStatus;
+}
+
 export async function getMempoolTipHeight(): Promise<number> {
   const response = await fetchMempool("/blocks/tip/height");
   const body = await response.text();

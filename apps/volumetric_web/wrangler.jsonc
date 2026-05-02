@@ -41,7 +41,8 @@
         "OTEL_EXPORTER_OTLP_LOGS_ENDPOINT": "https://otlp-gateway-prod-eu-central-0.grafana.net/otlp/v1/logs",
         "MEMPOOL_API_URL": "https://mempool.space/testnet/api",
         "NEXT_PUBLIC_MEMPOOL_URL": "https://mempool.space",
-        "CANISTER_ID": "4dqqd-aqaaa-aaaae-qgbta-cai"
+        "CANISTER_ID": "4dqqd-aqaaa-aaaae-qgbta-cai",
+        "CKBTC_MINTER_CANISTER_ID": "ml52i-qqaaa-aaaar-qaaba-cai"
       },
       "services": [
         {
@@ -72,6 +73,7 @@
         "MEMPOOL_API_URL": "https://luminex.mempool.space/api",
         "NEXT_PUBLIC_MEMPOOL_URL": "https://mempool.space",
         "CANISTER_ID": "5optx-3iaaa-aaaae-qjwsa-cai",
+        "CKBTC_MINTER_CANISTER_ID": "mqygn-kiaaa-aaaar-qaadq-cai",
         "NEXT_PUBLIC_TAWK_EMBED_URL": "https://embed.tawk.to/69a303f652cbb51c37094784/1jiicevko",
         "NEXT_PUBLIC_APP_HOST": "app.isometric.fi",
         "NEXT_PUBLIC_APP_URL": "https://app.isometric.fi",

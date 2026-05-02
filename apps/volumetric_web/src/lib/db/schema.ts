@@ -55,6 +55,46 @@ export const trackedDeposits = sqliteTable(
   ],
 );
 
+export const trackedWithdrawals = sqliteTable(
+  "tracked_withdrawals",
+  {
+    operationId: text("operation_id").primaryKey(),
+    userAddress: text("user_address").notNull(),
+    withdrawalId: integer("withdrawal_id").notNull(),
+    destinationAddress: text("destination_address").notNull(),
+    amountSats: integer("amount_sats").notNull(),
+    blockIndex: integer("block_index"),
+    bitcoinTxid: text("bitcoin_txid"),
+    confirmations: integer("confirmations").notNull(),
+    phase: text("phase").notNull(),
+    lastError: text("last_error"),
+    syncAttemptCount: integer("sync_attempt_count").notNull(),
+    nextSyncAtMs: integer("next_sync_at_ms").notNull(),
+    lastSyncAtMs: integer("last_sync_at_ms"),
+    status: text("status").notNull(),
+    createdAtMs: integer("created_at_ms").notNull(),
+    updatedAtMs: integer("updated_at_ms").notNull(),
+  },
+  (table) => [
+    index("tracked_withdrawals_status_next_sync_idx").on(table.status, table.nextSyncAtMs),
+    index("tracked_withdrawals_user_status_created_idx").on(
+      table.userAddress,
+      table.status,
+      table.createdAtMs,
+    ),
+    check(
+      "tracked_withdrawals_status_check",
+      sql`${table.status} in ('broadcasting', 'pending', 'completed', 'failed', 'expired')`,
+    ),
+    check("tracked_withdrawals_amount_non_negative", sql`${table.amountSats} >= 0`),
+    check("tracked_withdrawals_confirmations_non_negative", sql`${table.confirmations} >= 0`),
+    check(
+      "tracked_withdrawals_sync_attempt_count_non_negative",
+      sql`${table.syncAttemptCount} >= 0`,
+    ),
+  ],
+);
+
 export const depositBalanceSnapshots = sqliteTable(
   "deposit_balance_snapshots",
   {

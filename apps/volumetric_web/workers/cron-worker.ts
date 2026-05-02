@@ -34,6 +34,11 @@ const worker: ExportedHandler<Env> = {
         .catch((err) => console.error("Deposit sync failed:", err)),
     );
     ctx.waitUntil(
+      callCronEndpoint(env, "/api/cron/sync-withdrawals")
+        .then((data) => console.log("Withdrawal sync result:", data))
+        .catch((err) => console.error("Withdrawal sync failed:", err)),
+    );
+    ctx.waitUntil(
       callCronEndpoint(env, "/api/cron/sync-market-data")
         .then((data) => console.log("Market data sync result:", data))
         .catch((err) => console.error("Market data sync failed:", err)),
