@@ -39,6 +39,7 @@ export { type BtcAddressType, useBtcAddress, useBtcAddresses } from "./queries/u
 export { type BTCHistoryPoint, useBTCHistory } from "./queries/use-btc-history";
 export { generatePremiumValues, useConfig } from "./queries/use-config";
 export { useDepositAddress } from "./queries/use-deposit-address";
+export { useEstimatedFeeReserveSats } from "./queries/use-estimated-send-fee";
 export {
   useAllEvents,
   useEventsForPrincipal,

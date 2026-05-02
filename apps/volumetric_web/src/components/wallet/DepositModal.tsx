@@ -23,7 +23,12 @@ import { AlertDialog, AlertDialogContent, AlertDialogTitle } from "@/components/
 import { Button } from "@/components/ui/button";
 import { CopyButton } from "@/components/ui/copy-button";
 import { Drawer, DrawerContent, DrawerTitle } from "@/components/ui/drawer";
-import { useConfig, useDepositAddress, useWalletBalance } from "@/hooks";
+import {
+  useConfig,
+  useDepositAddress,
+  useEstimatedFeeReserveSats,
+  useWalletBalance,
+} from "@/hooks";
 import { Link } from "@/i18n/routing";
 import {
   DEFAULT_MIN_DEPOSIT_SATS,
@@ -49,7 +54,8 @@ export function DepositModal({
   const isMobile = useMediaQuery({ query: "(max-width: 768px)" });
   const { primaryWallet } = useDynamicContext();
   const { data: config } = useConfig();
-  const { data: walletBalanceSats } = useWalletBalance();
+  const { data: walletBalanceSats, isLoading: isLoadingWalletBalance } = useWalletBalance();
+  const { data: feeReserveSats, isLoading: isLoadingFeeReserve } = useEstimatedFeeReserveSats();
   const { data: depositAddressData, isLoading: isLoadingDepositAddress } = useDepositAddress();
   const t = useTranslations("Deposit");
   const tCommon = useTranslations("Common");
@@ -71,18 +77,21 @@ export function DepositModal({
 
   const enteredAmountSats = useMemo(() => parseBtcToSatsBigint(amountBtc), [amountBtc]);
 
+  const maxSpendableSats =
+    walletBalanceSats == null
+      ? undefined
+      : Math.max(0, Math.floor(walletBalanceSats) - (feeReserveSats ?? 0) * 1.1);
+
   const isBelowMinimum = enteredAmountSats < minDepositSats;
 
   const canDeposit = useMemo(() => {
     if (!isWalletReady) return false;
     if (!depositAddress) return false;
+    if (maxSpendableSats === undefined) return false;
     const sats = parseBtcToSatsBigint(amountBtc);
-    if (walletBalanceSats !== null && walletBalanceSats !== undefined) {
-      const walletBalanceBigInt = BigInt(Math.floor(walletBalanceSats));
-      if (sats > walletBalanceBigInt) return false;
-    }
+    if (sats > BigInt(maxSpendableSats)) return false;
     return sats >= minDepositSats;
-  }, [isWalletReady, depositAddress, amountBtc, minDepositSats, walletBalanceSats]);
+  }, [isWalletReady, depositAddress, amountBtc, minDepositSats, maxSpendableSats]);
 
   const isProcessing = step === "sending";
 
@@ -118,6 +127,7 @@ export function DepositModal({
         throw new Error(t("transactionCancelled"));
       }
     } catch (err) {
+      console.log(err);
       setError(err instanceof Error ? err.message : t("failedToSend"));
       setStep("error");
     }
@@ -200,17 +210,21 @@ export function DepositModal({
               <div className="flex flex-col flex-1">
                 {effectiveTab === "wallet" && (
                   <div className="flex flex-col flex-1 gap-5">
-                    <AmountInput
-                      value={amountBtc}
-                      onChange={setAmountBtc}
-                      maxAmountSats={walletBalanceSats ?? undefined}
-                      minAmountSats={Number(minDepositSats)}
-                      onMaxClick={
-                        walletBalanceSats !== null && walletBalanceSats !== undefined
-                          ? () => setAmountBtc(formatBtc(walletBalanceSats, 8))
-                          : undefined
-                      }
-                    />
+                    {isLoadingWalletBalance || isLoadingFeeReserve ? (
+                      <Skeleton className="w-full h-20" />
+                    ) : (
+                      <AmountInput
+                        value={amountBtc}
+                        onChange={setAmountBtc}
+                        maxAmountSats={maxSpendableSats}
+                        minAmountSats={Number(minDepositSats)}
+                        onMaxClick={
+                          maxSpendableSats !== undefined
+                            ? () => setAmountBtc(formatBtc(maxSpendableSats, 8))
+                            : undefined
+                        }
+                      />
+                    )}
                     <div className="flex items-center gap-2 ">
                       <ClockCheck className="size-5" />
                       <p className="text-sm text-muted-foreground">{t("requiresConfirmations")}</p>

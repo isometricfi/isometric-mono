@@ -1,3 +1,13 @@
+const MEMPOOL_FALLBACK_BASE_URL = "https://mempool.space";
+const ASSUMED_SEND_TX_VBYTES = 200;
+const FALLBACK_FEE_RATE_SATS_PER_VBYTE = 4;
+
+function getMempoolBaseUrl(): string {
+  return (
+    process.env.NEXT_PUBLIC_MEMPOOL_URL?.trim().replace(/\/$/, "") ?? MEMPOOL_FALLBACK_BASE_URL
+  );
+}
+
 export interface MempoolOutput {
   scriptpubkey_address?: string;
   value?: number;
@@ -13,10 +23,9 @@ export interface MempoolAddressTransaction {
 }
 
 export async function fetchAddressTransactions(
-  baseUrl: string,
   address: string,
 ): Promise<MempoolAddressTransaction[]> {
-  const response = await fetch(`${baseUrl}/api/address/${address}/txs/mempool`);
+  const response = await fetch(`${getMempoolBaseUrl()}/api/address/${address}/txs/mempool`);
   if (!response.ok) {
     throw new Error(`Mempool request failed (${response.status})`);
   }
@@ -24,8 +33,34 @@ export async function fetchAddressTransactions(
   return Array.isArray(body) ? (body as MempoolAddressTransaction[]) : [];
 }
 
-export async function fetchTipHeight(baseUrl: string): Promise<number> {
-  const response = await fetch(`${baseUrl}/api/blocks/tip/height`);
+export interface RecommendedFees {
+  fastestFee: number;
+  halfHourFee: number;
+  hourFee: number;
+  economyFee: number;
+  minimumFee: number;
+}
+
+export async function fetchRecommendedFees(): Promise<RecommendedFees> {
+  const response = await fetch(`${getMempoolBaseUrl()}/api/v1/fees/recommended`);
+  if (!response.ok) {
+    throw new Error(`Mempool request failed (${response.status})`);
+  }
+  return (await response.json()) as RecommendedFees;
+}
+
+export async function fetchEstimatedSendFeeReserveSats(): Promise<number> {
+  try {
+    const fees = await fetchRecommendedFees();
+    const feeRate = fees.halfHourFee ?? fees.fastestFee ?? FALLBACK_FEE_RATE_SATS_PER_VBYTE;
+    return Math.ceil(feeRate * ASSUMED_SEND_TX_VBYTES);
+  } catch {
+    return FALLBACK_FEE_RATE_SATS_PER_VBYTE * ASSUMED_SEND_TX_VBYTES;
+  }
+}
+
+export async function fetchTipHeight(): Promise<number> {
+  const response = await fetch(`${getMempoolBaseUrl()}/api/blocks/tip/height`);
   if (!response.ok) {
     throw new Error(`Mempool request failed (${response.status})`);
   }
@@ -52,7 +87,6 @@ export class MempoolAddressTracker {
   private stopped = false;
 
   constructor(
-    private baseUrl: string,
     private address: string,
     private callbacks: MempoolAddressTrackerCallbacks,
   ) {}
@@ -77,7 +111,7 @@ export class MempoolAddressTracker {
   private createConnection(): void {
     if (this.stopped) return;
 
-    const url = new URL(this.baseUrl);
+    const url = new URL(getMempoolBaseUrl());
     const wsProtocol = url.protocol === "https:" ? "wss:" : "ws:";
     const wsUrl = `${wsProtocol}//${url.host}${url.pathname.replace(/\/$/, "")}/api/v1/ws`;
 

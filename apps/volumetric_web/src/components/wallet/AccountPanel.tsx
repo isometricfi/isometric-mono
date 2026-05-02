@@ -28,6 +28,7 @@ import { useAccount, useModal, usePrices, useUpdateUsername } from "@/hooks";
 import { Link } from "@/i18n/routing";
 import { cn, formatBtcWithSymbolBigint, roundToN } from "@/lib/utils";
 import { Badge } from "../ui/badge";
+import { Skeleton } from "../ui/skeleton";
 
 function shortenAddress(address: string) {
   if (address.length <= 14) return address;
@@ -186,18 +187,26 @@ function AccountPanelContent({
               <div className="space-y-1">
                 <p className="text-sm text-muted-foreground">{t("available")}</p>
                 <div className="flex items-center gap-2 justify-between">
-                  <p className="text-3xl font-semibold tracking-tight">
-                    {isLoadingBalance ? "—" : formatBtcWithSymbolBigint(available, 8)}
-                  </p>
+                  <div className="text-3xl font-semibold tracking-tight">
+                    {isLoadingBalance ? (
+                      <Skeleton className="h-9 w-32" />
+                    ) : (
+                      formatBtcWithSymbolBigint(available, 8)
+                    )}
+                  </div>
                   {!isLoadingBalance && availableUsd > 0 && (
                     <div className="text-muted-foreground text-sm bg-muted px-2 py-1 rounded-sm">
                       ${availableUsd.toLocaleString()}
                     </div>
                   )}
                 </div>
-                <Badge variant="secondary">
-                  {t("deposited")} {formatBtcWithSymbolBigint(deposited, 8)}
-                </Badge>
+                {isLoadingBalance ? (
+                  <Skeleton className="h-6.5 w-20 rounded-full" />
+                ) : (
+                  <Badge variant="secondary">
+                    {t("deposited")} {formatBtcWithSymbolBigint(deposited, 8)}
+                  </Badge>
+                )}
               </div>
 
               <div className="grid grid-cols-2 gap-3">
