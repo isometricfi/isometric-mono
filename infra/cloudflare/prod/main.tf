@@ -1,6 +1,6 @@
 resource "cloudflare_d1_database" "app" {
   account_id = var.account_id
-  name       = "volumetric_d1_prod"
+  name       = "volumetric_d1_prod_final"
 
   read_replication = {
     mode = "disabled"
