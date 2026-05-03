@@ -1,4 +1,4 @@
-import { type ActorSubclass, HttpAgent, type Identity } from "@dfinity/agent";
+import { type ActorSubclass, type Identity } from "@dfinity/agent";
 import { type _SERVICE, createActor } from "@volumetric/canister-types";
 
 export function createVolumetricClient({
@@ -10,6 +10,5 @@ export function createVolumetricClient({
   host: string;
   identity?: Identity;
 }): ActorSubclass<_SERVICE> {
-  const agent = new HttpAgent({ host, identity });
-  return createActor(canisterId, { agent });
+  return createActor(canisterId, { agentOptions: { host, identity } });
 }
