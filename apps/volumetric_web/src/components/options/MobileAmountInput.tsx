@@ -12,7 +12,14 @@ import {
   sanitizeBtcInput,
   sanitizeUsdInput,
 } from "@/lib/options-form";
-import { cn, formatBtc, formatBtcWithSymbol, parseBtcToSats, satsToBtc } from "@/lib/utils";
+import {
+  cn,
+  formatBtc,
+  formatBtcWithSymbol,
+  formatUsd,
+  parseBtcToSats,
+  satsToBtc,
+} from "@/lib/utils";
 
 type InputUnit = "btc" | "usd";
 
@@ -91,12 +98,11 @@ export function MobileAmountInput({
   };
 
   const sliderValue = maxAmountSats > 0 ? [Math.min((amountSats / maxAmountSats) * 100, 100)] : [0];
-  const otherDisplay =
-    unit === "btc" ? `$${Math.round(usdAmount).toLocaleString()}` : `₿${formatBtc(amountSats, 6)}`;
+  const otherDisplay = unit === "btc" ? `$${formatUsd(usdAmount)}` : `₿${formatBtc(amountSats, 6)}`;
   const maxDisplay =
     unit === "btc"
       ? `₿${formatBtc(maxAmountSats, 6)}`
-      : `$${Math.round(satsToBtc(maxAmountSats) * btcPrice).toLocaleString()}`;
+      : `$${formatUsd(satsToBtc(maxAmountSats) * btcPrice)}`;
   const inputWidthCh = Math.max(1, activeValue.length || 1);
 
   return (

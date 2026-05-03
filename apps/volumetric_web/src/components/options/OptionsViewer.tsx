@@ -317,7 +317,7 @@ export function OptionsViewer({ mode }: OptionsViewerProps) {
               ) : (
                 <span />
               )}
-              {btcPrice > 0 && <span>BTC: ${btcPrice.toLocaleString()}</span>}
+              {btcPrice > 0 && <span>BTC: ${Math.round(btcPrice).toLocaleString()}</span>}
             </div>
 
             <div className=" overflow-hidden space-y-2">

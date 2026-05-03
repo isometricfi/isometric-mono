@@ -7,7 +7,7 @@ import { SlidingNumber } from "@/components/ui/sliding-number";
 import { useConfig, useModal, usePrices } from "@/hooks";
 import { estimateExpiryDate } from "@/lib/expiry";
 import { getStrikeUsd } from "@/lib/options-form";
-import { basisPointsToPercent, roundToN, satsToBtc } from "@/lib/utils";
+import { basisPointsToPercent, formatUsd, roundToN, satsToBtc } from "@/lib/utils";
 
 interface CallWriteOptionSummaryProps {
   amountSats: number;
@@ -33,12 +33,12 @@ export function CallWriteOptionSummary({
   const t = useTranslations("Summary");
   const { openModal } = useModal();
   const earningsBtc = satsToBtc(earningsSats);
-  const earningsUsd = roundToN(btcPrice * earningsBtc, 1);
+  const earningsUsd = btcPrice * earningsBtc;
   const earningsDisplay = Number(earningsBtc.toFixed(6));
   const amountBtc = satsToBtc(amountSats);
   const amountDisplay = Number(amountBtc.toFixed(6));
   const strikeUsd = getStrikeUsd(btcPrice, strikePercent);
-  const strikeDisplay = `$${strikeUsd.toLocaleString()}`;
+  const strikeDisplay = `$${formatUsd(strikeUsd)}`;
   const termLabel = tForms(term === 1 ? "day" : "days").toLowerCase();
   const expiryDisplay = format(estimateExpiryDate(term), "MMM d, yyyy 'at' HH:mm");
 
@@ -148,8 +148,8 @@ export function CallWriteOptionSummary({
           <div className="font-semibold flex items-center md:text-sm text-xs">
             <span>₿&nbsp;</span>
             <SlidingNumber value={earningsDisplay} />
-            <div className="text-muted-foreground text-xs bg-background/60 px-1 rounded-sm flex items-center font-medium ml-1">
-              $<SlidingNumber value={earningsUsd} />
+            <div className="text-muted-foreground text-xs bg-background/60 px-1 rounded-sm flex items-center font-medium ml-1 tabular-nums">
+              ${formatUsd(earningsUsd)}
             </div>
           </div>
         </div>

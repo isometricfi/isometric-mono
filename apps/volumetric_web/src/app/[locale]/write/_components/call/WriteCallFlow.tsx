@@ -33,7 +33,7 @@ import { SlideToConfirm } from "@/components/ui/slide-to-confirm";
 import { useConfig } from "@/hooks";
 import { Link } from "@/i18n/routing";
 import { getNiceErrorMessage } from "@/lib/error-message";
-import { basisPointsToPercent, formatBtc, roundToN, satsToBtc } from "@/lib/utils";
+import { basisPointsToPercent, formatBtc, formatUsd, roundToN, satsToBtc } from "@/lib/utils";
 import { useCallWriteOptionFormModel } from "./_internal/use-call-write-option-form-model";
 
 interface WriteCallFlowProps {
@@ -250,7 +250,7 @@ function TermStrikeStep({ model }: { model: WriteModel }) {
         />
       </div>
       <FlowStepperPicker
-        value={`$${model.selectedStrikeUsd.toLocaleString()}`}
+        value={`$${formatUsd(model.selectedStrikeUsd)}`}
         caption={t("termStrike.percentAbove", {
           percent: model.selectedStrikePercent,
         })}
@@ -326,7 +326,7 @@ function PremiumStep({ model, apy }: { model: WriteModel; apy: number }) {
     model.handlePremiumPercentChange(target);
   };
   const earningsBtc = satsToBtc(model.earningsSats);
-  const earningsUsd = Math.round(earningsBtc * model.btcPrice);
+  const earningsUsd = earningsBtc * model.btcPrice;
 
   return (
     <>
@@ -345,7 +345,7 @@ function PremiumStep({ model, apy }: { model: WriteModel; apy: number }) {
             {" · ₿"}
             {earningsBtc.toFixed(6)}
             {" · $"}
-            {earningsUsd.toLocaleString()}
+            {formatUsd(earningsUsd)}
           </span>
         </p>
         <div className="mt-3 flex items-center gap-2 flex-wrap justify-center">
@@ -406,8 +406,8 @@ function ReviewStep({
   const tSummary = useTranslations("Summary");
   const termLabel = tForms(model.selectedTermDay === 1 ? "day" : "days").toLowerCase();
   const earningsBtc = satsToBtc(model.earningsSats);
-  const earningsUsd = Math.round(earningsBtc * model.btcPrice);
-  const strikeDisplay = `$${model.selectedStrikeUsd.toLocaleString()}`;
+  const earningsUsd = earningsBtc * model.btcPrice;
+  const strikeDisplay = `$${formatUsd(model.selectedStrikeUsd)}`;
 
   const rows: SummaryRow[] = [
     { label: t("review.strike"), value: strikeDisplay },
@@ -418,7 +418,7 @@ function ReviewStep({
     },
     {
       label: t("review.earnings"),
-      value: `₿${earningsBtc.toFixed(6)} · $${earningsUsd.toLocaleString()}`,
+      value: `₿${earningsBtc.toFixed(6)} · $${formatUsd(earningsUsd)}`,
       accent: true,
     },
     { label: t("review.apy"), value: `${apy}%` },

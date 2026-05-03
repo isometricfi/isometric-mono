@@ -6,6 +6,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import {
   CheckCircle2,
   CircleArrowDown,
+  CircleArrowUp,
   ClockCheck,
   ExternalLink,
   FileSignature,
@@ -24,21 +25,19 @@ import { Button } from "@/components/ui/button";
 import { CopyButton } from "@/components/ui/copy-button";
 import { Drawer, DrawerContent, DrawerTitle } from "@/components/ui/drawer";
 import {
-  useConfig,
+  useAccount,
   useDepositAddress,
   useEstimatedFeeReserveSats,
   useWalletBalance,
 } from "@/hooks";
 import { Link } from "@/i18n/routing";
 import { getNiceErrorMessage } from "@/lib/error-message";
-import {
-  DEFAULT_MIN_DEPOSIT_SATS,
-  formatBtc,
-  formatBtcWithSymbol,
-  parseBtcToSatsBigint,
-} from "@/lib/utils";
+import { formatBtc, formatBtcWithSymbol, parseBtcToSatsBigint } from "@/lib/utils";
 import { Badge } from "../ui/badge";
 import { Skeleton } from "../ui/skeleton";
+
+const MIN_DEPOSIT_SATS = BigInt(2_000);
+const MIN_WITHDRAW_SATS = BigInt(50_100);
 
 type DepositStep = "input" | "sending" | "waiting" | "success" | "error";
 type DepositTab = "wallet" | "address";
@@ -54,7 +53,7 @@ export function DepositModal({
 }) {
   const isMobile = useMediaQuery({ query: "(max-width: 768px)" });
   const { primaryWallet } = useDynamicContext();
-  const { data: config } = useConfig();
+  const { data: accountData } = useAccount();
   const { data: walletBalanceSats, isLoading: isLoadingWalletBalance } = useWalletBalance();
   const { data: feeReserveSats, isLoading: isLoadingFeeReserve } = useEstimatedFeeReserveSats();
   const { data: depositAddressData, isLoading: isLoadingDepositAddress } = useDepositAddress();
@@ -70,7 +69,9 @@ export function DepositModal({
   const [txid, setTxid] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const minDepositSats = BigInt(config?.minDepositAmountSats ?? DEFAULT_MIN_DEPOSIT_SATS);
+  const existingBalanceSats =
+    (accountData?.balance?.available ?? BigInt(0)) + (accountData?.balance?.locked ?? BigInt(0));
+  const minDepositSats = MIN_DEPOSIT_SATS;
   const isWalletReady = !!primaryWallet && isBitcoinWallet(primaryWallet);
   const walletSupportsNativeSend =
     !primaryWallet || !WALLETS_WITHOUT_NATIVE_BTC_SEND.includes(primaryWallet.key);
@@ -84,6 +85,9 @@ export function DepositModal({
       : Math.max(0, Math.floor(walletBalanceSats) - (feeReserveSats ?? 0) * 1.1);
 
   const isBelowMinimum = enteredAmountSats < minDepositSats;
+
+  const showWithdrawHint = existingBalanceSats + enteredAmountSats < MIN_WITHDRAW_SATS;
+  const recommendedDepositSats = MIN_WITHDRAW_SATS - existingBalanceSats;
 
   const canDeposit = useMemo(() => {
     if (!isWalletReady) return false;
@@ -167,7 +171,7 @@ export function DepositModal({
   const stage = step === "input" ? null : stages[step];
 
   const content = (
-    <div className="flex flex-col flex-1 md:pt-0 pt-3 min-h-[70vh] md:min-h-[380px]">
+    <div className="flex flex-col flex-1 md:pt-0 pt-3 min-h-[70vh] md:min-h-[400px]">
       <AnimatePresence mode="wait" initial={false}>
         {step === "input" && (
           <motion.div
@@ -226,9 +230,30 @@ export function DepositModal({
                         }
                       />
                     )}
-                    <div className="flex items-center gap-2 ">
-                      <ClockCheck className="size-5" />
-                      <p className="text-sm text-muted-foreground">{t("requiresConfirmations")}</p>
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2">
+                        <ClockCheck className="size-5" />
+                        <p className="text-sm text-muted-foreground">
+                          {t("requiresConfirmations")}
+                        </p>
+                      </div>
+                      <div className="flex items-start gap-2">
+                        <CircleArrowUp className="size-5 shrink-0" />
+                        <div>
+                          <p className="text-sm text-muted-foreground leading-tight">
+                            {t("minWithdrawNote", {
+                              amount: formatBtcWithSymbol(Number(MIN_WITHDRAW_SATS), 8),
+                            })}
+                          </p>
+                        </div>
+                      </div>
+                      {showWithdrawHint && (
+                        <p className="text-xs  leading-tight mt-1 px-2 py-2 bg-muted-foreground/10 rounded-md">
+                          {t("recommendedDeposit", {
+                            amount: formatBtcWithSymbol(Number(recommendedDepositSats), 8),
+                          })}
+                        </p>
+                      )}
                     </div>
                     <div className="flex gap-3 mt-auto">
                       <Button
@@ -265,14 +290,21 @@ export function DepositModal({
                               {t("requiresConfirmations")}
                             </p>
                           </div>
-                          <Badge variant="destructive" className="w-full">
-                            {t("minDeposit", {
-                              amount: formatBtcWithSymbol(Number(minDepositSats), 8),
-                            })}
-                          </Badge>
+                          <div className="flex items-center gap-2">
+                            <CircleArrowUp className="size-5 min-w-5" />
+                            <p className="text-sm text-muted-foreground">
+                              {t("minWithdrawNote", {
+                                amount: formatBtcWithSymbol(Number(MIN_WITHDRAW_SATS), 8),
+                              })}
+                            </p>
+                          </div>
                         </div>
                       </div>
-
+                      <Badge variant="destructive" className="w-full text-xs">
+                        {t("minDeposit", {
+                          amount: formatBtcWithSymbol(Number(minDepositSats), 8),
+                        })}
+                      </Badge>
                       <div className="w-full rounded-xl border md:p-4 p-2 ">
                         <div className="flex items-start justify-between gap-3">
                           <div className="min-w-0">
