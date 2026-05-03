@@ -59,6 +59,42 @@
         }
       ]
     },
+    "staging": {
+      "name": "volumetric-web-staging",
+      "vars": {
+        "TURBO_TELEMETRY_DISABLED": "1",
+        "DO_NOT_TRACK": "1",
+        "IC_HOST": "https://ic0.app",
+        "NEXT_PUBLIC_BASE_URL": "https://staging.isometric.fi",
+        "NEXT_PUBLIC_DYNAMIC_ENVIRONMENT_ID": "37dc9ae9-e6ad-4dc7-b196-1c5f02b0938b",
+        "OTEL_SERVICE_NAME": "volumetric-web-stage",
+        "OTEL_EXPORTER_OTLP_TRACES_ENDPOINT": "https://otlp-gateway-prod-eu-central-0.grafana.net/otlp/v1/traces",
+        "OTEL_EXPORTER_OTLP_LOGS_ENDPOINT": "https://otlp-gateway-prod-eu-central-0.grafana.net/otlp/v1/logs",
+        "MEMPOOL_API_URL": "https://luminex.mempool.space/api",
+        "NEXT_PUBLIC_MEMPOOL_URL": "https://mempool.space",
+        "CANISTER_ID": "5optx-3iaaa-aaaae-qjwsa-cai",
+        "CKBTC_MINTER_CANISTER_ID": "mqygn-kiaaa-aaaar-qaadq-cai",
+        "NEXT_PUBLIC_TAWK_EMBED_URL": "https://embed.tawk.to/69a303f652cbb51c37094784/1jiicevko",
+        "NEXT_PUBLIC_APP_HOST": "staging.isometric.fi",
+        "NEXT_PUBLIC_APP_URL": "https://staging.isometric.fi",
+        "NEXT_PUBLIC_LANDING_PAGE_HOST": "isometric.fi",
+        "NEXT_PUBLIC_WAITLIST_MODE": "true"
+      },
+      "services": [
+        {
+          "binding": "WORKER_SELF_REFERENCE",
+          "service": "volumetric-web-staging"
+        }
+      ],
+      "d1_databases": [
+        {
+          "binding": "DB",
+          "database_name": "volumetric_d1_prod",
+          "database_id": "bb200e69-caee-4241-b358-7d11efb1165a",
+          "migrations_dir": "drizzle/migrations"
+        }
+      ]
+    },
     "production": {
       "name": "volumetric-web-production",
       "vars": {
@@ -72,7 +108,7 @@
         "OTEL_EXPORTER_OTLP_LOGS_ENDPOINT": "https://otlp-gateway-prod-eu-central-0.grafana.net/otlp/v1/logs",
         "MEMPOOL_API_URL": "https://luminex.mempool.space/api",
         "NEXT_PUBLIC_MEMPOOL_URL": "https://mempool.space",
-        "CANISTER_ID": "5optx-3iaaa-aaaae-qjwsa-cai",
+        "CANISTER_ID": "ro56e-yyaaa-aaaae-qkaia-cai",
         "CKBTC_MINTER_CANISTER_ID": "mqygn-kiaaa-aaaar-qaadq-cai",
         "NEXT_PUBLIC_TAWK_EMBED_URL": "https://embed.tawk.to/69a303f652cbb51c37094784/1jiicevko",
         "NEXT_PUBLIC_APP_HOST": "app.isometric.fi",
@@ -89,8 +125,8 @@
       "d1_databases": [
         {
           "binding": "DB",
-          "database_name": "volumetric_d1_prod",
-          "database_id": "bb200e69-caee-4241-b358-7d11efb1165a",
+          "database_name": "volumetric_d1_prod_final",
+          "database_id": "391581df-f96d-49ef-89cd-f3d3503bce53",
           "migrations_dir": "drizzle/migrations"
         }
       ]
