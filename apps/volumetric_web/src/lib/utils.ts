@@ -33,6 +33,10 @@ export function formatBtcWithSymbol(sats: number, maxDecimals = 8): string {
   return `₿${formatBtc(sats, maxDecimals)}`;
 }
 
+export function formatUsd(value: number): string {
+  return value.toLocaleString(undefined, { maximumFractionDigits: 1 });
+}
+
 export function parseBtcToSats(btcString: string): number {
   const btc = parseFloat(btcString);
   if (Number.isNaN(btc)) return 0;

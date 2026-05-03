@@ -5,7 +5,8 @@
     "portfolio": "Portfolio",
     "history": "History",
     "openApp": "Open App",
-    "connect": "Connect"
+    "connect": "Connect",
+    "beta": "Beta"
   },
   "Settings": {
     "title": "Settings",
@@ -184,6 +185,8 @@
     "fetchingInfo": "Fetching deposit information...",
     "requiresConfirmations": "Requires 4 confirmations",
     "minDeposit": "Minimum deposit: {amount}",
+    "minWithdrawNote": "Min withdraw: {amount}",
+    "recommendedDeposit": "Deposit at least {amount} to be above the withdraw min.",
     "depositAddressLabel": "Deposit address",
     "autoDetect": "We will automatically detect your deposit",
     "confirmInWallet": "Confirm in wallet",

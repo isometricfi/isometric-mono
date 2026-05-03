@@ -1,7 +1,7 @@
 "use client";
 
 import { useDynamicContext } from "@dynamic-labs/sdk-react-core";
-import { MenuIcon } from "lucide-react";
+import { MenuIcon, Sparkles } from "lucide-react";
 import Image from "next/image";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
@@ -15,6 +15,7 @@ import { ConnectButton } from "@/components/wallet/ConnectButton";
 import { Link, usePathname } from "@/i18n/routing";
 import { isWaitlistMode } from "@/lib/site-links";
 import { cn } from "@/lib/utils";
+import { Badge } from "../ui/badge";
 
 export function Navbar() {
   const pathname = usePathname();
@@ -28,7 +29,7 @@ export function Navbar() {
   return (
     <nav className="relative z-20 mx-auto mt-4 w-full max-w-5xl px-0">
       <div className="border rounded-xl bg-background/80 backdrop-blur-sm overflow-visible">
-        <div className="mx-auto flex md:h-14 h-12 max-w-7xl items-center justify-between  px-2 md:px-3 md:grid md:grid-cols-3">
+        <div className="relative mx-auto flex md:h-14 h-12 max-w-7xl items-center justify-between  px-2 md:px-3 md:grid md:grid-cols-3">
           <div className="flex items-center gap-2">
             <Link href="/" className="flex items-center gap-2 text-xl font-semibold tracking-tight">
               <Image
@@ -38,7 +39,10 @@ export function Navbar() {
                 height={32}
                 className="min-w-[32px] min-h-[32px]"
               />
-              <span className="md:block hidden">Isometric</span>
+              <span className="md:block hidden">Isometric</span>{" "}
+              <Badge variant={"soft"} className="md:flex hidden">
+                <Sparkles /> {t("beta")}
+              </Badge>
             </Link>
             <Drawer open={open} onOpenChange={setOpen}>
               <DrawerTrigger asChild>
@@ -98,6 +102,12 @@ export function Navbar() {
               </DrawerContent>
             </Drawer>
           </div>
+          <Badge
+            variant={"soft"}
+            className="md:hidden absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none"
+          >
+            {t("beta")}
+          </Badge>
           <div className="hidden md:flex items-center gap-0.5 justify-center">
             {!hideAppNav && (
               <>
