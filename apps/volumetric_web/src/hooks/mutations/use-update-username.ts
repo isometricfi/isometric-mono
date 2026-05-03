@@ -4,6 +4,7 @@ import { isBitcoinWallet } from "@dynamic-labs/bitcoin";
 import { useDynamicContext } from "@dynamic-labs/sdk-react-core";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { unwrapResult } from "@volumetric/canister-types";
+import { signBitcoinPaymentMessage } from "@/lib/bitcoin/sign-payment-message";
 import { computeExpiresAtSeconds } from "@/lib/use-cases/_shared/wallet-proof";
 import type { Output as UpdateUsernameOutput } from "@/lib/use-cases/account/update-username/schema";
 import { trpcClient } from "@/trpc/react";
@@ -38,7 +39,7 @@ export function useUpdateUsername() {
       const message = unwrapResult(
         await canister.get_username_update_message(address, trimmed, expiresAtSeconds),
       );
-      const signature = await primaryWallet.signMessage(message, { addressType: "payment" });
+      const signature = await signBitcoinPaymentMessage(primaryWallet, message);
 
       if (!signature) {
         throw new Error("Failed to sign message");
