@@ -31,9 +31,11 @@ pub enum TransferFeeCacheStalePolicy {
     AllowDefaultFallbackUntilFresh,
 }
 
-/// ckBTC withdrawal uses `icrc2_approve` then a minter-triggered `transfer_from`; each charges
-/// one `icrc1_fee` from the user's subaccount balance.
-pub const CKBTC_WITHDRAW_ICRC2_LEDGER_FEE_CHARGE_COUNT: u64 = 2;
+/// ckBTC withdrawal uses `icrc2_approve` then a minter-triggered `transfer_from` that burns
+/// ckBTC by sending it to the minting account. Per ICRC-1, transfers to the minting account
+/// charge no fee, so only the `icrc2_approve` step debits an `icrc1_fee` from the user's
+/// subaccount.
+pub const CKBTC_WITHDRAW_ICRC2_LEDGER_FEE_CHARGE_COUNT: u64 = 1;
 
 #[derive(Clone, Copy)]
 struct TransferFeeCacheEntry {
@@ -759,7 +761,24 @@ mod tests {
         );
     }
 
-    /// Given: available balance at least minimum net withdraw plus two ledger fees
+    /// Given: a ckBTC withdrawal that does icrc2_approve then a minter-triggered burn
+    /// When: computing the ledger fee reserve for a known transfer fee
+    /// Then: it equals one transfer fee because the burn (transfer to minting account) is fee-free
+    #[test]
+    fn test_withdraw_ledger_fee_reserve_charges_only_for_icrc2_approve() {
+        // given
+        const TRANSFER_FEE_SATS: u64 = 10;
+
+        // when
+        let reserve_sats =
+            withdraw_ckbtc_ledger_fee_reserve_sats_for_transfer_fee(TRANSFER_FEE_SATS);
+
+        // then
+        const EXPECTED_RESERVE_SATS: u64 = TRANSFER_FEE_SATS;
+        assert_eq!(reserve_sats, EXPECTED_RESERVE_SATS);
+    }
+
+    /// Given: available balance at least minimum net withdraw plus the ledger fee reserve
     /// When: computing the max gross withdraw amount for that balance
     /// Then: the result is the full available balance
     #[test]
@@ -784,7 +803,7 @@ mod tests {
         assert_eq!(max_sats, AVAILABLE_SATS);
     }
 
-    /// Given: available balance below minimum net withdraw plus two ledger fees
+    /// Given: available balance below minimum net withdraw plus the ledger fee reserve
     /// When: computing the max gross withdraw amount
     /// Then: the result is zero
     #[test]
@@ -796,7 +815,7 @@ mod tests {
         }));
         set_cached_transfer_fee_for_testing(TEST_FEE_10_SATS, TEST_NOW_SECONDS);
         const AVAILABLE_SATS: u64 = 1_000;
-        const MINIMUM_NET_WITHDRAW_SATS: u64 = 990;
+        const MINIMUM_NET_WITHDRAW_SATS: u64 = 991;
 
         // when
         let max_sats = max_gross_withdraw_sats_for_available_balance(
