@@ -54,8 +54,9 @@ pub use settlement::{
 #[cfg(feature = "testing")]
 pub use testing::{
     testing_clear_offers_and_options, testing_expire_option, testing_force_settle,
-    testing_reset_oracle, testing_set_ckbtc_ledger, testing_set_option_expiry_seconds,
-    testing_set_oracle_price_cents, testing_sync_balance_from_ledger, ClearStorageResponse,
+    testing_reset_oracle, testing_reset_stuck_settling_option, testing_set_ckbtc_ledger,
+    testing_set_option_expiry_seconds, testing_set_oracle_price_cents,
+    testing_sync_balance_from_ledger, ClearStorageResponse,
 };
 pub use whitelist::{add_whitelisted, list_whitelisted, remove_whitelisted};
 pub use withdrawals::{

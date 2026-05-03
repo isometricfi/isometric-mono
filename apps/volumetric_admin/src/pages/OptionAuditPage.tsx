@@ -1,5 +1,7 @@
-import { Badge, Button, Empty, Input, LayerCard, Table } from "@cloudflare/kumo";
+import { Badge, Button, Empty, Input, LayerCard, Table, Text } from "@cloudflare/kumo";
 import {
+  CaretDown,
+  CaretRight,
   CheckCircle,
   Cube,
   Database,
@@ -9,7 +11,8 @@ import {
 } from "@phosphor-icons/react";
 import type { OptionAuditReport } from "@volumetric/canister-types";
 import { unwrapResult } from "@volumetric/canister-types";
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
+import { Eyebrow } from "../components/Eyebrow";
 import { MetricCard } from "../components/MetricCard";
 import { Mono } from "../components/Mono";
 import { PageShell } from "../components/PageShell";
@@ -18,26 +21,27 @@ import {
   PredictionSummaryMetrics,
   PredictionsTable,
 } from "../components/PayoutPredictionResults";
-import { accountKey } from "../lib/account";
+import { accountKey, type LedgerAccount } from "../lib/account";
 import {
   accountLabel,
   buildExpectedTransferRows,
   type ExpectedTransferAuditRow,
   toLedgerAccount,
 } from "../lib/audit";
-import { getAllAccountTransactions } from "../lib/ckbtc-index";
+import { type AccountTransaction, getAllAccountTransactions } from "../lib/ckbtc-index";
 import { useCreateCanisterClients } from "../lib/clients";
-import { formatSats, shortPrincipal } from "../lib/format";
+import { bytesToHex, formatSats, principalText, shortPrincipal } from "../lib/format";
 import { predictPayouts } from "../lib/settlement-math";
 import { useAsyncAction } from "../lib/use-async-action";
 
 const DEFAULT_MAX_RESULTS = 100;
 const OPTION_AUDIT_MAX_PAGES = 5;
-const MEMO_PREVIEW_LENGTH = 18;
 
 type OptionAuditData = {
   report: OptionAuditReport;
   rows: ExpectedTransferAuditRow[];
+  accountsToQuery: Map<string, LedgerAccount>;
+  rawTransactions: AccountTransaction[];
   relatedTransactionCount: number;
   icrc1TransferFeeSats: bigint;
 };
@@ -85,6 +89,8 @@ export function OptionAuditPage() {
       return {
         report,
         rows: buildExpectedTransferRows(report, transactions),
+        accountsToQuery,
+        rawTransactions: transactions,
         relatedTransactionCount: transactions.length,
         icrc1TransferFeeSats,
       };
@@ -176,6 +182,10 @@ export function OptionAuditPage() {
         </div>
       ) : null}
       <ExpectedTransferTable rows={action.data?.rows ?? []} />
+      <RawTransactionsSection
+        accountsToQuery={action.data?.accountsToQuery}
+        transactions={action.data?.rawTransactions ?? []}
+      />
     </PageShell>
   );
 }
@@ -247,7 +257,7 @@ function ExpectedTransferTable({ rows }: { rows: ExpectedTransferAuditRow[] }) {
   }
 
   return (
-    <LayerCard className="p-0">
+    <LayerCard className="overflow-x-auto p-0">
       <Table>
         <Table.Header>
           <Table.Row>
@@ -270,15 +280,15 @@ function ExpectedTransferTable({ rows }: { rows: ExpectedTransferAuditRow[] }) {
                 <Mono>{formatSats(row.amountSats)}</Mono>
               </Table.Cell>
               <Table.Cell>
-                <Mono className="text-sm">{accountLabel(row.to)}</Mono>
+                <Mono className="break-all text-sm">{accountLabel(row.to)}</Mono>
               </Table.Cell>
               <Table.Cell>
-                <Mono className="text-sm">
+                <Mono className="break-all text-sm">
                   {row.matchedTransactionIds.map((id) => id.toString()).join(", ") || "—"}
                 </Mono>
               </Table.Cell>
               <Table.Cell>
-                <Mono className="text-sm">{`${row.memoHex.slice(0, MEMO_PREVIEW_LENGTH)}…`}</Mono>
+                <Mono className="break-all text-sm">{row.memoHex}</Mono>
               </Table.Cell>
             </Table.Row>
           ))}
@@ -286,6 +296,109 @@ function ExpectedTransferTable({ rows }: { rows: ExpectedTransferAuditRow[] }) {
       </Table>
     </LayerCard>
   );
+}
+
+function RawTransactionsSection({
+  accountsToQuery,
+  transactions,
+}: {
+  accountsToQuery: Map<string, LedgerAccount> | undefined;
+  transactions: AccountTransaction[];
+}) {
+  const [showRawTransactions, setShowRawTransactions] = useState(false);
+  const toggle = useCallback(() => setShowRawTransactions((prev) => !prev), []);
+  const sortedTransactions = useMemo(
+    () => [...transactions].sort((a, b) => Number(b.id - a.id)),
+    [transactions],
+  );
+
+  if (transactions.length === 0) {
+    return null;
+  }
+
+  return (
+    <LayerCard>
+      <button
+        type="button"
+        onClick={toggle}
+        className="flex w-full items-center gap-2 text-left"
+      >
+        {showRawTransactions ? (
+          <CaretDown size={14} className="text-kumo-subtle" />
+        ) : (
+          <CaretRight size={14} className="text-kumo-subtle" />
+        )}
+        <Eyebrow>
+          Raw ckBTC index transactions ({transactions.length})
+        </Eyebrow>
+      </button>
+
+      {showRawTransactions ? (
+        <div className="mt-4 max-h-[600px] overflow-y-auto">
+          <table className="w-full text-xs font-mono">
+            <thead>
+              <tr className="border-b vol-hairline text-kumo-subtle">
+                <th className="px-2 py-1 text-left">ID</th>
+                <th className="px-2 py-1 text-left">Kind</th>
+                <th className="px-2 py-1 text-right">Amount</th>
+                <th className="px-2 py-1 text-left">From</th>
+                <th className="px-2 py-1 text-left">To</th>
+                <th className="px-2 py-1 text-left">Memo</th>
+                <th className="px-2 py-1 text-left">Time</th>
+              </tr>
+            </thead>
+            <tbody>
+              {sortedTransactions.map((tx) => {
+                const transfer = tx.transaction.transfer[0];
+                const mint = tx.transaction.mint[0];
+                const burn = tx.transaction.burn[0];
+                const kind = tx.transaction.kind;
+                const amount = transfer?.amount ?? mint?.amount ?? burn?.amount ?? 0n;
+                const fromAccount = transfer?.from ?? burn?.from ?? null;
+                const toAccount = transfer?.to ?? mint?.to ?? null;
+                const memo = transfer?.memo[0] ?? mint?.memo[0] ?? burn?.memo[0] ?? null;
+
+                return (
+                  <tr key={tx.id.toString()} className="border-b vol-hairline hover:bg-kumo-surface-hover">
+                    <td className="px-2 py-1 whitespace-nowrap">{tx.id.toString()}</td>
+                    <td className="px-2 py-1">
+                      <Badge variant="neutral">{kind}</Badge>
+                    </td>
+                    <td className="px-2 py-1 text-right whitespace-nowrap">{formatSats(amount)}</td>
+                    <td className="max-w-[200px] truncate px-2 py-1" title={fromAccount ? accountKey(fromAccount) : ""}>
+                      {fromAccount ? formatAccount(fromAccount) : "—"}
+                    </td>
+                    <td className="max-w-[200px] truncate px-2 py-1" title={toAccount ? accountKey(toAccount) : ""}>
+                      {toAccount ? formatAccount(toAccount) : "—"}
+                    </td>
+                    <td className="max-w-[160px] truncate px-2 py-1" title={memo ? bytesToHex(memo) : ""}>
+                      {memo ? bytesToHex(memo) : "—"}
+                    </td>
+                    <td className="px-2 py-1 whitespace-nowrap">
+                      {formatTimestamp(tx.transaction.timestamp)}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      ) : null}
+    </LayerCard>
+  );
+}
+
+function formatAccount(account: LedgerAccount): string {
+  const sub = account.subaccount[0];
+  if (sub) {
+    return `${principalText(account.owner)}/${bytesToHex(sub).slice(0, 8)}`;
+  }
+  return principalText(account.owner);
+}
+
+function formatTimestamp(timestampNs: bigint): string {
+  const ms = Number(timestampNs / 1_000_000n);
+  return new Date(ms).toISOString().slice(0, 19).replace("T", " ");
 }
 
 function TransferStatusBadge({ status }: { status: ExpectedTransferAuditRow["status"] }) {

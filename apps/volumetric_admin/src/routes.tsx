@@ -1,4 +1,5 @@
 import {
+  Calculator,
   Coins,
   Cube,
   Database,
@@ -27,6 +28,7 @@ import { FailedOperationsPage } from "./pages/FailedOperationsPage";
 import { FeeBalancePage } from "./pages/FeeBalancePage";
 import { FeeReconciliationPage } from "./pages/FeeReconciliationPage";
 import { OptionAuditPage } from "./pages/OptionAuditPage";
+import { OptionsCalcPage } from "./pages/OptionsCalcPage";
 import { PayoutPredictorPage } from "./pages/PayoutPredictorPage";
 import { PendingSettlementsPage } from "./pages/PendingSettlementsPage";
 import { PendingWithdrawalsPage } from "./pages/PendingWithdrawalsPage";
@@ -62,6 +64,11 @@ export const ROUTES: Record<string, RouteDef> = {
     path: "/payout-predictor",
     label: "Payout Predictor",
     render: () => <PayoutPredictorPage />,
+  },
+  "/options-calc": {
+    path: "/options-calc",
+    label: "Options Calculator",
+    render: () => <OptionsCalcPage />,
   },
   "/options": {
     path: "/options",
@@ -138,6 +145,7 @@ export const SIDEBAR_GROUPS: SidebarGroup[] = [
       { path: "/fees", label: "Fee Reconciliation", icon: Coins },
       { path: "/fee-balance", label: "Fee Balance", icon: Wallet },
       { path: "/payout-predictor", label: "Payout Predictor", icon: TrendUp },
+      { path: "/options-calc", label: "Options Calculator", icon: Calculator },
       { path: "/options", label: "Option Audit", icon: Cube },
       { path: "/pending-settlements", label: "Pending Settlements", icon: Stack },
       { path: "/pending-withdrawals", label: "Pending Withdrawals", icon: HandCoins },

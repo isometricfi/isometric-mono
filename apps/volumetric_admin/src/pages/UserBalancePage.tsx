@@ -1,10 +1,12 @@
-import { Button, Empty, Input } from "@cloudflare/kumo";
+import { Button, Empty, Input, LayerCard } from "@cloudflare/kumo";
 import { Principal } from "@dfinity/principal";
 import { MagnifyingGlass, UserCircle } from "@phosphor-icons/react";
 import type { UserBalanceInfo } from "@volumetric/canister-types";
 import { unwrapResult } from "@volumetric/canister-types";
 import { useState } from "react";
+import { Eyebrow } from "../components/Eyebrow";
 import { MetricCard } from "../components/MetricCard";
+import { Mono } from "../components/Mono";
 import { PageShell } from "../components/PageShell";
 import { deriveSubaccount } from "../lib/account";
 import { useCreateCanisterClients } from "../lib/clients";
@@ -121,27 +123,45 @@ export function UserBalancePage() {
       </div>
 
       {action.data ? (
-        <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
-          <MetricCard
-            label="Available (canister)"
-            value={formatSats(action.data.canisterBalance.available)}
-          />
-          <MetricCard
-            label="Locked (canister)"
-            value={formatSats(action.data.canisterBalance.locked)}
-          />
-          <MetricCard
-            label="Total (canister)"
-            value={formatSats(action.data.canisterBalance.total)}
-          />
-          <MetricCard label="On-chain (ledger)" value={formatSats(action.data.onChainBalance)} />
-          <MetricCard
-            label="Drift (ledger - available)"
-            value={formatSats(action.data.drift)}
-            tone={driftTone}
-          />
-          <MetricCard label="Principal" value={shortPrincipal(action.data.principalText)} mono />
-        </div>
+        <>
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
+            <MetricCard
+              label="Available (canister)"
+              value={formatSats(action.data.canisterBalance.available)}
+            />
+            <MetricCard
+              label="Locked (canister)"
+              value={formatSats(action.data.canisterBalance.locked)}
+            />
+            <MetricCard
+              label="Total (canister)"
+              value={formatSats(action.data.canisterBalance.total)}
+            />
+            <MetricCard label="On-chain (ledger)" value={formatSats(action.data.onChainBalance)} />
+            <MetricCard
+              label="Drift (ledger - available)"
+              value={formatSats(action.data.drift)}
+              tone={driftTone}
+            />
+            <MetricCard label="Principal" value={shortPrincipal(action.data.principalText)} mono />
+          </div>
+          <LayerCard className="rounded-none border vol-hairline p-4">
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+              <div>
+                <Eyebrow>Principal</Eyebrow>
+                <Mono className="mt-1 block break-all text-sm">
+                  {action.data.principalText}
+                </Mono>
+              </div>
+              <div>
+                <Eyebrow>Deposit subaccount</Eyebrow>
+                <Mono className="mt-1 block break-all text-sm">
+                  {action.data.derivedSubaccountHex}
+                </Mono>
+              </div>
+            </div>
+          </LayerCard>
+        </>
       ) : (
         <Empty
           size="sm"
