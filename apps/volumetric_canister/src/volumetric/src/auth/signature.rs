@@ -4,7 +4,7 @@ use bitcoin::hashes::{hash160, sha256, Hash, HashEngine};
 use bitcoin::key::TapTweak;
 use bitcoin::secp256k1::ecdsa::{RecoverableSignature, RecoveryId};
 use bitcoin::secp256k1::{Message, PublicKey, Secp256k1};
-use bitcoin::{Address, Network, ScriptBuf};
+use bitcoin::{Address, CompressedPublicKey, Network, ScriptBuf, Witness};
 
 use crate::errors::{error_codes, VolumetricError};
 use crate::ic;
@@ -133,30 +133,69 @@ fn parse_address(address: &str, network: Network) -> Result<Address, VolumetricE
     })
 }
 
-// Delegates to the `bip322` crate for P2WPKH and P2TR witnesses. P2SH-P2WPKH
-// is intentionally rejected here: `bip322` 0.0.10's `verify_full_p2wpkh`
-// branch for P2SH addresses destructures `AddressData::P2sh { script_hash: _ }`
-// and never checks that `hash160(new_p2wpkh(witness_pubkey.wpubkey_hash()))`
-// equals the address's script_hash. A forged witness carrying any attacker
-// pubkey + a matching self-consistent ECDSA signature would otherwise verify
-// against arbitrary P2SH-P2WPKH addresses. The outer dispatcher falls through
-// to `try_verify_bip137`, whose P2SH-P2WPKH branch derives the redeem script
-// from the recovered pubkey and enforces the script_hash equality.
+// Delegates to the `bip322` crate for P2WPKH and P2TR witnesses. For P2SH-P2WPKH
+// (Nested SegWit, used by Xverse for its "payment" address), the crate's
+// `verify_full_p2wpkh(is_p2sh=true)` branch destructures
+// `AddressData::P2sh { script_hash: _ }` and never checks that
+// `hash160(new_p2wpkh(witness_pubkey.wpubkey_hash()))` equals the address's
+// script_hash, so a foreign-key witness would otherwise verify against any
+// P2SH-P2WPKH address. We close that gap by binding the witness pubkey to the
+// script_hash ourselves before delegating to the crate's signature check.
 fn try_verify_bip322_simple(
     btc_address: &Address,
     message: &str,
     signature_base64: &str,
 ) -> Result<(), String> {
-    if matches!(btc_address.to_address_data(), AddressData::P2sh { .. }) {
-        return Err(
-            "P2SH-P2WPKH is not verified via BIP-322 (bip322 crate skips script_hash check); \
-             BIP-137 path handles this address type safely"
-                .into(),
-        );
+    if let AddressData::P2sh { script_hash } = btc_address.to_address_data() {
+        bind_p2sh_p2wpkh_witness_pubkey(*script_hash.as_raw_hash(), signature_base64)?;
     }
 
     bip322::verify_simple_encoded(&btc_address.to_string(), message, signature_base64)
         .map_err(|e| format!("{}", e))
+}
+
+// Decodes the BIP-322 simple witness, extracts the compressed pubkey, and
+// requires that `hash160(OP_0 <hash160(pubkey)>)` equals the P2SH address's
+// script_hash. Without this binding, the bip322 0.0.10 crate accepts any
+// self-consistent (sig, pubkey) pair for a P2SH address.
+fn bind_p2sh_p2wpkh_witness_pubkey(
+    expected_script_hash: hash160::Hash,
+    signature_base64: &str,
+) -> Result<(), String> {
+    let signature_bytes = BASE64_STANDARD
+        .decode(signature_base64)
+        .map_err(|e| format!("base64 decode failed: {}", e))?;
+
+    let witness: Witness = bitcoin::consensus::deserialize(&signature_bytes)
+        .map_err(|e| format!("failed to decode BIP-322 simple witness: {}", e))?;
+
+    if witness.len() != 2 {
+        return Err(format!(
+            "BIP-322 P2SH-P2WPKH witness must have exactly 2 stack items \
+             (signature, compressed_pubkey); got {}",
+            witness.len()
+        ));
+    }
+
+    let pubkey_bytes = witness
+        .iter()
+        .nth(1)
+        .expect("len==2 implies index 1 exists");
+    let compressed = CompressedPublicKey::from_slice(pubkey_bytes)
+        .map_err(|e| format!("invalid compressed pubkey in BIP-322 witness: {}", e))?;
+
+    let redeem_script = ScriptBuf::new_p2wpkh(&compressed.wpubkey_hash());
+    let recovered_script_hash = hash160::Hash::hash(redeem_script.as_bytes());
+
+    if recovered_script_hash != expected_script_hash {
+        return Err(
+            "BIP-322 witness pubkey does not derive the address's P2SH script_hash \
+             (witness key is not the one committed by the P2SH-P2WPKH address)"
+                .into(),
+        );
+    }
+
+    Ok(())
 }
 
 // BIP-137 legacy signed-message verification. The header's address-type hint
@@ -604,6 +643,45 @@ mod tests {
 
         // then
         assert!(result.is_ok(), "verifier rejected: {:?}", result);
+    }
+
+    /// Given: a P2SH-P2WPKH address and a real BIP-322 simple signature produced by its
+    ///        own private key — the format Xverse emits from `signMessage` for its
+    ///        "payment" address
+    /// When: the verifier runs
+    /// Then: the signature verifies via the BIP-322 path with our pre-dispatch
+    ///       script_hash binding (witness pubkey → P2WPKH redeem script → script_hash)
+    #[test]
+    fn verify_accepts_bip322_signature_on_p2sh_p2wpkh_address() {
+        // given
+        let secret = [9u8; 32];
+        let message = "xverse nested segwit signs payment messages with bip322";
+        let secp = Secp256k1::new();
+        let secret_key = SecretKey::from_slice(&secret).unwrap();
+        let private_key = PrivateKey {
+            compressed: true,
+            network: Network::Bitcoin.into(),
+            inner: secret_key,
+        };
+        let compressed = CompressedPublicKey::from_private_key(&secp, &private_key).unwrap();
+        let address = Address::p2shwpkh(&compressed, Network::Bitcoin);
+        let signature = bip322::sign_simple_encoded(&address.to_string(), message, &private_key.to_wif())
+            .expect("bip322::sign_simple_encoded should support P2SH-P2WPKH");
+
+        // when
+        let result = verify_btc_signature_on_network(
+            &address.to_string(),
+            message,
+            &signature,
+            Network::Bitcoin,
+        );
+
+        // then
+        assert!(
+            result.is_ok(),
+            "verifier must accept a self-signed BIP-322 signature on a P2SH-P2WPKH address: {:?}",
+            result
+        );
     }
 
     /// Given: a valid address and signature, but the message submitted to the verifier differs
