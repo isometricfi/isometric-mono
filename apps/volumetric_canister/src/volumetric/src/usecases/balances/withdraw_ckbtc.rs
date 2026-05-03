@@ -971,9 +971,9 @@ mod tests {
 
     /// Given: the transfer-fee cache is stale
     /// When: withdraw_ckbtc_use_case is called
-    /// Then: it rejects the request and asks the caller to retry shortly
+    /// Then: the fallback transfer fee is used and the withdrawal is enqueued
     #[tokio::test]
-    async fn test_withdraw_rejects_when_transfer_fee_cache_is_stale() {
+    async fn test_withdraw_uses_fee_fallback_when_transfer_fee_cache_is_stale() {
         // given
         setup_success();
         let principal = test_principal();
@@ -981,11 +981,11 @@ mod tests {
         ledger::set_cached_transfer_fee_for_testing(TEST_TRANSFER_FEE_SATS, 0);
 
         // when
-        let result = withdraw_ckbtc_use_case(principal, withdraw_params(), 22);
+        let receipt = withdraw_ckbtc_use_case(principal, withdraw_params(), 22)
+            .expect("stale fee cache should fall back and enqueue");
 
         // then
-        let error = result.expect_err("withdraw should reject stale fee cache");
-        assert_eq!(error.code, error_codes::CONFIG_ERROR.code);
+        assert_eq!(receipt.withdrawal_id, 1);
     }
 
     /// Given: ledger approve fails before ckBTC charges an approval fee

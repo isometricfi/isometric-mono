@@ -350,9 +350,9 @@ fn test_accept_offers_returns_pending_receipt_before_wal_runs() {
 
 /// Given: transfer fee cache is stale for a sync accept request
 /// When: accept_offers_use_case is called
-/// Then: the request fails before mutating offer or balances
+/// Then: the fallback transfer fee is used and the accept is enqueued
 #[test]
-fn test_accept_offers_rejects_when_transfer_fee_cache_is_stale() {
+fn test_accept_offers_uses_fee_fallback_when_transfer_fee_cache_is_stale() {
     // given
     let writer = test_principal(70);
     let buyer = test_principal(71);
@@ -363,23 +363,14 @@ fn test_accept_offers_rejects_when_transfer_fee_cache_is_stale() {
     );
 
     // when
-    let accept_result = accept_offers_use_case(buyer, vec![build_test_accept_offer_item()], 6);
+    let receipt = accept_offers_use_case(buyer, vec![build_test_accept_offer_item()], 6)
+        .expect("stale fee cache should fall back and enqueue");
 
     // then
-    let accept_error = accept_result.expect_err("stale fee cache should reject accept");
-    assert_eq!(accept_error.code, error_codes::CONFIG_ERROR.code);
-
-    let offer = get_offer(TEST_OFFER_ID).expect("offer should remain unchanged");
-    assert_eq!(offer.status, OfferStatus::Open);
-    assert_eq!(offer.remaining_quantity, TEST_QUANTITY_SATS);
-
-    let writer_balance = get_balance(&writer);
-    assert_eq!(writer_balance.available, TEST_QUANTITY_SATS);
-    assert_eq!(writer_balance.locked_as_writer, 0);
-
-    let buyer_balance = get_balance(&buyer);
-    assert_eq!(buyer_balance.available, TEST_BUYER_AVAILABLE_SATS);
-    assert_eq!(buyer_balance.locked_as_writer, 0);
+    let processing_offer = get_offer(TEST_OFFER_ID).expect("offer should exist");
+    assert_eq!(processing_offer.status, OfferStatus::Processing);
+    assert_eq!(processing_offer.remaining_quantity, 0);
+    assert_eq!(receipt.fill_group_id, 1);
 }
 
 /// Given: the same buyer submits the same accept request twice
