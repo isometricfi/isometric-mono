@@ -7,6 +7,7 @@ import {
   GearSix,
   HandCoins,
   ListChecks,
+  Receipt,
   Scales,
   ShieldCheck,
   Stack,
@@ -33,6 +34,7 @@ import { PayoutPredictorPage } from "./pages/PayoutPredictorPage";
 import { PendingSettlementsPage } from "./pages/PendingSettlementsPage";
 import { PendingWithdrawalsPage } from "./pages/PendingWithdrawalsPage";
 import { SolvencyPage } from "./pages/SolvencyPage";
+import { SubaccountTransactionsPage } from "./pages/SubaccountTransactionsPage";
 import { UserAuditPage } from "./pages/UserAuditPage";
 import { UserBalancePage } from "./pages/UserBalancePage";
 import { WalRecoveryPage } from "./pages/WalRecoveryPage";
@@ -74,6 +76,11 @@ export const ROUTES: Record<string, RouteDef> = {
     path: "/options",
     label: "Option Audit",
     render: () => <OptionAuditPage />,
+  },
+  "/subaccount-tx": {
+    path: "/subaccount-tx",
+    label: "Subaccount Transactions",
+    render: () => <SubaccountTransactionsPage />,
   },
   "/pending-settlements": {
     path: "/pending-settlements",
@@ -151,6 +158,7 @@ export const SIDEBAR_GROUPS: SidebarGroup[] = [
       { path: "/pending-withdrawals", label: "Pending Withdrawals", icon: HandCoins },
       { path: "/user-balance", label: "User Balance", icon: UserCircle },
       { path: "/user-audit", label: "User Audit", icon: UserFocus },
+      { path: "/subaccount-tx", label: "Subaccount Tx", icon: Receipt },
     ],
   },
   {
