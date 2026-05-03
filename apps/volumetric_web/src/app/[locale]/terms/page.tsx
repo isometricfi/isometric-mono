@@ -624,7 +624,11 @@ export default async function TermsPage({ params }: { params: Promise<{ locale: 
             <p>
               You agree that any legal action or proceeding relating to this Agreement or the
               Products shall be brought exclusively in the courts of the Republic of South Africa,
-              and you consent to the jurisdiction of such courts.
+              and you consent to the personal and exclusive jurisdiction of such courts. You and we
+              further agree that neither you nor we may bring any claim, dispute, or proceeding
+              arising out of or relating to this Agreement or the Products in any court located in
+              the United States of America, and each party irrevocably waives any objection that the
+              courts of the Republic of South Africa are an inconvenient forum.
             </p>
           </section>
 
