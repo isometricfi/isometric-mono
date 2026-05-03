@@ -9,7 +9,7 @@ import {
   sanitizeBtcInput,
   sanitizeUsdInput,
 } from "@/lib/options-form";
-import { formatBtc, parseBtcToSats, satsToBtc } from "@/lib/utils";
+import { formatBtc, formatUsd, parseBtcToSats, satsToBtc } from "@/lib/utils";
 import { Slider } from "../ui/slider";
 
 interface BtcUsdAmountSectionProps {
@@ -95,7 +95,7 @@ export function BtcUsdAmountSection({
             <span className="text-muted-foreground">{t("max")}: </span>
             {activeInputUnit === "btc"
               ? `₿${formatBtc(maxAmountSats, 6)}`
-              : `$${Math.round(satsToBtc(maxAmountSats) * btcPrice).toLocaleString()}`}
+              : `$${formatUsd(satsToBtc(maxAmountSats) * btcPrice)}`}
           </button>
         </div>
         <div className="flex items-center gap-2">
@@ -106,7 +106,7 @@ export function BtcUsdAmountSection({
             aria-label={t("swapCurrencyInput")}
           >
             {activeInputUnit === "btc"
-              ? `$${Math.round(usdAmount).toLocaleString()}`
+              ? `$${formatUsd(usdAmount)}`
               : `₿${formatBtc(amountSats, 6)}`}
             <ArrowUpDown className="size-4" />
           </button>

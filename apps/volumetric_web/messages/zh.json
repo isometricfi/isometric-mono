@@ -5,7 +5,8 @@
     "portfolio": "投资组合",
     "history": "历史记录",
     "openApp": "打开应用",
-    "connect": "连接"
+    "connect": "连接",
+    "beta": "测试版"
   },
   "Settings": {
     "title": "设置",
@@ -182,6 +183,8 @@
     "fetchingInfo": "正在获取存入信息...",
     "requiresConfirmations": "需要 4 次确认",
     "minDeposit": "最低存入：{amount}",
+    "minWithdrawNote": "最低提取：{amount}",
+    "recommendedDeposit": "建议至少存入 {amount} 以便可以提取",
     "depositAddressLabel": "存入地址",
     "autoDetect": "我们将自动检测您的存入",
     "confirmInWallet": "在钱包中确认",

@@ -35,7 +35,7 @@ import { useConfig } from "@/hooks";
 import { Link } from "@/i18n/routing";
 import { getNiceErrorMessage } from "@/lib/error-message";
 import { estimateExpiryDate } from "@/lib/expiry";
-import { basisPointsToPercent, cn, formatBtc, roundToN, satsToBtc } from "@/lib/utils";
+import { basisPointsToPercent, cn, formatBtc, formatUsd, roundToN, satsToBtc } from "@/lib/utils";
 import { useCallOptionBuyFormModel } from "./_internal/use-call-option-buy-form-model";
 
 interface BuyCallFlowProps {
@@ -252,7 +252,7 @@ function TermStrikeStep({ model }: { model: BuyModel }) {
       </div>
       {hasStrikes ? (
         <FlowStepperPicker
-          value={`$${model.selectedStrikeUsd.toLocaleString()}`}
+          value={`$${formatUsd(model.selectedStrikeUsd)}`}
           caption={t("termStrike.percentAbove", {
             percent: model.strikePercent,
           })}
@@ -328,11 +328,11 @@ function ReviewStep({ model, feePercent }: { model: BuyModel; feePercent: number
   const tSummary = useTranslations("Summary");
   const termLabel = tForms(model.selectedTermDay === 1 ? "day" : "days").toLowerCase();
   const premiumBtc = satsToBtc(model.amountSats);
-  const premiumUsd = Math.round(premiumBtc * model.btcPrice);
+  const premiumUsd = premiumBtc * model.btcPrice;
   const maxProfitSats = Math.max(model.quantitySats - model.amountSats, 0);
   const maxProfitBtc = satsToBtc(maxProfitSats);
-  const maxProfitUsd = Math.round(maxProfitBtc * model.btcPrice);
-  const strikeDisplay = `$${model.selectedStrikeUsd.toLocaleString()}`;
+  const maxProfitUsd = maxProfitBtc * model.btcPrice;
+  const strikeDisplay = `$${formatUsd(model.selectedStrikeUsd)}`;
   const maxProfitDisplay = `₿${maxProfitBtc.toFixed(6)}`;
   const expiryDisplay = format(estimateExpiryDate(model.selectedTermDay), "MMM d, yyyy 'at' HH:mm");
 
@@ -342,12 +342,12 @@ function ReviewStep({ model, feePercent }: { model: BuyModel; feePercent: number
     { label: t("review.expires"), value: expiryDisplay },
     {
       label: t("review.premium"),
-      value: `₿${formatBtc(model.amountSats, 6)} · $${premiumUsd.toLocaleString()}`,
+      value: `₿${formatBtc(model.amountSats, 6)} · $${formatUsd(premiumUsd)}`,
     },
     { label: t("review.leverage"), value: `${model.leverage.toFixed(1)}x` },
     {
       label: t("review.maxProfit"),
-      value: `${maxProfitDisplay} · $${maxProfitUsd.toLocaleString()}`,
+      value: `${maxProfitDisplay} · $${formatUsd(maxProfitUsd)}`,
       accent: true,
     },
     {
