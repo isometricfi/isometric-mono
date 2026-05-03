@@ -5,6 +5,11 @@
       "package": "volumetric",
       "type": "rust"
     },
+    "volumetric_stage": {
+      "candid": "did/volumetric.did",
+      "package": "volumetric",
+      "type": "rust"
+    },
     "volumetric_prod": {
       "candid": "did/volumetric.did",
       "package": "volumetric",
