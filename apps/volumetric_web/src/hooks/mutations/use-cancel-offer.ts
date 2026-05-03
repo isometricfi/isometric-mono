@@ -10,6 +10,7 @@ import { signBitcoinPaymentMessage } from "@/lib/bitcoin/sign-payment-message";
 import { getNiceErrorMessage } from "@/lib/error-message";
 import { computeExpiresAtSeconds } from "@/lib/use-cases/_shared/wallet-proof";
 import type { Output as CancelOfferOutput } from "@/lib/use-cases/options/cancel-offer/schema";
+import type { Output as PortfolioOutput } from "@/lib/use-cases/portfolio/get-portfolio/schema";
 import { trpcClient } from "@/trpc/react";
 import { useBtcAddress } from "../queries/use-btc-address";
 import { useCanister } from "../use-canister";
@@ -71,8 +72,13 @@ export function useCancelOffer() {
 
       return cancelPromise;
     },
-    onSuccess: () => {
+    onSuccess: (_data, offerId) => {
       setStep("success");
+      queryClient.setQueriesData<PortfolioOutput>(
+        { queryKey: [["portfolio", "getPortfolio"]] },
+        (prev) =>
+          prev ? { ...prev, offers: prev.offers.filter((o) => o.id !== offerId.toString()) } : prev,
+      );
       queryClient.invalidateQueries({ queryKey: [["portfolio"]] });
       queryClient.invalidateQueries({ queryKey: [["options"]] });
       queryClient.invalidateQueries({ queryKey: [["account"]] });

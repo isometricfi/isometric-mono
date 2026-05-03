@@ -140,7 +140,7 @@ function ModalBody({
           <span className="text-muted-foreground">{t("pnl")}</span>
           {pnl ? (
             <span className={cn("font-mono", pnl.isProfit ? "text-green-500" : "text-red-500")}>
-              {pnl.isProfit ? "" : "-"}₿{roundToN(Math.abs(pnl.valueBtc), 6)} (
+              {pnl.isProfit ? "" : "-"}₿{roundToN(Math.abs(pnl.valueBtc), 8)} (
               {pnl.isProfit ? "" : "-"}${roundToN(Math.abs(pnl.valueUsd), 2)})
             </span>
           ) : (

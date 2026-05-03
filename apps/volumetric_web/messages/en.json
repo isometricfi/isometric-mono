@@ -75,7 +75,7 @@
     "creating": "Creating account",
     "finalizing": "Finalizing account setup.",
     "errorDescription": "Something went wrong. You can close this and try again by reconnecting.",
-    "termsAgreement": "By connecting, you agree to the <link>Terms of Service</link>."
+    "termsAgreement": "By creating this account, you agree to the <link>Terms of Service</link> and consent to our <privacy>Privacy Policy</privacy>."
   },
   "OfferResult": {
     "signOffer": "Sign offer",
@@ -212,7 +212,7 @@
     "mayTakeMoment": "This may take a moment",
     "withdrawalSubmitted": "Request successful",
     "btcOnWay": "Your BTC is on its way to your wallet",
-    "arrivesInMinutes": "Your withdraw will broadcast in 1-2 minutes",
+    "arrivesInMinutes": "Your withdraw will broadcast in 2-5 minutes",
     "failedToWithdraw": "Failed to withdraw"
   },
   "PendingWithdrawals": {

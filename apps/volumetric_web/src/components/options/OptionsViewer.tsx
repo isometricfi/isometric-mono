@@ -117,7 +117,7 @@ function StrikeRow({
         {/* total liquidity */}
         <div className="w-20 md:w-28 text-right">
           <span className="text-sm md:text-base font-medium">
-            {formatBtcWithSymbol(bucket.totalLiquiditySats, 4)}
+            {formatBtcWithSymbol(bucket.totalLiquiditySats, 6)}
           </span>
         </div>
 
@@ -201,7 +201,7 @@ function StrikeRow({
                             </>
                           )}
                           <span className="text-right">
-                            {formatBtcWithSymbol(offer.amountSats, 4)}
+                            {formatBtcWithSymbol(offer.amountSats, 6)}
                           </span>
                         </div>
                       );

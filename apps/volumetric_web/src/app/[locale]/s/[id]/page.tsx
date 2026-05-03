@@ -1,7 +1,7 @@
 import { Lock, TrendingUp, Zap } from "lucide-react";
 import type { Metadata } from "next";
-import Image from "next/image";
 import { getTranslations } from "next-intl/server";
+import { Avatar } from "@/components/ui/avatar";
 import { getHistoryByHash } from "@/lib/use-cases/history/get-history-by-hash/usecase";
 import { cn, formatBtcWithSymbolBigint, getFallbackUsername } from "@/lib/utils";
 import { CaptureInviteCode } from "./_components/CaptureInviteCode";
@@ -92,7 +92,7 @@ export default async function SharePage({ params }: { params: SharePageParams })
             primary: (chunks) => <span className="text-primary">{chunks}</span>,
           })}
         </h1>
-        <p className="text-muted-foreground md:text-sm text-xs leading-relaxed max-w-md mx-auto">
+        <p className="text-muted-foreground md:text-sm text-xs leading-relaxed max-w-lg mx-auto">
           {t(subheadlineKey, { username })}
         </p>
       </div>
@@ -101,13 +101,7 @@ export default async function SharePage({ params }: { params: SharePageParams })
       <div className="rounded-xl border bg-card p-5 space-y-4">
         {/* Profile row */}
         <div className="flex items-center gap-3">
-          <Image
-            src={`/api/avatar?name=${avatarSeed}`}
-            alt="Avatar"
-            width={44}
-            height={44}
-            className="rounded-full shrink-0"
-          />
+          <Avatar seed={avatarSeed} width={44} height={44} className="rounded-full shrink-0" />
           <div className="flex-1 min-w-0">
             <p className="font-semibold truncate">{username}</p>
             <p className="text-xs text-muted-foreground">
