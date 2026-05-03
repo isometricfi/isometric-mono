@@ -134,9 +134,8 @@ fn parse_address(address: &str, network: Network) -> Result<Address, VolumetricE
 }
 
 // Delegates to the `bip322` crate for P2WPKH and P2TR witnesses. For P2SH-P2WPKH
-// (Nested SegWit, used by Xverse for its "payment" address), the crate's
-// `verify_full_p2wpkh(is_p2sh=true)` branch destructures
-// `AddressData::P2sh { script_hash: _ }` and never checks that
+// (Nested SegWit), the crate's `verify_full_p2wpkh(is_p2sh=true)` branch
+// destructures `AddressData::P2sh { script_hash: _ }` and never checks that
 // `hash160(new_p2wpkh(witness_pubkey.wpubkey_hash()))` equals the address's
 // script_hash, so a foreign-key witness would otherwise verify against any
 // P2SH-P2WPKH address. We close that gap by binding the witness pubkey to the
@@ -645,9 +644,8 @@ mod tests {
         assert!(result.is_ok(), "verifier rejected: {:?}", result);
     }
 
-    /// Given: a P2SH-P2WPKH address and a real BIP-322 simple signature produced by its
-    ///        own private key — the format Xverse emits from `signMessage` for its
-    ///        "payment" address
+    /// Given: a P2SH-P2WPKH (Nested SegWit) address and a real BIP-322 simple
+    ///        signature produced by its own private key
     /// When: the verifier runs
     /// Then: the signature verifies via the BIP-322 path with our pre-dispatch
     ///       script_hash binding (witness pubkey → P2WPKH redeem script → script_hash)
@@ -655,7 +653,7 @@ mod tests {
     fn verify_accepts_bip322_signature_on_p2sh_p2wpkh_address() {
         // given
         let secret = [9u8; 32];
-        let message = "xverse nested segwit signs payment messages with bip322";
+        let message = "p2sh-p2wpkh self-signed bip322 simple message";
         let secp = Secp256k1::new();
         let secret_key = SecretKey::from_slice(&secret).unwrap();
         let private_key = PrivateKey {
