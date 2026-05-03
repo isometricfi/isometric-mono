@@ -19,6 +19,7 @@ use crate::storage::Config;
 use crate::time::current_time_seconds;
 
 const TRANSFER_FEE_CACHE_TTL_90_SECONDS: u64 = 90;
+const DEFAULT_FALLBACK_TRANSFER_FEE_SATS: u64 = 10;
 #[cfg(any(test, feature = "testing"))]
 pub const TESTING_CKBTC_TRANSFER_FEE_SATS: u64 = 10;
 
@@ -236,11 +237,8 @@ pub fn get_cached_icrc1_transfer_fee_sats_for_sync_flow() -> Result<u64, Volumet
     }
 
     schedule_transfer_fee_refresh_if_idle();
-    Err(VolumetricError::from_def(
-        error_codes::CONFIG_ERROR,
-        Some("ckbtc transfer fee cache stale; retry shortly"),
-        None,
-    ))
+    ic::log("warn: ckbtc transfer fee cache stale; falling back to 10 sats");
+    Ok(DEFAULT_FALLBACK_TRANSFER_FEE_SATS)
 }
 
 pub fn withdraw_ckbtc_ledger_fee_reserve_sats_for_transfer_fee(transfer_fee_sats: u64) -> u64 {
@@ -483,7 +481,7 @@ mod tests {
     }
 
     #[test]
-    fn test_get_cached_fee_returns_stale_error_when_cache_missing() {
+    fn test_get_cached_fee_returns_fallback_when_cache_missing() {
         // given
         clear_cached_transfer_fee_for_testing();
         ic::set_runtime(Box::new(MockRuntime {
@@ -494,8 +492,10 @@ mod tests {
         let fee_result = get_cached_icrc1_transfer_fee_sats_for_sync_flow();
 
         // then
-        let stale_error = fee_result.expect_err("missing cache should be stale");
-        assert_eq!(stale_error.code, error_codes::CONFIG_ERROR.code);
+        assert_eq!(
+            fee_result.expect("missing cache should fall back"),
+            DEFAULT_FALLBACK_TRANSFER_FEE_SATS
+        );
     }
 
     /// Given: a cached transfer fee fetched exactly at the TTL boundary
@@ -525,16 +525,16 @@ mod tests {
 
     /// Given: a cached transfer fee older than TTL by one nanosecond
     /// When: reading the transfer fee from the sync flow accessor
-    /// Then: the cache entry is rejected as stale
+    /// Then: the fallback transfer fee is returned
     #[test]
-    fn test_get_cached_fee_rejects_value_older_than_ttl() {
+    fn test_get_cached_fee_returns_fallback_when_value_older_than_ttl() {
         // given
         clear_cached_transfer_fee_for_testing();
         ic::set_runtime(Box::new(MockRuntime {
             now_ns: TEST_NOW_NS,
         }));
         set_cached_transfer_fee_for_testing(
-            TEST_FEE_10_SATS,
+            TEST_FEE_25_SATS,
             TEST_NOW_SECONDS - TRANSFER_FEE_CACHE_TTL_90_SECONDS - 1,
         );
 
@@ -542,8 +542,10 @@ mod tests {
         let fee_result = get_cached_icrc1_transfer_fee_sats_for_sync_flow();
 
         // then
-        let stale_error = fee_result.expect_err("fee older than TTL should be stale");
-        assert_eq!(stale_error.code, error_codes::CONFIG_ERROR.code);
+        assert_eq!(
+            fee_result.expect("stale fee should fall back"),
+            DEFAULT_FALLBACK_TRANSFER_FEE_SATS
+        );
     }
 
     #[tokio::test]
@@ -653,7 +655,7 @@ mod tests {
             now_ns: TEST_NOW_NS,
         }));
         set_cached_transfer_fee_for_testing(
-            TEST_FEE_10_SATS,
+            TEST_FEE_25_SATS,
             TEST_NOW_SECONDS - TRANSFER_FEE_CACHE_TTL_90_SECONDS - 1,
         );
         let mock_ledger = Rc::new(FeeMockLedger::new(vec![Ok(TEST_FEE_25_SATS)]));
@@ -665,7 +667,10 @@ mod tests {
         let refreshed_result = get_cached_icrc1_transfer_fee_sats_for_sync_flow();
 
         // then
-        assert!(stale_result.is_err());
+        assert_eq!(
+            stale_result.expect("stale read should fall back"),
+            DEFAULT_FALLBACK_TRANSFER_FEE_SATS
+        );
         assert_eq!(
             refreshed_result.expect("fee should be refreshed"),
             TEST_FEE_25_SATS
