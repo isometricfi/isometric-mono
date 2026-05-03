@@ -48,7 +48,7 @@ pub struct WithdrawalWalPayload {
     /// Gross ckBTC withdraw amount (debited from platform `available`); refunded if the WAL fails.
     #[serde(rename = "amount_sats")]
     pub gross_withdraw_amount_sats: u64,
-    /// Sats for ICRC-2 approve and ckBTC minter retrieve (gross minus double ledger fee reserve).
+    /// Sats for ICRC-2 approve and ckBTC minter retrieve (gross minus ledger fee reserve).
     pub withdraw_amount_after_fees_sats: u64,
     pub btc_address: String,
     pub created_at_time_ns: u64,

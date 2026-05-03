@@ -450,6 +450,9 @@ pub async fn run_withdrawal_wal(
     let minter = Config::ckbtc_minter();
 
     if withdrawal.phase == WithdrawalPhase::Started {
+        let reserved_ledger_fee_sats = payload
+            .gross_withdraw_amount_sats
+            .saturating_sub(payload.withdraw_amount_after_fees_sats);
         let approve_args = icrc_ledger_types::icrc2::approve::ApproveArgs {
             from_subaccount: Some(subaccount),
             spender: Account {
@@ -459,7 +462,7 @@ pub async fn run_withdrawal_wal(
             amount: Nat::from(payload.withdraw_amount_after_fees_sats),
             expected_allowance: None,
             expires_at: None,
-            fee: None,
+            fee: Some(Nat::from(reserved_ledger_fee_sats)),
             memo: Some(ledger_memo(
                 operation_id,
                 LedgerMemoKind::WithdrawalApprove,
@@ -633,6 +636,7 @@ mod tests {
             _from_subaccount: Option<[u8; 32]>,
             _to: Account,
             _amount: u64,
+            _expected_fee_sats: u64,
             _created_at_time: u64,
             _memo: Option<Memo>,
         ) -> Result<u64, VolumetricError> {
@@ -827,7 +831,7 @@ mod tests {
         let (ledger, minter) = setup_success_with_recorders();
         let principal = test_principal();
         fund_principal(principal, INITIAL_BALANCE_SATS);
-        const REQUESTED_GROSS_WITHDRAW_SATS: u64 = 50_020;
+        const REQUESTED_GROSS_WITHDRAW_SATS: u64 = 50_010;
         const EXPECTED_NET_WITHDRAW_SATS: u64 = 50_000;
         let withdraw_params = WithdrawParams {
             btc_address: TEST_BTC_ADDRESS.to_string(),
@@ -916,7 +920,7 @@ mod tests {
         assert_eq!(balance.available, AVAILABLE_SATS);
     }
 
-    /// Given: a gross withdraw amount smaller than the two-transfer ledger fee reserve
+    /// Given: a gross withdraw amount smaller than the single-approve ledger fee reserve
     /// When: withdraw_ckbtc_use_case is called
     /// Then: it rejects with insufficient balance before debiting balance
     #[tokio::test]
@@ -925,7 +929,7 @@ mod tests {
         setup_success();
         let principal = test_principal();
         fund_principal(principal, INITIAL_BALANCE_SATS);
-        const GROSS_BELOW_LEDGER_FEE_RESERVE_SATS: u64 = 19;
+        const GROSS_BELOW_LEDGER_FEE_RESERVE_SATS: u64 = 9;
         let withdraw_params = WithdrawParams {
             btc_address: TEST_BTC_ADDRESS.to_string(),
             amount: GROSS_BELOW_LEDGER_FEE_RESERVE_SATS,
@@ -951,7 +955,7 @@ mod tests {
         setup_success();
         let principal = test_principal();
         fund_principal(principal, INITIAL_BALANCE_SATS);
-        const EXPECTED_LEDGER_FEE_RESERVE_SATS: u64 = TEST_TRANSFER_FEE_SATS * 2;
+        const EXPECTED_LEDGER_FEE_RESERVE_SATS: u64 = TEST_TRANSFER_FEE_SATS;
         const MINIMUM_NET_WITHDRAW_SATS: u64 = 50_000;
         const GROSS_ONE_BELOW_MINIMUM_NET_SATS: u64 =
             MINIMUM_NET_WITHDRAW_SATS + EXPECTED_LEDGER_FEE_RESERVE_SATS - 1;

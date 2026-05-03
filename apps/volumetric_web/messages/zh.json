@@ -75,7 +75,7 @@
     "creating": "正在创建账户",
     "finalizing": "正在完成账户设置。",
     "errorDescription": "出错了。您可以关闭此窗口，然后通过重新连接重试。",
-    "termsAgreement": "连接即表示您同意<link>服务条款</link>。"
+    "termsAgreement": "创建此账户即表示您同意<link>服务条款</link>并同意我们的<privacy>隐私政策</privacy>。"
   },
   "OfferResult": {
     "signOffer": "签署报价",
@@ -210,7 +210,7 @@
     "mayTakeMoment": "可能需要片刻",
     "withdrawalSubmitted": "请求成功",
     "btcOnWay": "您的 BTC 正在发送到您的钱包",
-    "arrivesInMinutes": "您的提款将在 1-2 分钟内广播",
+    "arrivesInMinutes": "您的提款将在 2-5 分钟内广播",
     "failedToWithdraw": "提取失败"
   },
   "PendingWithdrawals": {

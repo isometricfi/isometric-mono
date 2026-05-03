@@ -197,6 +197,7 @@ mod tests {
             _from_subaccount: Option<[u8; 32]>,
             _to: Account,
             _amount: u64,
+            _expected_fee_sats: u64,
             _created_at_time: u64,
             _memo: Option<Memo>,
         ) -> Result<u64, VolumetricError> {
@@ -227,6 +228,7 @@ mod tests {
             _from_subaccount: Option<[u8; 32]>,
             _to: Account,
             _amount: u64,
+            _expected_fee_sats: u64,
             _created_at_time: u64,
             _memo: Option<Memo>,
         ) -> Result<u64, VolumetricError> {

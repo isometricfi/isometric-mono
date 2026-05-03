@@ -8,8 +8,17 @@ pub async fn transfer_ckbtc(
     from_subaccount: Option<[u8; 32]>,
     to: Account,
     amount: u64,
+    expected_fee_sats: u64,
     created_at_time_ns: u64,
     memo: Option<Memo>,
 ) -> Result<u64, VolumetricError> {
-    ledger::icrc1_transfer(from_subaccount, to, amount, created_at_time_ns, memo).await
+    ledger::icrc1_transfer(
+        from_subaccount,
+        to,
+        amount,
+        expected_fee_sats,
+        created_at_time_ns,
+        memo,
+    )
+    .await
 }
