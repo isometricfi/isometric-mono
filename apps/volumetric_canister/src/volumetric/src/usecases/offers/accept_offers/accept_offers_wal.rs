@@ -172,6 +172,7 @@ async fn execute_wal_writer_and_fee_transfers(
                 subaccount: Some(derive_subaccount(writer_transfer.writer)),
             },
             writer_transfer.amount_sats,
+            payload.transfer_fee_sats,
             payload.created_at_time_ns,
             Some(ledger_memo(
                 operation_id,
@@ -191,6 +192,7 @@ async fn execute_wal_writer_and_fee_transfers(
                 subaccount: None,
             },
             payload.planned_platform_fee_sats,
+            payload.transfer_fee_sats,
             payload.created_at_time_ns,
             Some(ledger_memo(
                 operation_id,
