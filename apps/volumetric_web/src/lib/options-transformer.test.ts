@@ -1,4 +1,4 @@
-import { Principal } from "@dfinity/principal";
+import { Principal } from "@icp-sdk/core/principal";
 import type { Offer } from "@volumetric/canister-types";
 import { describe, expect, test } from "vitest";
 import { groupOffersByTermAndStrike } from "./options-transformer";

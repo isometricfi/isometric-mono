@@ -28,10 +28,7 @@
     "db:migrate:status:prod": "wrangler d1 migrations list volumetric_d1_prod --remote --env production"
   },
   "dependencies": {
-    "@dfinity/agent": "^2.2.0",
-    "@dfinity/candid": "^2.2.0",
-    "@dfinity/identity": "2.2.0",
-    "@dfinity/principal": "^2.2.0",
+    "@icp-sdk/core": "^5.4.0",
     "@dynamic-labs/bitcoin": "^4.49.0",
     "@dynamic-labs/sdk-react-core": "^4.49.0",
     "@microlabs/otel-cf-workers": "1.0.0-rc.52",
