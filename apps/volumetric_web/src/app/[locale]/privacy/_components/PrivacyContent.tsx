@@ -175,39 +175,75 @@ export function PrivacyContentEN() {
       </section>
 
       <section className="space-y-4 mt-8">
-        <h2 className="text-2xl font-semibold">Third Party Cookies</h2>
+        <h2 className="text-2xl font-semibold">Third-Party Service Providers</h2>
         <p>
-          We use services provided by Google and other third parties that use tracking technology
-          such as cookies, deviceID, and localStorage, to collect information about your use of the
-          Services and our interactions with you. You can opt out of having your online activity and
-          device data collected through these third-party services, including by:
+          We rely on a limited number of third-party service providers to operate the Services.
+          These include:
         </p>
-
         <ul className="list-disc pl-6 space-y-2 mt-4">
           <li>
-            Blocking cookies in your browser by following the instructions in your browser settings.
-            For more information about cookies, including how to see the cookies on your device,
-            manage them, and delete them, visit www.allaboutcookies.org.
+            <strong>Cloudflare</strong> for infrastructure, content delivery, edge databases, and
+            denial-of-service mitigation. Your IP address and request metadata are processed
+            transiently by Cloudflare to deliver the Services. See{" "}
+            <a
+              href="https://www.cloudflare.com/privacypolicy/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline"
+            >
+              Cloudflare&apos;s privacy policy
+            </a>
+            .
           </li>
           <li>
-            Blocking or limiting the use of your advertising ID on your mobile device through the
-            device settings.
+            <strong>Dynamic</strong> as a non-custodial wallet connection provider. When you connect
+            a wallet, Dynamic processes data necessary to facilitate the connection. See{" "}
+            <a
+              href="https://www.dynamic.xyz/legal/privacy-policy"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline"
+            >
+              Dynamic&apos;s privacy policy
+            </a>
+            .
           </li>
           <li>
-            Using privacy plug-ins or browsers. Certain browsers and browser extensions can be
-            configured to block third-party cookies and trackers.
-          </li>
-          <li>
-            Using the platform opt-out provided by Google at https://adssettings.google.com. You can
-            learn more about how Google uses your information by reviewing Google&apos;s privacy
-            policy at https://policies.google.com/privacy.
-          </li>
-          <li>
-            Using advertising industry opt-out tools on each device or browser where you use the
-            Services, available at http://optout.aboutads.info and
-            http://optout.networkadvertising.org.
+            <strong>The Internet Computer Protocol</strong>, a decentralized blockchain network on
+            which the Protocol&apos;s smart contracts are deployed. Public on-chain data is recorded
+            on the blockchain and is beyond our control.
           </li>
         </ul>
+        <p className="mt-4">
+          We may add, change, or remove service providers from time to time and will reflect
+          material changes in this Policy.
+        </p>
+      </section>
+
+      <section className="space-y-4 mt-8">
+        <h2 className="text-2xl font-semibold">Cookies and Local Storage</h2>
+        <p>
+          We use localStorage and similar browser technologies to remember your preferences (such as
+          locale, theme, and previously connected wallets) and to support the functionality of the
+          Services across sessions. We do not currently deploy third-party advertising cookies,
+          cross-site tracking pixels, or behavioral advertising tags. You can clear localStorage and
+          cookies, or block them in advance, through your browser settings at any time. Doing so may
+          affect your experience of the Services.
+        </p>
+      </section>
+
+      <section className="space-y-4 mt-8">
+        <h2 className="text-2xl font-semibold">Data Retention</h2>
+        <p>
+          We retain personal information only for as long as necessary to fulfill the purposes
+          described in this Policy, comply with our legal and regulatory obligations, resolve
+          disputes, and enforce our agreements. Wallet addresses and transactions associated with
+          on-chain activity are part of the public blockchain record and cannot be deleted by us.
+          Off-chain data, such as application logs, telemetry, support correspondence, and screening
+          results, is retained for no longer than 24 months unless a longer retention period is
+          required by law or is necessary for the establishment, exercise, or defense of legal
+          claims.
+        </p>
       </section>
 
       <section className="space-y-4 mt-8">
@@ -248,48 +284,59 @@ export function PrivacyContentEN() {
 
       <section className="space-y-4 mt-8">
         <h2 className="text-2xl font-semibold">
-          Additional Notice to California Residents (&quot;CCPA Notice&quot;)
+          Additional Notice to California Residents (CCPA / CPRA Notice)
         </h2>
         <p>
-          The California Consumer Privacy Act of 2018 (&quot;CCPA&quot;) requires certain businesses
-          to provide a CCPA Notice to California residents to explain how we collect, use, and share
-          their personal information, and the rights and choices we offer California residents
-          regarding our handling of their information.
+          The California Consumer Privacy Act of 2018, as amended by the California Privacy Rights
+          Act of 2020 (collectively, the &quot;CCPA/CPRA&quot;), requires certain businesses to
+          provide California residents with a notice describing how we collect, use, and share their
+          personal information, and the rights and choices we offer regarding our handling of that
+          information.
         </p>
 
         <ul className="list-disc pl-6 space-y-2 mt-4">
           <li>
-            <strong>Privacy Practices.</strong> We do not &quot;sell&quot; personal information as
-            defined under the CCPA. Please review the &quot;How We Share Data&quot; section above
-            for further details about the categories of parties with whom we share information.
+            <strong>No Sale or Sharing for Targeted Advertising.</strong> We do not &quot;sell&quot;
+            personal information, and we do not &quot;share&quot; personal information for
+            cross-context behavioral advertising, as those terms are defined under the CCPA/CPRA.
           </li>
           <li>
-            <strong>Privacy Rights.</strong> The CCPA gives individuals the right to request
-            information about how we have collected, used, and shared your personal information. It
-            also gives you the right to request a copy of any information we may maintain about you.
-            You may also ask us to delete any personal information that we may have received about
-            you. Please note that the CCPA limits these rights, for example, by prohibiting us from
-            providing certain sensitive information in response to access requests and limiting the
-            circumstances under which we must comply with a deletion request. We will respond to
-            requests for information, access, and deletion only to the extent we are able to
+            <strong>Right to Know and Access.</strong> You have the right to request information
+            about the categories and specific pieces of personal information we have collected about
+            you, the categories of sources, the business or commercial purposes for which we
+            collected it, and the categories of third parties with whom we shared it.
+          </li>
+          <li>
+            <strong>Right to Correct.</strong> You have the right to request that we correct
+            inaccurate personal information that we maintain about you.
+          </li>
+          <li>
+            <strong>Right to Delete.</strong> You have the right to request the deletion of personal
+            information we have collected from you, subject to the exceptions set out in the
+            CCPA/CPRA.
+          </li>
+          <li>
+            <strong>Right to Limit Use of Sensitive Personal Information.</strong> Where we process
+            sensitive personal information (as defined under the CCPA/CPRA), you have the right to
+            limit our use of that information to the purposes specified in the statute. We do not
+            currently use sensitive personal information for any purpose that would trigger this
+            right.
+          </li>
+          <li>
+            <strong>Right to Non-Discrimination.</strong> You are entitled to exercise the rights
+            described above free from discrimination.
+          </li>
+          <li>
+            <strong>Submitting a Request.</strong> You can submit a request for access, correction,
+            or deletion to support@isometric.fi. We will respond only to the extent we are able to
             associate, with a reasonable effort, the information we maintain with the identifying
-            details you provide in your request. If we deny the request, we will communicate the
-            decision to you. You are entitled to exercise the rights described above free from
-            discrimination.
+            details you provide. We may need to verify your identity before processing your request.
+            If we deny a request, we will communicate the decision to you.
           </li>
           <li>
-            <strong>Submitting a Request.</strong> You can submit a request for information, access,
-            or deletion to support@isometric.fi.
-          </li>
-          <li>
-            <strong>Identity Verification.</strong> The CCPA requires us to collect and verify the
-            identity of any individual submitting a request to access or delete personal information
-            before providing a substantive response.
-          </li>
-          <li>
-            <strong>Authorized Agents.</strong> California residents can designate an
+            <strong>Authorized Agents.</strong> California residents may designate an
             &quot;authorized agent&quot; to submit requests on their behalf. We will require the
-            authorized agent to have a written authorization confirming their authority.
+            authorized agent to have written authorization confirming their authority.
           </li>
         </ul>
       </section>
@@ -324,6 +371,20 @@ export function PrivacyContentEN() {
           and may continue to do so even after a data subject request in accordance with our
           legitimate interests, including to comply with our legal obligations, resolves disputes,
           prevent fraud, and enforce our agreements.
+        </p>
+
+        <p className="mt-4">
+          We do not maintain an establishment in the European Union or the United Kingdom. If you
+          are an EU or UK data subject and wish to exercise rights that require communication with a
+          local representative under Article 27 of the GDPR or its UK equivalent, please contact us
+          at support@isometric.fi and we will provide an appropriate point of contact or, where
+          required by law, appoint a representative.
+        </p>
+
+        <p className="mt-4">
+          You also have the right to lodge a complaint with a supervisory authority in your country
+          of residence if you believe our processing of your personal data infringes the GDPR or
+          equivalent local law.
         </p>
       </section>
 
@@ -465,24 +526,57 @@ export function PrivacyContentZH() {
       </section>
 
       <section className="space-y-4 mt-8">
-        <h2 className="text-2xl font-semibold">第三方Cookie</h2>
-        <p>
-          我们使用Google和其他第三方提供的服务，这些服务使用cookie、设备ID和localStorage等跟踪技术来收集有关您使用服务以及我们与您互动的信息。您可以选择不让这些第三方服务收集您的在线活动和设备数据，包括通过：
-        </p>
-
+        <h2 className="text-2xl font-semibold">第三方服务提供商</h2>
+        <p>我们依赖少数第三方服务提供商来运营服务，包括：</p>
         <ul className="list-disc pl-6 space-y-2 mt-4">
           <li>
-            按照浏览器设置中的说明在浏览器中阻止cookie。有关cookie的更多信息，包括如何查看设备上的cookie、管理它们和删除它们，请访问www.allaboutcookies.org。
+            <strong>Cloudflare</strong>
+            ，提供基础设施、内容分发、边缘数据库和拒绝服务攻击缓解。Cloudflare会临时处理您的IP地址和请求元数据以提供服务。请参阅
+            <a
+              href="https://www.cloudflare.com/privacypolicy/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline"
+            >
+              Cloudflare的隐私政策
+            </a>
+            。
           </li>
-          <li>通过设备设置阻止或限制在移动设备上使用您的广告ID。</li>
-          <li>使用隐私插件或浏览器。某些浏览器和浏览器扩展可以配置为阻止第三方cookie和跟踪器。</li>
           <li>
-            使用Google在https://adssettings.google.com提供的平台选择退出。您可以通过查看Google的隐私政策https://policies.google.com/privacy了解更多关于Google如何使用您的信息。
+            <strong>Dynamic</strong>
+            ，作为非托管钱包连接提供商。当您连接钱包时，Dynamic会处理为促成连接所需的数据。请参阅
+            <a
+              href="https://www.dynamic.xyz/legal/privacy-policy"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline"
+            >
+              Dynamic的隐私政策
+            </a>
+            。
           </li>
           <li>
-            在您使用服务的每个设备或浏览器上使用广告行业选择退出工具，可在http://optout.aboutads.info和http://optout.networkadvertising.org获得。
+            <strong>Internet Computer协议</strong>
+            ，部署协议智能合约的去中心化区块链网络。链上公开数据记录在区块链上，不在我们的控制范围内。
           </li>
         </ul>
+        <p className="mt-4">
+          我们可能会不时增加、更换或移除服务提供商，并将在本政策中反映重大变更。
+        </p>
+      </section>
+
+      <section className="space-y-4 mt-8">
+        <h2 className="text-2xl font-semibold">Cookie与本地存储</h2>
+        <p>
+          我们使用localStorage及类似浏览器技术来记住您的偏好设置（例如语言、主题以及曾经连接过的钱包），以便在不同会话之间支持服务的功能。我们目前不部署第三方广告cookie、跨站跟踪像素或行为广告标签。您可以随时通过浏览器设置清除或预先阻止cookie与localStorage。这样做可能会影响您对服务的使用体验。
+        </p>
+      </section>
+
+      <section className="space-y-4 mt-8">
+        <h2 className="text-2xl font-semibold">数据保留</h2>
+        <p>
+          我们保留个人信息的期限仅限于实现本政策所述目的、遵守法律和监管义务、解决争议以及执行我们协议所必需的时间。与链上活动相关的钱包地址和交易属于公开区块链记录的一部分，我们无法删除。链下数据，例如应用日志、遥测、客户支持通信和筛查结果，保留期限不超过24个月，除非法律要求或为建立、行使或抗辩法律权利而需要更长的保留期。
+        </p>
       </section>
 
       <section className="space-y-4 mt-8">

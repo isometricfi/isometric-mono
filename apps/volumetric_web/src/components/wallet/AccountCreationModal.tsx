@@ -1,6 +1,7 @@
 "use client";
 
 import { FileSignature, ShieldCheck, Sparkles, XCircle } from "lucide-react";
+import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { useMediaQuery } from "react-responsive";
 import { FlowStepper, type FlowStepperStep } from "@/components/options/MobileFlowParts";
@@ -8,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Drawer, DrawerContent, DrawerTitle } from "@/components/ui/drawer";
 import type { EnsureAccountStep } from "@/hooks";
+import { LEGAL_LINKS } from "@/lib/site-links";
 
 export function AccountCreationModal({
   open,
@@ -67,6 +69,23 @@ export function AccountCreationModal({
   const body = (
     <>
       <div className="px-5 pt-8 pb-6">{stage && <FlowStepper step={stage} />}</div>
+      {step === "awaiting_signature" && (
+        <div className="px-5 pb-5">
+          <p className="text-center text-sm text-foreground/80">
+            {t.rich("AccountCreation.termsAgreement", {
+              link: (chunks) => (
+                <Link
+                  href={LEGAL_LINKS.terms}
+                  target="_blank"
+                  className="font-semibold text-primary underline underline-offset-2 hover:text-primary/80"
+                >
+                  {chunks}
+                </Link>
+              ),
+            })}
+          </p>
+        </div>
+      )}
       {step === "error" && (
         <div className="px-5 pb-5">
           <Button

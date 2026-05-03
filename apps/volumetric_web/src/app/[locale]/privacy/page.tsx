@@ -26,7 +26,7 @@ export default async function PrivacyPage({ params }: { params: Promise<{ locale
             {isZH ? "隐私政策" : "Privacy Policy"}
           </h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            {isZH ? "最后更新：2026年2月1日" : "Last updated: February 1, 2026"}
+            {isZH ? "最后更新：2026年5月3日" : "Last updated: May 3, 2026"}
           </p>
           {isZH && (
             <div className="mt-4 rounded-lg border border-amber-500/50 bg-amber-500/10 p-4">
