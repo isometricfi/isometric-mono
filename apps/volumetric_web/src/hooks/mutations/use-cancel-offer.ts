@@ -6,6 +6,8 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { unwrapResult } from "@volumetric/canister-types";
 import { useState } from "react";
 import { toast } from "sonner";
+import { signBitcoinPaymentMessage } from "@/lib/bitcoin/sign-payment-message";
+import { getNiceErrorMessage } from "@/lib/error-message";
 import { computeExpiresAtSeconds } from "@/lib/use-cases/_shared/wallet-proof";
 import type { Output as CancelOfferOutput } from "@/lib/use-cases/options/cancel-offer/schema";
 import { trpcClient } from "@/trpc/react";
@@ -41,7 +43,7 @@ export function useCancelOffer() {
         const message = unwrapResult(
           await canister.get_cancel_offer_message(address, BigInt(offerId), expiresAtSeconds),
         );
-        const signature = await primaryWallet.signMessage(message, { addressType: "payment" });
+        const signature = await signBitcoinPaymentMessage(primaryWallet, message);
 
         if (!signature) {
           throw new Error("Failed to sign message");
@@ -62,7 +64,9 @@ export function useCancelOffer() {
       })();
 
       cancelPromise.catch((err) => {
-        toast.error(err.message || `Failed to cancel offer #${offerId}`, { id: toastId });
+        toast.error(getNiceErrorMessage(err) ?? `Failed to cancel offer #${offerId}`, {
+          id: toastId,
+        });
       });
 
       return cancelPromise;

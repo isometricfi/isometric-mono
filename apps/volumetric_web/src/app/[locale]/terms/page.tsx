@@ -25,7 +25,7 @@ export default async function TermsPage({ params }: { params: Promise<{ locale: 
             {isZH ? "服务条款" : "Terms of Service"}
           </h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            {isZH ? "最后更新：2026年2月1日" : "Last updated: February 1, 2026"}
+            {isZH ? "最后更新：2026年5月3日" : "Last updated: May 3, 2026"}
           </p>
           {isZH && (
             <div className="mt-4 rounded-lg border border-amber-500/50 bg-amber-500/10 p-4">
@@ -148,12 +148,15 @@ export default async function TermsPage({ params }: { params: Promise<{ locale: 
             <h3 className="text-xl font-medium mt-6">2.1 Modifications of this Agreement</h3>
             <p>
               We reserve the right, in our sole discretion, to modify this Agreement from time to
-              time. If we make any material modifications, we will notify you by updating the date
-              at the top of the Agreement and by maintaining a current version of the Agreement at
-              https://isometric.fi/terms. All modifications will be effective when they are posted,
-              and your continued accessing or use of any of the Products will serve as confirmation
-              of your acceptance of those modifications. If you do not agree with any modifications
-              to this Agreement, you must immediately stop accessing and using all of our Products.
+              time. If we make any material modifications, we will (a) update the date at the top of
+              the Agreement, (b) maintain a current version of the Agreement at
+              https://isometric.fi/terms, and (c) where reasonably practicable, surface notice of
+              the change through the Interface (for example, via an in-app banner or notification on
+              your next session). Modifications will be effective when posted, and your continued
+              access to or use of any of the Products following the effective date will serve as
+              confirmation of your acceptance of those modifications. If you do not agree with any
+              modifications to this Agreement, you must immediately stop accessing and using all of
+              our Products.
             </p>
 
             <h3 className="text-xl font-medium mt-6">2.2 Modifications of our Products</h3>
@@ -220,6 +223,21 @@ export default async function TermsPage({ params }: { params: Promise<{ locale: 
                 derivatives, including, but not limited to, the unregistered offering of securities
                 and the offering of leveraged and margined commodity products to retail customers in
                 the United States.
+              </li>
+              <li>
+                <strong>Money Laundering and Sanctions Violations.</strong> Activity that involves
+                or facilitates money laundering, terrorism financing, proliferation financing, or
+                any other illegal financial activity, or that uses the Products to engage in or
+                support transactions prohibited by applicable anti-money-laundering, counter-
+                terrorist-financing, or sanctions laws or regulations.
+              </li>
+              <li>
+                <strong>Exploitation of Vulnerabilities.</strong> Activity that exploits, or
+                attempts to exploit, any error, bug, vulnerability, mispricing, oracle failure, race
+                condition, state inconsistency, or unintended behavior of the Products, the
+                Protocol, or any associated smart contract, code, or infrastructure, including any
+                attempt to gain unauthorized access, extract value through unintended mechanisms, or
+                manipulate transaction ordering or settlement.
               </li>
               <li>
                 <strong>Data Mining or Scraping.</strong> Activity that involves data mining,
@@ -294,6 +312,86 @@ export default async function TermsPage({ params }: { params: Promise<{ locale: 
               liability, claims, causes of action, or damages arising from or in any way relating to
               your use of any of our Products.
             </p>
+
+            <h3 className="text-xl font-medium mt-6">4.7 Restricted Persons and Jurisdictions</h3>
+            <p>
+              You may not access or use the Products if you are (a) a U.S. Person; (b) a person or
+              entity who resides in, is located in, is incorporated in, or has a registered office
+              in the Province of Ontario, Canada; (c) a citizen, resident, or legal entity organized
+              in, or accessing the Products from, a jurisdiction subject to comprehensive sanctions
+              administered or enforced by the United States, the United Kingdom, the European Union,
+              or the United Nations (including, without limitation, Cuba, Iran, North Korea, Syria,
+              the Russian Federation, Belarus, and the Crimea, Donetsk, Luhansk, Zaporizhzhia, and
+              Kherson regions of Ukraine, and any other jurisdiction so designated from time to time
+              (collectively, &quot;Restricted Jurisdictions&quot;)); or (d) listed on, or owned or
+              controlled by a person listed on, any sanctions or restricted-party list maintained by
+              any governmental authority, including the U.S. Office of Foreign Assets Control
+              Specially Designated Nationals and Blocked Persons List (each of (a) through (d), a
+              &quot;Restricted Person&quot;).
+            </p>
+            <p>
+              You further represent and warrant that your access to and use of the Products,
+              including any leveraged, margined, options, or other derivative trading conducted
+              through the Products, is lawful in your jurisdiction of residence, citizenship, and
+              access, and that you are not subject to any registration, licensing, suitability, or
+              eligibility requirement that would prohibit or restrict your access to or use of the
+              Products under applicable law. You are solely responsible for determining whether such
+              trading is lawful for you, and you assume all risk and liability for any determination
+              that proves incorrect.
+            </p>
+            <p>
+              For purposes of this Agreement, &quot;U.S. Person&quot; has the meaning given in Rule
+              902(k) of Regulation S under the U.S. Securities Act of 1933, and includes, without
+              limitation: any natural person resident in the United States; any partnership,
+              corporation, limited liability company, or other entity organized or incorporated
+              under the laws of the United States; any estate or trust of which any executor,
+              administrator, or trustee is a U.S. Person; any agency or branch of a non-U.S. entity
+              located in the United States; and any account (whether discretionary or
+              non-discretionary) held by a dealer or other fiduciary for the benefit or account of a
+              U.S. Person.
+            </p>
+            <p>
+              You represent and warrant that you are not a Restricted Person, that you are not
+              accessing the Products on behalf of any Restricted Person, and that you will notify us
+              immediately and cease all use of the Products if your status changes. We may, at our
+              sole discretion and without notice, implement geofencing, IP-based access controls,
+              wallet screening, or other measures to restrict access to the Products from any
+              jurisdiction or to any wallet address. You are solely responsible for ensuring that
+              your access to and use of the Products is lawful in your jurisdiction.
+            </p>
+
+            <h3 className="text-xl font-medium mt-6">4.8 No Circumvention</h3>
+            <p>
+              You will not, and will not assist or permit any third party to, (a) use any virtual
+              private network, proxy, anonymizer, location-spoofing service, decentralized identity
+              workaround, or other technical, contractual, or operational means to access the
+              Products from a Restricted Jurisdiction, to mask your status as a Restricted Person,
+              or to obscure your true location; (b) make any false, misleading, or incomplete
+              statement or representation regarding your residency, citizenship, location, identity,
+              beneficial ownership, source of funds, or compliance with any applicable law, in
+              connection with your access to or use of the Products; or (c) otherwise circumvent or
+              attempt to circumvent any access restriction, screening measure, eligibility
+              requirement, or other control we may impose. By accessing or using the Products, you
+              affirmatively represent and warrant that you are not a Restricted Person and have not
+              engaged in any of the foregoing. Any breach of this Section is a material breach of
+              this Agreement and constitutes grounds for immediate termination of your access to the
+              Products, in addition to any other remedies available to us at law or in equity.
+            </p>
+
+            <h3 className="text-xl font-medium mt-6">4.9 Final and Binding Determinations</h3>
+            <p>
+              Our determinations regarding the eligibility of any user, wallet, or transaction to
+              access or interact with any feature of the Products, as well as any questions or
+              disputes arising from a user&apos;s access to or use of the Products, including
+              determinations made under Sections 4.7 and 4.8, shall be final and binding and not
+              subject to challenge or appeal, except where mandatory applicable law provides
+              otherwise. Without notice to you, we reserve the right to suspend, restrict, or
+              terminate your access to any feature of the Products in our sole discretion,
+              including, without limitation, where we determine or suspect that your access or use
+              is unauthorized, deceptive, fraudulent, unlawful, in breach of this Agreement, or
+              would require suspension or termination to comply with applicable laws, regulations,
+              or legal orders.
+            </p>
           </section>
 
           <section className="space-y-4 mt-8">
@@ -325,6 +423,17 @@ export default async function TermsPage({ params }: { params: Promise<{ locale: 
               UNDERSTAND THAT YOUR DIGITAL ASSETS MAY LOSE SOME OR ALL OF THEIR VALUE WHILE THEY ARE
               SUPPLIED TO THE PROTOCOL THROUGH THE INTERFACE DUE TO THE FLUCTUATION OF PRICES AND
               SETTLEMENT OF OPTIONS CONTRACTS.
+            </p>
+            <p>
+              YOU FURTHER ACKNOWLEDGE RISKS SPECIFIC TO THE INTERNET COMPUTER PROTOCOL AND ITS
+              BITCOIN INTEGRATION, INCLUDING WITHOUT LIMITATION: SUBNET FAILURES, REPLICA NODE
+              OUTAGES, CANISTER UPGRADE FAILURES OR FREEZES, CYCLES EXHAUSTION, NETWORK NERVOUS
+              SYSTEM (NNS) GOVERNANCE DECISIONS THAT MAY ALTER PROTOCOL BEHAVIOR, ckBTC MINTING OR
+              REDEMPTION OUTAGES, BITCOIN NETWORK CONGESTION OR REORGANIZATIONS, AND THIRD-PARTY
+              ORACLE OR PRICE-FEED FAILURES, MISPRICINGS, OR MANIPULATIONS. YOU ACCEPT THAT ANY OF
+              THE FOREGOING MAY DELAY, PREVENT, OR ALTER THE EXECUTION OR SETTLEMENT OF YOUR
+              TRANSACTIONS, AND THAT WE ARE NOT RESPONSIBLE OR LIABLE FOR ANY LOSSES ARISING FROM
+              THEM.
             </p>
             <p>
               IN SUMMARY, YOU ACKNOWLEDGE THAT WE ARE NOT RESPONSIBLE FOR ANY OF THESE VARIABLES OR
@@ -382,6 +491,45 @@ export default async function TermsPage({ params }: { params: Promise<{ locale: 
               INVESTMENT STRATEGY OR RELATED TRANSACTION IS APPROPRIATE FOR YOU BASED ON YOUR
               PERSONAL INVESTMENT OBJECTIVES, FINANCIAL CIRCUMSTANCES, AND RISK TOLERANCE.
             </p>
+
+            <h3 className="text-xl font-medium mt-6">
+              5.4 BETA SERVICE — EXPERIMENTAL AND UNAUDITED
+            </h3>
+            <p className="font-semibold">
+              YOU ACKNOWLEDGE AND AGREE THAT THE PRODUCTS AND THE PROTOCOL ARE OFFERED AS A PUBLIC
+              BETA. AS OF THE DATE OF THIS AGREEMENT, THE PROTOCOL, THE INTERFACE, AND THE
+              UNDERLYING SMART CONTRACTS HAVE NOT BEEN AUDITED BY ANY THIRD PARTY, AND NO THIRD-
+              PARTY SECURITY AUDIT IS CURRENTLY IN PROGRESS. NOTHING IN THE PRODUCTS, ANY
+              COMMUNICATION FROM US, OR ANY DOCUMENTATION SHOULD BE TAKEN AS A REPRESENTATION OR
+              WARRANTY THAT THE PRODUCTS OR PROTOCOL HAVE BEEN AUDITED, REVIEWED, OR VERIFIED FOR
+              SAFETY, SECURITY, CORRECTNESS, OR FITNESS FOR ANY PURPOSE. IF AN AUDIT IS COMPLETED IN
+              THE FUTURE, ITS COMPLETION, SCOPE, OR FINDINGS SHALL NOT BE A REPRESENTATION OR
+              WARRANTY BY US AS TO THE SAFETY OR FITNESS OF THE PRODUCTS OR PROTOCOL.
+            </p>
+            <p>
+              YOU ACKNOWLEDGE THAT THE SOFTWARE, SMART CONTRACTS, FRONTEND CODE, AND INFRASTRUCTURE
+              UNDERLYING THE PRODUCTS MAY CONTAIN BUGS, ERRORS, VULNERABILITIES, ECONOMIC EXPLOITS,
+              ORACLE FAILURES OR MISPRICINGS, SETTLEMENT DELAYS OR FAILURES, LIQUIDATION FAILURES OR
+              DELAYS, WITHDRAWAL OR DEPOSIT DELAYS OR FAILURES, DATA LOSS, STATE INCONSISTENCIES, OR
+              OTHER DEFECTS THAT COULD RESULT IN THE PARTIAL OR TOTAL LOSS OF YOUR DIGITAL ASSETS.
+              YOU FURTHER ACKNOWLEDGE THAT THE ECONOMIC PARAMETERS, COLLATERAL REQUIREMENTS, FEE
+              STRUCTURES, AND RISK MODELS OF THE PROTOCOL MAY BE ADJUSTED, MIGRATED, OR REPLACED
+              DURING THE BETA PERIOD.
+            </p>
+            <p>
+              WE MAY MODIFY, PAUSE, RESTRICT, RESTART, MIGRATE, ROLL BACK, OR DISCONTINUE THE
+              PRODUCTS, THE INTERFACE, OR ANY FEATURE THEREOF AT ANY TIME, WITH OR WITHOUT NOTICE,
+              AND WITHOUT LIABILITY TO YOU. WE DO NOT GUARANTEE THE AVAILABILITY OR CONTINUED
+              OPERATION OF THE PRODUCTS, AND WE DO NOT GUARANTEE THAT YOU WILL BE ABLE TO ACCESS,
+              WITHDRAW, OR RECOVER ANY DIGITAL ASSETS AT ANY PARTICULAR TIME OR AT ALL.
+            </p>
+            <p className="font-semibold">
+              YOU SHOULD NOT DEPOSIT, RISK, OR EXPOSE TO THE PRODUCTS MORE VALUE THAN YOU CAN AFFORD
+              TO LOSE ENTIRELY. ALL DISCLAIMERS, RELEASES, INDEMNITIES, AND LIMITATIONS OF LIABILITY
+              IN THIS AGREEMENT APPLY WITH FULL FORCE TO ANY LOSSES ARISING FROM OR RELATING TO
+              BUGS, EXPLOITS, OR DEFECTS DURING THE BETA PERIOD, AND TO ANY MODIFICATION, PAUSE,
+              MIGRATION, OR DISCONTINUATION OF THE PRODUCTS OR PROTOCOL.
+            </p>
           </section>
 
           <section className="space-y-4 mt-8">
@@ -397,12 +545,16 @@ export default async function TermsPage({ params }: { params: Promise<{ locale: 
               regulation; (c) any other party&apos;s access and use of any of our Products with your
               assistance or using any device or account that you own or control; and (d) any dispute
               between you and (i) any other user of any of the Products or (ii) any of your own
-              customers or users. We will provide notice to you of any such claim, suit, or
-              proceeding. We reserve the right to assume the exclusive defense and control of any
-              matter which is subject to indemnification under this section, and you agree to
-              cooperate with any reasonable requests assisting our defense of such matter. You may
-              not settle or compromise any claim against any Isometric Party without our written
-              consent.
+              customers or users. We will make commercially reasonable efforts to provide notice to
+              you of any such claim, suit, or proceeding, provided that we have sufficient contact
+              information to do so; you acknowledge that, because the Products are accessed through
+              non-custodial wallets and we do not collect direct contact information from you, we
+              may be unable to provide such notice, and our inability to do so will not affect your
+              indemnification obligations under this Section. We reserve the right to assume the
+              exclusive defense and control of any matter which is subject to indemnification under
+              this section, and you agree to cooperate with any reasonable requests assisting our
+              defense of such matter. You may not settle or compromise any claim against any
+              Isometric Party without our written consent.
             </p>
           </section>
 
@@ -472,7 +624,11 @@ export default async function TermsPage({ params }: { params: Promise<{ locale: 
             <p>
               You agree that any legal action or proceeding relating to this Agreement or the
               Products shall be brought exclusively in the courts of the Republic of South Africa,
-              and you consent to the jurisdiction of such courts.
+              and you consent to the personal and exclusive jurisdiction of such courts. You and we
+              further agree that neither you nor we may bring any claim, dispute, or proceeding
+              arising out of or relating to this Agreement or the Products in any court located in
+              the United States of America, and each party irrevocably waives any objection that the
+              courts of the Republic of South Africa are an inconvenient forum.
             </p>
           </section>
 
@@ -521,6 +677,48 @@ export default async function TermsPage({ params }: { params: Promise<{ locale: 
               such provision will be changed and interpreted to accomplish the objectives of the
               provision to the greatest extent possible under any applicable law and the validity or
               enforceability of any other provision of this Agreement shall not be affected.
+            </p>
+
+            <h3 className="text-xl font-medium mt-6">9.6 Force Majeure</h3>
+            <p>
+              We will not be liable for any delay, interruption, or failure to perform any
+              obligation under this Agreement, or for any losses arising therefrom, due to causes
+              beyond our reasonable control, including without limitation acts of God, natural
+              disasters, pandemics, epidemics, war, terrorism, civil unrest, government action,
+              changes in applicable law or regulation, network or blockchain congestion, chain
+              reorganizations or forks, smart-contract failures, third-party service outages,
+              internet or telecommunications failures, power failures, denial-of-service or other
+              cyberattacks, supply-chain disruptions, or labor disputes.
+            </p>
+
+            <h3 className="text-xl font-medium mt-6">9.7 No Class Actions</h3>
+            <p>
+              To the fullest extent permitted by applicable law, you and Isometric agree that any
+              dispute, claim, or controversy arising out of or relating to this Agreement, the
+              Products, or the Protocol will be resolved on an individual basis, and you waive any
+              right to commence, participate in, or recover under any class, collective,
+              consolidated, or representative action against us. If a court or arbitral tribunal of
+              competent jurisdiction determines that this waiver is unenforceable as to a particular
+              claim, that claim (and only that claim) will be severed from this Section 9.7, and the
+              remainder of this Section and this Agreement will continue to apply.
+            </p>
+
+            <h3 className="text-xl font-medium mt-6">9.8 Survival</h3>
+            <p>
+              All provisions of this Agreement that by their nature should survive termination shall
+              survive, including without limitation Sections 3 (Intellectual Property), 4.6 (Release
+              of Claims), 4.7 (Restricted Persons and Jurisdictions), 4.8 (No Circumvention), 4.9
+              (Final and Binding Determinations), 5 (Disclaimers), 6 (Indemnification), 7
+              (Limitation of Liability), 8 (Governing Law and Dispute Resolution), and this Section
+              9.
+            </p>
+
+            <h3 className="text-xl font-medium mt-6">9.9 Limitation Period</h3>
+            <p>
+              Any claim or cause of action arising out of or relating to this Agreement, the
+              Products, or the Protocol must be filed within one (1) year after such claim or cause
+              of action arose, or it shall be permanently barred, except where a longer period is
+              required by applicable mandatory law that cannot be contractually shortened.
             </p>
           </section>
 

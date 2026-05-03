@@ -1,4 +1,4 @@
-import { Principal } from "@dfinity/principal";
+import { Principal } from "@icp-sdk/core/principal";
 import { beforeEach, describe, expect, test, vi } from "vitest";
 import { getHistoryByHash } from "./usecase";
 

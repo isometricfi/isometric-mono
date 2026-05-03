@@ -158,7 +158,7 @@ export async function reconcileTrackedWithdrawal(
 
     const txStatus = await getMempoolTxStatus(withdrawal.bitcoinTxid);
 
-    if (!txStatus || !txStatus.confirmed || txStatus.block_height === undefined) {
+    if (!txStatus?.confirmed || txStatus.block_height === undefined) {
       await repository.saveTrackedWithdrawal({
         ...baseUpdate,
         confirmations: 0,

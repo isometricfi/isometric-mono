@@ -227,9 +227,7 @@ export function OfferResultModal({
 
             <div className="text-center space-y-2">
               <h3 className="text-xl font-semibold">{tCommon("somethingWentWrong")}</h3>
-              <p className="text-sm text-destructive max-w-xs">
-                {errorMessage || tCommon("somethingWentWrong")}
-              </p>
+              {errorMessage && <p className="text-sm text-destructive max-w-xs">{errorMessage}</p>}
             </div>
 
             <div className="flex gap-3 w-full pt-2">

@@ -312,7 +312,7 @@ export function FlowOfferStatus({
                 icon: XCircle,
                 tone: "error",
                 title: tCommon("somethingWentWrong"),
-                description: errorMessage || tCommon("somethingWentWrong"),
+                description: errorMessage || undefined,
               }
             : null;
 

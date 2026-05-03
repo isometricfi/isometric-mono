@@ -6,6 +6,8 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { unwrapResult } from "@volumetric/canister-types";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { openOnboardingModal } from "@/components/wallet/OnboardingModal";
+import { signBitcoinPaymentMessage } from "@/lib/bitcoin/sign-payment-message";
+import { getNiceErrorMessage } from "@/lib/error-message";
 import { clearInviteCodeFromSession, readInviteCodeFromSession } from "@/lib/referrals/invite-code";
 import { validateInviteCode } from "@/lib/referrals/validate-invite-code";
 import { computeExpiresAtSeconds } from "@/lib/use-cases/_shared/wallet-proof";
@@ -76,9 +78,7 @@ export function useEnsureAccount() {
           expiresAtSeconds,
         ),
       );
-      const signature = await primaryWallet.signMessage(message, {
-        addressType: "payment",
-      });
+      const signature = await signBitcoinPaymentMessage(primaryWallet, message);
 
       if (!signature) {
         throw new Error("Signature declined");
@@ -100,7 +100,7 @@ export function useEnsureAccount() {
     },
     onError: (err) => {
       setStep("error");
-      setError(err instanceof Error ? err.message : "Failed to create account");
+      setError(getNiceErrorMessage(err));
     },
   });
 

@@ -26,7 +26,8 @@ import { PendingActivity } from "@/components/wallet/PendingActivity";
 import { WithdrawModal } from "@/components/wallet/WithdrawModal";
 import { useAccount, useModal, usePrices, useUpdateUsername } from "@/hooks";
 import { Link } from "@/i18n/routing";
-import { cn, formatBtcWithSymbolBigint, roundToN } from "@/lib/utils";
+import { getNiceErrorMessage } from "@/lib/error-message";
+import { cn, formatBtcWithSymbolBigint, formatUsd } from "@/lib/utils";
 import { Badge } from "../ui/badge";
 import { Skeleton } from "../ui/skeleton";
 
@@ -94,7 +95,7 @@ function AccountPanelContent({
 
   const btcPrice = priceData?.btc ?? 0;
   const availableBtc = Number(available) / 100_000_000;
-  const availableUsd = roundToN(availableBtc * btcPrice, 0);
+  const availableUsd = availableBtc * btcPrice;
 
   const connectedAddress = profile?.address ?? primaryWallet?.address ?? null;
   const addressLabel = connectedAddress ? shortenAddress(connectedAddress) : null;
@@ -196,7 +197,7 @@ function AccountPanelContent({
                   </div>
                   {!isLoadingBalance && availableUsd > 0 && (
                     <div className="text-muted-foreground text-sm bg-muted px-2 py-1 rounded-sm">
-                      ${availableUsd.toLocaleString()}
+                      ${formatUsd(availableUsd)}
                     </div>
                   )}
                 </div>
@@ -320,7 +321,7 @@ function AccountPanelContent({
 
               {updateUsername.isError && !updateUsername.isSuccess && (
                 <Badge variant="destructive" className="w-full">
-                  {updateUsername.error.message}
+                  {getNiceErrorMessage(updateUsername.error) ?? tCommon("somethingWentWrong")}
                 </Badge>
               )}
 

@@ -11,9 +11,9 @@ import { FlowStepper, type FlowStepperStep } from "@/components/options/MobileFl
 import { AlertDialog, AlertDialogContent, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Drawer, DrawerContent, DrawerTitle } from "@/components/ui/drawer";
-import { useAccount, useConfig, useWithdraw, type WithdrawStep } from "@/hooks";
+import { useAccount, useWithdraw, type WithdrawStep } from "@/hooks";
+import { getNiceErrorMessage } from "@/lib/error-message";
 import {
-  DEFAULT_MIN_WITHDRAW_SATS,
   formatBtcBigint,
   formatBtcWithSymbol,
   formatBtcWithSymbolBigint,
@@ -21,6 +21,8 @@ import {
 } from "@/lib/utils";
 import { Badge } from "../ui/badge";
 import { Skeleton } from "../ui/skeleton";
+
+const MIN_WITHDRAW_SATS = BigInt(50_100);
 
 export function WithdrawModal({
   open,
@@ -31,7 +33,6 @@ export function WithdrawModal({
 }) {
   const isMobile = useMediaQuery({ query: "(max-width: 768px)" });
   const { primaryWallet } = useDynamicContext();
-  const { data: config } = useConfig();
   const { data: accountData, isLoading: isAccountLoading } = useAccount();
   const withdraw = useWithdraw();
   const t = useTranslations("Withdraw");
@@ -45,7 +46,7 @@ export function WithdrawModal({
 
   const [amountBtc, setAmountBtc] = useState("");
 
-  const minWithdrawSats = BigInt(config?.minWithdrawAmountSats ?? DEFAULT_MIN_WITHDRAW_SATS);
+  const minWithdrawSats = MIN_WITHDRAW_SATS;
 
   const enteredAmountSats = useMemo(() => parseBtcToSatsBigint(amountBtc), [amountBtc]);
   const isBelowMinimum = enteredAmountSats < minWithdrawSats;
@@ -82,7 +83,7 @@ export function WithdrawModal({
     withdraw.reset();
   };
 
-  const errorMessage = withdraw.error?.message ?? t("failedToWithdraw");
+  const errorMessage = getNiceErrorMessage(withdraw.error) ?? undefined;
 
   const stages: Record<Exclude<WithdrawStep, "idle">, FlowStepperStep> = {
     signing: {

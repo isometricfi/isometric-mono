@@ -9,6 +9,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { NumberCarousel } from "@/components/ui/number-carousel";
 import { DepositModal } from "@/components/wallet/DepositModal";
+import { getNiceErrorMessage } from "@/lib/error-message";
+import { formatUsd } from "@/lib/utils";
 import { useCallWriteOptionFormModel } from "./_internal/use-call-write-option-form-model";
 import { CallWriteOptionSummary } from "./CallWriteOptionSummary";
 import { WriteEarningsSection } from "./WriteEarningsSection";
@@ -60,7 +62,7 @@ export function CallWriteOptionForm() {
                 values={strikeUsdValues}
                 value={selectedStrikeUsd}
                 onChange={handleStrikeUsdChange}
-                formatValue={(value) => `$${value.toLocaleString()}`}
+                formatValue={(value) => `$${formatUsd(value)}`}
               />
             </div>
           </div>
@@ -124,7 +126,7 @@ export function CallWriteOptionForm() {
           type="create"
           step={acceptOffer.step}
           offerId={acceptOffer.data?.offerId}
-          errorMessage={acceptOffer.error?.message}
+          errorMessage={getNiceErrorMessage(acceptOffer.error) ?? undefined}
         />
       </CardContent>
     </Card>

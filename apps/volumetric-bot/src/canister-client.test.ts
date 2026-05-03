@@ -6,7 +6,7 @@ const { actorCreateActorMock, fetchRootKeyMock, httpAgentCreateMock } = vi.hoist
   httpAgentCreateMock: vi.fn(),
 }));
 
-vi.mock("@dfinity/agent", () => ({
+vi.mock("@icp-sdk/core/agent", () => ({
   Actor: {
     createActor: actorCreateActorMock,
   },

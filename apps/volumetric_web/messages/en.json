@@ -5,7 +5,8 @@
     "portfolio": "Portfolio",
     "history": "History",
     "openApp": "Open App",
-    "connect": "Connect"
+    "connect": "Connect",
+    "beta": "Beta"
   },
   "Settings": {
     "title": "Settings",
@@ -73,7 +74,8 @@
     "signMessage": "Sign the message in your wallet to prove creation",
     "creating": "Creating account",
     "finalizing": "Finalizing account setup.",
-    "errorDescription": "Something went wrong. You can close this and try again by reconnecting."
+    "errorDescription": "Something went wrong. You can close this and try again by reconnecting.",
+    "termsAgreement": "By connecting, you agree to the <link>Terms of Service</link>."
   },
   "OfferResult": {
     "signOffer": "Sign offer",
@@ -184,6 +186,8 @@
     "fetchingInfo": "Fetching deposit information...",
     "requiresConfirmations": "Requires 4 confirmations",
     "minDeposit": "Minimum deposit: {amount}",
+    "minWithdrawNote": "Min withdraw: {amount}",
+    "recommendedDeposit": "Deposit at least {amount} to be above the withdraw min.",
     "depositAddressLabel": "Deposit address",
     "autoDetect": "We will automatically detect your deposit",
     "confirmInWallet": "Confirm in wallet",
@@ -284,7 +288,7 @@
     "btcNative": "On-chain",
     "openApp": "Open App",
     "instantSettlement": "Instant settlement",
-    "permissionless": "Permissionless",
+    "permissionless": "Non-custodial",
     "gettingStarted": "Getting Started",
     "threeStepsTitle": "Three steps to get started",
     "earn": "Earn",
@@ -334,11 +338,11 @@
     "problemTitleSub": "Custodial, gated, and built for pros.",
     "problem1Title": "They hold your BTC",
     "problem1Desc": "Coinbase, Binance, OKX. Your coins sit on their balance sheet. Their solvency is your exposure.",
-    "problem2Title": "KYC and geo-gates",
-    "problem2Desc": "Entire regions blocked by default. Where you can access, you hand over a passport to get in.",
+    "problem2Title": "Passports at the door",
+    "problem2Desc": "Hand over ID, proof of address, and a selfie before you can place a single order. Your trading history sits on someone else's server.",
     "problem3Title": "Built for pros",
     "problem3Desc": "Order books, option chains, margin modes, 50-ticker screens. Too much friction for anyone who isn't a full-time trader.",
-    "problemResolution": "Isometric puts Bitcoin options on-chain. Permissionless, non-custodial, and simple enough for anyone to use.",
+    "problemResolution": "Isometric puts Bitcoin options on-chain. Non-custodial, no KYC, and simple enough that you don't need to be a pro.",
     "teamEyebrow": "Who's building this",
     "teamTitle": "Built by Bitcoin natives.",
     "teamLukeRole": "Product Architecture at",

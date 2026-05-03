@@ -1,10 +1,10 @@
 use crate::common::{create_test_env, generate_wallet};
 use crate::helpers::{
     accept_offers, configure_test_ledger, create_account, create_offer, get_events_for_principal,
-    get_fee_recipient_ledger_balance, get_pending_settlements, get_settlement_status,
-    get_subaccount_ledger_balance, get_user_balance, mint_and_sync_balance, set_oracle_price,
-    settle_expired_options, settle_option_by_id, testing_set_option_expiry_seconds,
-    wait_for_settlement_terminal_status, whitelist_controller,
+    get_fee_recipient_ledger_balance, get_pending_settlements, get_platform_fees_collected_total,
+    get_settlement_status, get_subaccount_ledger_balance, get_user_balance, mint_and_sync_balance,
+    set_oracle_price, settle_expired_options, settle_option_by_id,
+    testing_set_option_expiry_seconds, wait_for_settlement_terminal_status, whitelist_controller,
 };
 use volumetric::auth::derive_subaccount;
 use volumetric::{AcceptOfferItem, EventData, EventType, SettlementStatus, TradeRole};
@@ -939,6 +939,133 @@ fn test_settling_already_settled_option_returns_idempotent_receipt() {
         latest_status,
         SettlementStatus::Succeeded { .. } | SettlementStatus::Failed { .. }
     ));
+}
+
+/// Given: an ITM settlement has already reached terminal WAL success
+/// When: settlement is requested again and the scheduler is ticked
+/// Then: balances, locks, platform fees, and ledger subaccounts do not change
+#[test]
+fn test_settlement_replay_after_terminal_success_preserves_balances_and_ledger() {
+    // given
+    let env = create_test_env();
+    whitelist_controller(&env);
+    configure_test_ledger(&env);
+
+    const WRITER_SEED: u64 = 31;
+    const BUYER_SEED: u64 = 32;
+    const STRIKE_BPS: u16 = 500;
+    const OPTION_ID: u64 = 1;
+    const TEST_SETTLEMENT_PRICE_CENTS: u64 = 12_345_678;
+
+    let writer_wallet = generate_wallet(WRITER_SEED);
+    let buyer_wallet = generate_wallet(BUYER_SEED);
+    let writer_profile = create_account(&env, &writer_wallet).expect("Writer account failed");
+    let buyer_profile = create_account(&env, &buyer_wallet).expect("Buyer account failed");
+
+    mint_and_sync_balance(&env, &writer_profile, QUANTITY_SATS).expect("Writer balance failed");
+    mint_and_sync_balance(&env, &buyer_profile, PREMIUM_SATS + ACCEPT_TRANSFER_FEES)
+        .expect("Buyer balance failed");
+
+    set_oracle_price(&env, ENTRY_PRICE_CENTS);
+    create_offer(
+        &env,
+        &writer_wallet,
+        QUANTITY_SATS,
+        STRIKE_BPS,
+        PREMIUM_BPS,
+        ONE_DAY_SECS,
+    )
+    .expect("Create offer failed");
+    accept_offers(
+        &env,
+        &buyer_wallet,
+        vec![AcceptOfferItem {
+            offer_id: FIRST_OFFER_ID,
+            quantity: QUANTITY_SATS,
+        }],
+    )
+    .expect("Accept offer failed");
+
+    let writer_subaccount = derive_subaccount(writer_profile.principal);
+    let buyer_subaccount = derive_subaccount(buyer_profile.principal);
+
+    set_oracle_price(&env, TEST_SETTLEMENT_PRICE_CENTS);
+    testing_set_option_expiry_seconds(&env, OPTION_ID, 0).expect("Set expiry failed");
+
+    let first_receipt = settle_option_by_id(&env, OPTION_ID).expect("first settlement failed");
+    let terminal_status = wait_for_settlement_terminal_status(&env, first_receipt.operation_id, 8)
+        .expect("Settlement status failed");
+    assert!(matches!(
+        terminal_status,
+        SettlementStatus::Succeeded { .. }
+    ));
+
+    let writer_balance_after_first =
+        get_user_balance(&env, &writer_wallet.address).expect("Writer balance failed");
+    let buyer_balance_after_first =
+        get_user_balance(&env, &buyer_wallet.address).expect("Buyer balance failed");
+    let writer_ledger_after_first =
+        get_subaccount_ledger_balance(&env, env.volumetric_canister, Some(writer_subaccount));
+    let buyer_ledger_after_first =
+        get_subaccount_ledger_balance(&env, env.volumetric_canister, Some(buyer_subaccount));
+    let fee_recipient_balance_after_first = get_fee_recipient_ledger_balance(&env);
+    let platform_fees_after_first = get_platform_fees_collected_total(&env);
+
+    assert_eq!(writer_balance_after_first.locked, 0);
+    assert_eq!(
+        writer_balance_after_first.available + writer_balance_after_first.locked,
+        writer_ledger_after_first
+    );
+    assert_eq!(
+        buyer_balance_after_first.available + buyer_balance_after_first.locked,
+        buyer_ledger_after_first
+    );
+
+    // when
+    let second_receipt = settle_option_by_id(&env, OPTION_ID).expect("second settlement failed");
+    for _attempt in 0..3 {
+        env.pic.tick();
+    }
+
+    // then
+    assert_eq!(second_receipt.operation_id, first_receipt.operation_id);
+    assert_eq!(get_pending_settlements(&env).len(), 0);
+
+    let writer_balance_after_replay =
+        get_user_balance(&env, &writer_wallet.address).expect("Writer balance failed");
+    let buyer_balance_after_replay =
+        get_user_balance(&env, &buyer_wallet.address).expect("Buyer balance failed");
+    let writer_ledger_after_replay =
+        get_subaccount_ledger_balance(&env, env.volumetric_canister, Some(writer_subaccount));
+    let buyer_ledger_after_replay =
+        get_subaccount_ledger_balance(&env, env.volumetric_canister, Some(buyer_subaccount));
+
+    assert_eq!(
+        writer_balance_after_replay.available,
+        writer_balance_after_first.available
+    );
+    assert_eq!(
+        writer_balance_after_replay.locked,
+        writer_balance_after_first.locked
+    );
+    assert_eq!(
+        buyer_balance_after_replay.available,
+        buyer_balance_after_first.available
+    );
+    assert_eq!(
+        buyer_balance_after_replay.locked,
+        buyer_balance_after_first.locked
+    );
+    assert_eq!(writer_ledger_after_replay, writer_ledger_after_first);
+    assert_eq!(buyer_ledger_after_replay, buyer_ledger_after_first);
+    assert_eq!(
+        get_fee_recipient_ledger_balance(&env),
+        fee_recipient_balance_after_first
+    );
+    assert_eq!(
+        get_platform_fees_collected_total(&env),
+        platform_fees_after_first
+    );
 }
 
 /// Given: identical single-option setups with ITM settlement

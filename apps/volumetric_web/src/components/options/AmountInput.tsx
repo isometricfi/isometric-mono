@@ -4,8 +4,7 @@ import { useTranslations } from "next-intl";
 import type { ChangeEvent } from "react";
 import { usePrices } from "@/hooks";
 import { sanitizeBtcInput } from "@/lib/options-form";
-import { formatBtcWithSymbol } from "@/lib/utils";
-import { SlidingNumber } from "../ui/sliding-number";
+import { formatBtcWithSymbol, formatUsd } from "@/lib/utils";
 
 export interface AmountInputProps {
   value: string; // BTC string for display/input
@@ -40,7 +39,7 @@ export function AmountInput({
   const showMax = maxAmountSats !== undefined && onMaxClick !== undefined;
 
   const amountBtc = parseFloat(value) || 0;
-  const amountUsd = Math.round(amountBtc * btcPrice);
+  const amountUsd = amountBtc * btcPrice;
 
   return (
     <div className="space-y-2">
@@ -69,9 +68,8 @@ export function AmountInput({
           className="w-full py-3 pl-10 pr-4 bg-secondary/50 rounded-md text-base md:text-sm font-medium placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
         />
 
-        <div className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground text-sm bg-muted px-2 py-1 rounded-sm flex items-center">
-          $
-          <SlidingNumber value={amountUsd} />
+        <div className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground text-sm bg-muted px-2 py-1 rounded-sm flex items-center tabular-nums">
+          ${formatUsd(amountUsd)}
         </div>
       </div>
     </div>
