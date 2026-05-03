@@ -211,7 +211,9 @@ fn prepare_settlement_execution(
         .quantity
         .saturating_sub(buyer_payout_before_profit_fee_sats);
     let transfer_fee_sats = if buyer_payout_before_profit_fee_sats > 0 {
-        ledger::get_cached_icrc1_transfer_fee_sats_for_sync_flow()?
+        ledger::get_cached_icrc1_transfer_fee_sats_for_sync_flow(
+            ledger::TransferFeeCacheStalePolicy::AllowDefaultFallbackUntilFresh,
+        )?
     } else {
         0
     };
@@ -1390,7 +1392,7 @@ mod tests {
 
     /// Given: a valid expired in-the-money option with a stale ckBTC transfer fee cache
     /// When: settle_option_by_id_use_case is called
-    /// Then: the fallback transfer fee applies and settlement is enqueued
+    /// Then: settlement uses the default fallback fee (sync withdraw/accept paths stay strict)
     #[tokio::test]
     async fn test_settle_option_by_id_uses_fee_fallback_when_transfer_fee_cache_is_stale() {
         // given

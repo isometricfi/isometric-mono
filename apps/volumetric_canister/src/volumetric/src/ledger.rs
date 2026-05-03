@@ -23,6 +23,14 @@ const DEFAULT_FALLBACK_TRANSFER_FEE_SATS: u64 = 10;
 #[cfg(any(test, feature = "testing"))]
 pub const TESTING_CKBTC_TRANSFER_FEE_SATS: u64 = 10;
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum TransferFeeCacheStalePolicy {
+    /// User-initiated flows (accept, withdraw): fail closed until the cache reflects a fresh ledger read.
+    RejectUntilFresh,
+    /// Settlement cron: do not skip an hourly pass when the cache is cold; use a conservative default until refresh completes.
+    AllowDefaultFallbackUntilFresh,
+}
+
 /// ckBTC withdrawal uses `icrc2_approve` then a minter-triggered `transfer_from`; each charges
 /// one `icrc1_fee` from the user's subaccount balance.
 pub const CKBTC_WITHDRAW_ICRC2_LEDGER_FEE_CHARGE_COUNT: u64 = 2;
@@ -230,18 +238,29 @@ pub async fn icrc2_approve(args: ApproveArgs) -> Result<Nat, VolumetricError> {
     ledger.icrc2_approve(args).await
 }
 
-pub fn get_cached_icrc1_transfer_fee_sats_for_sync_flow() -> Result<u64, VolumetricError> {
+pub fn get_cached_icrc1_transfer_fee_sats_for_sync_flow(
+    stale_policy: TransferFeeCacheStalePolicy,
+) -> Result<u64, VolumetricError> {
     let now_seconds = current_time_seconds();
     if let Some(fee_sats) = load_fresh_transfer_fee_sats(now_seconds) {
         return Ok(fee_sats);
     }
 
     schedule_transfer_fee_refresh_if_idle();
-    ic::log(&format!(
-        "warn: ckbtc transfer fee cache stale; falling back to {} sats",
-        DEFAULT_FALLBACK_TRANSFER_FEE_SATS
-    ));
-    Ok(DEFAULT_FALLBACK_TRANSFER_FEE_SATS)
+    match stale_policy {
+        TransferFeeCacheStalePolicy::RejectUntilFresh => Err(VolumetricError::from_def(
+            error_codes::CONFIG_ERROR,
+            Some("ckbtc transfer fee cache stale; retry shortly"),
+            None,
+        )),
+        TransferFeeCacheStalePolicy::AllowDefaultFallbackUntilFresh => {
+            ic::log(&format!(
+                "warn: ckbtc transfer fee cache stale; settlement using fallback {} sats until refreshed",
+                DEFAULT_FALLBACK_TRANSFER_FEE_SATS
+            ));
+            Ok(DEFAULT_FALLBACK_TRANSFER_FEE_SATS)
+        }
+    }
 }
 
 pub fn withdraw_ckbtc_ledger_fee_reserve_sats_for_transfer_fee(transfer_fee_sats: u64) -> u64 {
@@ -477,14 +496,16 @@ mod tests {
         set_cached_transfer_fee_for_testing(TEST_FEE_10_SATS, TEST_NOW_SECONDS - 1);
 
         // when
-        let fee_result = get_cached_icrc1_transfer_fee_sats_for_sync_flow();
+        let fee_result = get_cached_icrc1_transfer_fee_sats_for_sync_flow(
+            TransferFeeCacheStalePolicy::RejectUntilFresh,
+        );
 
         // then
         assert_eq!(fee_result.expect("fee should be fresh"), TEST_FEE_10_SATS);
     }
 
     #[test]
-    fn test_get_cached_fee_returns_fallback_when_cache_missing() {
+    fn test_get_cached_fee_returns_stale_error_when_cache_missing() {
         // given
         clear_cached_transfer_fee_for_testing();
         ic::set_runtime(Box::new(MockRuntime {
@@ -492,11 +513,31 @@ mod tests {
         }));
 
         // when
-        let fee_result = get_cached_icrc1_transfer_fee_sats_for_sync_flow();
+        let fee_result = get_cached_icrc1_transfer_fee_sats_for_sync_flow(
+            TransferFeeCacheStalePolicy::RejectUntilFresh,
+        );
+
+        // then
+        let stale_error = fee_result.expect_err("missing cache should be stale for strict policy");
+        assert_eq!(stale_error.code, error_codes::CONFIG_ERROR.code);
+    }
+
+    #[test]
+    fn test_get_cached_fee_returns_settlement_fallback_when_cache_missing() {
+        // given
+        clear_cached_transfer_fee_for_testing();
+        ic::set_runtime(Box::new(MockRuntime {
+            now_ns: TEST_NOW_NS,
+        }));
+
+        // when
+        let fee_result = get_cached_icrc1_transfer_fee_sats_for_sync_flow(
+            TransferFeeCacheStalePolicy::AllowDefaultFallbackUntilFresh,
+        );
 
         // then
         assert_eq!(
-            fee_result.expect("missing cache should fall back"),
+            fee_result.expect("settlement should use fallback when cache missing"),
             DEFAULT_FALLBACK_TRANSFER_FEE_SATS
         );
     }
@@ -517,7 +558,9 @@ mod tests {
         );
 
         // when
-        let fee_result = get_cached_icrc1_transfer_fee_sats_for_sync_flow();
+        let fee_result = get_cached_icrc1_transfer_fee_sats_for_sync_flow(
+            TransferFeeCacheStalePolicy::RejectUntilFresh,
+        );
 
         // then
         assert_eq!(
@@ -527,10 +570,35 @@ mod tests {
     }
 
     /// Given: a cached transfer fee older than TTL by one nanosecond
-    /// When: reading the transfer fee from the sync flow accessor
-    /// Then: the fallback transfer fee is returned
+    /// When: reading with strict stale policy
+    /// Then: the cache entry is rejected as stale
     #[test]
-    fn test_get_cached_fee_returns_fallback_when_value_older_than_ttl() {
+    fn test_get_cached_fee_rejects_value_older_than_ttl_for_strict_policy() {
+        // given
+        clear_cached_transfer_fee_for_testing();
+        ic::set_runtime(Box::new(MockRuntime {
+            now_ns: TEST_NOW_NS,
+        }));
+        set_cached_transfer_fee_for_testing(
+            TEST_FEE_10_SATS,
+            TEST_NOW_SECONDS - TRANSFER_FEE_CACHE_TTL_90_SECONDS - 1,
+        );
+
+        // when
+        let fee_result = get_cached_icrc1_transfer_fee_sats_for_sync_flow(
+            TransferFeeCacheStalePolicy::RejectUntilFresh,
+        );
+
+        // then
+        let stale_error = fee_result.expect_err("fee older than TTL should be stale");
+        assert_eq!(stale_error.code, error_codes::CONFIG_ERROR.code);
+    }
+
+    /// Given: a cached transfer fee older than TTL by one nanosecond
+    /// When: reading with settlement stale policy
+    /// Then: the default fallback fee is returned
+    #[test]
+    fn test_get_cached_fee_returns_settlement_fallback_when_value_older_than_ttl() {
         // given
         clear_cached_transfer_fee_for_testing();
         ic::set_runtime(Box::new(MockRuntime {
@@ -542,11 +610,13 @@ mod tests {
         );
 
         // when
-        let fee_result = get_cached_icrc1_transfer_fee_sats_for_sync_flow();
+        let fee_result = get_cached_icrc1_transfer_fee_sats_for_sync_flow(
+            TransferFeeCacheStalePolicy::AllowDefaultFallbackUntilFresh,
+        );
 
         // then
         assert_eq!(
-            fee_result.expect("stale fee should fall back"),
+            fee_result.expect("settlement stale read should fall back"),
             DEFAULT_FALLBACK_TRANSFER_FEE_SATS
         );
     }
@@ -563,7 +633,9 @@ mod tests {
 
         // when
         let refresh_result = refresh_transfer_fee_cache().await;
-        let cached_fee_result = get_cached_icrc1_transfer_fee_sats_for_sync_flow();
+        let cached_fee_result = get_cached_icrc1_transfer_fee_sats_for_sync_flow(
+            TransferFeeCacheStalePolicy::RejectUntilFresh,
+        );
 
         // then
         assert_eq!(
@@ -665,14 +737,21 @@ mod tests {
         set_ledger(mock_ledger);
 
         // when
-        let stale_result = get_cached_icrc1_transfer_fee_sats_for_sync_flow();
+        let stale_result = get_cached_icrc1_transfer_fee_sats_for_sync_flow(
+            TransferFeeCacheStalePolicy::RejectUntilFresh,
+        );
         refresh_transfer_fee_cache_if_idle().await;
-        let refreshed_result = get_cached_icrc1_transfer_fee_sats_for_sync_flow();
+        let refreshed_result = get_cached_icrc1_transfer_fee_sats_for_sync_flow(
+            TransferFeeCacheStalePolicy::RejectUntilFresh,
+        );
 
         // then
+        assert!(stale_result.is_err());
         assert_eq!(
-            stale_result.expect("stale read should fall back"),
-            DEFAULT_FALLBACK_TRANSFER_FEE_SATS
+            stale_result
+                .expect_err("stale strict read should reject")
+                .code,
+            error_codes::CONFIG_ERROR.code
         );
         assert_eq!(
             refreshed_result.expect("fee should be refreshed"),

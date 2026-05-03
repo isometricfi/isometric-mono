@@ -242,7 +242,9 @@ fn validate_gross_ckbtc_withdraw_or_reject(
     principal: Principal,
     gross_withdraw_amount_sats: u64,
 ) -> Result<u64, VolumetricError> {
-    let transfer_fee_sats = ledger::get_cached_icrc1_transfer_fee_sats_for_sync_flow()?;
+    let transfer_fee_sats = ledger::get_cached_icrc1_transfer_fee_sats_for_sync_flow(
+        ledger::TransferFeeCacheStalePolicy::RejectUntilFresh,
+    )?;
     let ledger_fee_reserve_sats =
         ledger::withdraw_ckbtc_ledger_fee_reserve_sats_for_transfer_fee(transfer_fee_sats);
     let minimum_net_withdraw_amount_sats = Config::trading_limits().withdraw_amount_sats;
@@ -971,9 +973,9 @@ mod tests {
 
     /// Given: the transfer-fee cache is stale
     /// When: withdraw_ckbtc_use_case is called
-    /// Then: the fallback transfer fee is used and the withdrawal is enqueued
+    /// Then: it rejects with CONFIG_ERROR before debiting balance
     #[tokio::test]
-    async fn test_withdraw_uses_fee_fallback_when_transfer_fee_cache_is_stale() {
+    async fn test_withdraw_rejects_when_transfer_fee_cache_is_stale() {
         // given
         setup_success();
         let principal = test_principal();
@@ -981,11 +983,13 @@ mod tests {
         ledger::set_cached_transfer_fee_for_testing(TEST_TRANSFER_FEE_SATS, 0);
 
         // when
-        let receipt = withdraw_ckbtc_use_case(principal, withdraw_params(), 22)
-            .expect("stale fee cache should fall back and enqueue");
+        let result = withdraw_ckbtc_use_case(principal, withdraw_params(), 22);
 
         // then
-        assert_eq!(receipt.withdrawal_id, 1);
+        let error = result.expect_err("withdraw should reject stale fee cache");
+        assert_eq!(error.code, error_codes::CONFIG_ERROR.code);
+        let balance = get_balance(&principal);
+        assert_eq!(balance.available, INITIAL_BALANCE_SATS);
     }
 
     /// Given: ledger approve fails before ckBTC charges an approval fee

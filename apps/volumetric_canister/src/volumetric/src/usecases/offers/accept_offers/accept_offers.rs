@@ -60,7 +60,9 @@ pub fn accept_offers_use_case(
     accept_offer_items: Vec<AcceptOfferItem>,
     request_nonce: u64,
 ) -> Result<AcceptOffersReceipt, VolumetricError> {
-    let transfer_fee_sats = ledger::get_cached_icrc1_transfer_fee_sats_for_sync_flow()?;
+    let transfer_fee_sats = ledger::get_cached_icrc1_transfer_fee_sats_for_sync_flow(
+        ledger::TransferFeeCacheStalePolicy::RejectUntilFresh,
+    )?;
     let _buyer_balance_mutation_lock = BalanceMutationLock::new(buyer_principal)?;
     validate_accept_request(&accept_offer_items)?;
 
