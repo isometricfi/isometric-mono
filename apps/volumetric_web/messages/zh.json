@@ -73,7 +73,8 @@
     "signMessage": "在您的钱包中签署消息以证明创建",
     "creating": "正在创建账户",
     "finalizing": "正在完成账户设置。",
-    "errorDescription": "出错了。您可以关闭此窗口，然后通过重新连接重试。"
+    "errorDescription": "出错了。您可以关闭此窗口，然后通过重新连接重试。",
+    "termsAgreement": "连接即表示您同意<link>服务条款</link>。"
   },
   "OfferResult": {
     "signOffer": "签署报价",
@@ -282,7 +283,7 @@
     "leverageDescription": "选择价格和时间。若到期前BTC越过你的目标价，头寸即获利。最高100倍杠杆。",
     "btcNative": "原生比特币",
     "instantSettlement": "即时结算",
-    "permissionless": "无需许可",
+    "permissionless": "非托管",
     "gettingStarted": "入门指南",
     "threeStepsTitle": "三步即可开始",
     "earn": "赚取",
@@ -332,11 +333,11 @@
     "problemTitleSub": "托管式、受限、为专业人士设计。",
     "problem1Title": "他们持有你的 BTC",
     "problem1Desc": "Deribit、Binance、OKX——你的币都在他们的资产负债表上。他们的偿付能力就是你的风险敞口。",
-    "problem2Title": "KYC 与地域限制",
-    "problem2Desc": "整片地区被默认封锁。即便可以访问，也得交出护照才能进入。",
+    "problem2Title": "门口查证件",
+    "problem2Desc": "下单之前先交出身份证、地址证明和自拍验证。你的交易记录还存在别人的服务器上。",
     "problem3Title": "为专业人士而建",
     "problem3Desc": "订单簿、期权链、保证金模式、几十个标的界面。对非全职交易者来说摩擦太大。",
-    "problemResolution": "Isometric 将比特币期权搬上链上。无需许可、非托管，一分钟内即可上手。",
+    "problemResolution": "Isometric 将比特币期权搬上链上。非托管，无 KYC，简单到不必是专业交易员也能上手。",
     "teamEyebrow": "谁在构建",
     "teamTitle": "由两位工程师打造。",
     "teamLukeRole": "产品架构负责人 ·",
