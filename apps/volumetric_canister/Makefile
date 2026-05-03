@@ -10,6 +10,9 @@ TARGET ?= local
 ifeq ($(TARGET),prod)
     CANISTER = volumetric_prod
     NETWORK = ic
+else ifeq ($(TARGET),stage)
+    CANISTER = volumetric_stage
+    NETWORK = ic
 else ifeq ($(TARGET),dev)
     CANISTER = volumetric_dev
     NETWORK = ic
@@ -17,7 +20,7 @@ else ifeq ($(TARGET),local)
     CANISTER = volumetric_dev
     NETWORK = local
 else
-    $(error Unknown TARGET "$(TARGET)". Use: dev, prod, or local)
+    $(error Unknown TARGET "$(TARGET)". Use: dev, stage, prod, or local)
 endif
 
 DOCKER_IMAGE := volumetric-canister
@@ -138,7 +141,7 @@ test-integration-fast: build
 	cd src/volumetric && cargo test --test 'integration_*' --features testing -- --test-threads=1
 
 help:
-	@echo "Usage: make <target> [TARGET=dev|prod|local]"
+	@echo "Usage: make <target> [TARGET=dev|stage|prod|local]"
 	@echo ""
 	@echo "Targets:"
 	@echo "  build           - Build locally (fast, outputs volumetric.wasm)"
@@ -165,6 +168,7 @@ help:
 	@echo "  make build                # Build locally"
 	@echo "  make release              # Build reproducible wasm"
 	@echo "  make deploy TARGET=dev    # Deploy to dev"
+	@echo "  make deploy TARGET=stage  # Deploy to mainnet stage"
 	@echo "  make deploy TARGET=local  # Deploy to local replica"
 	@echo "  make status TARGET=dev    # Check cycles/controllers/freeze threshold"
 	@echo "  make set-backup-controller TARGET=dev BACKUP_CONTROLLER=aaaaa-aa"
