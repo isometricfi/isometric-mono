@@ -59,13 +59,13 @@
     "framer-motion": "^12.38.0",
     "lucide-react": "^0.556.0",
     "motion": "^12.38.0",
-    "next": "16.0.10",
+    "next": "16.2.4",
     "next-intl": "^4.7.0",
     "next-themes": "^0.4.6",
     "radix-ui": "^1.4.3",
-    "react": "19.2.0",
+    "react": "19.2.5",
     "react-day-picker": "^9.13.0",
-    "react-dom": "19.2.0",
+    "react-dom": "19.2.5",
     "react-qr-code": "^2.0.18",
     "react-responsive": "^10.0.1",
     "react-use-measure": "^2.1.7",
@@ -80,8 +80,8 @@
     "zustand": "^5.0.9"
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "^4.20260103.0",
-    "@opennextjs/cloudflare": "^1.14.7",
+    "@cloudflare/workers-types": "^4.20260503.1",
+    "@opennextjs/cloudflare": "^1.19.5",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
@@ -95,6 +95,6 @@
     "typescript": "^5",
     "vite-tsconfig-paths": "^6.1.0",
     "vitest": "^4.0.18",
-    "wrangler": "^4.54.0"
+    "wrangler": "^4.87.0"
   }
 }
