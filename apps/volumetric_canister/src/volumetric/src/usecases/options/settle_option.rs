@@ -345,6 +345,7 @@ pub async fn run_settlement_wal(
                 subaccount: Some(buyer_subaccount),
             },
             buyer_payout_after_profit_fee_sats,
+            transfer_fee_sats,
             payload.created_at_time_ns,
             Some(ledger_memo(
                 operation_id,
@@ -397,6 +398,7 @@ pub async fn run_settlement_wal(
                     subaccount: None,
                 },
                 profit_fee_sats,
+                transfer_fee_sats,
                 payload.created_at_time_ns,
                 Some(ledger_memo(
                     operation_id,
@@ -869,6 +871,7 @@ mod tests {
             _from_subaccount: Option<[u8; 32]>,
             _to: Account,
             _amount: u64,
+            _expected_fee_sats: u64,
             _created_at_time: u64,
             _memo: Option<Memo>,
         ) -> Result<u64, VolumetricError> {
@@ -923,6 +926,7 @@ mod tests {
             _from_subaccount: Option<[u8; 32]>,
             _to: Account,
             _amount: u64,
+            _expected_fee_sats: u64,
             _created_at_time: u64,
             _memo: Option<Memo>,
         ) -> Result<u64, VolumetricError> {
@@ -965,6 +969,7 @@ mod tests {
             _from_subaccount: Option<[u8; 32]>,
             _to: Account,
             _amount: u64,
+            _expected_fee_sats: u64,
             _created_at_time: u64,
             _memo: Option<Memo>,
         ) -> Result<u64, VolumetricError> {
@@ -1060,6 +1065,7 @@ mod tests {
             from_subaccount: Option<[u8; 32]>,
             to: Account,
             amount: u64,
+            _expected_fee_sats: u64,
             created_at_time: u64,
             memo: Option<Memo>,
         ) -> Result<u64, VolumetricError> {
@@ -1094,6 +1100,7 @@ mod tests {
             _from_subaccount: Option<[u8; 32]>,
             _to: Account,
             _amount: u64,
+            _expected_fee_sats: u64,
             _created_at_time: u64,
             memo: Option<Memo>,
         ) -> Result<u64, VolumetricError> {
@@ -1170,6 +1177,7 @@ mod tests {
             _from_subaccount: Option<[u8; 32]>,
             _to: Account,
             _amount: u64,
+            _expected_fee_sats: u64,
             _created_at_time: u64,
             _memo: Option<Memo>,
         ) -> Result<u64, VolumetricError> {
@@ -1931,6 +1939,7 @@ mod tests {
             from_subaccount: Option<[u8; 32]>,
             to: Account,
             amount: u64,
+            _expected_fee_sats: u64,
             _created_at_time: u64,
             _memo: Option<Memo>,
         ) -> Result<u64, VolumetricError> {
@@ -1975,6 +1984,7 @@ mod tests {
             from_subaccount: Option<[u8; 32]>,
             to: Account,
             amount: u64,
+            _expected_fee_sats: u64,
             created_at_time: u64,
             memo: Option<Memo>,
         ) -> Result<u64, VolumetricError> {
