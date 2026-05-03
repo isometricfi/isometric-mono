@@ -70,12 +70,21 @@ export function AccountCreationModal({
     <>
       <div className="px-5 pt-8 pb-6">{stage && <FlowStepper step={stage} />}</div>
       {step === "awaiting_signature" && (
-        <div className="px-5 pb-5">
+        <div className="p-3 bg-muted-foreground/20 mb-2 mx-2 rounded-md -mt-2">
           <p className="text-center text-sm text-foreground/80">
             {t.rich("AccountCreation.termsAgreement", {
               link: (chunks) => (
                 <Link
                   href={LEGAL_LINKS.terms}
+                  target="_blank"
+                  className="font-semibold text-primary underline underline-offset-2 hover:text-primary/80"
+                >
+                  {chunks}
+                </Link>
+              ),
+              privacy: (chunks) => (
+                <Link
+                  href={LEGAL_LINKS.privacy}
                   target="_blank"
                   className="font-semibold text-primary underline underline-offset-2 hover:text-primary/80"
                 >
@@ -113,7 +122,10 @@ export function AccountCreationModal({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent showCloseButton={showClose} className="sm:max-w-md p-0 gap-0 overflow-hidden">
+      <DialogContent
+        showCloseButton={showClose}
+        className="sm:max-w-md p-0 gap-0 overflow-hidden min-h-[400px]"
+      >
         <DialogTitle className="sr-only">{t("AccountCreation.title")}</DialogTitle>
         {body}
       </DialogContent>

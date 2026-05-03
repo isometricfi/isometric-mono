@@ -57,7 +57,7 @@ export function WithdrawModal({
     if (sats > BigInt(availableSats)) return false;
     if (!destinationAddress) return false;
     return true;
-  }, [amountBtc, minWithdrawSats, availableSats, destinationAddress]);
+  }, [amountBtc, availableSats, destinationAddress]);
 
   const step: WithdrawStep = withdraw.step;
   const isProcessing = step === "signing" || step === "submitting";
