@@ -237,7 +237,10 @@ pub fn get_cached_icrc1_transfer_fee_sats_for_sync_flow() -> Result<u64, Volumet
     }
 
     schedule_transfer_fee_refresh_if_idle();
-    ic::log("warn: ckbtc transfer fee cache stale; falling back to 10 sats");
+    ic::log(&format!(
+        "warn: ckbtc transfer fee cache stale; falling back to {} sats",
+        DEFAULT_FALLBACK_TRANSFER_FEE_SATS
+    ));
     Ok(DEFAULT_FALLBACK_TRANSFER_FEE_SATS)
 }
 
