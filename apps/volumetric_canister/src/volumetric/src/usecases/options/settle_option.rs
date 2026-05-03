@@ -211,7 +211,9 @@ fn prepare_settlement_execution(
         .quantity
         .saturating_sub(buyer_payout_before_profit_fee_sats);
     let transfer_fee_sats = if buyer_payout_before_profit_fee_sats > 0 {
-        ledger::get_cached_icrc1_transfer_fee_sats_for_sync_flow()?
+        ledger::get_cached_icrc1_transfer_fee_sats_for_sync_flow(
+            ledger::TransferFeeCacheStalePolicy::AllowDefaultFallbackUntilFresh,
+        )?
     } else {
         0
     };
@@ -1390,9 +1392,9 @@ mod tests {
 
     /// Given: a valid expired in-the-money option with a stale ckBTC transfer fee cache
     /// When: settle_option_by_id_use_case is called
-    /// Then: it rejects before marking the option as settling so the option can be retried
+    /// Then: settlement uses the default fallback fee (sync withdraw/accept paths stay strict)
     #[tokio::test]
-    async fn test_settle_option_by_id_releases_option_status_when_fee_cache_is_stale() {
+    async fn test_settle_option_by_id_uses_fee_fallback_when_transfer_fee_cache_is_stale() {
         // given
         const STALE_TRANSFER_FEE_FETCHED_AT_SECONDS: u64 = TEST_NOW_SECONDS - 91;
         let writer = test_principal(31);
@@ -1402,18 +1404,38 @@ mod tests {
         ledger::set_cached_transfer_fee_for_testing(10, STALE_TRANSFER_FEE_FETCHED_AT_SECONDS);
 
         // when
-        let result = settle_option_by_id_use_case(TEST_OPTION_ID).await;
+        let receipt = settle_option_by_id_use_case(TEST_OPTION_ID)
+            .await
+            .expect("stale fee cache should fall back and enqueue settlement");
 
         // then
-        let error = result.expect_err("stale fee cache should reject settlement");
-        assert_eq!(error.code, error_codes::CONFIG_ERROR.code);
+        assert_eq!(receipt.option_id, TEST_OPTION_ID);
+        let wal_entry = get_entry(receipt.operation_id).expect("wal entry should exist");
+        let WalPayload::Settlement(settlement_payload) = wal_entry.payload else {
+            panic!("settlement WAL entry should contain settlement payload");
+        };
+        assert_eq!(
+            settlement_payload.transfer_fee_sats,
+            ledger::TESTING_CKBTC_TRANSFER_FEE_SATS
+        );
 
         let option = get_active_option(TEST_OPTION_ID).expect("option should remain in storage");
-        assert_eq!(option.status, ActiveOptionStatus::Active);
+        assert_eq!(option.status, ActiveOptionStatus::Settling);
 
-        let retry_result = settle_option_by_id_use_case(TEST_OPTION_ID).await;
-        let retry_error = retry_result.expect_err("stale fee cache should still reject retry");
-        assert_eq!(retry_error.code, error_codes::CONFIG_ERROR.code);
+        let status = get_settlement_status_use_case(receipt.operation_id)
+            .expect("status should load for enqueued settlement");
+        match status {
+            SettlementStatus::Pending {
+                receipt: status_receipt,
+                phase,
+                last_error,
+            } => {
+                assert_eq!(status_receipt.option_id, TEST_OPTION_ID);
+                assert_eq!(phase, SettlementPhase::Started);
+                assert_eq!(last_error, None);
+            }
+            _ => panic!("settlement should be pending before WAL execution"),
+        }
     }
 
     /// Given: a valid expired option and a deterministic oracle that records requested times
