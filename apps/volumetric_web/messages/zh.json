@@ -207,7 +207,9 @@
     "withdrawalSubmitted": "已发送至比特币网络",
     "btcOnWay": "您的 BTC 正在发送到您的钱包",
     "arrivesInMinutes": "请在您的钱包中跟踪确认",
-    "failedToWithdraw": "提取失败"
+    "failedToWithdraw": "提取失败",
+    "withdrawFee": "提取手续费",
+    "balanceTooLowForFees": "您至少需要 {amount} 来支付提取手续费"
   },
   "PendingWithdrawals": {
     "pending": "提取中",

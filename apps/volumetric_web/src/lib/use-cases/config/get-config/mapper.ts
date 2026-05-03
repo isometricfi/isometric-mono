@@ -38,7 +38,11 @@ function mapFeeConfig(rawFeeConfig: unknown): FeeConfig {
   };
 }
 
-export function mapConfig(rawLimits: unknown, rawFeeConfig: unknown): ConfigData {
+export function mapConfig(
+  rawLimits: unknown,
+  rawFeeConfig: unknown,
+  ckbtcTransferFeeSats: bigint,
+): ConfigData {
   const limits = TradingLimitsSchema.parse(rawLimits);
 
   const minDurationSecondsBn = limits.option_duration_seconds.min;
@@ -69,6 +73,7 @@ export function mapConfig(rawLimits: unknown, rawFeeConfig: unknown): ConfigData
     maxAcceptOfferAmountSats: Number(limits.accept_offer_quantity_sats.max),
     minDepositAmountSats: Number(limits.deposit_amount_sats),
     minWithdrawAmountSats: Number(limits.withdraw_amount_sats),
+    ckbtcTransferFeeSats: Number(ckbtcTransferFeeSats),
     minTermDays,
     maxTermDays,
     fees: mapFeeConfig(rawFeeConfig),

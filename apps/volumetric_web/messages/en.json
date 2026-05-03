@@ -209,7 +209,9 @@
     "withdrawalSubmitted": "Sent to Bitcoin network",
     "btcOnWay": "Your BTC is on its way to your wallet",
     "arrivesInMinutes": "Track confirmations from your wallet",
-    "failedToWithdraw": "Failed to withdraw"
+    "failedToWithdraw": "Failed to withdraw",
+    "withdrawFee": "Withdraw fee",
+    "balanceTooLowForFees": "You need at least {amount} to cover withdrawal fees"
   },
   "PendingWithdrawals": {
     "pending": "withdrawing",

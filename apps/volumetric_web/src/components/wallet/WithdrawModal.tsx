@@ -47,6 +47,10 @@ export function WithdrawModal({
   const [amountBtc, setAmountBtc] = useState("");
 
   const minWithdrawSats = BigInt(config?.minWithdrawAmountSats ?? DEFAULT_MIN_WITHDRAW_SATS);
+  const ledgerFeeReserveSats = BigInt(config?.ckbtcTransferFeeSats ?? 10) * BigInt(2);
+  const maxNetWithdrawSats =
+    availableSats > ledgerFeeReserveSats ? availableSats - ledgerFeeReserveSats : BigInt(0);
+  const balanceCoversFees = availableSats >= minWithdrawSats + ledgerFeeReserveSats;
 
   const enteredAmountSats = useMemo(() => parseBtcToSatsBigint(amountBtc), [amountBtc]);
   const isBelowMinimum = enteredAmountSats < minWithdrawSats;
@@ -54,10 +58,11 @@ export function WithdrawModal({
   const canWithdraw = useMemo(() => {
     const sats = parseBtcToSatsBigint(amountBtc);
     if (sats < minWithdrawSats) return false;
-    if (sats > BigInt(availableSats)) return false;
+    if (sats > maxNetWithdrawSats) return false;
     if (!destinationAddress) return false;
+    if (!balanceCoversFees) return false;
     return true;
-  }, [amountBtc, minWithdrawSats, availableSats, destinationAddress]);
+  }, [amountBtc, minWithdrawSats, maxNetWithdrawSats, destinationAddress, balanceCoversFees]);
 
   const step: WithdrawStep = withdraw.step;
   const isProcessing = step === "signing" || step === "submitting";
@@ -75,7 +80,7 @@ export function WithdrawModal({
   const handleWithdraw = () => {
     if (!canWithdraw) return;
     withdraw.mutate({
-      amountSats: parseBtcToSatsBigint(amountBtc),
+      amountSats: parseBtcToSatsBigint(amountBtc) + ledgerFeeReserveSats,
     });
   };
 
@@ -161,11 +166,29 @@ export function WithdrawModal({
                   <AmountInput
                     value={amountBtc}
                     onChange={setAmountBtc}
-                    maxAmountSats={Number(availableSats)}
+                    maxAmountSats={Number(maxNetWithdrawSats)}
                     minAmountSats={Number(minWithdrawSats)}
                     maxDecimals={8}
-                    onMaxClick={() => setAmountBtc(formatBtcBigint(availableSats, 8))}
+                    onMaxClick={() => setAmountBtc(formatBtcBigint(maxNetWithdrawSats, 8))}
                   />
+
+                  <div className="text-muted-foreground flex items-center justify-between text-sm px-2 py-1 rounded-md border">
+                    <span>{t("withdrawFee")}</span>
+                    <span className="font-mono">
+                      {formatBtcWithSymbolBigint(ledgerFeeReserveSats, 8)}
+                    </span>
+                  </div>
+
+                  {!balanceCoversFees && availableSats > BigInt(0) && (
+                    <Badge variant="secondary" className="w-full">
+                      {t("balanceTooLowForFees", {
+                        amount: formatBtcWithSymbolBigint(
+                          minWithdrawSats + ledgerFeeReserveSats,
+                          8,
+                        ),
+                      })}
+                    </Badge>
+                  )}
 
                   {lockedSats > BigInt(0) && (
                     <Badge variant="secondary" className="w-full">

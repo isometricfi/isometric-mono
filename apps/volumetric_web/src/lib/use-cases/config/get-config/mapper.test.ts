@@ -45,7 +45,7 @@ describe("mapConfig", () => {
     const feeConfig = makeValidFeeConfig();
 
     // when
-    const result = mapConfig(limits, feeConfig);
+    const result = mapConfig(limits, feeConfig, BigInt(10));
 
     // then
     expect(result).toEqual({
@@ -60,6 +60,7 @@ describe("mapConfig", () => {
       maxAcceptOfferAmountSats: 500_000,
       minDepositAmountSats: 5_000,
       minWithdrawAmountSats: 5_000,
+      ckbtcTransferFeeSats: 10,
       minTermDays: 3,
       maxTermDays: 7,
       fees: {
@@ -77,7 +78,7 @@ describe("mapConfig", () => {
     });
 
     // when
-    const result = mapConfig(limits, makeValidFeeConfig());
+    const result = mapConfig(limits, makeValidFeeConfig(), BigInt(10));
 
     // then
     expect(result.termOptions).toEqual([7]);
@@ -90,7 +91,7 @@ describe("mapConfig", () => {
     });
 
     // when
-    const result = mapConfig(limits, makeValidFeeConfig());
+    const result = mapConfig(limits, makeValidFeeConfig(), BigInt(10));
 
     // then
     expect(result.termOptions).toEqual([]);
@@ -105,7 +106,7 @@ describe("mapConfig", () => {
     });
 
     // when
-    const result = mapConfig(limits, makeValidFeeConfig());
+    const result = mapConfig(limits, makeValidFeeConfig(), BigInt(10));
 
     // then
     expect(result.termOptions).toEqual([3, 7]);
@@ -120,7 +121,7 @@ describe("mapConfig", () => {
     });
 
     // when
-    const result = mapConfig(limits, makeValidFeeConfig());
+    const result = mapConfig(limits, makeValidFeeConfig(), BigInt(10));
 
     // then
     expect(result.termOptions).toEqual([]);
@@ -138,7 +139,7 @@ describe("mapConfig", () => {
     });
 
     // when
-    const result = mapConfig(limits, makeValidFeeConfig());
+    const result = mapConfig(limits, makeValidFeeConfig(), BigInt(10));
 
     // then
     expect(result.termOptions).toEqual([]);
@@ -146,7 +147,9 @@ describe("mapConfig", () => {
 
   test("should throw Zod error for invalid limits", () => {
     // given / when / then
-    expect(() => mapConfig({ option_duration_seconds: "bad" }, makeValidFeeConfig())).toThrow();
+    expect(() =>
+      mapConfig({ option_duration_seconds: "bad" }, makeValidFeeConfig(), BigInt(10)),
+    ).toThrow();
   });
 
   test("should use env vars when set", () => {
@@ -155,7 +158,7 @@ describe("mapConfig", () => {
     vi.stubEnv("IC_HOST", "https://custom.example.com");
 
     // when
-    const result = mapConfig(makeValidLimits(), makeValidFeeConfig());
+    const result = mapConfig(makeValidLimits(), makeValidFeeConfig(), BigInt(10));
 
     // then
     expect(result.canisterId).toBe("rrkah-fqaaa-aaaaa-aaaaq-cai");

@@ -20,6 +20,7 @@ export interface ConfigData {
   maxAcceptOfferAmountSats: number;
   minDepositAmountSats: number;
   minWithdrawAmountSats: number;
+  ckbtcTransferFeeSats: number;
   minTermDays: number;
   maxTermDays: number;
   fees: FeeConfig;
