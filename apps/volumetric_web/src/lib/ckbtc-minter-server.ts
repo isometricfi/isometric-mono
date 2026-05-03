@@ -1,5 +1,5 @@
-import { Actor } from "@dfinity/agent";
-import type { IDL } from "@dfinity/candid";
+import { Actor } from "@icp-sdk/core/agent";
+import type { IDL } from "@icp-sdk/core/candid";
 import { getSharedAgent } from "./canister-server";
 
 export type RetrieveBtcStatusV2 =

@@ -1,5 +1,5 @@
-import { Actor, HttpAgent, type Identity } from "@dfinity/agent";
-import { Ed25519KeyIdentity } from "@dfinity/identity";
+import { Actor, HttpAgent, type Identity } from "@icp-sdk/core/agent";
+import { Ed25519KeyIdentity } from "@icp-sdk/core/identity";
 import { type _SERVICE, idlFactory } from "@volumetric/canister-types";
 
 let cachedAgent: HttpAgent | null = null;
@@ -25,7 +25,7 @@ function getIdentity(): Identity {
     privateKeyHex.match(/.{1,2}/g)!.map((byte) => Number.parseInt(byte, 16)),
   );
 
-  return Ed25519KeyIdentity.fromSecretKey(privateKeyBytes.buffer);
+  return Ed25519KeyIdentity.fromSecretKey(privateKeyBytes);
 }
 
 export async function getSharedAgent(): Promise<HttpAgent> {

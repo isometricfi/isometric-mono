@@ -1,6 +1,6 @@
 // node scripts/generate-identity.js
 
-const { Ed25519KeyIdentity } = require("@dfinity/identity");
+const { Ed25519KeyIdentity } = require("@icp-sdk/core/identity");
 const bip39 = require("bip39");
 
 const seedPhrase = process.argv[2];
