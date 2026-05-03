@@ -82,7 +82,7 @@ export function DepositModal({
   const maxSpendableSats =
     walletBalanceSats == null
       ? undefined
-      : Math.max(0, Math.floor(walletBalanceSats) - (feeReserveSats ?? 0) * 1.1);
+      : Math.max(0, Math.floor(walletBalanceSats) - (feeReserveSats ?? 0) * 1.5);
 
   const isBelowMinimum = enteredAmountSats < minDepositSats;
 
