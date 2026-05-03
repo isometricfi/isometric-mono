@@ -33,6 +33,21 @@
         }
       ]
     },
+    "staging": {
+      "name": "volumetric-cron-staging",
+      "vars": {
+        "TURBO_TELEMETRY_DISABLED": "1",
+        "DO_NOT_TRACK": "1",
+        "OTEL_EXPORTER_OTLP_TRACES_ENDPOINT": "https://otlp-gateway-prod-eu-central-0.grafana.net/otlp/v1/traces",
+        "OTEL_EXPORTER_OTLP_LOGS_ENDPOINT": "https://otlp-gateway-prod-eu-central-0.grafana.net/otlp/v1/logs"
+      },
+      "services": [
+        {
+          "binding": "NEXT_APP",
+          "service": "volumetric-web-staging"
+        }
+      ]
+    },
     "production": {
       "name": "volumetric-cron-production",
       "vars": {

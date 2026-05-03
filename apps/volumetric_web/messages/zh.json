@@ -207,10 +207,10 @@
     "signMessage": "签署消息",
     "approveWithdrawal": "在您的钱包中批准提取",
     "processingWithdrawal": "正在处理提取",
-    "mayTakeMoment": "正在广播到比特币网络...",
-    "withdrawalSubmitted": "已发送至比特币网络",
+    "mayTakeMoment": "可能需要片刻",
+    "withdrawalSubmitted": "请求成功",
     "btcOnWay": "您的 BTC 正在发送到您的钱包",
-    "arrivesInMinutes": "请在您的钱包中跟踪确认",
+    "arrivesInMinutes": "您的提款将在 1-2 分钟内广播",
     "failedToWithdraw": "提取失败"
   },
   "PendingWithdrawals": {
