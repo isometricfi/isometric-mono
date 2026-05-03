@@ -33,7 +33,13 @@ import { SlideToConfirm } from "@/components/ui/slide-to-confirm";
 import { useConfig } from "@/hooks";
 import { Link } from "@/i18n/routing";
 import { getNiceErrorMessage } from "@/lib/error-message";
-import { basisPointsToPercent, formatBtc, formatUsd, roundToN, satsToBtc } from "@/lib/utils";
+import {
+  basisPointsToPercent,
+  formatBtcWithSymbol,
+  formatUsd,
+  roundToN,
+  satsToBtc,
+} from "@/lib/utils";
 import { useCallWriteOptionFormModel } from "./_internal/use-call-write-option-form-model";
 
 interface WriteCallFlowProps {
@@ -342,8 +348,8 @@ function PremiumStep({ model, apy }: { model: WriteModel; apy: number }) {
         <p className="text-sm text-muted-foreground tabular-nums mt-1.5">
           <span className="text-foreground/80">{t("premium.apy", { apy })}</span>
           <span className="text-muted-foreground/60">
-            {" · ₿"}
-            {earningsBtc.toFixed(6)}
+            {" · "}
+            {formatBtcWithSymbol(model.earningsSats)}
             {" · $"}
             {formatUsd(earningsUsd)}
           </span>
@@ -414,11 +420,11 @@ function ReviewStep({
     { label: t("review.term"), value: `${model.selectedTermDay} ${termLabel}` },
     {
       label: t("review.collateral"),
-      value: `₿${formatBtc(model.amountSats, 6)}`,
+      value: formatBtcWithSymbol(model.amountSats),
     },
     {
       label: t("review.earnings"),
-      value: `₿${earningsBtc.toFixed(6)} · $${formatUsd(earningsUsd)}`,
+      value: `${formatBtcWithSymbol(model.earningsSats)} · $${formatUsd(earningsUsd)}`,
       accent: true,
     },
     { label: t("review.apy"), value: `${apy}%` },

@@ -86,7 +86,7 @@ function ModalBody({
     timeRemaining,
     strikePrice,
     entryPrice,
-    premiumBtc,
+    premiumSats,
     breakEvenPrice,
     priceToBreakEven,
   } = data;
@@ -134,14 +134,14 @@ function ModalBody({
           <span className="text-muted-foreground">
             {role === "buyer" ? t("premiumPaid") : t("premiumEarned")}
           </span>
-          <span className="font-mono">₿{roundToN(premiumBtc, 6)}</span>
+          <span className="font-mono">{formatBtcWithSymbolBigint(premiumSats)}</span>
         </div>
         <div className="flex justify-between text-sm">
           <span className="text-muted-foreground">{t("pnl")}</span>
           {pnl ? (
             <span className={cn("font-mono", pnl.isProfit ? "text-green-500" : "text-red-500")}>
-              {pnl.isProfit ? "" : "-"}₿{roundToN(Math.abs(pnl.valueBtc), 8)} (
-              {pnl.isProfit ? "" : "-"}${roundToN(Math.abs(pnl.valueUsd), 2)})
+              {formatBtcWithSymbolBigint(pnl.valueSats)} ({pnl.isProfit ? "" : "-"}$
+              {roundToN(Math.abs(pnl.valueUsd), 2)})
             </span>
           ) : (
             <Skeleton className="w-20 h-4" />
