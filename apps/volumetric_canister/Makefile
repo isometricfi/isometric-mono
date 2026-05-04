@@ -1,4 +1,4 @@
-.PHONY: build release deploy generate generate-external-types reinstall-local verify verify-prod-wasm info status set-backup-controller set-freezing-threshold clean start stop test test-integration test-integration-fast help
+.PHONY: build release deploy orbit-deploy generate generate-external-types reinstall-local verify verify-prod-wasm info status set-backup-controller set-freezing-threshold clean start stop test test-integration test-integration-fast help
 
 # Use Homebrew LLVM on macOS if available, otherwise use system clang
 ifneq ($(wildcard /opt/homebrew/opt/llvm/bin/clang),)
@@ -32,6 +32,7 @@ DID_FILE := $(DID_DIR)/volumetric.did
 DID_TESTING_FILE := $(DID_DIR)/volumetric.testing.did
 BACKUP_CONTROLLER ?=
 FREEZING_THRESHOLD_SECONDS ?= 7776000
+ORBIT_ASSET_CANISTER := volumetric_orbit_assets
 
 build:
 	@echo "Building locally (with testing features; use 'make release' for production wasm)..."
@@ -84,6 +85,23 @@ else
 	dfx canister install $(CANISTER) --network $(NETWORK) --mode upgrade --wasm $(WASM_FILE) --yes
 endif
 	@echo "Deploy complete."
+
+orbit-deploy:
+ifeq ($(TARGET),local)
+	$(error orbit-deploy requires TARGET=dev, stage, or prod)
+else
+	@echo "Requesting Orbit upgrade: $(WASM_FILE) -> $(CANISTER)..."
+	@if [ ! -f "$(WASM_FILE)" ]; then \
+		echo "Error: $(WASM_FILE) not found. Run 'make build' or 'make release' first."; \
+		exit 1; \
+	fi
+	@if [ -z "$(ORBIT_ASSET_CANISTER)" ]; then \
+		echo "Error: ORBIT_ASSET_CANISTER is not set in the Makefile. Mainnet Orbit install needs an asset canister to chunk the wasm (replica max body ~4MB)."; \
+		exit 1; \
+	fi
+	dfx-orbit -s isometric request canister install --mode upgrade --wasm $(WASM_FILE) --asset-canister $(ORBIT_ASSET_CANISTER) $(CANISTER)
+endif
+	@echo "Orbit request complete."
 
 reinstall-local:
 	@echo "Reinstalling canister locally (deletes all state)..."
@@ -149,6 +167,7 @@ help:
 	@echo "  generate        - Generate TypeScript declarations inside volumetric_web package"
 	@echo "  generate-external-types - Update external .did files and regenerate Rust types"
 	@echo "  deploy          - Deploy canister (local: dfx, mainnet: uses volumetric.wasm)"
+	@echo "  orbit-deploy    - Request Orbit upgrade using ORBIT_ASSET_CANISTER for wasm chunking"
 	@echo "  reinstall-local - Reinstall local canister (wipes state)"
 	@echo "  verify          - Verify local build matches on-chain"
 	@echo "  verify-prod-wasm - Fail if production wasm exports testing-only Candid methods"
@@ -168,7 +187,7 @@ help:
 	@echo "  make build                # Build locally"
 	@echo "  make release              # Build reproducible wasm"
 	@echo "  make deploy TARGET=dev    # Deploy to dev"
-	@echo "  make deploy TARGET=stage  # Deploy to mainnet stage"
+	@echo "  make orbit-deploy TARGET=stage # Request Orbit upgrade on stage"
 	@echo "  make deploy TARGET=local  # Deploy to local replica"
 	@echo "  make status TARGET=dev    # Check cycles/controllers/freeze threshold"
 	@echo "  make set-backup-controller TARGET=dev BACKUP_CONTROLLER=aaaaa-aa"
