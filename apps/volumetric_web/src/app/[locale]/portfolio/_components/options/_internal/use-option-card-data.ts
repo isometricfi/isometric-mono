@@ -5,7 +5,7 @@ import { SATS_PER_BTC } from "@/lib/utils";
 import type { ViewerMode } from "@/types/ui";
 
 interface PnL {
-  valueBtc: number;
+  valueSats: bigint;
   valueUsd: number;
   percent: number;
   isProfit: boolean;
@@ -23,18 +23,21 @@ export interface OptionCardData {
   timeRemaining: TimeRemaining;
   strikePrice: number;
   entryPrice: number;
-  premiumBtc: number;
+  premiumSats: bigint;
   breakEvenPrice: number | null;
   priceToBreakEven: number | null;
 }
 
+const ZERO_SATS = BigInt(0);
+const BASIS_POINTS_DENOMINATOR = BigInt(10_000);
+
 function netPremiumSatsForRole(
-  premiumSats: number,
-  premiumFeeBps: number,
+  premiumSats: bigint,
+  premiumFeeBps: bigint,
   role: ViewerMode,
-): number {
-  if (role !== "writer" || premiumFeeBps <= 0) return premiumSats;
-  const feeSats = Math.floor((premiumSats * premiumFeeBps) / 10_000);
+): bigint {
+  if (role !== "writer" || premiumFeeBps <= ZERO_SATS) return premiumSats;
+  const feeSats = (premiumSats * premiumFeeBps) / BASIS_POINTS_DENOMINATOR;
   return premiumSats - feeSats;
 }
 
@@ -42,34 +45,30 @@ function calculatePnL(
   option: PortfolioOption,
   currentPrice: number,
   role: ViewerMode,
-  premiumFeeBps: number,
+  premiumFeeBps: bigint,
 ): PnL | null {
   if (currentPrice <= 0) return null;
 
-  const strikePriceCents = Number(option.strikePriceCents);
-  const premiumSats = netPremiumSatsForRole(Number(option.premiumPaid), premiumFeeBps, role);
-  const quantitySats = Number(option.quantity);
+  const strikePriceUsd = Number(option.strikePriceCents) / 100;
+  const premiumSats = netPremiumSatsForRole(option.premiumPaid, premiumFeeBps, role);
+  const quantitySats = option.quantity;
 
-  const strikePriceUsd = strikePriceCents / 100;
-  const premiumBtc = premiumSats / SATS_PER_BTC;
-  const premiumUsd = premiumBtc * currentPrice;
-  const quantityBtc = quantitySats / SATS_PER_BTC;
-  const payoutBtc =
-    currentPrice > strikePriceUsd
-      ? (quantityBtc * (currentPrice - strikePriceUsd)) / currentPrice
-      : 0;
-  const payoutUsd = payoutBtc * currentPrice;
-  const quantityUsd = quantityBtc * currentPrice;
-  const netPnLBtc = role === "buyer" ? payoutBtc - premiumBtc : premiumBtc - payoutBtc;
-  const netPnLUsd = role === "buyer" ? payoutUsd - premiumUsd : premiumUsd - payoutUsd;
-  const percentDenominatorUsd = role === "buyer" ? premiumUsd : quantityUsd;
-  const percent = percentDenominatorUsd > 0 ? (netPnLUsd / percentDenominatorUsd) * 100 : 0;
+  const payoutRatio =
+    currentPrice > strikePriceUsd ? (currentPrice - strikePriceUsd) / currentPrice : 0;
+  const payoutSats = BigInt(Math.round(Number(quantitySats) * payoutRatio));
+
+  const pnlSats = role === "buyer" ? payoutSats - premiumSats : premiumSats - payoutSats;
+  const pnlUsd = (Number(pnlSats) / SATS_PER_BTC) * currentPrice;
+
+  const denominatorSats = role === "buyer" ? premiumSats : quantitySats;
+  const denominatorUsd = (Number(denominatorSats) / SATS_PER_BTC) * currentPrice;
+  const percent = denominatorUsd > 0 ? (pnlUsd / denominatorUsd) * 100 : 0;
 
   return {
-    valueBtc: netPnLBtc,
-    valueUsd: netPnLUsd,
+    valueSats: pnlSats,
+    valueUsd: pnlUsd,
     percent,
-    isProfit: netPnLUsd > 0,
+    isProfit: pnlSats > ZERO_SATS,
   };
 }
 
@@ -134,15 +133,15 @@ export function useOptionCardData(
 ): OptionCardData {
   const t = useTranslations("OptionCard");
   const { data: config } = useConfig();
-  const premiumFeeBps = Number(config?.fees.premiumFeeBasisPoints ?? BigInt(0));
+  const premiumFeeBps = config?.fees.premiumFeeBasisPoints ?? ZERO_SATS;
 
   const timeRemaining = getTimeRemaining(option.expiry, option.acceptedAt, t);
   const pnl = calculatePnL(option, btcPrice, role, premiumFeeBps);
 
   const strikePrice = Number(option.strikePriceCents) / 100;
   const entryPrice = Number(option.entryPriceCents) / 100;
-  const premiumBtc =
-    netPremiumSatsForRole(Number(option.premiumPaid), premiumFeeBps, role) / SATS_PER_BTC;
+  const premiumSats = netPremiumSatsForRole(option.premiumPaid, premiumFeeBps, role);
+  const premiumBtc = Number(premiumSats) / SATS_PER_BTC;
   const quantityBtc = Number(option.quantity) / SATS_PER_BTC;
 
   const premiumToQuantityRatio = quantityBtc > 0 ? premiumBtc / quantityBtc : 0;
@@ -159,7 +158,7 @@ export function useOptionCardData(
     timeRemaining,
     strikePrice,
     entryPrice,
-    premiumBtc,
+    premiumSats,
     breakEvenPrice,
     priceToBreakEven,
   };

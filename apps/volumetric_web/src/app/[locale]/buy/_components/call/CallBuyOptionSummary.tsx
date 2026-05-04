@@ -7,7 +7,7 @@ import { SlidingNumber } from "@/components/ui/sliding-number";
 import { useConfig, useModal, usePrices } from "@/hooks";
 import { estimateExpiryDate } from "@/lib/expiry";
 import { getStrikeUsd } from "@/lib/options-form";
-import { basisPointsToPercent, formatUsd, satsToBtc } from "@/lib/utils";
+import { basisPointsToPercent, formatBtc, formatUsd, satsToBtc } from "@/lib/utils";
 
 interface CallBuyOptionSummaryProps {
   premiumAmountSats: number;
@@ -32,14 +32,13 @@ export function CallBuyOptionSummary({
   const { openModal } = useModal();
 
   const premiumSats = premiumAmountSats;
-  const premiumBtc = satsToBtc(premiumSats);
   const maxProfitSats = Math.max(quantitySats - premiumSats, 0);
   const maxProfitBtc = satsToBtc(maxProfitSats);
   const maxProfitUsd = maxProfitBtc * btcPrice;
   const strikeUsd = getStrikeUsd(btcPrice, strikePercent);
   const strikeDisplay = `$${formatUsd(strikeUsd)}`;
-  const premiumDisplay = Number(premiumBtc.toFixed(6));
-  const maxProfitDisplay = Number(maxProfitBtc.toFixed(6));
+  const premiumDisplay = formatBtc(premiumSats);
+  const maxProfitDisplay = formatBtc(maxProfitSats);
   const leverageDisplay = leverage > 0 ? Number(leverage.toFixed(1)) : 0;
   const termLabel = tForms(term === 1 ? "day" : "days").toLowerCase();
   const expiryDisplay = format(estimateExpiryDate(term), "MMM d, yyyy 'at' HH:mm");
@@ -128,7 +127,7 @@ export function CallBuyOptionSummary({
           <p className="text-xs font-medium text-muted-foreground">{t("maxProfit")}</p>
           <div className="font-semibold flex items-center md:text-sm text-xs">
             <span>₿&nbsp;</span>
-            <SlidingNumber value={maxProfitDisplay} />
+            <SlidingNumber value={Number(maxProfitDisplay)} />
             <div className="text-muted-foreground text-xs bg-background/60 px-1 rounded-sm flex items-center font-medium ml-1 tabular-nums">
               ${formatUsd(maxProfitUsd)}
             </div>

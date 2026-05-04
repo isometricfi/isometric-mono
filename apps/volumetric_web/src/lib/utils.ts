@@ -25,12 +25,11 @@ export function btcToSats(btc: number): number {
 }
 
 export function formatBtc(sats: number, maxDecimals = 8): string {
-  const btc = satsToBtc(sats);
-  return parseFloat(btc.toFixed(maxDecimals)).toString();
+  return formatBtcBigint(BigInt(Math.round(sats)), maxDecimals);
 }
 
 export function formatBtcWithSymbol(sats: number, maxDecimals = 8): string {
-  return `₿${formatBtc(sats, maxDecimals)}`;
+  return formatBtcWithSymbolBigint(BigInt(Math.round(sats)), maxDecimals);
 }
 
 export function formatUsd(value: number): string {

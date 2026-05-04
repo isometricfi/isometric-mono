@@ -84,7 +84,7 @@ export function OptionCard({ option, role, data, className, ref, ...rest }: Opti
             <span className="text-muted-foreground">{t("pnl")}</span>
             {pnl ? (
               <span className={cn("font-mono", pnl.isProfit ? "text-green-500" : "text-red-500")}>
-                {pnl.isProfit ? "" : "-"}₿{roundToN(Math.abs(pnl.valueBtc), 8)}
+                {formatBtcWithSymbolBigint(pnl.valueSats)}
               </span>
             ) : (
               <Skeleton className="w-10 h-4" />

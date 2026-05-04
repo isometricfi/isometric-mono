@@ -35,7 +35,14 @@ import { useConfig } from "@/hooks";
 import { Link } from "@/i18n/routing";
 import { getNiceErrorMessage } from "@/lib/error-message";
 import { estimateExpiryDate } from "@/lib/expiry";
-import { basisPointsToPercent, cn, formatBtc, formatUsd, roundToN, satsToBtc } from "@/lib/utils";
+import {
+  basisPointsToPercent,
+  cn,
+  formatBtcWithSymbol,
+  formatUsd,
+  roundToN,
+  satsToBtc,
+} from "@/lib/utils";
 import { useCallOptionBuyFormModel } from "./_internal/use-call-option-buy-form-model";
 
 interface BuyCallFlowProps {
@@ -333,7 +340,7 @@ function ReviewStep({ model, feePercent }: { model: BuyModel; feePercent: number
   const maxProfitBtc = satsToBtc(maxProfitSats);
   const maxProfitUsd = maxProfitBtc * model.btcPrice;
   const strikeDisplay = `$${formatUsd(model.selectedStrikeUsd)}`;
-  const maxProfitDisplay = `₿${maxProfitBtc.toFixed(6)}`;
+  const maxProfitDisplay = formatBtcWithSymbol(maxProfitSats);
   const expiryDisplay = format(estimateExpiryDate(model.selectedTermDay), "MMM d, yyyy 'at' HH:mm");
 
   const rows: SummaryRow[] = [
@@ -342,7 +349,7 @@ function ReviewStep({ model, feePercent }: { model: BuyModel; feePercent: number
     { label: t("review.expires"), value: expiryDisplay },
     {
       label: t("review.premium"),
-      value: `₿${formatBtc(model.amountSats, 6)} · $${formatUsd(premiumUsd)}`,
+      value: `${formatBtcWithSymbol(model.amountSats)} · $${formatUsd(premiumUsd)}`,
     },
     { label: t("review.leverage"), value: `${model.leverage.toFixed(1)}x` },
     {
