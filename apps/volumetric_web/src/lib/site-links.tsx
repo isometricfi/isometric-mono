@@ -32,3 +32,7 @@ export const LEGAL_LINKS = {
 export function isWaitlistMode(): boolean {
   return process.env.NEXT_PUBLIC_WAITLIST_MODE === "true";
 }
+
+export function isPauseMode(): boolean {
+  return process.env.NEXT_PUBLIC_PAUSE_MODE === "true";
+}

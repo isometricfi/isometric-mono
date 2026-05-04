@@ -1,4 +1,10 @@
 {
+  "PauseMode": {
+    "title": "Trading is currently paused",
+    "description": "Creating new offers and buying options is paused for now. Your open positions are unaffected.",
+    "cta": "Manage portfolio",
+    "accountCreationBlocked": "New accounts can't be created while trading is paused."
+  },
   "Navbar": {
     "write": "Write",
     "buy": "Buy",

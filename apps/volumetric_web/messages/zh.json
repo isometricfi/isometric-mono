@@ -1,4 +1,10 @@
 {
+  "PauseMode": {
+    "title": "交易当前已暂停",
+    "description": "目前无法创建新报价或买入期权。您的未平仓头寸不受影响。",
+    "cta": "管理投资组合",
+    "accountCreationBlocked": "交易暂停期间无法创建新账户。"
+  },
   "Navbar": {
     "write": "卖出",
     "buy": "买入",

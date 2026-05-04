@@ -4,12 +4,15 @@ import { isBitcoinWallet } from "@dynamic-labs/bitcoin";
 import { useDynamicContext } from "@dynamic-labs/sdk-react-core";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { unwrapResult } from "@volumetric/canister-types";
+import { useTranslations } from "next-intl";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { toast } from "sonner";
 import { openOnboardingModal } from "@/components/wallet/OnboardingModal";
 import { signBitcoinPaymentMessage } from "@/lib/bitcoin/sign-payment-message";
 import { getNiceErrorMessage } from "@/lib/error-message";
 import { clearInviteCodeFromSession, readInviteCodeFromSession } from "@/lib/referrals/invite-code";
 import { validateInviteCode } from "@/lib/referrals/validate-invite-code";
+import { isPauseMode } from "@/lib/site-links";
 import { computeExpiresAtSeconds } from "@/lib/use-cases/_shared/wallet-proof";
 import type { Output as CreateAccountOutput } from "@/lib/use-cases/account/create-account/schema";
 import { trpcClient } from "@/trpc/react";
@@ -30,6 +33,7 @@ export function useEnsureAccount() {
   const canister = useCanister();
   const address = useBtcAddress("payment");
   const queryClient = useQueryClient();
+  const tPause = useTranslations("PauseMode");
 
   const {
     data: accountData,
@@ -42,6 +46,7 @@ export function useEnsureAccount() {
   const [error, setError] = useState<string | null>(null);
 
   const shouldCreate = useMemo(() => {
+    if (isPauseMode()) return false;
     if (!primaryWallet || !isBitcoinWallet(primaryWallet)) return false;
     if (!canister || !address) return false;
     if (!isAccountFetched || isLoadingAccount) return false;
@@ -121,12 +126,30 @@ export function useEnsureAccount() {
       return;
     }
 
+    if (isPauseMode()) {
+      if (attemptedAddressRef.current !== address) {
+        attemptedAddressRef.current = address;
+        toast.info(tPause("accountCreationBlocked"));
+        handleLogOut();
+      }
+      return;
+    }
+
     if (shouldCreate) {
       attemptedAddressRef.current = address;
       setStep("checking");
       createAccountMutation.mutate();
     }
-  }, [isLoadingAccount, primaryWallet, address, accountData, shouldCreate, createAccountMutation]);
+  }, [
+    isLoadingAccount,
+    primaryWallet,
+    address,
+    accountData,
+    shouldCreate,
+    createAccountMutation,
+    handleLogOut,
+    tPause,
+  ]);
 
   const isOpen = step !== "idle" && step !== "done";
 
