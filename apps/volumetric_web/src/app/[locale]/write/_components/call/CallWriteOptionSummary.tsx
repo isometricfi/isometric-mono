@@ -7,7 +7,7 @@ import { SlidingNumber } from "@/components/ui/sliding-number";
 import { useConfig, useModal, usePrices } from "@/hooks";
 import { estimateExpiryDate } from "@/lib/expiry";
 import { getStrikeUsd } from "@/lib/options-form";
-import { basisPointsToPercent, formatUsd, roundToN, satsToBtc } from "@/lib/utils";
+import { basisPointsToPercent, formatBtc, formatUsd, roundToN, satsToBtc } from "@/lib/utils";
 
 interface CallWriteOptionSummaryProps {
   amountSats: number;
@@ -34,9 +34,8 @@ export function CallWriteOptionSummary({
   const { openModal } = useModal();
   const earningsBtc = satsToBtc(earningsSats);
   const earningsUsd = btcPrice * earningsBtc;
-  const earningsDisplay = Number(earningsBtc.toFixed(6));
-  const amountBtc = satsToBtc(amountSats);
-  const amountDisplay = Number(amountBtc.toFixed(6));
+  const earningsDisplay = formatBtc(earningsSats);
+  const amountDisplay = formatBtc(amountSats);
   const strikeUsd = getStrikeUsd(btcPrice, strikePercent);
   const strikeDisplay = `$${formatUsd(strikeUsd)}`;
   const termLabel = tForms(term === 1 ? "day" : "days").toLowerCase();
@@ -147,7 +146,7 @@ export function CallWriteOptionSummary({
           <p className="text-xs font-medium text-muted-foreground">{t("youEarn")}</p>
           <div className="font-semibold flex items-center md:text-sm text-xs">
             <span>₿&nbsp;</span>
-            <SlidingNumber value={earningsDisplay} />
+            <SlidingNumber value={Number(earningsDisplay)} />
             <div className="text-muted-foreground text-xs bg-background/60 px-1 rounded-sm flex items-center font-medium ml-1 tabular-nums">
               ${formatUsd(earningsUsd)}
             </div>
