@@ -14,6 +14,10 @@
       "candid": "did/volumetric.did",
       "package": "volumetric",
       "type": "rust"
+    },
+    "volumetric_orbit_assets": {
+      "type": "assets",
+      "source": ["assets/orbit_store"]
     }
   },
   "defaults": {
