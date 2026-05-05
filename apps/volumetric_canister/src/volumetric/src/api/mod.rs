@@ -59,4 +59,9 @@ pub use withdrawals::{
     get_pending_withdrawals, get_withdraw_message, get_withdraw_status, get_withdrawal_by_id,
     withdraw_ckbtc,
 };
-pub use xrc_snapshot::fetch_xrc_btc_usd_exchange_rate_snapshot;
+pub use xrc_snapshot::{
+    fetch_and_store_xrc_btc_usd_exchange_rate_snapshot,
+    fetch_xrc_btc_usd_exchange_rate_for_settlement_time, fetch_xrc_btc_usd_exchange_rate_snapshot,
+    get_latest_xrc_btc_usd_rate, get_xrc_btc_usd_rate_by_timestamp, list_cached_xrc_btc_usd_rates,
+    prune_old_xrc_btc_usd_rates, prune_xrc_btc_usd_rates_before, XrcSettlementTimeProbe,
+};

@@ -10,6 +10,7 @@ pub mod options;
 pub mod settlements;
 pub mod state;
 pub mod withdrawals;
+pub mod xrc_rates;
 
 pub use accepts::{
     complete_accept, create_accept_journal_entry, fail_accept, get_accept, list_failed_accepts,
@@ -62,4 +63,8 @@ pub use withdrawals::{
     complete_withdrawal, create_withdrawal, fail_withdrawal, get_pending_withdrawals_by_principal,
     get_withdrawal, list_failed_withdrawals, list_pending_withdrawals, remove_withdrawal,
     update_withdrawal_phase, PendingWithdrawal, WithdrawalPhase,
+};
+pub use xrc_rates::{
+    delete_xrc_btc_usd_rates_before, get_latest_xrc_btc_usd_rate, get_xrc_btc_usd_rate,
+    insert_xrc_btc_usd_rate, list_xrc_btc_usd_rates, StoredXrcBtcUsdRate,
 };

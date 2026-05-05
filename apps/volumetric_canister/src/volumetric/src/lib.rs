@@ -34,13 +34,17 @@ pub use api::{
 };
 pub use api::{
     add_whitelisted, clear_log_access_token, create_account,
-    fetch_xrc_btc_usd_exchange_rate_snapshot, get_account_info, get_account_nonce,
-    get_ckbtc_balance, get_config, get_deposit_address, get_failed_withdrawals, get_feature_flags,
-    get_message_to_sign, get_my_pending_withdrawals, get_my_pending_withdrawals_message,
-    get_pending_withdrawals, get_trading_limits, get_user_balance, get_username_update_message,
-    get_withdraw_message, get_withdraw_status, get_withdrawal_by_id, list_users, list_whitelisted,
-    remove_whitelisted, set_feature_flags_config, set_log_access_token, set_trading_limits_config,
-    update_ckbtc_balance, update_username, validate_invite_code, withdraw_ckbtc, UserBalanceInfo,
+    fetch_and_store_xrc_btc_usd_exchange_rate_snapshot,
+    fetch_xrc_btc_usd_exchange_rate_for_settlement_time, fetch_xrc_btc_usd_exchange_rate_snapshot,
+    get_account_info, get_account_nonce, get_ckbtc_balance, get_config, get_deposit_address,
+    get_failed_withdrawals, get_feature_flags, get_latest_xrc_btc_usd_rate, get_message_to_sign,
+    get_my_pending_withdrawals, get_my_pending_withdrawals_message, get_pending_withdrawals,
+    get_trading_limits, get_user_balance, get_username_update_message, get_withdraw_message,
+    get_withdraw_status, get_withdrawal_by_id, get_xrc_btc_usd_rate_by_timestamp,
+    list_cached_xrc_btc_usd_rates, list_users, list_whitelisted, prune_old_xrc_btc_usd_rates,
+    prune_xrc_btc_usd_rates_before, remove_whitelisted, set_feature_flags_config,
+    set_log_access_token, set_trading_limits_config, update_ckbtc_balance, update_username,
+    validate_invite_code, withdraw_ckbtc, UserBalanceInfo, XrcSettlementTimeProbe,
 };
 #[cfg(feature = "testing")]
 pub use api::{
@@ -60,8 +64,8 @@ pub use observability::{http_request, observability_get_metrics, ObservabilityMe
 pub use storage::{
     AcceptPhase, ActiveOption, ActiveOptionStatus, Asset, BtcNetwork, Event, EventData, EventType,
     FeatureFlags, FeeConfig, Offer, OfferStatus, OptionType, PendingAccept, PendingSettlement,
-    PendingWithdrawal, SettlementPhase, TradeRole, TradingLimits, UserBalance, WithdrawalPhase,
-    MINIMUM_QUANTITY_SATS,
+    PendingWithdrawal, SettlementPhase, StoredXrcBtcUsdRate, TradeRole, TradingLimits, UserBalance,
+    WithdrawalPhase, MINIMUM_QUANTITY_SATS,
 };
 pub use usecases::{
     AcceptOffersReceipt, AcceptOffersResult, AcceptOffersStatus, SettlementReceipt,
