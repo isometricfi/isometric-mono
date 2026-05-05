@@ -17,7 +17,7 @@ use crate::journaling::{
     get_entry, ledger_memo, principal_memo_part, u64_memo_part, LedgerMemoKind, WalPayload,
 };
 use crate::ledger::{self, LedgerClient, TESTING_CKBTC_TRANSFER_FEE_SATS};
-use crate::oracle::{set_oracle, StubOracle};
+use crate::oracle::{set_oracle, PriceOracle, StubOracle};
 use crate::storage::{
     add_available, add_platform_fee, calculate_premium_fee, calculate_premium_in_sats,
     calculate_strike_price_in_cents, clear_active_options, clear_events, clear_offers,
@@ -156,6 +156,95 @@ impl LedgerClient for SecondTransferFailsLedger {
 
     async fn icrc1_fee(&self) -> Result<u64, VolumetricError> {
         Ok(TESTING_CKBTC_TRANSFER_FEE_SATS)
+    }
+}
+
+struct RecordingAcceptOracle {
+    cache_first_price_cents: u64,
+    fresh_price_result: Result<u64, VolumetricError>,
+    cache_first_call_count: Rc<Cell<u64>>,
+    fresh_call_count: Rc<Cell<u64>>,
+    settlement_call_count: Rc<Cell<u64>>,
+}
+
+struct RecordingAcceptOracleCalls {
+    cache_first_call_count: Rc<Cell<u64>>,
+    fresh_call_count: Rc<Cell<u64>>,
+    settlement_call_count: Rc<Cell<u64>>,
+}
+
+impl RecordingAcceptOracle {
+    fn new(
+        cache_first_price_cents: u64,
+        fresh_price_cents: u64,
+    ) -> (Self, RecordingAcceptOracleCalls) {
+        Self::new_with_fresh_result(cache_first_price_cents, Ok(fresh_price_cents))
+    }
+
+    fn new_with_fresh_failure(cache_first_price_cents: u64) -> (Self, RecordingAcceptOracleCalls) {
+        Self::new_with_fresh_result(
+            cache_first_price_cents,
+            Err(VolumetricError::from_def(
+                error_codes::INTER_CANISTER_CALL_FAILED,
+                Some("fresh XRC unavailable"),
+                None,
+            )),
+        )
+    }
+
+    fn new_with_fresh_result(
+        cache_first_price_cents: u64,
+        fresh_price_result: Result<u64, VolumetricError>,
+    ) -> (Self, RecordingAcceptOracleCalls) {
+        let cache_first_call_count = Rc::new(Cell::new(0));
+        let fresh_call_count = Rc::new(Cell::new(0));
+        let settlement_call_count = Rc::new(Cell::new(0));
+
+        (
+            Self {
+                cache_first_price_cents,
+                fresh_price_result,
+                cache_first_call_count: Rc::clone(&cache_first_call_count),
+                fresh_call_count: Rc::clone(&fresh_call_count),
+                settlement_call_count: Rc::clone(&settlement_call_count),
+            },
+            RecordingAcceptOracleCalls {
+                cache_first_call_count,
+                fresh_call_count,
+                settlement_call_count,
+            },
+        )
+    }
+
+    fn record_cache_first_price_cents(&self) -> u64 {
+        self.cache_first_call_count
+            .set(self.cache_first_call_count.get().saturating_add(1));
+        self.cache_first_price_cents
+    }
+}
+
+#[async_trait(?Send)]
+impl PriceOracle for RecordingAcceptOracle {
+    async fn get_btc_usd_price_cents(&self) -> Result<u64, VolumetricError> {
+        Ok(self.record_cache_first_price_cents())
+    }
+
+    async fn fetch_current_btc_usd_price_cents(&self) -> Result<u64, VolumetricError> {
+        self.fresh_call_count
+            .set(self.fresh_call_count.get().saturating_add(1));
+        match &self.fresh_price_result {
+            Ok(fresh_price_cents) => Ok(*fresh_price_cents),
+            Err(_) => Ok(self.record_cache_first_price_cents()),
+        }
+    }
+
+    async fn get_settlement_btc_usd_price_cents(
+        &self,
+        _expiry_timestamp_seconds: u64,
+    ) -> Result<u64, VolumetricError> {
+        self.settlement_call_count
+            .set(self.settlement_call_count.get().saturating_add(1));
+        self.fresh_price_result.clone()
     }
 }
 
@@ -348,6 +437,152 @@ fn test_accept_offers_returns_pending_receipt_before_wal_runs() {
     let processing_offer = get_offer(TEST_OFFER_ID).expect("offer should exist");
     assert_eq!(processing_offer.status, OfferStatus::Processing);
     assert_eq!(processing_offer.remaining_quantity, 0);
+}
+
+/// Given: an accepted offer WAL is ready to finalize and no entry price has been persisted
+/// When: the WAL runs
+/// Then: it fetches a fresh current oracle price instead of using the cache-first spot path
+#[tokio::test(flavor = "current_thread")]
+async fn test_accept_wal_fetches_fresh_entry_price_without_cache_first_price() {
+    // given
+    const CACHE_FIRST_PRICE_CENTS: u64 = TEST_PRICE_CENTS - 1;
+    const FRESH_PRICE_CENTS: u64 = TEST_PRICE_CENTS + 123_456;
+
+    let writer = test_principal(111);
+    let buyer = test_principal(112);
+    setup_test_state(writer, buyer);
+    let (oracle, oracle_calls) =
+        RecordingAcceptOracle::new(CACHE_FIRST_PRICE_CENTS, FRESH_PRICE_CENTS);
+    set_oracle(Rc::new(oracle));
+    ledger::set_ledger(Rc::new(SecondTransferFailsLedger {
+        completed_transfer_count: Cell::new(0),
+        transfer_memos: RefCell::new(Vec::new()),
+    }));
+    let receipt = accept_offers_use_case(buyer, vec![build_test_accept_offer_item()], 101)
+        .expect("accept should enqueue");
+
+    // when
+    let wal_execution_outcome = execute_accept_wal_once(receipt.operation_id).await;
+    let accept_status = get_accept_status(receipt.operation_id).expect("accept status should load");
+
+    // then
+    assert!(matches!(
+        wal_execution_outcome,
+        crate::journaling::WalExecutionOutcome::Succeeded
+    ));
+    assert_eq!(oracle_calls.cache_first_call_count.get(), 0);
+    assert_eq!(oracle_calls.fresh_call_count.get(), 1);
+    assert_eq!(oracle_calls.settlement_call_count.get(), 0);
+
+    match accept_status {
+        AcceptOffersStatus::Succeeded { result, .. } => {
+            assert_eq!(result.active_options.len(), 1);
+            assert_eq!(
+                result.active_options[0].entry_price_cents,
+                FRESH_PRICE_CENTS
+            );
+        }
+        other => panic!("expected succeeded accept status, got {:?}", other),
+    }
+}
+
+/// Given: fresh current XRC pricing fails and the oracle has a cache fallback price
+/// When: the accept WAL runs without a stored entry price
+/// Then: it records the cache fallback price returned by the fresh-current oracle path
+#[tokio::test(flavor = "current_thread")]
+async fn test_accept_wal_uses_cache_fallback_when_fresh_current_price_fails() {
+    // given
+    const CACHE_FALLBACK_PRICE_CENTS: u64 = TEST_PRICE_CENTS - 1;
+
+    let writer = test_principal(115);
+    let buyer = test_principal(116);
+    setup_test_state(writer, buyer);
+    let (oracle, oracle_calls) =
+        RecordingAcceptOracle::new_with_fresh_failure(CACHE_FALLBACK_PRICE_CENTS);
+    set_oracle(Rc::new(oracle));
+    ledger::set_ledger(Rc::new(SecondTransferFailsLedger {
+        completed_transfer_count: Cell::new(0),
+        transfer_memos: RefCell::new(Vec::new()),
+    }));
+    let receipt = accept_offers_use_case(buyer, vec![build_test_accept_offer_item()], 103)
+        .expect("accept should enqueue");
+
+    // when
+    let wal_execution_outcome = execute_accept_wal_once(receipt.operation_id).await;
+    let accept_status = get_accept_status(receipt.operation_id).expect("accept status should load");
+
+    // then
+    assert!(matches!(
+        wal_execution_outcome,
+        crate::journaling::WalExecutionOutcome::Succeeded
+    ));
+    assert_eq!(oracle_calls.fresh_call_count.get(), 1);
+    assert_eq!(oracle_calls.cache_first_call_count.get(), 1);
+    assert_eq!(oracle_calls.settlement_call_count.get(), 0);
+
+    match accept_status {
+        AcceptOffersStatus::Succeeded { result, .. } => {
+            assert_eq!(result.active_options.len(), 1);
+            assert_eq!(
+                result.active_options[0].entry_price_cents,
+                CACHE_FALLBACK_PRICE_CENTS
+            );
+        }
+        other => panic!("expected succeeded accept status, got {:?}", other),
+    }
+}
+
+/// Given: an accepted offer WAL already has an entry price from an earlier attempt
+/// When: the WAL runs again
+/// Then: it reuses the stored entry price without fetching any oracle price
+#[tokio::test(flavor = "current_thread")]
+async fn test_accept_wal_reuses_stored_entry_price_without_oracle_fetch() {
+    // given
+    const CACHE_FIRST_PRICE_CENTS: u64 = TEST_PRICE_CENTS - 1;
+    const FRESH_PRICE_CENTS: u64 = TEST_PRICE_CENTS + 123_456;
+    const STORED_ENTRY_PRICE_CENTS: u64 = TEST_PRICE_CENTS + 654_321;
+
+    let writer = test_principal(113);
+    let buyer = test_principal(114);
+    setup_test_state(writer, buyer);
+    let (oracle, oracle_calls) =
+        RecordingAcceptOracle::new(CACHE_FIRST_PRICE_CENTS, FRESH_PRICE_CENTS);
+    set_oracle(Rc::new(oracle));
+    ledger::set_ledger(Rc::new(SecondTransferFailsLedger {
+        completed_transfer_count: Cell::new(0),
+        transfer_memos: RefCell::new(Vec::new()),
+    }));
+    let receipt = accept_offers_use_case(buyer, vec![build_test_accept_offer_item()], 102)
+        .expect("accept should enqueue");
+    update_accept_execution_snapshot(
+        receipt.accept_journal_entry_id,
+        STORED_ENTRY_PRICE_CENTS,
+        true,
+    );
+
+    // when
+    let wal_execution_outcome = execute_accept_wal_once(receipt.operation_id).await;
+    let accept_status = get_accept_status(receipt.operation_id).expect("accept status should load");
+
+    // then
+    assert!(matches!(
+        wal_execution_outcome,
+        crate::journaling::WalExecutionOutcome::Succeeded
+    ));
+    assert_eq!(oracle_calls.cache_first_call_count.get(), 0);
+    assert_eq!(oracle_calls.fresh_call_count.get(), 0);
+    assert_eq!(oracle_calls.settlement_call_count.get(), 0);
+
+    match accept_status {
+        AcceptOffersStatus::Succeeded { result, .. } => {
+            assert_eq!(result.active_options.len(), 1);
+            assert_eq!(
+                result.active_options[0].entry_price_cents,
+                STORED_ENTRY_PRICE_CENTS
+            );
+        }
+        other => panic!("expected succeeded accept status, got {:?}", other),
+    }
 }
 
 /// Given: transfer fee cache is stale for a sync accept request

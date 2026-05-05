@@ -65,6 +65,7 @@ pub use withdrawals::{
     update_withdrawal_phase, PendingWithdrawal, WithdrawalPhase,
 };
 pub use xrc_rates::{
-    delete_xrc_btc_usd_rates_before, get_latest_xrc_btc_usd_rate, get_xrc_btc_usd_rate,
-    insert_xrc_btc_usd_rate, StoredXrcBtcUsdRate,
+    delete_xrc_btc_usd_rates_before, get_latest_xrc_btc_usd_rate,
+    get_nearest_xrc_btc_usd_rate_within_seconds, get_xrc_btc_usd_rate, insert_xrc_btc_usd_rate,
+    StoredXrcBtcUsdRate,
 };

@@ -1,8 +1,9 @@
 mod client;
 
 pub use client::fetch_and_store_xrc_btc_usd_exchange_rate_snapshot;
+pub use client::fetch_current_btc_usd_price_cents;
 pub use client::get_btc_usd_price_cents;
-pub use client::get_btc_usd_price_cents_at_time_seconds;
+pub use client::get_settlement_btc_usd_price_cents;
 pub(crate) use client::xrc_timestamp_seconds_for_time_seconds;
 pub use client::PriceOracle;
 pub use client::StubOracle;
