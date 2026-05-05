@@ -80,6 +80,9 @@ export type ActiveOptionStatus = { 'Active' : null } |
   { 'Expired' : null } |
   { 'Settled' : null };
 export type Asset = { 'CkBtc' : null };
+export type AssetClass = { 'Cryptocurrency' : null } |
+  { 'FiatCurrency' : null };
+export interface Asset_1 { 'class' : AssetClass, 'symbol' : string }
 export interface AuditExpectedTransfer {
   'to' : Account,
   'created_at_time_ns' : bigint,
@@ -378,21 +381,21 @@ export type Result = { 'Ok' : AcceptOffersReceipt } |
   { 'Err' : VolumetricError };
 export type Result_1 = { 'Ok' : null } |
   { 'Err' : VolumetricError };
-export type Result_10 = { 'Ok' : AcceptOffersStatus } |
+export type Result_10 = { 'Ok' : Array<Event> } |
   { 'Err' : VolumetricError };
-export type Result_11 = { 'Ok' : [] | [ProfileInfo] } |
+export type Result_11 = { 'Ok' : bigint } |
   { 'Err' : VolumetricError };
-export type Result_12 = { 'Ok' : Array<Event> } |
+export type Result_12 = { 'Ok' : DepositInfo } |
   { 'Err' : VolumetricError };
-export type Result_13 = { 'Ok' : bigint } |
+export type Result_13 = { 'Ok' : Array<PendingAccept> } |
   { 'Err' : VolumetricError };
-export type Result_14 = { 'Ok' : DepositInfo } |
+export type Result_14 = { 'Ok' : Array<PendingSettlement> } |
   { 'Err' : VolumetricError };
-export type Result_15 = { 'Ok' : Array<PendingAccept> } |
+export type Result_15 = { 'Ok' : Array<PendingWithdrawal> } |
   { 'Err' : VolumetricError };
-export type Result_16 = { 'Ok' : Array<PendingSettlement> } |
+export type Result_16 = { 'Ok' : Array<Offer> } |
   { 'Err' : VolumetricError };
-export type Result_17 = { 'Ok' : Array<PendingWithdrawal> } |
+export type Result_17 = { 'Ok' : Array<ActiveOption> } |
   { 'Err' : VolumetricError };
 export type Result_18 = { 'Ok' : OptionAuditReport } |
   { 'Err' : VolumetricError };
@@ -645,7 +648,7 @@ export interface _SERVICE {
   'get_user_balance' : ActorMethod<[string], Result_22>,
   'get_username_update_message' : ActorMethod<
     [string, string, bigint],
-    Result_9
+    Result_7
   >,
   'get_withdraw_message' : ActorMethod<
     [string, string, bigint, bigint],

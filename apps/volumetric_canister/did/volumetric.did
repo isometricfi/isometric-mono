@@ -66,6 +66,8 @@ type ActiveOption = record {
 };
 type ActiveOptionStatus = variant { Active; Settling; Expired; Settled };
 type Asset = variant { CkBtc };
+type AssetClass = variant { Cryptocurrency; FiatCurrency };
+type Asset_1 = record { class : AssetClass; symbol : text };
 type AuditExpectedTransfer = record {
   to : Account;
   created_at_time_ns : nat64;
