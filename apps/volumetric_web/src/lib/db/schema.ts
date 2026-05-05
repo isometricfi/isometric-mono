@@ -181,3 +181,13 @@ export const btcHistoryPoints = sqliteTable(
     check("btc_history_points_price_positive", sql`${table.priceUsdMicros} > 0`),
   ],
 );
+
+export const xrcBtcUsdSnapshots = sqliteTable(
+  "xrc_btc_usd_snapshots",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    fetchedAtMs: integer("fetched_at_ms").notNull(),
+    responseJson: text("response_json").notNull(),
+  },
+  (table) => [check("xrc_snapshots_fetched_positive", sql`${table.fetchedAtMs} > 0`)],
+);

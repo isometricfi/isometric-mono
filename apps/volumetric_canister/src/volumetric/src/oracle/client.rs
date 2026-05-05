@@ -94,6 +94,55 @@ fn validate_exchange_rate_response(
     Ok(())
 }
 
+pub async fn call_xrc_get_exchange_rate(
+    request: GetExchangeRateRequest,
+) -> Result<GetExchangeRateResult, VolumetricError> {
+    let xrc = Principal::from_text(XRC_CANISTER_ID).map_err(|e| {
+        VolumetricError::from_def(
+            error_codes::INTERNAL_ERROR,
+            Some(&format!("Invalid XRC canister ID: {}", e)),
+            None,
+        )
+    })?;
+
+    let response = ic_cdk::call::Call::bounded_wait(xrc, "get_exchange_rate")
+        .with_arg(&request)
+        .with_cycles(XRC_CYCLES)
+        .await
+        .map_err(|e| {
+            VolumetricError::from_def(
+                error_codes::INTER_CANISTER_CALL_FAILED,
+                Some(&format!("get_exchange_rate (bounded_wait): {:?}", e)),
+                None,
+            )
+        })?;
+
+    response.candid().map_err(|e| {
+        VolumetricError::from_def(
+            error_codes::INTER_CANISTER_CALL_FAILED,
+            Some(&format!("get_exchange_rate decode: {:?}", e)),
+            None,
+        )
+    })
+}
+
+/// Spot BTC/USD quote from XRC using the default timestamp (start of current minute per XRC spec).
+pub async fn fetch_xrc_btc_usd_exchange_rate_snapshot_raw(
+) -> Result<GetExchangeRateResult, VolumetricError> {
+    let request = GetExchangeRateRequest {
+        base_asset: Asset {
+            symbol: BTC_SYMBOL.to_string(),
+            class: AssetClass::Cryptocurrency,
+        },
+        quote_asset: Asset {
+            symbol: USD_SYMBOL.to_string(),
+            class: AssetClass::FiatCurrency,
+        },
+        timestamp: None,
+    };
+    call_xrc_get_exchange_rate(request).await
+}
+
 fn format_xrc_error(e: &ExchangeRateError) -> String {
     match e {
         ExchangeRateError::AnonymousPrincipalNotAllowed => {
@@ -133,13 +182,6 @@ impl PriceOracle for IcOracle {
         &self,
         settlement_time_seconds: u64,
     ) -> Result<u64, VolumetricError> {
-        let xrc = Principal::from_text(XRC_CANISTER_ID).map_err(|e| {
-            VolumetricError::from_def(
-                error_codes::INTERNAL_ERROR,
-                Some(&format!("Invalid XRC canister ID: {}", e)),
-                None,
-            )
-        })?;
         let timestamp_secs = xrc_timestamp_seconds_for_time_seconds(settlement_time_seconds);
 
         let request = GetExchangeRateRequest {
@@ -154,25 +196,7 @@ impl PriceOracle for IcOracle {
             timestamp: Some(timestamp_secs),
         };
 
-        let response = ic_cdk::call::Call::bounded_wait(xrc, "get_exchange_rate")
-            .with_arg(&request)
-            .with_cycles(XRC_CYCLES)
-            .await
-            .map_err(|e| {
-                VolumetricError::from_def(
-                    error_codes::INTER_CANISTER_CALL_FAILED,
-                    Some(&format!("get_exchange_rate (bounded_wait): {:?}", e)),
-                    None,
-                )
-            })?;
-
-        let result: GetExchangeRateResult = response.candid().map_err(|e| {
-            VolumetricError::from_def(
-                error_codes::INTER_CANISTER_CALL_FAILED,
-                Some(&format!("get_exchange_rate decode: {:?}", e)),
-                None,
-            )
-        })?;
+        let result = call_xrc_get_exchange_rate(request).await?;
 
         match result {
             Ok(exchange_rate) => {

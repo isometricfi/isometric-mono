@@ -33,7 +33,8 @@ pub use api::{
     CreateOfferRequest, CreateOfferResponse, SettleExpiredOptionsResponse, SettlementResult,
 };
 pub use api::{
-    add_whitelisted, clear_log_access_token, create_account, get_account_info, get_account_nonce,
+    add_whitelisted, clear_log_access_token, create_account,
+    fetch_xrc_btc_usd_exchange_rate_snapshot, get_account_info, get_account_nonce,
     get_ckbtc_balance, get_config, get_deposit_address, get_failed_withdrawals, get_feature_flags,
     get_message_to_sign, get_my_pending_withdrawals, get_my_pending_withdrawals_message,
     get_pending_withdrawals, get_trading_limits, get_user_balance, get_username_update_message,
@@ -53,6 +54,7 @@ pub use auth::types::{
 };
 pub use errors::VolumetricError;
 pub use generated::ckbtc::{Utxo, UtxoOutpoint, UtxoStatus};
+pub use generated::xrc::GetExchangeRateResult;
 pub use journaling::WalExecutionOutcome;
 pub use observability::{http_request, observability_get_metrics, ObservabilityMetrics};
 pub use storage::{
