@@ -14,20 +14,12 @@ interface SyncXrcPriceFromCanisterDependencies {
 }
 
 function storedRateToPersistedResponseJson(rate: StoredXrcBtcUsdRate): string {
-  const forex = rate.forex_timestamp[0];
   return JSON.stringify({
     source: "canister_stable_cache",
     xrc_timestamp_seconds: Number(rate.xrc_timestamp_seconds),
     fetched_at_seconds: Number(rate.fetched_at_seconds),
     price_cents: Number(rate.price_cents),
-    rate: Number(rate.rate),
     decimals: rate.decimals,
-    forex_timestamp: forex !== undefined ? Number(forex) : null,
-    quote_asset_num_received_rates: Number(rate.quote_asset_num_received_rates),
-    base_asset_num_received_rates: Number(rate.base_asset_num_received_rates),
-    base_asset_num_queried_sources: Number(rate.base_asset_num_queried_sources),
-    quote_asset_num_queried_sources: Number(rate.quote_asset_num_queried_sources),
-    standard_deviation: Number(rate.standard_deviation),
   });
 }
 

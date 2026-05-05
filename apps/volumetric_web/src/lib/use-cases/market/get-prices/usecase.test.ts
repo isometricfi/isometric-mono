@@ -5,9 +5,6 @@ import { getMarketPrices } from "./usecase";
 vi.mock("server-only", () => ({}));
 
 const TEST_DECIMALS = 9;
-const TEST_RATE = 100_000_000_000_000n;
-const TEST_SOURCE_COUNT = 4n;
-const TEST_STANDARD_DEVIATION = 0n;
 
 function createActorMock(latestRate: StoredXrcBtcUsdRate | null): _SERVICE {
   return {
@@ -17,17 +14,10 @@ function createActorMock(latestRate: StoredXrcBtcUsdRate | null): _SERVICE {
 
 function createStoredXrcBtcUsdRate(overrides: Partial<StoredXrcBtcUsdRate>): StoredXrcBtcUsdRate {
   return {
-    decimals: TEST_DECIMALS,
-    forex_timestamp: [],
-    quote_asset_num_received_rates: TEST_SOURCE_COUNT,
-    base_asset_num_received_rates: TEST_SOURCE_COUNT,
-    base_asset_num_queried_sources: TEST_SOURCE_COUNT,
-    standard_deviation: TEST_STANDARD_DEVIATION,
-    quote_asset_num_queried_sources: TEST_SOURCE_COUNT,
-    rate: TEST_RATE,
     xrc_timestamp_seconds: 1_700_000_000n,
     fetched_at_seconds: 1_700_000_000n,
     price_cents: 6_234_512n,
+    decimals: TEST_DECIMALS,
     ...overrides,
   };
 }

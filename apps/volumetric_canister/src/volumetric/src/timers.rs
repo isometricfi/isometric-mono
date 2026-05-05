@@ -95,7 +95,7 @@ fn setup_xrc_rate_cleanup_timer() {
     });
 }
 
-pub(crate) fn cleanup_old_xrc_btc_usd_rates() -> u64 {
+fn cleanup_old_xrc_btc_usd_rates() -> u64 {
     let cutoff_timestamp_seconds = current_time_seconds().saturating_sub(ONE_WEEK_SECS);
     delete_xrc_btc_usd_rates_before(cutoff_timestamp_seconds)
 }

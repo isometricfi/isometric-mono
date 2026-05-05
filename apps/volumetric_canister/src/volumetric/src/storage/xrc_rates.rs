@@ -20,15 +20,8 @@ thread_local! {
 pub struct StoredXrcBtcUsdRate {
     pub xrc_timestamp_seconds: u64,
     pub fetched_at_seconds: u64,
-    pub rate: u64,
-    pub decimals: u32,
     pub price_cents: u64,
-    pub forex_timestamp: Option<u64>,
-    pub quote_asset_num_received_rates: u64,
-    pub base_asset_num_received_rates: u64,
-    pub base_asset_num_queried_sources: u64,
-    pub quote_asset_num_queried_sources: u64,
-    pub standard_deviation: u64,
+    pub decimals: u32,
 }
 
 pub fn insert_xrc_btc_usd_rate(rate: StoredXrcBtcUsdRate) {
@@ -43,17 +36,6 @@ pub fn get_xrc_btc_usd_rate(xrc_timestamp_seconds: u64) -> Option<StoredXrcBtcUs
 
 pub fn get_latest_xrc_btc_usd_rate() -> Option<StoredXrcBtcUsdRate> {
     XRC_BTC_USD_RATES.with_borrow(|rates| rates.iter().next_back().map(|entry| entry.value().0))
-}
-
-pub fn list_xrc_btc_usd_rates(limit: u32) -> Vec<StoredXrcBtcUsdRate> {
-    XRC_BTC_USD_RATES.with_borrow(|rates| {
-        rates
-            .iter()
-            .rev()
-            .take(limit as usize)
-            .map(|entry| entry.value().0)
-            .collect()
-    })
 }
 
 pub fn delete_xrc_btc_usd_rates_before(cutoff_timestamp_seconds: u64) -> u64 {
@@ -95,25 +77,15 @@ mod tests {
     const SECOND_TIMESTAMP_SECONDS: u64 = 3_600;
     const THIRD_TIMESTAMP_SECONDS: u64 = 5_400;
     const TEST_FETCHED_AT_SECONDS: u64 = 10_000;
-    const TEST_RATE: u64 = 100_000_000_000_000;
     const TEST_DECIMALS: u32 = 9;
     const TEST_PRICE_CENTS: u64 = 10_000_000;
-    const TEST_SOURCE_COUNT: u64 = 4;
-    const TEST_STANDARD_DEVIATION: u64 = 12;
 
     fn make_rate(xrc_timestamp_seconds: u64) -> StoredXrcBtcUsdRate {
         StoredXrcBtcUsdRate {
             xrc_timestamp_seconds,
             fetched_at_seconds: TEST_FETCHED_AT_SECONDS,
-            rate: TEST_RATE,
-            decimals: TEST_DECIMALS,
             price_cents: TEST_PRICE_CENTS,
-            forex_timestamp: None,
-            quote_asset_num_received_rates: TEST_SOURCE_COUNT,
-            base_asset_num_received_rates: TEST_SOURCE_COUNT,
-            base_asset_num_queried_sources: TEST_SOURCE_COUNT,
-            quote_asset_num_queried_sources: TEST_SOURCE_COUNT,
-            standard_deviation: TEST_STANDARD_DEVIATION,
+            decimals: TEST_DECIMALS,
         }
     }
 
@@ -153,29 +125,6 @@ mod tests {
             latest_rate.map(|rate| rate.xrc_timestamp_seconds),
             Some(THIRD_TIMESTAMP_SECONDS)
         );
-    }
-
-    /// Given: more stored BTC/USD XRC rates than the requested limit
-    /// When: listing cached rates
-    /// Then: the newest rates are returned first up to the limit
-    #[test]
-    fn should_list_xrc_btc_usd_rates_newest_first_with_limit() {
-        // given
-        clear_xrc_btc_usd_rates();
-        insert_xrc_btc_usd_rate(make_rate(FIRST_TIMESTAMP_SECONDS));
-        insert_xrc_btc_usd_rate(make_rate(SECOND_TIMESTAMP_SECONDS));
-        insert_xrc_btc_usd_rate(make_rate(THIRD_TIMESTAMP_SECONDS));
-
-        // when
-        let rates = list_xrc_btc_usd_rates(2);
-
-        // then
-        let expected_timestamps_seconds = vec![THIRD_TIMESTAMP_SECONDS, SECOND_TIMESTAMP_SECONDS];
-        let actual_timestamps_seconds: Vec<u64> = rates
-            .into_iter()
-            .map(|rate| rate.xrc_timestamp_seconds)
-            .collect();
-        assert_eq!(actual_timestamps_seconds, expected_timestamps_seconds);
     }
 
     /// Given: cached rates on both sides of a retention cutoff

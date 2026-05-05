@@ -16,17 +16,10 @@ vi.mock("@/lib/canister-server", () => ({
 
 function createStoredRate(overrides: Partial<StoredXrcBtcUsdRate> = {}): StoredXrcBtcUsdRate {
   return {
-    decimals: 9,
-    forex_timestamp: [],
-    rate: 50_000_000_000_000n,
-    price_cents: 5_000_000n,
-    quote_asset_num_received_rates: 1n,
     xrc_timestamp_seconds: 1_700_000_000n,
-    base_asset_num_received_rates: 1n,
-    base_asset_num_queried_sources: 1n,
-    standard_deviation: 0n,
-    quote_asset_num_queried_sources: 1n,
     fetched_at_seconds: 1_700_000_100n,
+    price_cents: 5_000_000n,
+    decimals: 9,
     ...overrides,
   };
 }
