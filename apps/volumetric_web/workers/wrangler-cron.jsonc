@@ -5,6 +5,9 @@
   "compatibility_date": "2025-01-03",
   "compatibility_flags": ["nodejs_compat"],
   "keep_vars": true,
+  "limits": {
+    "cpu_ms": 300000
+  },
   "observability": {
     "enabled": true
   },
