@@ -5,7 +5,8 @@ export interface Env {
   NEXT_APP: Fetcher;
 }
 
-const ONE_MINUTE_CRON = "* * * * *";
+const EVERY_MINUTE_CRON = "* * * * *";
+const EVERY_FIVE_MINUTES_CRON = "*/5 * * * *";
 
 async function callCronEndpoint(env: Env, path: string): Promise<unknown> {
   const res = await env.NEXT_APP.fetch(`https://dummy${path}`, {
@@ -19,7 +20,16 @@ async function callCronEndpoint(env: Env, path: string): Promise<unknown> {
 
 const worker: ExportedHandler<Env> = {
   async scheduled(event, env, ctx) {
-    if (event.cron !== ONE_MINUTE_CRON) {
+    if (event.cron === EVERY_FIVE_MINUTES_CRON) {
+      ctx.waitUntil(
+        callCronEndpoint(env, "/api/cron/sync-xrc-price")
+          .then((data) => console.log("XRC price sync result:", data))
+          .catch((err) => console.error("XRC price sync failed:", err)),
+      );
+      return;
+    }
+
+    if (event.cron !== EVERY_MINUTE_CRON) {
       return;
     }
 
@@ -42,11 +52,6 @@ const worker: ExportedHandler<Env> = {
       callCronEndpoint(env, "/api/cron/sync-market-data")
         .then((data) => console.log("Market data sync result:", data))
         .catch((err) => console.error("Market data sync failed:", err)),
-    );
-    ctx.waitUntil(
-      callCronEndpoint(env, "/api/cron/sync-xrc-price")
-        .then((data) => console.log("XRC price sync result:", data))
-        .catch((err) => console.error("XRC price sync failed:", err)),
     );
     ctx.waitUntil(
       callCronEndpoint(env, "/api/cron/ship-canister-logs")
