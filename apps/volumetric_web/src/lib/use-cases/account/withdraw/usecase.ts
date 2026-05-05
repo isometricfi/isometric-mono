@@ -8,6 +8,7 @@ import { withSpan } from "@/lib/telemetry/withSpan";
 import { mapCanisterWithdrawalPhase } from "../../_shared/map-canister-withdrawal-phase";
 import { pollOperationStatusUntilTerminal } from "../../_shared/poll-operation-status";
 import { toCanisterWalletProof } from "../../_shared/wallet-proof";
+import { assertNotPaused } from "../../feature-flags/_shared/assert-not-paused";
 import { mapResult } from "./mapper";
 import type { Input, Output } from "./schema";
 
@@ -15,6 +16,8 @@ const WITHDRAW_SPAN_NAME = "usecase.account.withdraw";
 
 export async function withdraw(input: Input): Promise<Output> {
   return withSpan(WITHDRAW_SPAN_NAME, async () => {
+    await assertNotPaused();
+
     const actor = await getCanisterActor();
 
     const result = await actor.withdraw_ckbtc({

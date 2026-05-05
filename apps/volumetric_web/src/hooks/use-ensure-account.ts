@@ -4,7 +4,9 @@ import { isBitcoinWallet } from "@dynamic-labs/bitcoin";
 import { useDynamicContext } from "@dynamic-labs/sdk-react-core";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { unwrapResult } from "@volumetric/canister-types";
+import { useTranslations } from "next-intl";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { toast } from "sonner";
 import { openOnboardingModal } from "@/components/wallet/OnboardingModal";
 import { signBitcoinPaymentMessage } from "@/lib/bitcoin/sign-payment-message";
 import { getNiceErrorMessage } from "@/lib/error-message";
@@ -15,6 +17,7 @@ import type { Output as CreateAccountOutput } from "@/lib/use-cases/account/crea
 import { trpcClient } from "@/trpc/react";
 import { useAccount } from "./queries/use-account";
 import { useBtcAddress } from "./queries/use-btc-address";
+import { usePauseMode } from "./queries/use-pause-mode";
 import { useCanister } from "./use-canister";
 
 export type EnsureAccountStep =
@@ -30,6 +33,7 @@ export function useEnsureAccount() {
   const canister = useCanister();
   const address = useBtcAddress("payment");
   const queryClient = useQueryClient();
+  const tPause = useTranslations("PauseMode");
 
   const {
     data: accountData,
@@ -37,18 +41,22 @@ export function useEnsureAccount() {
     isFetched: isAccountFetched,
   } = useAccount();
 
+  const { data: pauseModeData, isFetched: isPauseModeFetched } = usePauseMode();
+  const isPaused = pauseModeData?.paused ?? false;
+
   const attemptedAddressRef = useRef<string | null>(null);
   const [step, setStep] = useState<EnsureAccountStep>("idle");
   const [error, setError] = useState<string | null>(null);
 
   const shouldCreate = useMemo(() => {
+    if (isPaused) return false;
     if (!primaryWallet || !isBitcoinWallet(primaryWallet)) return false;
     if (!canister || !address) return false;
     if (!isAccountFetched || isLoadingAccount) return false;
     if (accountData?.profile) return false;
     if (attemptedAddressRef.current === address) return false;
     return true;
-  }, [primaryWallet, canister, address, isAccountFetched, isLoadingAccount, accountData]);
+  }, [isPaused, primaryWallet, canister, address, isAccountFetched, isLoadingAccount, accountData]);
 
   const createAccountMutation = useMutation<CreateAccountOutput, Error, void>({
     mutationFn: async (): Promise<CreateAccountOutput> => {
@@ -121,12 +129,34 @@ export function useEnsureAccount() {
       return;
     }
 
+    if (!isPauseModeFetched) return;
+
+    if (isPaused) {
+      if (attemptedAddressRef.current !== address) {
+        attemptedAddressRef.current = address;
+        toast.info(tPause("accountCreationBlocked"));
+        handleLogOut();
+      }
+      return;
+    }
+
     if (shouldCreate) {
       attemptedAddressRef.current = address;
       setStep("checking");
       createAccountMutation.mutate();
     }
-  }, [isLoadingAccount, primaryWallet, address, accountData, shouldCreate, createAccountMutation]);
+  }, [
+    isLoadingAccount,
+    primaryWallet,
+    address,
+    accountData,
+    shouldCreate,
+    createAccountMutation,
+    handleLogOut,
+    tPause,
+    isPaused,
+    isPauseModeFetched,
+  ]);
 
   const isOpen = step !== "idle" && step !== "done";
 

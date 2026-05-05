@@ -9,6 +9,10 @@ vi.mock("@/lib/canister-server", () => ({
   getCanisterActor: getCanisterActorMock,
 }));
 
+vi.mock("../../feature-flags/_shared/assert-not-paused", () => ({
+  assertNotPaused: vi.fn().mockResolvedValue(undefined),
+}));
+
 describe("acceptOffers usecase", () => {
   beforeEach(() => {
     vi.clearAllMocks();
