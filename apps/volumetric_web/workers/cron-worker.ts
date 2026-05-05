@@ -6,6 +6,7 @@ export interface Env {
 }
 
 const ONE_MINUTE_CRON = "* * * * *";
+const FIFTEEN_MINUTE_CRON = "*/15 * * * *";
 
 async function callCronEndpoint(env: Env, path: string): Promise<unknown> {
   const res = await env.NEXT_APP.fetch(`https://dummy${path}`, {
@@ -19,6 +20,15 @@ async function callCronEndpoint(env: Env, path: string): Promise<unknown> {
 
 const worker: ExportedHandler<Env> = {
   async scheduled(event, env, ctx) {
+    if (event.cron === FIFTEEN_MINUTE_CRON) {
+      ctx.waitUntil(
+        callCronEndpoint(env, "/api/cron/sync-xrc-price")
+          .then((data) => console.log("XRC price sync result:", data))
+          .catch((err) => console.error("XRC price sync failed:", err)),
+      );
+      return;
+    }
+
     if (event.cron !== ONE_MINUTE_CRON) {
       return;
     }

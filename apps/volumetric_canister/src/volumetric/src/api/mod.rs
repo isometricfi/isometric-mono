@@ -10,6 +10,7 @@ pub mod settlement;
 pub mod testing;
 pub mod whitelist;
 pub mod withdrawals;
+pub mod xrc_snapshot;
 
 pub use accounts::{
     create_account, get_account_info, get_account_nonce, get_message_to_sign,
@@ -58,3 +59,4 @@ pub use withdrawals::{
     get_pending_withdrawals, get_withdraw_message, get_withdraw_status, get_withdrawal_by_id,
     withdraw_ckbtc,
 };
+pub use xrc_snapshot::fetch_xrc_btc_usd_exchange_rate_snapshot;
