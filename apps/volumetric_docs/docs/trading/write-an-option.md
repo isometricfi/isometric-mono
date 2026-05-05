@@ -39,6 +39,16 @@ Lower premiums fill faster. Higher premiums earn more per fill but may not fill 
 
 The review screen shows strike, term, amount, premium, APY, competitiveness, and the platform fee. Slide to confirm and sign in your wallet.
 
+## How buyers pick your offer
+
+For a given strike and term, your offer is ranked against other open offers by:
+
+1. **Premium** (lowest first). The cheapest offer for the strike fills first.
+2. **Created at** (oldest first) for ties. At the same premium, the offer created earlier gets matched first (FIFO).
+3. **Size**. Each buyer fills from one offer at a time. A buyer needing more size than the cheapest offer can fill will skip it and take the next offer big enough, even at a higher premium.
+
+The competitiveness label on the premium step shows where you'd rank by premium. The "Largest" badge on your offer card appears when your offer is the biggest in the book. Even at a higher premium, you'll still capture buyers too big for cheaper offers.
+
 ## Limits
 
 - Minimum offer size: **0.0004 BTC** (40,000 sats).
@@ -68,11 +78,12 @@ You write **1 BTC** at **+10% strike** for a **7-day term** with a **2% premium*
 - Your premium of 0.02 BTC credits immediately.
 - 1 BTC moves into locked.
 
-| BTC at expiry | % over strike | Your final position |
-|---|---|---|
-| $90,000 | n/a (under) | 1 BTC + 0.02 premium = **1.02 BTC** |
-| $110,000 | 0% | 1 BTC + 0.02 premium = **1.02 BTC** |
-| $111,100 | 1% | ~0.99 BTC + 0.02 premium = **~1.01 BTC** |
-| $200,000 | 82% | ~0 BTC + 0.02 premium = **~0.02 BTC** |
+| BTC at expiry | % over strike | Your final position | Final position USD |
+|---|---|---|---|
+| $90,000 | n/a (under) | 1 BTC + 0.02 premium = **1.02 BTC** | ~$91,800 |
+| $100,000 | n/a (under) | 1 BTC + 0.02 premium = **1.02 BTC** | ~$102,000 |
+| $110,000 | 0% | 1 BTC + 0.02 premium = **1.02 BTC** | ~$112,200 |
+| $111,100 | 1% | ~0.99 BTC + 0.02 premium = **~1.01 BTC** | ~$112,200 |
+| $140,000 | 27% | ~0.73 BTC + 0.02 premium = **~0.75 BTC** | ~$104,600 |
 
 The further BTC runs above strike, the more of your collateral the buyer takes. You always keep the premium.
