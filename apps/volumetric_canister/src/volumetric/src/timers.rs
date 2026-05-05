@@ -15,11 +15,22 @@ const ONE_DAY_SECS: u64 = 24 * ONE_HOUR_SECS;
 const ONE_WEEK_SECS: u64 = 7 * ONE_DAY_SECS;
 
 pub fn setup_timers() {
+    // Periodically refreshes the ICRC transfer fee cache when the ledger client is idle.
     setup_transfer_fee_refresh_timer();
+
+    // Aligns to 15-minute ticks, then fetches a current BTC/USD snapshot from XRC into stable cache.
     setup_xrc_snapshot_timer();
+
+    // Once per day, removes XRC cache entries older than one week.
     setup_xrc_rate_cleanup_timer();
+
+    // Once per day, deletes domain events older than one week and prunes completed WAL rows.
     setup_event_cleanup_timer();
+
+    // Every five minutes, marks stale in-flight WAL journal rows as needing recovery.
     setup_wal_inflight_recovery_timer();
+
+    // Every hour, runs settlement for expired options.
     setup_settlement_timer();
 }
 
