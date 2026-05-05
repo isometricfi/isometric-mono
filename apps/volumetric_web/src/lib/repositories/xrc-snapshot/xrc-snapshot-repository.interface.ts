@@ -1,12 +1,9 @@
-export interface XrcSnapshotToSave {
-  responseJson: string;
+export interface InsertXrcBtcUsdSnapshotInput {
   fetchedAtMs: number;
-}
-
-export interface InsertedXrcSnapshot {
-  id: number;
+  responseJson: string;
 }
 
 export interface IXrcSnapshotRepository {
-  insertSnapshot(row: XrcSnapshotToSave): Promise<InsertedXrcSnapshot>;
+  getLatestSnapshotResponseJson(): Promise<string | null>;
+  insertSnapshot(input: InsertXrcBtcUsdSnapshotInput): Promise<void>;
 }

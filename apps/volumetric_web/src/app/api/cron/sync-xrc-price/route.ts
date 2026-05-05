@@ -1,6 +1,6 @@
 import { logError } from "@/lib/telemetry/logs";
-import { outputSchema } from "@/lib/use-cases/market/sync-xrc-price/schema";
-import { syncXrcPriceSnapshot } from "@/lib/use-cases/market/sync-xrc-price/usecase";
+import { outputSchema as syncXrcPriceSuccessSchema } from "@/lib/use-cases/market/sync-xrc-price/schema";
+import { syncXrcPriceFromCanister } from "@/lib/use-cases/market/sync-xrc-price/usecase";
 import {
   createCronErrorResponse,
   createCronSuccessResponse,
@@ -14,10 +14,10 @@ export async function GET(request: Request) {
   }
 
   try {
-    const result = await syncXrcPriceSnapshot();
-    return createCronSuccessResponse(outputSchema, result);
+    const result = await syncXrcPriceFromCanister();
+    return createCronSuccessResponse(syncXrcPriceSuccessSchema, result);
   } catch (error) {
-    await logError("Failed to sync XRC price snapshot", error);
-    return createCronErrorResponse("Failed to sync XRC price snapshot", 500);
+    await logError("Failed to sync XRC price snapshot from canister", error);
+    return createCronErrorResponse("Failed to sync XRC price snapshot from canister", 500);
   }
 }

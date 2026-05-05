@@ -1,29 +1,29 @@
+import { desc } from "drizzle-orm";
 import type { DrizzleD1Database } from "drizzle-orm/d1";
 import type * as dbSchema from "@/lib/db/schema";
 import { xrcBtcUsdSnapshots } from "@/lib/db/schema";
 import type {
-  InsertedXrcSnapshot,
+  InsertXrcBtcUsdSnapshotInput,
   IXrcSnapshotRepository,
-  XrcSnapshotToSave,
 } from "./xrc-snapshot-repository.interface";
 
 export class DrizzleXrcSnapshotRepository implements IXrcSnapshotRepository {
   constructor(private db: DrizzleD1Database<typeof dbSchema>) {}
 
-  async insertSnapshot(row: XrcSnapshotToSave): Promise<InsertedXrcSnapshot> {
-    const inserted = await this.db
-      .insert(xrcBtcUsdSnapshots)
-      .values({
-        fetchedAtMs: row.fetchedAtMs,
-        responseJson: row.responseJson,
-      })
-      .returning({ id: xrcBtcUsdSnapshots.id });
+  async getLatestSnapshotResponseJson(): Promise<string | null> {
+    const rows = await this.db
+      .select({ responseJson: xrcBtcUsdSnapshots.responseJson })
+      .from(xrcBtcUsdSnapshots)
+      .orderBy(desc(xrcBtcUsdSnapshots.id))
+      .limit(1);
 
-    const rowOut = inserted[0];
-    if (!rowOut) {
-      throw new Error("XRC snapshot insert returned no row");
-    }
+    return rows[0]?.responseJson ?? null;
+  }
 
-    return { id: rowOut.id };
+  async insertSnapshot(input: InsertXrcBtcUsdSnapshotInput): Promise<void> {
+    await this.db.insert(xrcBtcUsdSnapshots).values({
+      fetchedAtMs: input.fetchedAtMs,
+      responseJson: input.responseJson,
+    });
   }
 }
