@@ -103,7 +103,7 @@ export function getOfferRank(
   offerId: string,
   term: number,
   strikePercent: number,
-): { rank: number; totalOffers: number; isBest: boolean; isLargestAtPremium: boolean } | null {
+): { rank: number; totalOffers: number; isBest: boolean; isLargestInBook: boolean } | null {
   if (!data) return null;
 
   const termGroup = data.termGroups.find((g) => g.term === term);
@@ -122,17 +122,14 @@ export function getOfferRank(
   if (index === -1) return null;
 
   const offer = sortedOffers[index];
-  const peersAtSamePremium = sortedOffers.filter(
-    (other) => other.id !== offer.id && other.premium === offer.premium,
+  const isLargestInBook = sortedOffers.every(
+    (other) => other.id === offer.id || other.amountSats < offer.amountSats,
   );
-  const isLargestAtPremium =
-    peersAtSamePremium.length > 0 &&
-    peersAtSamePremium.every((other) => other.amountSats < offer.amountSats);
 
   return {
     rank: index + 1,
     totalOffers: sortedOffers.length,
     isBest: index === 0,
-    isLargestAtPremium,
+    isLargestInBook,
   };
 }

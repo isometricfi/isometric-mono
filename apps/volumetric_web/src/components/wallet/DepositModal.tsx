@@ -96,7 +96,7 @@ export function DepositModal({
     const sats = parseBtcToSatsBigint(amountBtc);
     if (sats > BigInt(maxSpendableSats)) return false;
     return sats >= minDepositSats;
-  }, [isWalletReady, depositAddress, amountBtc, maxSpendableSats]);
+  }, [isWalletReady, depositAddress, amountBtc, maxSpendableSats, minDepositSats]);
 
   const isProcessing = step === "sending";
 

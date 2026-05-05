@@ -317,10 +317,10 @@ function CollateralStep({
 
 function PremiumStep({ model, apy }: { model: WriteModel; apy: number }) {
   const t = useTranslations("WriteFlow");
-  const { rank, totalOffers, bestPremiumPercent, isLargestAtPremium } = model.competitiveness;
+  const { rank, totalOffers, bestPremiumPercent, isLargestInBook } = model.competitiveness;
   const isBest = rank === 1;
   const isTiedAtBest = !isBest && bestPremiumPercent === model.premiumPercent;
-  const showLargestBadge = !isBest && isLargestAtPremium && model.amountSats > 0;
+  const showLargestBadge = isLargestInBook && model.amountSats > 0;
 
   const bestIdx =
     bestPremiumPercent === null ? -1 : model.premiumValues.indexOf(bestPremiumPercent);

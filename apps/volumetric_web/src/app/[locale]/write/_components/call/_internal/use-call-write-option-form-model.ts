@@ -210,8 +210,7 @@ export function useCallWriteOptionFormModel() {
         ? `${competitiveness.rank}/${competitiveness.totalOffers}`
         : null;
 
-  const showLargestIndicator =
-    competitiveness.rank !== 1 && competitiveness.isLargestAtPremium && amountSats > 0;
+  const showLargestIndicator = competitiveness.isLargestInBook && amountSats > 0;
 
   return {
     acceptOffer: createOffer,
