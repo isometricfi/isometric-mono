@@ -5,7 +5,7 @@ export interface WriterCompetitiveness {
   fillSpeed: "firstOffer" | "fastFill" | "balanced" | "higherYield";
   rank: number;
   totalOffers: number;
-  isLargestAtPremium: boolean;
+  isLargestInBook: boolean;
 }
 
 export function getEarningsSatsForPremiumPercent(
@@ -75,7 +75,7 @@ export function getWriterCompetitiveness(
       fillSpeed: "firstOffer",
       rank: 1,
       totalOffers: 1,
-      isLargestAtPremium: false,
+      isLargestInBook: false,
     };
   }
 
@@ -87,17 +87,14 @@ export function getWriterCompetitiveness(
     rank += 1;
   }
 
-  const offersAtSamePremium = offers.filter((offer) => offer.premium === premiumPercent);
-  const isLargestAtPremium =
-    offersAtSamePremium.length > 0 &&
-    offersAtSamePremium.every((offer) => amountSats > offer.amountSats);
+  const isLargestInBook = amountSats > 0 && offers.every((offer) => amountSats > offer.amountSats);
 
   return {
     bestPremiumPercent: sortedOffers[0]?.premium ?? null,
     fillSpeed: getFillSpeedLabel(rank, sortedOffers.length + 1),
     rank,
     totalOffers: sortedOffers.length + 1,
-    isLargestAtPremium,
+    isLargestInBook,
   };
 }
 

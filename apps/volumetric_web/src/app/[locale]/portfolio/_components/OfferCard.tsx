@@ -47,7 +47,7 @@ interface OfferCardProps {
     rank: number;
     totalOffers: number;
     isBest: boolean;
-    isLargestAtPremium: boolean;
+    isLargestInBook: boolean;
   } | null;
 }
 
@@ -154,25 +154,26 @@ export function OfferCard({ offer, btcPrice, onCancel, isCancelling, rankInfo }:
                 <span>{t("call")}</span>
               </Badge>
 
-              {rankInfo &&
-                (rankInfo.isBest ? (
-                  <Badge variant="default">
-                    <Trophy className="size-3" />
-                    {t("bestOffer")}
-                  </Badge>
-                ) : (
-                  <>
+              {rankInfo && (
+                <>
+                  {rankInfo.isBest ? (
+                    <Badge variant="default">
+                      <Trophy className="size-3" />
+                      {t("bestOffer")}
+                    </Badge>
+                  ) : (
                     <Badge variant="outline" className="text-muted-foreground">
                       {t("rank", { rank: rankInfo.rank })}
                     </Badge>
-                    {rankInfo.isLargestAtPremium && (
-                      <Badge variant="secondary">
-                        <Scale className="size-3" />
-                        {t("largestOffer")}
-                      </Badge>
-                    )}
-                  </>
-                ))}
+                  )}
+                  {rankInfo.isLargestInBook && (
+                    <Badge variant="secondary">
+                      <Scale className="size-3" />
+                      {t("largestOffer")}
+                    </Badge>
+                  )}
+                </>
+              )}
               <Dialog>
                 <DialogTrigger asChild>
                   <Button
