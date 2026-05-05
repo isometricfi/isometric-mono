@@ -12,12 +12,12 @@ import { signBitcoinPaymentMessage } from "@/lib/bitcoin/sign-payment-message";
 import { getNiceErrorMessage } from "@/lib/error-message";
 import { clearInviteCodeFromSession, readInviteCodeFromSession } from "@/lib/referrals/invite-code";
 import { validateInviteCode } from "@/lib/referrals/validate-invite-code";
-import { isPauseMode } from "@/lib/site-links";
 import { computeExpiresAtSeconds } from "@/lib/use-cases/_shared/wallet-proof";
 import type { Output as CreateAccountOutput } from "@/lib/use-cases/account/create-account/schema";
 import { trpcClient } from "@/trpc/react";
 import { useAccount } from "./queries/use-account";
 import { useBtcAddress } from "./queries/use-btc-address";
+import { usePauseMode } from "./queries/use-pause-mode";
 import { useCanister } from "./use-canister";
 
 export type EnsureAccountStep =
@@ -41,19 +41,22 @@ export function useEnsureAccount() {
     isFetched: isAccountFetched,
   } = useAccount();
 
+  const { data: pauseModeData, isFetched: isPauseModeFetched } = usePauseMode();
+  const isPaused = pauseModeData?.paused ?? false;
+
   const attemptedAddressRef = useRef<string | null>(null);
   const [step, setStep] = useState<EnsureAccountStep>("idle");
   const [error, setError] = useState<string | null>(null);
 
   const shouldCreate = useMemo(() => {
-    if (isPauseMode()) return false;
+    if (isPaused) return false;
     if (!primaryWallet || !isBitcoinWallet(primaryWallet)) return false;
     if (!canister || !address) return false;
     if (!isAccountFetched || isLoadingAccount) return false;
     if (accountData?.profile) return false;
     if (attemptedAddressRef.current === address) return false;
     return true;
-  }, [primaryWallet, canister, address, isAccountFetched, isLoadingAccount, accountData]);
+  }, [isPaused, primaryWallet, canister, address, isAccountFetched, isLoadingAccount, accountData]);
 
   const createAccountMutation = useMutation<CreateAccountOutput, Error, void>({
     mutationFn: async (): Promise<CreateAccountOutput> => {
@@ -126,7 +129,9 @@ export function useEnsureAccount() {
       return;
     }
 
-    if (isPauseMode()) {
+    if (!isPauseModeFetched) return;
+
+    if (isPaused) {
       if (attemptedAddressRef.current !== address) {
         attemptedAddressRef.current = address;
         toast.info(tPause("accountCreationBlocked"));
@@ -149,6 +154,8 @@ export function useEnsureAccount() {
     createAccountMutation,
     handleLogOut,
     tPause,
+    isPaused,
+    isPauseModeFetched,
   ]);
 
   const isOpen = step !== "idle" && step !== "done";

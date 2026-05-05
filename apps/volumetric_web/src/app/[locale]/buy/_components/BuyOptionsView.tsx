@@ -7,10 +7,12 @@ import { useState } from "react";
 import { BTCPriceChart } from "@/components/options/BTCPriceChart";
 import { OptionsViewer } from "@/components/options/OptionsViewer";
 import { OptionTypeToggle } from "@/components/options/OptionTypeToggle";
+import { PauseModeNotice } from "@/components/PauseModeNotice";
 import { Button } from "@/components/ui/button";
 import { DepositModal } from "@/components/wallet/DepositModal";
 import { OnboardingContent } from "@/components/wallet/OnboardingModal";
 import { useModal } from "@/hooks";
+import { usePauseMode } from "@/hooks/queries/use-pause-mode";
 import { useProMode } from "@/stores/preferences-store";
 import type { OptionType } from "@/types/ui";
 import { BuyCallFlow } from "./call/BuyCallFlow";
@@ -24,6 +26,7 @@ export function BuyOptionsView() {
   const { openModal } = useModal();
   const { isProMode } = useProMode();
   const { primaryWallet, setShowAuthFlow } = useDynamicContext();
+  const { data: pauseModeData } = usePauseMode();
   const isConnected = !!primaryWallet;
   const handleRequestDeposit = () => {
     setFlowOpen(false);
@@ -31,6 +34,10 @@ export function BuyOptionsView() {
   };
 
   const isPutDisabled = optionType === "put";
+
+  if (pauseModeData?.paused) {
+    return <PauseModeNotice />;
+  }
 
   return (
     <>

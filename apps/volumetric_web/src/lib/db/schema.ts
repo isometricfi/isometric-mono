@@ -168,6 +168,16 @@ export const btcCurrentPrice = sqliteTable(
   ],
 );
 
+export const featureFlags = sqliteTable(
+  "feature_flags",
+  {
+    key: text("key").primaryKey(),
+    enabled: integer("enabled", { mode: "boolean" }).notNull().default(false),
+    updatedAtMs: integer("updated_at_ms").notNull(),
+  },
+  (table) => [check("feature_flags_enabled_bool", sql`${table.enabled} in (0, 1)`)],
+);
+
 export const btcHistoryPoints = sqliteTable(
   "btc_history_points",
   {
