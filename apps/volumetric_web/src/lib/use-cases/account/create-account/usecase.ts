@@ -3,6 +3,7 @@ import { getCanisterActor } from "@/lib/canister-server";
 import { getDepositSyncRepository } from "@/lib/repositories/deposit-sync/get-deposit-sync-repository";
 import { withSpan } from "@/lib/telemetry/withSpan";
 import { toCanisterWalletProof } from "../../_shared/wallet-proof";
+import { assertNotPaused } from "../../feature-flags/_shared/assert-not-paused";
 import { mapResult } from "./mapper";
 import type { Input, Output } from "./schema";
 
@@ -10,6 +11,8 @@ const CREATE_ACCOUNT_SPAN_NAME = "usecase.account.create_account";
 
 export async function createAccount(input: Input): Promise<Output> {
   return withSpan(CREATE_ACCOUNT_SPAN_NAME, async (span) => {
+    await assertNotPaused();
+
     const actor = await getCanisterActor();
     const repository = getDepositSyncRepository();
 

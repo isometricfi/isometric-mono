@@ -168,6 +168,16 @@ export const btcCurrentPrice = sqliteTable(
   ],
 );
 
+export const featureFlags = sqliteTable(
+  "feature_flags",
+  {
+    key: text("key").primaryKey(),
+    enabled: integer("enabled", { mode: "boolean" }).notNull().default(false),
+    updatedAtMs: integer("updated_at_ms").notNull(),
+  },
+  (table) => [check("feature_flags_enabled_bool", sql`${table.enabled} in (0, 1)`)],
+);
+
 export const btcHistoryPoints = sqliteTable(
   "btc_history_points",
   {
@@ -180,4 +190,14 @@ export const btcHistoryPoints = sqliteTable(
     check("btc_history_points_timestamp_positive", sql`${table.timestampMs} > 0`),
     check("btc_history_points_price_positive", sql`${table.priceUsdMicros} > 0`),
   ],
+);
+
+export const xrcBtcUsdSnapshots = sqliteTable(
+  "xrc_btc_usd_snapshots",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    fetchedAtMs: integer("fetched_at_ms").notNull(),
+    responseJson: text("response_json").notNull(),
+  },
+  (table) => [check("xrc_snapshots_fetched_positive", sql`${table.fetchedAtMs} > 0`)],
 );

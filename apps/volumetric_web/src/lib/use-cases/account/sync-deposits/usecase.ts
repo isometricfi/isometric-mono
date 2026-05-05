@@ -12,6 +12,8 @@ const DETECTION_CONFIRMATIONS = 1;
 const MINTER_CONFIRMATIONS = 4;
 const MAX_SYNC_ATTEMPTS = 6;
 const MAX_DUE_DEPOSITS_PER_TICK = 200;
+const DEPOSIT_DETECTION_BATCH_SIZE = 10;
+const DEPOSIT_RECONCILIATION_BATCH_SIZE = 5;
 const MAX_TRACKED_DEPOSIT_AGE_6_HOURS_MS = 6 * 60 * 60 * 1000;
 const BASE_BACKOFF_1_MINUTE_MS = 60 * 1000;
 const MAX_BACKOFF_16_MINUTES_MS = 16 * 60 * 1000;
@@ -25,7 +27,18 @@ const GROUP_DUE_DEPOSITS_SPAN_NAME = "sync_deposits.group_due_deposits";
 const RECONCILE_DUE_DEPOSITS_SPAN_NAME = "sync_deposits.reconcile_due_deposits";
 const SAVE_CURSOR_SPAN_NAME = "sync_deposits.save_cursor";
 
-export async function syncDepositsFromCanister(): Promise<Output> {
+interface BatchedResult<T> {
+  values: T[];
+  failures: number;
+}
+
+interface SyncDepositsDependencies {
+  logFailure?: (message: string, error: unknown) => Promise<void>;
+}
+
+export async function syncDepositsFromCanister(
+  dependencies: SyncDepositsDependencies = {},
+): Promise<Output> {
   return withSpan(SYNC_DEPOSITS_SPAN_NAME, async () => {
     const repository = getDepositSyncRepository();
     const nowMs = Date.now();
@@ -42,9 +55,11 @@ export async function syncDepositsFromCanister(): Promise<Output> {
       return mapResult({
         usersScanned: 0,
         maturedDetected: 0,
+        detectionFailures: 0,
         syncCalls: 0,
         creditedDeposits: 0,
         snapshotsSaved: 0,
+        reconciliationFailures: 0,
       });
     }
 
@@ -59,22 +74,29 @@ export async function syncDepositsFromCanister(): Promise<Output> {
       return { actor, users };
     });
 
-    const maturedDetected = await withSpan(DETECT_MATURED_DEPOSITS_SPAN_NAME, async (span) => {
-      const detectionPromises = users.map((user) =>
-        detectMaturedDepositsForUser({
-          repository,
-          actor,
-          userAddress: user.address,
-          nowMs,
-          currentBlockTipHeight,
-          minterConfirmations: DETECTION_CONFIRMATIONS,
-        }),
+    const detectionTotals = await withSpan(DETECT_MATURED_DEPOSITS_SPAN_NAME, async (span) => {
+      const detectionResults = await runBatched(
+        users,
+        DEPOSIT_DETECTION_BATCH_SIZE,
+        (user) =>
+          detectMaturedDepositsForUser({
+            repository,
+            actor,
+            userAddress: user.address,
+            nowMs,
+            currentBlockTipHeight,
+            minterConfirmations: DETECTION_CONFIRMATIONS,
+          }),
+        (user) => `Failed to detect matured deposits for user ${user.address}`,
+        dependencies.logFailure,
       );
-      const detectionResults = await Promise.all(detectionPromises);
-      const detectedDeposits = detectionResults.reduce((sum, count) => sum + count, 0);
+      const detectedDeposits = detectionResults.values.reduce((sum, count) => sum + count, 0);
 
       span.setAttribute(ATTR_RESULT_COUNT, detectedDeposits);
-      return detectedDeposits;
+      return {
+        detectedDeposits,
+        failures: detectionResults.failures,
+      };
     });
 
     const dueDepositsByUser = await withSpan(GROUP_DUE_DEPOSITS_SPAN_NAME, async () =>
@@ -88,7 +110,9 @@ export async function syncDepositsFromCanister(): Promise<Output> {
     );
 
     const reconciliationTotals = await withSpan(RECONCILE_DUE_DEPOSITS_SPAN_NAME, async () => {
-      const reconciliationPromises = Array.from(dueDepositsByUser.entries()).map(
+      const reconciliationResults = await runBatched(
+        Array.from(dueDepositsByUser.entries()),
+        DEPOSIT_RECONCILIATION_BATCH_SIZE,
         ([userAddress, dueDeposits]) =>
           reconcileUserDepositsAfterSync({
             repository,
@@ -100,14 +124,15 @@ export async function syncDepositsFromCanister(): Promise<Output> {
             maxSyncAttempts: MAX_SYNC_ATTEMPTS,
             getBackoffDelayMs,
           }),
+        ([userAddress]) => `Failed to reconcile due deposits for user ${userAddress}`,
+        dependencies.logFailure,
       );
-      const reconciliationResults = await Promise.all(reconciliationPromises);
 
       let totalSyncCalls = 0;
       let totalCreditedDeposits = 0;
       let totalSnapshotsSaved = 0;
 
-      for (const reconciliationResult of reconciliationResults) {
+      for (const reconciliationResult of reconciliationResults.values) {
         totalSyncCalls += reconciliationResult.syncCalls;
         totalCreditedDeposits += reconciliationResult.creditedDeposits;
         totalSnapshotsSaved += reconciliationResult.snapshotsSaved;
@@ -117,24 +142,63 @@ export async function syncDepositsFromCanister(): Promise<Output> {
         totalSyncCalls,
         totalCreditedDeposits,
         totalSnapshotsSaved,
+        failures: reconciliationResults.failures,
       };
     });
 
-    await withSpan(SAVE_CURSOR_SPAN_NAME, async () => {
-      await repository.saveDepositSyncCursor({
-        lastProcessedBlockHeight: currentBlockTipHeight,
-        updatedAtMs: nowMs,
+    const hasIsolatedFailures = detectionTotals.failures > 0 || reconciliationTotals.failures > 0;
+
+    if (!hasIsolatedFailures) {
+      await withSpan(SAVE_CURSOR_SPAN_NAME, async () => {
+        await repository.saveDepositSyncCursor({
+          lastProcessedBlockHeight: currentBlockTipHeight,
+          updatedAtMs: nowMs,
+        });
       });
-    });
+    }
 
     return mapResult({
       usersScanned: users.length,
-      maturedDetected,
+      maturedDetected: detectionTotals.detectedDeposits,
+      detectionFailures: detectionTotals.failures,
       syncCalls: reconciliationTotals.totalSyncCalls,
       creditedDeposits: reconciliationTotals.totalCreditedDeposits,
       snapshotsSaved: reconciliationTotals.totalSnapshotsSaved,
+      reconciliationFailures: reconciliationTotals.failures,
     });
   });
+}
+
+async function runBatched<TInput, TOutput>(
+  inputs: TInput[],
+  batchSize: number,
+  runItem: (input: TInput) => Promise<TOutput>,
+  getFailureMessage: (input: TInput) => string,
+  logFailure?: (message: string, error: unknown) => Promise<void>,
+): Promise<BatchedResult<TOutput>> {
+  const values: TOutput[] = [];
+  let failures = 0;
+
+  for (let startIndex = 0; startIndex < inputs.length; startIndex += batchSize) {
+    const batch = inputs.slice(startIndex, startIndex + batchSize);
+    const results = await Promise.allSettled(batch.map((input) => runItem(input)));
+
+    for (let resultIndex = 0; resultIndex < results.length; resultIndex += 1) {
+      const result = results[resultIndex];
+      if (result.status === "fulfilled") {
+        values.push(result.value);
+        continue;
+      }
+
+      failures += 1;
+      const input = batch[resultIndex];
+      if (input !== undefined && logFailure) {
+        await logFailure(getFailureMessage(input), result.reason);
+      }
+    }
+  }
+
+  return { values, failures };
 }
 
 function getBackoffDelayMs(attemptCount: number): number {

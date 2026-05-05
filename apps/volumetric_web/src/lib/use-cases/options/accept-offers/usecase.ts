@@ -4,6 +4,7 @@ import { getCanisterActor } from "@/lib/canister-server";
 import { withSpan } from "@/lib/telemetry/withSpan";
 import { pollOperationStatusUntilTerminal } from "../../_shared/poll-operation-status";
 import { toCanisterWalletProof } from "../../_shared/wallet-proof";
+import { assertNotPaused } from "../../feature-flags/_shared/assert-not-paused";
 import { mapResult } from "./mapper";
 import type { Input, Output } from "./schema";
 
@@ -11,6 +12,8 @@ const ACCEPT_OFFERS_SPAN_NAME = "usecase.options.accept_offers";
 
 export async function acceptOffers(input: Input): Promise<Output> {
   return withSpan(ACCEPT_OFFERS_SPAN_NAME, async () => {
+    await assertNotPaused();
+
     const actor = await getCanisterActor();
 
     const result = await actor.accept_offers({

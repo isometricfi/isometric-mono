@@ -5,6 +5,9 @@
   "compatibility_date": "2025-01-03",
   "compatibility_flags": ["nodejs_compat"],
   "keep_vars": true,
+  "limits": {
+    "cpu_ms": 300000
+  },
   "observability": {
     "enabled": true
   },
@@ -15,7 +18,7 @@
     }
   ],
   "triggers": {
-    "crons": ["* * * * *"]
+    "crons": ["* * * * *", "*/15 * * * *"]
   },
   "env": {
     "dev": {
@@ -35,6 +38,10 @@
     },
     "staging": {
       "name": "volumetric-cron-staging",
+      // Prod-only: omit */15 so cron-worker never runs sync-xrc-price on staging (see FIFTEEN_MINUTE_CRON).
+      "triggers": {
+        "crons": ["* * * * *"]
+      },
       "vars": {
         "TURBO_TELEMETRY_DISABLED": "1",
         "DO_NOT_TRACK": "1",
@@ -50,6 +57,10 @@
     },
     "production": {
       "name": "volumetric-cron-production",
+      // Includes */15 for XRC BTC/USD snapshot sync (sync-xrc-price); staging omits that schedule.
+      "triggers": {
+        "crons": ["* * * * *", "*/15 * * * *"]
+      },
       "vars": {
         "TURBO_TELEMETRY_DISABLED": "1",
         "DO_NOT_TRACK": "1",

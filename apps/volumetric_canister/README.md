@@ -30,6 +30,9 @@ Your canister will be available at `http://localhost:4943?canisterId={canister_i
 
 ## Deploying to mainnet
 
+For Orbit station setup, the WASM staging asset canister, CycleOps, and
+governed deploy commands, see [`ORBIT.md`](ORBIT.md).
+
 First, ensure you have an identity and cycles on the cycles ledger:
 
 ```bash

@@ -16,6 +16,10 @@ vi.mock("@/lib/repositories/withdrawal-sync/get-withdrawal-sync-repository", () 
   }),
 }));
 
+vi.mock("../../feature-flags/_shared/assert-not-paused", () => ({
+  assertNotPaused: vi.fn().mockResolvedValue(undefined),
+}));
+
 describe("withdraw usecase", () => {
   beforeEach(() => {
     vi.clearAllMocks();

@@ -11,9 +11,11 @@ const syncDepositsSuccessSchema = z.object({
   success: z.literal(true),
   usersScanned: z.number(),
   maturedDetected: z.number(),
+  detectionFailures: z.number(),
   syncCalls: z.number(),
   creditedDeposits: z.number(),
   snapshotsSaved: z.number(),
+  reconciliationFailures: z.number(),
 });
 
 export async function GET(request: Request) {
@@ -23,14 +25,16 @@ export async function GET(request: Request) {
   }
 
   try {
-    const result = await syncDepositsFromCanister();
+    const result = await syncDepositsFromCanister({ logFailure: logError });
     return createCronSuccessResponse(syncDepositsSuccessSchema, {
       success: true,
       usersScanned: result.usersScanned,
       maturedDetected: result.maturedDetected,
+      detectionFailures: result.detectionFailures,
       syncCalls: result.syncCalls,
       creditedDeposits: result.creditedDeposits,
       snapshotsSaved: result.snapshotsSaved,
+      reconciliationFailures: result.reconciliationFailures,
     });
   } catch (error) {
     await logError("Failed to sync deposits", error);

@@ -213,6 +213,40 @@ type EventType = variant {
   OfferCreated;
   OptionSettlementFailed;
 };
+type ExchangeRate = record {
+  metadata : ExchangeRateMetadata;
+  rate : nat64;
+  timestamp : nat64;
+  quote_asset : Asset_1;
+  base_asset : Asset_1;
+};
+type ExchangeRateError = variant {
+  AnonymousPrincipalNotAllowed;
+  CryptoQuoteAssetNotFound;
+  FailedToAcceptCycles;
+  ForexBaseAssetNotFound;
+  CryptoBaseAssetNotFound;
+  StablecoinRateTooFewRates;
+  ForexAssetsNotFound;
+  InconsistentRatesReceived;
+  RateLimited;
+  StablecoinRateZeroRate;
+  Other : record { code : nat32; description : text };
+  ForexInvalidTimestamp;
+  NotEnoughCycles;
+  ForexQuoteAssetNotFound;
+  StablecoinRateNotFound;
+  Pending;
+};
+type ExchangeRateMetadata = record {
+  decimals : nat32;
+  forex_timestamp : opt nat64;
+  quote_asset_num_received_rates : nat64;
+  base_asset_num_received_rates : nat64;
+  base_asset_num_queried_sources : nat64;
+  standard_deviation : nat64;
+  quote_asset_num_queried_sources : nat64;
+};
 type FeatureFlags = record {
   is_stitching_enabled : bool;
   is_partial_filling_enabled : bool;
@@ -351,10 +385,10 @@ type Result_34 = variant { Ok : vec UtxoStatus; Err : VolumetricError };
 type Result_35 = variant { Ok : WithdrawReceipt; Err : VolumetricError };
 type Result_4 = variant { Ok : ProfileInfo; Err : VolumetricError };
 type Result_5 = variant { Ok : CreateOfferResponse; Err : VolumetricError };
-type Result_6 = variant { Ok : opt PendingAccept; Err : VolumetricError };
-type Result_7 = variant { Ok : text; Err : VolumetricError };
-type Result_8 = variant { Ok : AcceptOffersStatus; Err : VolumetricError };
-type Result_9 = variant { Ok : opt ProfileInfo; Err : VolumetricError };
+type Result_6 = variant { Ok : ExchangeRate; Err : ExchangeRateError };
+type Result_7 = variant { Ok : Result_6; Err : VolumetricError };
+type Result_8 = variant { Ok : opt PendingAccept; Err : VolumetricError };
+type Result_9 = variant { Ok : text; Err : VolumetricError };
 type SettleExpiredOptionsResponse = record {
   settled : vec SettlementResult;
   errors : vec text;
@@ -485,18 +519,19 @@ service : (opt BtcNetwork) -> {
   clear_log_access_token : () -> (Result_1);
   create_account : (AuthenticatedPayload_2) -> (Result_4);
   create_offer : (AuthenticatedPayload_3) -> (Result_5);
-  get_accept_by_id : (nat64) -> (Result_6) query;
+  fetch_xrc_btc_usd_exchange_rate_snapshot : () -> (Result_7);
+  get_accept_by_id : (nat64) -> (Result_8) query;
   get_accept_offers_message : (text, vec AcceptOfferItem, nat64) -> (
-      Result_7,
+      Result_9,
     ) query;
-  get_accept_status : (blob) -> (Result_8) query;
-  get_account_info : (text, bool) -> (Result_9) query;
+  get_accept_status : (blob) -> (Result_10) query;
+  get_account_info : (text, bool) -> (Result_11) query;
   get_account_nonce : (text) -> (Result_3) query;
   get_active_option_by_id : (nat64) -> (opt ActiveOption) query;
   get_active_options : () -> (vec ActiveOption) query;
-  get_all_events : (opt nat64, opt nat32) -> (Result_10) query;
-  get_cancel_offer_message : (text, nat64, nat64) -> (Result_7) query;
-  get_ckbtc_balance : (text) -> (Result_11);
+  get_all_events : (opt nat64, opt nat32) -> (Result_12) query;
+  get_cancel_offer_message : (text, nat64, nat64) -> (Result_9) query;
+  get_ckbtc_balance : (text) -> (Result_13);
   get_config : () -> (Config) query;
   get_create_offer_message : (
       text,
@@ -506,24 +541,24 @@ service : (opt BtcNetwork) -> {
       nat64,
       nat64,
       nat64,
-    ) -> (Result_7) query;
-  get_deposit_address : (text) -> (Result_12);
+    ) -> (Result_9) query;
+  get_deposit_address : (text) -> (Result_14);
   get_events_for_principal : (principal, opt nat64, opt nat32) -> (
-      Result_10,
+      Result_12,
     ) query;
-  get_events_since : (nat64, opt nat32) -> (Result_10) query;
-  get_failed_accepts : () -> (Result_13) query;
-  get_failed_settlements : () -> (Result_14) query;
-  get_failed_withdrawals : () -> (Result_15) query;
+  get_events_since : (nat64, opt nat32) -> (Result_12) query;
+  get_failed_accepts : () -> (Result_15) query;
+  get_failed_settlements : () -> (Result_16) query;
+  get_failed_withdrawals : () -> (Result_17) query;
   get_feature_flags : () -> (FeatureFlags) query;
   get_fee_config : () -> (FeeConfig) query;
-  get_message_to_sign : (text, opt text, nat64) -> (Result_7) query;
+  get_message_to_sign : (text, opt text, nat64) -> (Result_9) query;
   get_my_events : (opt nat64, opt nat32) -> (vec Event) query;
-  get_my_offers : (text) -> (Result_16) query;
-  get_my_options : (text) -> (Result_17) query;
-  get_my_pending_withdrawals : (AuthenticatedPayload_4) -> (Result_15) query;
-  get_my_pending_withdrawals_message : (text, nat64) -> (Result_7) query;
-  get_my_written_options : (text) -> (Result_17) query;
+  get_my_offers : (text) -> (Result_18) query;
+  get_my_options : (text) -> (Result_19) query;
+  get_my_pending_withdrawals : (AuthenticatedPayload_4) -> (Result_17) query;
+  get_my_pending_withdrawals_message : (text, nat64) -> (Result_9) query;
+  get_my_written_options : (text) -> (Result_19) query;
   get_offer_by_id : (nat64) -> (opt Offer) query;
   get_open_offers : () -> (vec Offer) query;
   get_option_audit_report : (nat64) -> (Result_18) query;
