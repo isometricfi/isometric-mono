@@ -352,27 +352,29 @@ export type Result_20 = { 'Ok' : SettlementStatus } |
   { 'Err' : VolumetricError };
 export type Result_21 = { 'Ok' : UserBalanceInfo } |
   { 'Err' : VolumetricError };
-export type Result_22 = { 'Ok' : WithdrawStatus } |
+export type Result_22 = { 'Ok' : Array<UserBalanceInfo> } |
   { 'Err' : VolumetricError };
-export type Result_23 = { 'Ok' : [] | [PendingWithdrawal] } |
+export type Result_23 = { 'Ok' : WithdrawStatus } |
   { 'Err' : VolumetricError };
-export type Result_24 = { 'Ok' : Array<UserInfo> } |
+export type Result_24 = { 'Ok' : [] | [PendingWithdrawal] } |
   { 'Err' : VolumetricError };
-export type Result_25 = { 'Ok' : Array<Principal> } |
+export type Result_25 = { 'Ok' : Array<UserInfo> } |
   { 'Err' : VolumetricError };
-export type Result_26 = { 'Ok' : ObservabilityMetrics } |
+export type Result_26 = { 'Ok' : Array<Principal> } |
   { 'Err' : VolumetricError };
-export type Result_27 = { 'Ok' : WalExecutionOutcome } |
+export type Result_27 = { 'Ok' : ObservabilityMetrics } |
   { 'Err' : VolumetricError };
-export type Result_28 = { 'Ok' : SettleExpiredOptionsResponse } |
+export type Result_28 = { 'Ok' : WalExecutionOutcome } |
   { 'Err' : VolumetricError };
-export type Result_29 = { 'Ok' : SettlementReceipt } |
+export type Result_29 = { 'Ok' : SettleExpiredOptionsResponse } |
   { 'Err' : VolumetricError };
 export type Result_3 = { 'Ok' : bigint } |
   { 'Err' : VolumetricError };
-export type Result_30 = { 'Ok' : Array<UtxoStatus> } |
+export type Result_30 = { 'Ok' : SettlementReceipt } |
   { 'Err' : VolumetricError };
-export type Result_31 = { 'Ok' : WithdrawReceipt } |
+export type Result_31 = { 'Ok' : Array<UtxoStatus> } |
+  { 'Err' : VolumetricError };
+export type Result_32 = { 'Ok' : WithdrawReceipt } |
   { 'Err' : VolumetricError };
 export type Result_4 = { 'Ok' : ProfileInfo } |
   { 'Err' : VolumetricError };
@@ -605,17 +607,21 @@ export interface _SERVICE {
   'get_trading_limits' : ActorMethod<[], TradingLimits>,
   'get_user_balance' : ActorMethod<[string], Result_21>,
   'get_user_balance_by_principal' : ActorMethod<[Principal], Result_21>,
+  'get_user_balances_by_principals' : ActorMethod<
+    [Array<Principal>],
+    Result_22
+  >,
   'get_username_update_message' : ActorMethod<
     [string, string, bigint],
     Result_7
   >,
   'get_withdraw_message' : ActorMethod<[string, bigint, bigint], Result_7>,
-  'get_withdraw_status' : ActorMethod<[Uint8Array | number[]], Result_22>,
-  'get_withdrawal_by_id' : ActorMethod<[bigint], Result_23>,
-  'list_users' : ActorMethod<[], Result_24>,
-  'list_whitelisted' : ActorMethod<[], Result_25>,
-  'observability_get_metrics' : ActorMethod<[], Result_26>,
-  'recover_wal_operation' : ActorMethod<[Uint8Array | number[]], Result_27>,
+  'get_withdraw_status' : ActorMethod<[Uint8Array | number[]], Result_23>,
+  'get_withdrawal_by_id' : ActorMethod<[bigint], Result_24>,
+  'list_users' : ActorMethod<[], Result_25>,
+  'list_whitelisted' : ActorMethod<[], Result_26>,
+  'observability_get_metrics' : ActorMethod<[], Result_27>,
+  'recover_wal_operation' : ActorMethod<[Uint8Array | number[]], Result_28>,
   'remove_whitelisted' : ActorMethod<[Principal], Result_1>,
   'resolve_invite_code' : ActorMethod<[string], [] | [string]>,
   'set_accept_offer_quantity_sats_range_config' : ActorMethod<
@@ -649,12 +655,12 @@ export interface _SERVICE {
   >,
   'set_trading_limits_config' : ActorMethod<[TradingLimits], Result_1>,
   'set_withdraw_amount_sats_config' : ActorMethod<[bigint], Result_1>,
-  'settle_expired_options' : ActorMethod<[], Result_28>,
-  'settle_option_by_id' : ActorMethod<[bigint], Result_29>,
-  'update_ckbtc_balance' : ActorMethod<[string], Result_30>,
+  'settle_expired_options' : ActorMethod<[], Result_29>,
+  'settle_option_by_id' : ActorMethod<[bigint], Result_30>,
+  'update_ckbtc_balance' : ActorMethod<[string], Result_31>,
   'update_username' : ActorMethod<[AuthenticatedPayload_5], Result_4>,
   'validate_invite_code' : ActorMethod<[string, string], boolean>,
-  'withdraw_ckbtc' : ActorMethod<[AuthenticatedPayload_6], Result_31>,
+  'withdraw_ckbtc' : ActorMethod<[AuthenticatedPayload_6], Result_32>,
 }
 export declare const idlFactory: IDL.InterfaceFactory;
 export declare const init: (args: { IDL: typeof IDL }) => IDL.Type[];

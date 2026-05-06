@@ -9,6 +9,8 @@ use crate::guards::{is_whitelisted, no_replicated_call};
 use crate::storage::get_principal_for_wallet;
 use crate::usecases;
 
+pub const MAX_BATCH_BALANCE_LOOKUPS: usize = 100;
+
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
 pub struct DepositInfo {
     pub btc_address: String,
@@ -77,6 +79,8 @@ impl From<usecases::UserBalanceResult> for UserBalanceInfo {
 
 #[ic_cdk::query(guard = "no_replicated_call")]
 pub fn get_user_balance(address: String) -> Result<UserBalanceInfo, VolumetricError> {
+    is_whitelisted()?;
+
     let wallet_key = WalletKey::try_from_address(&address)?;
     let principal = get_principal_for_wallet(&wallet_key)
         .ok_or_else(|| VolumetricError::from_def(error_codes::PROFILE_NOT_FOUND, None, None))?;
@@ -89,6 +93,38 @@ pub fn get_user_balance(address: String) -> Result<UserBalanceInfo, VolumetricEr
 pub fn get_user_balance_by_principal(
     principal: Principal,
 ) -> Result<UserBalanceInfo, VolumetricError> {
+    is_whitelisted()?;
+
     let result = usecases::get_user_balance_use_case(principal)?;
     Ok(result.into())
+}
+
+#[ic_cdk::query(guard = "no_replicated_call")]
+pub fn get_user_balances_by_principals(
+    principals: Vec<Principal>,
+) -> Result<Vec<UserBalanceInfo>, VolumetricError> {
+    is_whitelisted()?;
+
+    if principals.len() > MAX_BATCH_BALANCE_LOOKUPS {
+        return Err(VolumetricError::from_def(
+            error_codes::BATCH_SIZE_EXCEEDED,
+            None,
+            None,
+        ));
+    }
+
+    let balances = principals
+        .into_iter()
+        .map(|principal| {
+            usecases::get_user_balance_use_case(principal)
+                .map(UserBalanceInfo::from)
+                .unwrap_or(UserBalanceInfo {
+                    total: 0,
+                    available: 0,
+                    locked: 0,
+                })
+        })
+        .collect();
+
+    Ok(balances)
 }

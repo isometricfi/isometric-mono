@@ -4,6 +4,7 @@ import { groupOffersByTermAndStrike } from "@/lib/options-transformer";
 import { ATTR_RESULT_COUNT } from "@/lib/telemetry/traceConstants";
 import { withSpan } from "@/lib/telemetry/withSpan";
 import type { OptionsData } from "@/types/options";
+import { getBalancesByPrincipals } from "../../account/get-balances-by-principals/usecase";
 
 const LIST_OPTIONS_SPAN_NAME = "usecase.options.list_options";
 
@@ -17,20 +18,7 @@ export async function listOptions(): Promise<OptionsData> {
       uniqueWriters.set(offer.writer.toText(), offer.writer);
     }
 
-    const writerEntries = Array.from(uniqueWriters.entries());
-    const balanceResults = await Promise.allSettled(
-      writerEntries.map(([, principal]) => actor.get_user_balance_by_principal(principal)),
-    );
-
-    const balancesByWriter = new Map<string, bigint>();
-    writerEntries.forEach(([writerText], idx) => {
-      const settled = balanceResults[idx];
-      if (settled.status === "fulfilled" && "Ok" in settled.value) {
-        balancesByWriter.set(writerText, settled.value.Ok.available);
-      } else {
-        balancesByWriter.set(writerText, BigInt(0));
-      }
-    });
+    const balancesByWriter = await getBalancesByPrincipals(Array.from(uniqueWriters.values()));
 
     const optionsData = groupOffersByTermAndStrike(offers, balancesByWriter);
 
