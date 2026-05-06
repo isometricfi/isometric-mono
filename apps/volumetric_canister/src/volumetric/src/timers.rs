@@ -9,7 +9,7 @@ use crate::usecases::{cleanup_old_events_use_case, settle_expired_options_use_ca
 
 const TRANSFER_FEE_REFRESH_INTERVAL_SECS: u64 = 60;
 const WAL_INFLIGHT_RECOVERY_SCAN_INTERVAL_5_MINUTES_SECS: u64 = 5 * 60;
-const XRC_SNAPSHOT_INTERVAL_15_MINUTES_SECS: u64 = 15 * 60;
+const XRC_SNAPSHOT_INTERVAL_5_MINUTES_SECS: u64 = 5 * 60;
 const ONE_HOUR_SECS: u64 = 60 * 60;
 const ONE_DAY_SECS: u64 = 24 * ONE_HOUR_SECS;
 const ONE_WEEK_SECS: u64 = 7 * ONE_DAY_SECS;
@@ -70,7 +70,7 @@ fn setup_xrc_snapshot_timer() {
 
 fn setup_xrc_snapshot_interval_timer() {
     ic_cdk_timers::set_timer_interval(
-        Duration::from_secs(XRC_SNAPSHOT_INTERVAL_15_MINUTES_SECS),
+        Duration::from_secs(XRC_SNAPSHOT_INTERVAL_5_MINUTES_SECS),
         || async {
             refresh_xrc_snapshot_cache().await;
         },
@@ -112,11 +112,11 @@ fn cleanup_old_xrc_btc_usd_rates() -> u64 {
 }
 
 fn seconds_until_next_xrc_snapshot_tick(now_seconds: u64) -> u64 {
-    let seconds_since_last_tick = now_seconds % XRC_SNAPSHOT_INTERVAL_15_MINUTES_SECS;
+    let seconds_since_last_tick = now_seconds % XRC_SNAPSHOT_INTERVAL_5_MINUTES_SECS;
     if seconds_since_last_tick == 0 {
         return 0;
     }
-    XRC_SNAPSHOT_INTERVAL_15_MINUTES_SECS - seconds_since_last_tick
+    XRC_SNAPSHOT_INTERVAL_5_MINUTES_SECS - seconds_since_last_tick
 }
 
 fn setup_wal_inflight_recovery_timer() {
@@ -170,7 +170,7 @@ mod tests {
     #[test]
     fn should_return_zero_delay_on_xrc_snapshot_boundary() {
         // given
-        const NOW_SECONDS: u64 = XRC_SNAPSHOT_INTERVAL_15_MINUTES_SECS * 10;
+        const NOW_SECONDS: u64 = XRC_SNAPSHOT_INTERVAL_5_MINUTES_SECS * 10;
 
         // when
         let delay_seconds = seconds_until_next_xrc_snapshot_tick(NOW_SECONDS);
@@ -186,13 +186,13 @@ mod tests {
     #[test]
     fn should_align_xrc_snapshot_delay_to_next_boundary() {
         // given
-        const NOW_SECONDS: u64 = XRC_SNAPSHOT_INTERVAL_15_MINUTES_SECS * 10 + ONE_MINUTE_SECS;
+        const NOW_SECONDS: u64 = XRC_SNAPSHOT_INTERVAL_5_MINUTES_SECS * 10 + ONE_MINUTE_SECS;
 
         // when
         let delay_seconds = seconds_until_next_xrc_snapshot_tick(NOW_SECONDS);
 
         // then
-        const EXPECTED_DELAY_SECONDS: u64 = XRC_SNAPSHOT_INTERVAL_15_MINUTES_SECS - ONE_MINUTE_SECS;
+        const EXPECTED_DELAY_SECONDS: u64 = XRC_SNAPSHOT_INTERVAL_5_MINUTES_SECS - ONE_MINUTE_SECS;
         assert_eq!(delay_seconds, EXPECTED_DELAY_SECONDS);
     }
 }
