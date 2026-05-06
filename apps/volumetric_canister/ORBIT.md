@@ -1,5 +1,7 @@
 # Orbit Deployment Runbook
 
+:)
+
 This runbook covers the local Orbit setup, the asset canister used for WASM
 staging, deployer permissions, cycles monitoring, and the commands used to
 request governed upgrades.
@@ -88,10 +90,10 @@ Add `assets/orbit_store/.ic-assets.json5`:
 ```json5
 [
   {
-    "match": "**/*",
-    "security_policy": "standard",
-    "allow_raw_access": false
-  }
+    match: "**/*",
+    security_policy: "standard",
+    allow_raw_access: false,
+  },
 ]
 ```
 
