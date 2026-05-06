@@ -1,156 +1,43 @@
-# Volumetric MVP
+# Volumetric monorepo
 
-> **Diagram Link:** [Dynamic.xyz](https://www.dynamic.xyz/) - wallet adapter
+Volumetric runs decentralized BTC/USD call options on the Internet Computer: writers post ckBTC collateral, buyers pay premium in ckBTC, and settlement uses an on-chain oracle. Product mechanics and math live in [docs/product-overview.md](docs/product-overview.md).
 
-## 1. Product Summary
+## Layout
 
-Build a decentralized options trading MVP on ICP using ckAssets for collateral and payouts:
+| Path | Role |
+|------|------|
+| `apps/volumetric_web` | Next.js app (wallet via Dynamic, Cloudflare Workers deployment) |
+| `apps/volumetric_canister` | Rust canister (`make` targets in that directory) |
+| `apps/volumetric_docs` | Docusaurus docs site |
+| `apps/volumetric-bot` | Bot / automation tooling |
+| `packages/canister-types` | Generated Candid bindings for TypeScript |
+| `packages/telemetry` | Shared OpenTelemetry helpers |
 
-- Start with **BTC/USD call options** using ckBTC as the underlying/collateral unit
-- Price reference uses an **ICP BTC/USD oracle** for settlement
-- Design is **asset-generic** so you can later add ckETH, ckUSDC/ckUSDT, etc.
-- Use **standardized contracts** (fixed expiries / strike increments / premium increments) to keep the market liquid, UX simple, and to enable partial fills across multiple writers
+## Prerequisites
 
-## 2. Core Concepts
+- **pnpm** — version pinned in root `package.json` (`packageManager` field). Run `corepack enable` if your shell does not pick it up.
+- **Node.js** — use an LTS release compatible with Next.js in `apps/volumetric_web`.
 
-### Covered Call (Phase 1)
+Canister work needs `dfx`, Rust with `wasm32-unknown-unknown`, and the tooling listed in [apps/volumetric_canister/README.md](apps/volumetric_canister/README.md).
 
-- **Writer** deposits ckBTC as collateral
-- **Buyer** pays a premium (in ckBTC)
-- At expiry, if ITM, buyer receives the profit payout; writer's collateral is debited accordingly
-- **No physical delivery/trading workflow** required; this is net-settled on-chain
+## Root commands
 
-### Put Options (Planned)
+Install dependencies from the repo root:
 
-- Same matching + standardization framework
-- Typically **stablecoin-collateralized** (e.g., writer deposits ckUSDC/ckUSDT), with payout logic based on BTC/USD at expiry
+```bash
+pnpm install
+```
 
-## 3. System Components
+| Script | What it runs |
+|--------|----------------|
+| `pnpm dev` | Turborepo `dev` across workspaces |
+| `pnpm build` | Turborepo `build` |
+| `pnpm test` | Turborepo `test` |
+| `pnpm lint` | Biome check |
+| `pnpm format` | Biome format write |
 
-### A) Collateral & Balances (ckAssets)
+The web app dev server uses port **4200** (`pnpm dev` filters through Turbo; run `pnpm --filter @volumetric/web dev` if you only want the frontend).
 
-- All funds live as **ckAssets** in user subaccounts within the canister
-- Writer must deposit collateral to create sell liquidity (sell calls / sell puts)
-- When an option is accepted, collateral is locked (available → locked_as_writer)
-- Premium is transferred directly from buyer to writer at acceptance time
+## Contributing
 
-### B) Contract Standardization
-
-Writers choose from a menu, not arbitrary free-form values:
-
-- **Underlying:** initially ckBTC referenced against USD
-- **Expiries:** e.g. 7d / 14d (later weekly/monthly ladders)
-- **Strike grid:** percentage above current price (e.g. +5%, +10%, +15%). Strike USD value is locked at the moment a buyer accepts the offer, calculated as `current_btc_price * (1 + strike_percent / 100)`
-- **Premium grid:** percentage steps (e.g. 0.5%, 0.75%, 1.0%, ... up to 5%)
-- **Min order size:** enforce a minimum (e.g. 0.005 ckBTC) to avoid dust
-
-This is the same "menu" idea that makes traditional options fungible and easy to fill from many writers.
-
-### C) Oracle / Settlement Price
-
-- Use an **ICP oracle feed** for BTC/USD at expiry
-- Settlement uses a defined rule such as:
-  ```
-  settlement_price = oracle_price_at(expiry_timestamp)
-  ```
-  (or a TWAP window if you want to reduce manipulation later)
-
-## 4. Trading & Settlement Logic
-
-### Calls (ckBTC collateral)
-
-**Variables:**
-
-- `strike_percent` = strike as % above current price (e.g. 10 = +10%)
-- `K` = strike price in USD, locked at acceptance: `btc_price_at_acceptance * (1 + strike_percent / 100)`
-- `S` = settlement price (USD) at expiry
-- `q` = size in BTC (e.g. 0.2 BTC)
-- `Premium` = premium_rate × q (if premium is % of notional BTC size), paid at trade start
-
-#### If Out-of-the-Money (S ≤ K):
-
-- Option expires worthless
-- Buyer loses premium
-- Writer keeps premium and keeps collateral (unlocked)
-
-#### If In-the-Money (S > K):
-
-- Buyer payout represents intrinsic value
-- If you want payout in ckBTC, you'll compute a BTC-denominated payout from the USD intrinsic value using S
-- **Intrinsic USD value:** `(S - K) × q`
-- **Payout in BTC (conceptually):** `((S - K) / S) × q`
-- Payout ckBTC is transferred from writer's locked collateral to buyer
-- Writer keeps premium, loses payout amount from collateral
-
-> **Note:** This "BTC-settled intrinsic" approach is the clean way to keep everything in ckBTC while referencing USD.
-
-## 5. User Experience Flows
-
-### Flow 1: Writer Lists a Call
-
-1. Writer connects (ICP identity + wallet integration as you choose)
-2. Deposits 1.0 ckBTC into platform
-3. Selects from menus:
-   - CALL, expiry=7d, strike=+10%, premium=1.0%
-4. Chooses amount to offer into that bucket (e.g. "sell up to 1.0 BTC")
-5. Listing becomes available for buyers to take (and can be partially filled)
-
-### Flow 2: Buyer Buys a Call (Partial Fill)
-
-1. Buyer browses buckets (tables by expiry → strike % → premium)
-2. Picks 7d / +10% / 1.0% (if BTC is $100k, strike locks at $110k)
-3. Enters size 0.30 BTC
-4. Buyer pays premium immediately (e.g. 0.003 ckBTC if 1% of 0.30 BTC)
-5. Strike price is locked at acceptance time based on current BTC price + strike %
-6. Platform allocates that 0.30 BTC exposure across one or more writers in the bucket
-7. At expiry: automatic settlement using oracle
-
-#### Outcome Example A (ITM)
-
-- Strike locked at acceptance: `K=$110k` (BTC was $100k, +10% strike)
-- Expiry price `S=$132k`, size `q=0.30`
-- Buyer payout in BTC: `((132k-110k)/132k) × 0.30 = (22/132) × 0.30 = 0.05 ckBTC`
-- Buyer receives 0.05 ckBTC from collateral
-- Writer keeps premium and loses 0.05 ckBTC from locked collateral
-
-#### Outcome Example B (OTM)
-
-- Strike locked at `K=$110k`, expiry `S=$105k`, `q=0.30`
-- Payout = 0
-- Buyer loses premium
-- Writer keeps premium; collateral unlocks
-
-## 6. MVP Scope
-
-### Included in MVP
-
-- ✅ European covered **Calls only**, pair: BTC/USD, collateral in ckBTC
-- ✅ Standard contract menus (expiry/strike/premium grids)
-- ✅ Bucketed liquidity with partial fills from multiple writers
-- ✅ Oracle-based settlement, single settlement snapshot rule
-- ✅ Basic risk checks:
-  - Writer must have enough free ckBTC to sell size
-  - Min trade size
-  - No under-collateralization
-
-### Explicitly Not in MVP (future)
-
-- ❌ Put options (stable collateral like ckUSDC/ckUSDT)
-- ❌ Multiple assets (ckETH, etc.)
-- ❌ Advanced pricing/IV modeling, RFQs, complex order types
-- ❌ TWAP settlement (unless needed)
-- ❌ Liquidations / margin (you're doing covered strategies first)
-
-## 7. Expandability Notes
-
-- **Asset-generic contract key** so adding ckETH later is mostly "configure menus + oracle feed"
-- Starting with partial fills but **offer stitching** will be added later
-- Add puts by switching collateral asset + payout math:
-  - Put writers post ckUSDC/ckUSDT, and payouts occur in the stablecoin (or optionally in ckBTC using conversion rules)
-
-## 8. Tech Stack
-
-- **Frontend:** Next.js, Shadcn
-- **Backend:** ICP Rust
-- **Oracle:** ICP exchange rate canister
-- **Wallet:** Dynamic.xyz for hot wallet integration
+Conventions, commits, and stack notes are in [AGENTS.md](AGENTS.md). After changing the canister API, run `make generate` from `apps/volumetric_canister` (see that Makefile for full targets).
