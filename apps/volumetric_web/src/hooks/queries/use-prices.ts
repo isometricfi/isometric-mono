@@ -1,23 +1,18 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { fetchCurrentBtcPrice } from "@/lib/market/coinbase-public-client";
+import type { Output as GetPricesOutput } from "@/lib/use-cases/market/get-prices/schema";
+import { useTRPC } from "@/trpc/react";
 
 const PRICE_REFETCH_INTERVAL_30_SECONDS_MS = 30_000;
 
-export interface PriceData {
-  btc: number;
-}
-
-async function fetchPrices(): Promise<PriceData> {
-  const { priceUsd } = await fetchCurrentBtcPrice();
-  return { btc: priceUsd };
-}
+export type PriceData = GetPricesOutput;
 
 export function usePrices() {
+  const trpc = useTRPC();
+
   return useQuery({
-    queryKey: ["prices"],
-    queryFn: fetchPrices,
+    ...trpc.market.getPrices.queryOptions(),
     staleTime: PRICE_REFETCH_INTERVAL_30_SECONDS_MS,
     refetchInterval: PRICE_REFETCH_INTERVAL_30_SECONDS_MS,
   });

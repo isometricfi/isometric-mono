@@ -19,6 +19,8 @@ pub enum WalStatus {
     Enqueued,
     /// Currently running.
     InFlight,
+    /// Failed with a transient external outcome and is eligible for automatic retry.
+    RetryRequired,
     /// Finished successfully.
     Succeeded,
     /// Failed with ambiguous external outcome and requires operator recovery.
@@ -132,6 +134,7 @@ pub enum WalExecutionOutcome {
     Succeeded,
     SucceededAlready,
     SkippedAlreadyInFlight,
+    RetryRequired(String),
     RecoveryRequired(String),
     FailedPermanent(String),
 }

@@ -5,8 +5,8 @@ export interface Env {
   NEXT_APP: Fetcher;
 }
 
-const ONE_MINUTE_CRON = "* * * * *";
-const FIFTEEN_MINUTE_CRON = "*/15 * * * *";
+const EVERY_MINUTE_CRON = "* * * * *";
+const EVERY_FIVE_MINUTES_CRON = "*/5 * * * *";
 
 async function callCronEndpoint(env: Env, path: string): Promise<unknown> {
   const res = await env.NEXT_APP.fetch(`https://dummy${path}`, {
@@ -20,7 +20,7 @@ async function callCronEndpoint(env: Env, path: string): Promise<unknown> {
 
 const worker: ExportedHandler<Env> = {
   async scheduled(event, env, ctx) {
-    if (event.cron === FIFTEEN_MINUTE_CRON) {
+    if (event.cron === EVERY_FIVE_MINUTES_CRON) {
       ctx.waitUntil(
         callCronEndpoint(env, "/api/cron/sync-xrc-price")
           .then((data) => console.log("XRC price sync result:", data))
@@ -29,7 +29,7 @@ const worker: ExportedHandler<Env> = {
       return;
     }
 
-    if (event.cron !== ONE_MINUTE_CRON) {
+    if (event.cron !== EVERY_MINUTE_CRON) {
       return;
     }
 

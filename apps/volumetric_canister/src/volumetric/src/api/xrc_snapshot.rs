@@ -1,13 +1,11 @@
-use ic_cdk::update;
+use ic_cdk::query;
 
-use crate::errors::VolumetricError;
-use crate::generated::xrc::GetExchangeRateResult;
-use crate::guards::is_whitelisted;
-use crate::oracle;
+use crate::guards::no_replicated_call;
+use crate::storage::{
+    get_latest_xrc_btc_usd_rate as storage_get_latest_xrc_btc_usd_rate, StoredXrcBtcUsdRate,
+};
 
-#[update]
-pub async fn fetch_xrc_btc_usd_exchange_rate_snapshot(
-) -> Result<GetExchangeRateResult, VolumetricError> {
-    is_whitelisted()?;
-    oracle::fetch_xrc_btc_usd_exchange_rate_snapshot_raw().await
+#[query(guard = "no_replicated_call")]
+pub fn get_latest_xrc_btc_usd_rate() -> Option<StoredXrcBtcUsdRate> {
+    storage_get_latest_xrc_btc_usd_rate()
 }

@@ -23,6 +23,22 @@ pub fn get_recovery_required_wal_entries(limit: u32) -> Result<Vec<OperationId>,
     Ok(operation_ids)
 }
 
+#[ic_cdk::query(guard = "no_replicated_call")]
+pub fn get_retry_required_wal_entries(limit: u32) -> Result<Vec<OperationId>, VolumetricError> {
+    is_controller()?;
+
+    let retry_limit = normalize_wal_query_limit_entries(limit);
+    if retry_limit == 0 {
+        return Ok(Vec::new());
+    }
+
+    let operation_ids = list_entries_by_status(WalStatus::RetryRequired, retry_limit)
+        .into_iter()
+        .map(|entry| entry.id)
+        .collect();
+    Ok(operation_ids)
+}
+
 #[ic_cdk::update]
 pub async fn recover_wal_operation(
     operation_id: OperationId,

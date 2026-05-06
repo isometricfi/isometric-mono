@@ -164,7 +164,9 @@ pub fn accept_offers(
             AcceptOffersStatus::Succeeded { result, .. } => {
                 return Ok(result);
             }
-            AcceptOffersStatus::Pending { .. } | AcceptOffersStatus::RecoveryRequired { .. } => {
+            AcceptOffersStatus::Pending { .. }
+            | AcceptOffersStatus::RetryRequired { .. }
+            | AcceptOffersStatus::RecoveryRequired { .. } => {
                 env.pic.tick();
             }
             AcceptOffersStatus::Failed { message, .. } => {

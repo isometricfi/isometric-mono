@@ -231,4 +231,38 @@ mod tests {
         let expected = HOUR_ALIGNED_BASE_SECONDS + 2 * ONE_HOUR_SECONDS;
         assert_eq!(expiry, expected);
     }
+
+    /// Given: several acceptance times (on hour, mid-hour, one second past hour) and standard durations
+    /// When: calculating expiry for each combination
+    /// Then: every computed expiry is an exact UTC hour boundary (unix seconds divisible by 3600)
+    #[test]
+    fn test_calculate_expiry_seconds_always_on_hour_boundary() {
+        // given
+        const DURATION_1_HOUR: u64 = SECONDS_1_HOUR;
+        const DURATION_24_HOURS: u64 = SECONDS_24_HOURS;
+        const DURATION_7_DAYS: u64 = SECONDS_7_DAYS;
+
+        let acceptance_times_seconds = [
+            HOUR_ALIGNED_BASE_SECONDS,
+            HOUR_ALIGNED_BASE_SECONDS + 1,
+            HOUR_ALIGNED_BASE_SECONDS + SECONDS_45_MINS,
+            HOUR_ALIGNED_BASE_SECONDS + ONE_HOUR_SECONDS - 1,
+        ];
+
+        // when / then
+        for now_seconds in acceptance_times_seconds {
+            for duration_seconds in [DURATION_1_HOUR, DURATION_24_HOURS, DURATION_7_DAYS] {
+                let expiry_seconds =
+                    calculate_expiry_seconds(now_seconds, duration_seconds).expect("expiry fits");
+                assert_eq!(
+                    expiry_seconds % SECONDS_PER_HOUR,
+                    0,
+                    "expiry_seconds={} from now_seconds={} duration_seconds={}",
+                    expiry_seconds,
+                    now_seconds,
+                    duration_seconds
+                );
+            }
+        }
+    }
 }
