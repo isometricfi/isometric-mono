@@ -18,7 +18,7 @@ pub fn setup_timers() {
     // Periodically refreshes the ICRC transfer fee cache when the ledger client is idle.
     setup_transfer_fee_refresh_timer();
 
-    // Aligns to 15-minute ticks, then fetches a current BTC/USD snapshot from XRC into stable cache.
+    // Aligns to 5-minute ticks, then fetches a current BTC/USD snapshot from XRC into stable cache.
     setup_xrc_snapshot_timer();
 
     // Once per day, removes XRC cache entries older than one week.
@@ -164,7 +164,7 @@ mod tests {
 
     const ONE_MINUTE_SECS: u64 = 60;
 
-    /// Given: the current time is exactly on a 15-minute boundary
+    /// Given: the current time is exactly on a 5-minute boundary
     /// When: calculating the first XRC snapshot timer delay
     /// Then: the timer is due immediately
     #[test]
@@ -180,9 +180,9 @@ mod tests {
         assert_eq!(delay_seconds, EXPECTED_DELAY_SECONDS);
     }
 
-    /// Given: the current time is one minute after a 15-minute boundary
+    /// Given: the current time is one minute after a 5-minute boundary
     /// When: calculating the first XRC snapshot timer delay
-    /// Then: the delay lands on the next 15-minute boundary
+    /// Then: the delay lands on the next 5-minute boundary
     #[test]
     fn should_align_xrc_snapshot_delay_to_next_boundary() {
         // given
