@@ -62,6 +62,12 @@ pub enum SettlementStatus {
         receipt: SettlementReceipt,
         result: SettlementWalResult,
     },
+    RetryRequired {
+        receipt: SettlementReceipt,
+        phase: SettlementPhase,
+        last_error: Option<String>,
+        next_attempt_at_seconds: u64,
+    },
     RecoveryRequired {
         receipt: SettlementReceipt,
         phase: SettlementPhase,
@@ -270,13 +276,21 @@ fn finish_settlement_execution(
                 status: ActiveOptionStatus::Settled,
             })
         }
-        WalExecutionOutcome::SkippedAlreadyInFlight | WalExecutionOutcome::RecoveryRequired(_) => {
-            Err(VolumetricError::from_def(
-                error_codes::INTER_CANISTER_CALL_FAILED,
-                Some("settlement requires manual recovery"),
-                None,
-            ))
-        }
+        WalExecutionOutcome::SkippedAlreadyInFlight => Err(VolumetricError::from_def(
+            error_codes::INTER_CANISTER_CALL_FAILED,
+            Some("settlement is already running"),
+            None,
+        )),
+        WalExecutionOutcome::RetryRequired(_) => Err(VolumetricError::from_def(
+            error_codes::INTER_CANISTER_CALL_FAILED,
+            Some("settlement queued for automatic retry"),
+            None,
+        )),
+        WalExecutionOutcome::RecoveryRequired(_) => Err(VolumetricError::from_def(
+            error_codes::INTER_CANISTER_CALL_FAILED,
+            Some("settlement requires manual recovery"),
+            None,
+        )),
         WalExecutionOutcome::FailedPermanent(message) => Err(VolumetricError::from_def(
             error_codes::INTER_CANISTER_CALL_FAILED,
             Some(&message),
@@ -665,6 +679,15 @@ pub fn get_settlement_status_use_case(
                 receipt: settlement_receipt,
                 phase: pending_settlement.phase,
                 last_error: wal_entry.last_err,
+            })
+        }
+        WalStatus::RetryRequired => {
+            let pending_settlement = load_settlement_journal_entry(settlement_receipt.option_id)?;
+            Ok(SettlementStatus::RetryRequired {
+                receipt: settlement_receipt,
+                phase: pending_settlement.phase,
+                last_error: wal_entry.last_err,
+                next_attempt_at_seconds: wal_entry.next_attempt_at_seconds,
             })
         }
         WalStatus::RecoveryRequired => {
@@ -1785,6 +1808,59 @@ mod tests {
         );
     }
 
+    /// Given: a settlement WAL enters retry-required after a transient fee transfer failure
+    /// When: the automatic retry timer drains due WAL entries
+    /// Then: settlement is retried through the stored WAL payload and completes once
+    #[tokio::test]
+    async fn test_wal_auto_retry_timer_completes_due_settlement_retry() {
+        // given
+        let writer = test_principal(13);
+        let buyer = test_principal(14);
+        let retryable_ledger = Rc::new(RetryableProfitFeeTransferLedger::new());
+        setup_test_state_with_ledger(writer, buyer, retryable_ledger.clone());
+        let platform_fees_before = get_platform_fees_collected();
+        let prepared_settlement_execution =
+            prepare_settlement_execution(TEST_OPTION_ID, TEST_SETTLEMENT_PRICE_CENTS)
+                .expect("settlement should be prepared");
+
+        let first_outcome = execute_wal_entry_now(prepared_settlement_execution.operation_id).await;
+        let wal_entry_after_first_attempt = get_entry(prepared_settlement_execution.operation_id)
+            .expect("settlement wal should remain after retryable failure");
+
+        const SIX_SECONDS_NS: u64 = 6 * crate::time::NANOS_PER_SECOND;
+        ic::set_runtime(Box::new(RuntimeAt {
+            now_ns: TEST_NOW_NS.saturating_add(SIX_SECONDS_NS),
+        }));
+
+        // when
+        crate::timers::retry_due_wal_entries_once().await;
+        let settlement_status =
+            get_settlement_status_use_case(prepared_settlement_execution.operation_id)
+                .expect("settlement status should load after auto retry");
+
+        // then
+        assert!(matches!(
+            first_outcome,
+            WalExecutionOutcome::RetryRequired(_)
+        ));
+        assert_eq!(
+            wal_entry_after_first_attempt.status,
+            WalStatus::RetryRequired
+        );
+        assert!(matches!(
+            settlement_status,
+            SettlementStatus::Succeeded { .. }
+        ));
+        assert_eq!(
+            get_platform_fees_collected() - platform_fees_before,
+            EXPECTED_PROFIT_FEE_SATS
+        );
+        assert_eq!(
+            settlement_replay_running_total_sats(writer, buyer, platform_fees_before),
+            TEST_QUANTITY_SATS - EXPECTED_SETTLEMENT_TRANSFER_FEES_SATS
+        );
+    }
+
     /// Given: settlement retries always fail at the first buyer transfer step
     /// When: run_settlement_wal is executed repeatedly with the same payload
     /// Then: balances stay unchanged across retries and no partial accounting effects leak
@@ -2876,10 +2952,7 @@ mod tests {
 
         // then
         assert_eq!(promoted_count, 1);
-        assert_eq!(
-            wal_entry_after_promotion.status,
-            WalStatus::RecoveryRequired
-        );
+        assert_eq!(wal_entry_after_promotion.status, WalStatus::RetryRequired);
         assert_eq!(replay_outcome, WalExecutionOutcome::Succeeded);
         assert!(matches!(
             settlement_status,

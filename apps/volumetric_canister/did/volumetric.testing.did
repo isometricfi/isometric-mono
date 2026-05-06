@@ -19,6 +19,12 @@ type AcceptOffersStatus = variant {
     receipt : AcceptOffersReceipt;
     phase : AcceptPhase;
   };
+  RetryRequired : record {
+    last_error : opt text;
+    receipt : AcceptOffersReceipt;
+    phase : AcceptPhase;
+    next_attempt_at_seconds : nat64;
+  };
   Succeeded : record {
     result : AcceptOffersResult;
     receipt : AcceptOffersReceipt;
@@ -351,6 +357,12 @@ type SettlementStatus = variant {
     receipt : SettlementReceipt;
     phase : SettlementPhase;
   };
+  RetryRequired : record {
+    last_error : opt text;
+    receipt : SettlementReceipt;
+    phase : SettlementPhase;
+    next_attempt_at_seconds : nat64;
+  };
   Succeeded : record {
     result : SettlementWalResult;
     receipt : SettlementReceipt;
@@ -411,6 +423,7 @@ type WalExecutionOutcome = variant {
   SucceededAlready;
   RecoveryRequired : text;
   FailedPermanent : text;
+  RetryRequired : text;
   Succeeded;
   SkippedAlreadyInFlight;
 };
@@ -499,6 +512,7 @@ service : (opt BtcNetwork) -> {
   get_pending_withdrawals : () -> (Result_15) query;
   get_platform_fees_collected_total : () -> (nat64) query;
   get_recovery_required_wal_entries : (nat32) -> (Result_18) query;
+  get_retry_required_wal_entries : (nat32) -> (Result_18) query;
   get_settlement_by_id : (nat64) -> (Result_19) query;
   get_settlement_status : (blob) -> (Result_20) query;
   get_trading_limits : () -> (TradingLimits) query;

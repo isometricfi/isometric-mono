@@ -42,7 +42,9 @@ pub use options::{
     get_my_written_options, get_pending_accepts, get_pending_settlements_journal,
     get_settlement_by_id, AcceptOfferItem, AcceptOffersRequest,
 };
-pub use recovery::{get_recovery_required_wal_entries, recover_wal_operation};
+pub use recovery::{
+    get_recovery_required_wal_entries, get_retry_required_wal_entries, recover_wal_operation,
+};
 pub use settlement::{
     get_pending_settlements, get_settlement_status, settle_expired_options, settle_option_by_id,
     SettleExpiredOptionsResponse, SettlementResult,

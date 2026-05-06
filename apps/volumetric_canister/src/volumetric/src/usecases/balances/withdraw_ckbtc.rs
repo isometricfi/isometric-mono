@@ -147,7 +147,7 @@ pub fn get_withdraw_status_use_case(
                 last_error: wal_entry.last_err,
             })
         }
-        WalStatus::RecoveryRequired => {
+        WalStatus::RetryRequired | WalStatus::RecoveryRequired => {
             let pending_withdrawal = load_withdraw_journal_entry(withdraw_receipt.withdrawal_id)?;
             Ok(WithdrawStatus::RecoveryRequired {
                 receipt: withdraw_receipt,

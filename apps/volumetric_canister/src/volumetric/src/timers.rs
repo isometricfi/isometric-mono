@@ -1,6 +1,9 @@
 use std::time::Duration;
 
-use crate::journaling::{cleanup_succeeded, promote_stale_in_flight_to_recovery_required};
+use crate::journaling::{
+    cleanup_succeeded, collect_due_retry_required_operation_ids, execute_wal_entry_now,
+    promote_stale_in_flight_to_recovery_required,
+};
 use crate::ledger::refresh_transfer_fee_cache_if_idle;
 use crate::oracle::fetch_and_store_xrc_btc_usd_exchange_rate_snapshot;
 use crate::storage::delete_xrc_btc_usd_rates_before;
@@ -9,6 +12,7 @@ use crate::usecases::{cleanup_old_events_use_case, settle_expired_options_use_ca
 
 const TRANSFER_FEE_REFRESH_INTERVAL_SECS: u64 = 60;
 const WAL_INFLIGHT_RECOVERY_SCAN_INTERVAL_5_MINUTES_SECS: u64 = 5 * 60;
+const WAL_AUTO_RETRY_MAX_ENTRIES_PER_SCAN: usize = 20;
 const XRC_SNAPSHOT_INTERVAL_15_MINUTES_SECS: u64 = 15 * 60;
 const ONE_HOUR_SECS: u64 = 60 * 60;
 const ONE_DAY_SECS: u64 = 24 * ONE_HOUR_SECS;
@@ -130,8 +134,38 @@ fn setup_wal_inflight_recovery_timer() {
                     promoted_entries
                 );
             }
+
+            retry_due_wal_entries_once().await;
         },
     );
+}
+
+pub(crate) async fn retry_due_wal_entries_once() {
+    let retry_drain = collect_due_retry_required_operation_ids(WAL_AUTO_RETRY_MAX_ENTRIES_PER_SCAN);
+    if retry_drain.promoted_to_recovery_required > 0 {
+        logging::warn!(
+            "WAL auto-retry: moved {} exhausted or expired entries to manual recovery",
+            retry_drain.promoted_to_recovery_required
+        );
+    }
+
+    if retry_drain.operation_ids.is_empty() {
+        return;
+    }
+
+    logging::log!(
+        "WAL auto-retry: retrying {} entries",
+        retry_drain.operation_ids.len()
+    );
+
+    for operation_id in retry_drain.operation_ids {
+        let outcome = execute_wal_entry_now(operation_id).await;
+        logging::log!(
+            "WAL auto-retry: operation_id={:?} outcome={:?}",
+            operation_id,
+            outcome
+        );
+    }
 }
 
 /// Runs hourly to settle all expired options.

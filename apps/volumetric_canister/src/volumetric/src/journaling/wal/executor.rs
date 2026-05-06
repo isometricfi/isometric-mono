@@ -11,19 +11,26 @@ use crate::usecases::{
 };
 
 use super::super::OperationId;
-use super::store::{get_entry, put_entry};
-use super::types::{WalExecutionError, WalExecutionOutcome, WalPayload, WalResult, WalStatus};
+use super::store::{get_entry, is_auto_retryable_wal_kind, put_entry};
+use super::types::{
+    WalEntry, WalExecutionError, WalExecutionOutcome, WalPayload, WalResult, WalStatus,
+};
 
 const WAL_ENTRY_NOT_FOUND_MESSAGE: &str = "WAL entry not found";
+const RETRY_EXHAUSTED_MANUAL_RECOVERY_MESSAGE: &str = "WAL automatic retry attempts exhausted";
 
 // TODO: Replace string message-pattern retry classification with typed error mapping
-const RETRYABLE_INTER_CANISTER_ERROR_PATTERNS: [&str; 6] = [
+const RETRYABLE_INTER_CANISTER_ERROR_PATTERNS: [&str; 10] = [
     "temporarily unavailable",
+    "temporarilyunavailable",
+    "unavailable",
     "already processing",
+    "systransient",
     "sys_unknown",
     "queue",
-    "call failed",
-    "rejected",
+    "bounded_wait",
+    "transfer failed",
+    "retrieve failed",
 ];
 
 thread_local! {
@@ -118,17 +125,18 @@ async fn execute_wal_entry_attempt(operation_id: OperationId) -> WalExecutionOut
             updated_wal_entry.last_update_seconds = current_time_seconds();
             updated_wal_entry.last_err = Some(retryable_error_message.clone());
 
-            updated_wal_entry.status = WalStatus::RecoveryRequired;
-            updated_wal_entry.next_attempt_at_seconds = updated_wal_entry.last_update_seconds;
+            let retry_outcome =
+                retryable_failure_outcome(&mut updated_wal_entry, retryable_error_message.clone());
             put_entry(updated_wal_entry);
             logging::warn!(
-                "wal recovery required operation_id={:?} kind={:?} attempts={} error={}",
+                "wal retryable failure operation_id={:?} kind={:?} attempts={} status={:?} error={}",
                 operation_id,
                 wal_kind,
                 wal_attempt_number,
+                retry_outcome.status,
                 retryable_error_message
             );
-            WalExecutionOutcome::RecoveryRequired(retryable_error_message)
+            retry_outcome.execution_outcome
         }
         Err(WalExecutionError::Permanent(permanent_error_message)) => {
             let wal_payload = wal_entry.payload.clone();
@@ -150,6 +158,48 @@ async fn execute_wal_entry_attempt(operation_id: OperationId) -> WalExecutionOut
             WalExecutionOutcome::FailedPermanent(permanent_error_message)
         }
     }
+}
+
+struct RetryableFailureOutcome {
+    status: WalStatus,
+    execution_outcome: WalExecutionOutcome,
+}
+
+fn retryable_failure_outcome(
+    wal_entry: &mut WalEntry,
+    retryable_error_message: String,
+) -> RetryableFailureOutcome {
+    if is_auto_retryable_wal_kind(wal_entry.kind) && wal_entry.attempts < wal_entry.max_retries {
+        wal_entry.status = WalStatus::RetryRequired;
+        wal_entry.next_attempt_at_seconds = wal_entry
+            .last_update_seconds
+            .saturating_add(wal_entry.backoff_secs);
+        return RetryableFailureOutcome {
+            status: wal_entry.status,
+            execution_outcome: WalExecutionOutcome::RetryRequired(retryable_error_message),
+        };
+    }
+
+    let recovery_error_message =
+        retryable_recovery_error_message(wal_entry, retryable_error_message);
+    wal_entry.last_err = Some(recovery_error_message.clone());
+    wal_entry.status = WalStatus::RecoveryRequired;
+    wal_entry.next_attempt_at_seconds = wal_entry.last_update_seconds;
+    RetryableFailureOutcome {
+        status: wal_entry.status,
+        execution_outcome: WalExecutionOutcome::RecoveryRequired(recovery_error_message),
+    }
+}
+
+fn retryable_recovery_error_message(
+    wal_entry: &WalEntry,
+    retryable_error_message: String,
+) -> String {
+    if is_auto_retryable_wal_kind(wal_entry.kind) && wal_entry.attempts >= wal_entry.max_retries {
+        return format!("{RETRY_EXHAUSTED_MANUAL_RECOVERY_MESSAGE}: {retryable_error_message}");
+    }
+
+    retryable_error_message
 }
 
 async fn execute_wal_payload(
@@ -251,20 +301,20 @@ mod tests {
         });
     }
 
-    /// Given: inter-canister and non-inter-canister errors
+    /// Given: transient, deterministic ledger, and non-inter-canister errors
     /// When: registering WAL retry classification
-    /// Then: known retryable patterns map to retryable and others map to permanent
+    /// Then: only transient inter-canister patterns map to retryable
     #[test]
     fn register_retryable_error_classifies_errors_by_message_and_code() {
         // given
         let retryable_error = VolumetricError::from_def(
             error_codes::INTER_CANISTER_CALL_FAILED,
-            Some("Temporarily unavailable"),
+            Some("icrc1_transfer rejected: TemporarilyUnavailable"),
             None,
         );
-        let inter_canister_error_with_non_retryable_context = VolumetricError::from_def(
+        let deterministic_ledger_error = VolumetricError::from_def(
             error_codes::INTER_CANISTER_CALL_FAILED,
-            Some("malformed address"),
+            Some("icrc1_transfer rejected: BadFee { expected_fee: 10 }"),
             None,
         );
         let non_inter_canister_error =
@@ -272,8 +322,8 @@ mod tests {
 
         // when
         let retryable_classification = register_retryable_error(retryable_error);
-        let inter_canister_classification =
-            register_retryable_error(inter_canister_error_with_non_retryable_context);
+        let deterministic_ledger_classification =
+            register_retryable_error(deterministic_ledger_error);
         let non_inter_canister_classification = register_retryable_error(non_inter_canister_error);
 
         // then
@@ -282,12 +332,103 @@ mod tests {
             WalExecutionError::Retryable(_)
         ));
         assert!(matches!(
-            inter_canister_classification,
-            WalExecutionError::Retryable(_)
+            deterministic_ledger_classification,
+            WalExecutionError::Permanent(_)
         ));
         assert!(matches!(
             non_inter_canister_classification,
             WalExecutionError::Permanent(_)
+        ));
+    }
+
+    /// Given: retryable failures for auto-retryable and manual-recovery WAL kinds
+    /// When: recording the retryable failure outcome
+    /// Then: only accept and settlement entries move to retry-required
+    #[test]
+    fn retryable_failure_outcome_uses_retry_required_only_for_safe_kinds() {
+        // given
+        let mut accept_entry = WalEntry {
+            id: make_operation_id(10),
+            kind: WalKind::Accept,
+            attempts: 1,
+            status: WalStatus::InFlight,
+            first_seen_seconds: 1,
+            last_update_seconds: 10,
+            last_err: None,
+            payload: WalPayload::Accept(super::super::types::AcceptWalPayload {
+                accept_journal_entry_id: 1,
+                buyer: Principal::anonymous(),
+                fill_group_id: 1,
+                total_buyer_debit_required_sats: 100,
+                planned_platform_fee_sats: 1,
+                transfer_fee_sats: 10,
+                created_at_time_ns: TEST_NOW_NS,
+                prepared_accepts: Vec::new(),
+                writer_transfers: Vec::new(),
+            }),
+            max_retries: 20,
+            backoff_secs: 5,
+            next_attempt_at_seconds: 10,
+            result: None,
+        };
+        let mut withdrawal_entry = WalEntry {
+            id: make_operation_id(11),
+            kind: WalKind::Withdrawal,
+            attempts: 1,
+            status: WalStatus::InFlight,
+            first_seen_seconds: 1,
+            last_update_seconds: 10,
+            last_err: None,
+            payload: make_withdrawal_payload(11),
+            max_retries: 20,
+            backoff_secs: 5,
+            next_attempt_at_seconds: 10,
+            result: None,
+        };
+        let mut exhausted_settlement_entry = WalEntry {
+            id: make_operation_id(12),
+            kind: WalKind::Settlement,
+            attempts: 20,
+            status: WalStatus::InFlight,
+            first_seen_seconds: 1,
+            last_update_seconds: 10,
+            last_err: None,
+            payload: make_settlement_payload(12),
+            max_retries: 20,
+            backoff_secs: 5,
+            next_attempt_at_seconds: 10,
+            result: None,
+        };
+
+        // when
+        let accept_outcome =
+            retryable_failure_outcome(&mut accept_entry, "temporarily unavailable".to_string());
+        let withdrawal_outcome =
+            retryable_failure_outcome(&mut withdrawal_entry, "temporarily unavailable".to_string());
+        let exhausted_settlement_outcome = retryable_failure_outcome(
+            &mut exhausted_settlement_entry,
+            "temporarily unavailable".to_string(),
+        );
+
+        // then
+        assert_eq!(accept_entry.status, WalStatus::RetryRequired);
+        assert_eq!(accept_entry.next_attempt_at_seconds, 15);
+        assert!(matches!(
+            accept_outcome.execution_outcome,
+            WalExecutionOutcome::RetryRequired(_)
+        ));
+        assert_eq!(withdrawal_entry.status, WalStatus::RecoveryRequired);
+        assert!(matches!(
+            withdrawal_outcome.execution_outcome,
+            WalExecutionOutcome::RecoveryRequired(_)
+        ));
+        assert_eq!(
+            exhausted_settlement_entry.status,
+            WalStatus::RecoveryRequired
+        );
+        assert!(matches!(
+            exhausted_settlement_outcome.execution_outcome,
+            WalExecutionOutcome::RecoveryRequired(_)
         ));
     }
 
