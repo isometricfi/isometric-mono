@@ -727,7 +727,9 @@ fn resize_writer_other_offers_after_lock(
                 continue;
             }
 
-            let filled_sats = offer.total_quantity.saturating_sub(offer.remaining_quantity);
+            let filled_sats = offer
+                .total_quantity
+                .saturating_sub(offer.remaining_quantity);
 
             let snapshot = AcceptWalOfferResize {
                 offer_id: offer.id,
@@ -747,8 +749,7 @@ fn resize_writer_other_offers_after_lock(
                 // Cap the offer to the writer's remaining capacity. Total tracks
                 // filled + new remaining so the displayed fill ratio stays sane.
                 resized_offer.remaining_quantity = writer_available_sats;
-                resized_offer.total_quantity =
-                    filled_sats.saturating_add(writer_available_sats);
+                resized_offer.total_quantity = filled_sats.saturating_add(writer_available_sats);
             }
 
             update_offer(resized_offer);

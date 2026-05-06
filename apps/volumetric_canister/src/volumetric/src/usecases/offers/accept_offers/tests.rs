@@ -1186,8 +1186,14 @@ fn test_accept_partial_fill_shrinks_writers_other_open_offer() {
     // then
     let resized_sibling = get_offer(TEST_SIBLING_OFFER_ID).expect("sibling offer should exist");
     assert_eq!(resized_sibling.status, OfferStatus::Open);
-    assert_eq!(resized_sibling.remaining_quantity, expected_remaining_after_resize);
-    assert_eq!(resized_sibling.total_quantity, expected_remaining_after_resize);
+    assert_eq!(
+        resized_sibling.remaining_quantity,
+        expected_remaining_after_resize
+    );
+    assert_eq!(
+        resized_sibling.total_quantity,
+        expected_remaining_after_resize
+    );
 
     Config::set_feature_flags(prior_feature_flags);
 }
@@ -1287,8 +1293,7 @@ fn test_accept_does_not_resize_sibling_already_within_capacity() {
     .expect("partial accept should succeed");
 
     // then
-    let untouched_sibling =
-        get_offer(TEST_SIBLING_OFFER_ID).expect("sibling offer should exist");
+    let untouched_sibling = get_offer(TEST_SIBLING_OFFER_ID).expect("sibling offer should exist");
     assert_eq!(untouched_sibling.status, OfferStatus::Open);
     assert_eq!(untouched_sibling.remaining_quantity, small_sibling_total);
     assert_eq!(untouched_sibling.total_quantity, small_sibling_total);
