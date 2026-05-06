@@ -1,0 +1,21 @@
+const SECONDS_PER_DAY = 86400n;
+const DAYS_PER_CALENDAR_YEAR = 365n;
+const DEFAULT_LISTING_WINDOW_YEARS = 10n;
+const LISTING_WINDOW_LEEWAY_YEARS = 1n;
+
+export const OFFER_VALID_UNTIL_DEFAULT_OFFSET_SECONDS =
+  SECONDS_PER_DAY * DAYS_PER_CALENDAR_YEAR * DEFAULT_LISTING_WINDOW_YEARS;
+
+export const OFFER_VALID_UNTIL_LEEWAY_SECONDS =
+  SECONDS_PER_DAY * DAYS_PER_CALENDAR_YEAR * LISTING_WINDOW_LEEWAY_YEARS;
+
+export function offerValidUntilAcceptableRange(nowSeconds: bigint): {
+  minInclusive: bigint;
+  maxInclusive: bigint;
+} {
+  const minInclusive =
+    nowSeconds + OFFER_VALID_UNTIL_DEFAULT_OFFSET_SECONDS - OFFER_VALID_UNTIL_LEEWAY_SECONDS;
+  const maxInclusive =
+    nowSeconds + OFFER_VALID_UNTIL_DEFAULT_OFFSET_SECONDS + OFFER_VALID_UNTIL_LEEWAY_SECONDS;
+  return { minInclusive, maxInclusive };
+}
