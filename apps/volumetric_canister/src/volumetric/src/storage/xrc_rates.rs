@@ -117,7 +117,7 @@ mod tests {
         }
     }
 
-    /// Given: a stored BTC/USD XRC rate
+    /// Given: a stored XRC rate row
     /// When: looking it up by XRC timestamp
     /// Then: the exact cached rate is returned
     #[test]
@@ -134,7 +134,7 @@ mod tests {
         assert_eq!(stored_rate, Some(rate));
     }
 
-    /// Given: several stored BTC/USD XRC rates
+    /// Given: several stored XRC rate rows
     /// When: asking for the latest rate
     /// Then: the rate with the highest XRC timestamp is returned
     #[test]
