@@ -1833,7 +1833,7 @@ mod tests {
         }));
 
         // when
-        crate::timers::retry_due_wal_entries_once().await;
+        let _ = crate::timers::retry_due_wal_entries_once().await;
         let settlement_status =
             get_settlement_status_use_case(prepared_settlement_execution.operation_id)
                 .expect("settlement status should load after auto retry");
