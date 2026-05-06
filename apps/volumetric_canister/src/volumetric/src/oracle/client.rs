@@ -441,26 +441,29 @@ fn choose_closest_rate_to_timestamp(
 async fn get_fallback_settlement_btc_usd_price_cents(
     expiry_timestamp_seconds: u64,
 ) -> Result<u64, VolumetricError> {
-    let fresh_rate_result =
-        fetch_current_xrc_btc_usd_rate_near_timestamp_with_retry(expiry_timestamp_seconds).await;
-    if let Err(ref fresh_error) = fresh_rate_result {
-        logging::warn!(
-            "oracle settlement: fresh current XRC failed after retries expiry_ts={} err={}",
-            expiry_timestamp_seconds,
-            fresh_error
-        );
-    }
+    let (fresh_rate, fresh_error) =
+        match fetch_current_xrc_btc_usd_rate_near_timestamp_with_retry(expiry_timestamp_seconds)
+            .await
+        {
+            Ok(stored_rate) => (Some(stored_rate), None),
+            Err(error) => {
+                logging::warn!(
+                    "oracle settlement: fresh current XRC failed after retries expiry_ts={} err={}",
+                    expiry_timestamp_seconds,
+                    error
+                );
+                (None, Some(error))
+            }
+        };
     let cached_rate = get_nearest_xrc_btc_usd_rate_within_seconds(
         expiry_timestamp_seconds,
         PRICE_TIMESTAMP_MAX_DISTANCE_30_MINUTES_SECS,
     );
 
-    if let Some(stored_rate) = choose_closest_rate_to_timestamp(
-        expiry_timestamp_seconds,
-        fresh_rate_result.as_ref().ok().cloned(),
-        cached_rate,
-    ) {
-        if fresh_rate_result.is_err() {
+    if let Some(stored_rate) =
+        choose_closest_rate_to_timestamp(expiry_timestamp_seconds, fresh_rate, cached_rate)
+    {
+        if fresh_error.is_some() {
             logging::warn!(
                 "oracle settlement: using fallback cache price expiry_ts={} chosen_xrc_ts={}",
                 expiry_timestamp_seconds,
@@ -470,17 +473,19 @@ async fn get_fallback_settlement_btc_usd_price_cents(
         return Ok(stored_rate.price_cents);
     }
 
-    match fresh_rate_result {
-        Ok(stored_rate) => Ok(stored_rate.price_cents),
-        Err(error) => {
-            logging::error!(
-                "oracle settlement: no valid fresh or cached fallback rate within window expiry_ts={} err={}",
-                expiry_timestamp_seconds,
-                error
-            );
-            Err(error)
-        }
-    }
+    let error = fresh_error.unwrap_or_else(|| {
+        VolumetricError::from_def(
+            error_codes::INTERNAL_ERROR,
+            Some("settlement fallback selector rejected validated fresh XRC rate"),
+            None,
+        )
+    });
+    logging::error!(
+        "oracle settlement: no valid fresh or cached fallback rate within window expiry_ts={} err={}",
+        expiry_timestamp_seconds,
+        error
+    );
+    Err(error)
 }
 
 struct IcOracle;
