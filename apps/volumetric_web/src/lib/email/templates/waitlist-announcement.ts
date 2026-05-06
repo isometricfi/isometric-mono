@@ -41,7 +41,7 @@ export function renderWaitlistAnnouncement(
     "",
     "Bitcoin options. For everyone.",
     "",
-    "Earn yield on your BTC, or leverage its next move. Fully on-chain. Self-custody. No KYC.",
+    "Earn yield on your BTC, or leverage its next move. Fully on-chain. No KYC.",
     "",
     `Open the app: ${appUrl}`,
     "",
@@ -104,7 +104,7 @@ export function renderWaitlistAnnouncement(
             </tr>
             <tr>
               <td style="padding:0 32px 28px 32px;font-family:${FONT_STACK};font-size:15px;line-height:1.6;color:${COLORS.muted};">
-                Earn yield on your BTC, or leverage its next move. Fully on-chain. Self-custody. No KYC.
+                Earn yield on your BTC, or leverage its next move. Fully on-chain. No KYC.
               </td>
             </tr>
             <tr>

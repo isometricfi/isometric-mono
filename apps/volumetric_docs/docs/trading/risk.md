@@ -23,9 +23,9 @@ Your maximum loss is the **full BTC you committed**. If BTC runs far past your s
 
 Only the BTC/USD price **at expiry** counts. Mid-term moves don't settle anything: BTC can run past strike and pull back to expire worthless, or sit below all term and spike at the last minute to pay out. The price comes from an on-chain oracle aggregating major exchanges. See [Price oracle](/technical/price-oracle).
 
-## Self-custody
+## Account access
 
-Your account is tied to your wallet. **If you lose access to the wallet, you lose access to your funds.** Isometric does not custody your account, cannot reset it, and cannot recover it. Back up your seed phrase using your wallet's own process.
+Your account is tied to your wallet. **If you lose access to the wallet, you lose access to your funds.** Isometric cannot reset or recover your account. Back up your seed phrase using your wallet's own process.
 
 ## Protocol risk
 

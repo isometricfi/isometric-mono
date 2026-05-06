@@ -52,10 +52,10 @@ export function PrivacyContentEN() {
 
         <ul className="list-disc pl-6 space-y-3 mt-4">
           <li>
-            <strong>Publicly-available blockchain data.</strong> When you connect your non-custodial
-            blockchain wallet to the Services, we collect and log your publicly-available blockchain
-            address to learn more about your use of the Services and to screen your wallet for any
-            prior illicit activity. We screen your wallet using intelligence provided by leading
+            <strong>Publicly-available blockchain data.</strong> When you connect your blockchain
+            wallet to the Services, we collect and log your publicly-available blockchain address to
+            learn more about your use of the Services and to screen your wallet for any prior
+            illicit activity. We screen your wallet using intelligence provided by leading
             blockchain analytics providers. Note that blockchain addresses are publicly-available
             data that are not created or assigned by us or any central party, and by themselves are
             not personally identifying.
@@ -196,8 +196,8 @@ export function PrivacyContentEN() {
             .
           </li>
           <li>
-            <strong>Dynamic</strong> as a non-custodial wallet connection provider. When you connect
-            a wallet, Dynamic processes data necessary to facilitate the connection. See{" "}
+            <strong>Dynamic</strong> as a wallet connection provider. When you connect a wallet,
+            Dynamic processes data necessary to facilitate the connection. See{" "}
             <a
               href="https://www.dynamic.xyz/legal/privacy-policy"
               target="_blank"

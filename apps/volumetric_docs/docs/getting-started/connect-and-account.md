@@ -2,7 +2,7 @@
 sidebar_position: 2
 title: Connect an account
 description: Connect a wallet to Isometric and set up your account to start trading on-chain Bitcoin options. No password, no email, no KYC.
-keywords: [connect wallet, Isometric account, Bitcoin options sign in, no KYC, self-custody]
+keywords: [connect wallet, Isometric account, Bitcoin options sign in, no KYC]
 ---
 
 # Connect an account
