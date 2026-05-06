@@ -1,6 +1,5 @@
 use std::cell::RefCell;
 use std::rc::Rc;
-use std::time::Duration;
 
 use async_trait::async_trait;
 use candid::Principal;
@@ -10,7 +9,6 @@ use crate::generated::xrc::{
     Asset, AssetClass, ExchangeRate, ExchangeRateError, GetExchangeRateRequest,
     GetExchangeRateResult,
 };
-use crate::ic_async_timer::await_ic_timer;
 use crate::storage::{
     get_latest_xrc_btc_usd_rate, get_nearest_xrc_btc_usd_rate_within_seconds,
     insert_xrc_btc_usd_rate, StoredXrcBtcUsdRate,
@@ -25,9 +23,6 @@ const BTC_SYMBOL: &str = "BTC";
 const USD_SYMBOL: &str = "USD";
 const PRICE_TIMESTAMP_MAX_DISTANCE_30_MINUTES_SECS: u64 = 30 * 60;
 const XRC_FRESH_PRICE_MAX_ATTEMPTS: u8 = 5;
-const XRC_RETRY_INITIAL_BACKOFF_SECS: u64 = 1;
-const XRC_RETRY_MAX_BACKOFF_SECS: u64 = 8;
-const XRC_RETRY_BACKOFF_FACTOR: u64 = 2;
 
 #[async_trait(?Send)]
 pub trait PriceOracle {
@@ -364,19 +359,14 @@ async fn fetch_current_xrc_btc_usd_rate_near_timestamp_with_retry(
             Ok(stored_rate) => return Ok(stored_rate),
             Err(error) => {
                 let attempt_number = attempt_index.saturating_add(1);
-                let has_attempts_remaining = attempt_number < XRC_FRESH_PRICE_MAX_ATTEMPTS;
                 logging::warn!(
-                    "oracle xrc: fresh current fetch attempt {} of {} failed target_ts={} retrying={} err={}",
+                    "oracle xrc: fresh current fetch attempt {} of {} failed target_ts={} err={}",
                     attempt_number,
                     XRC_FRESH_PRICE_MAX_ATTEMPTS,
                     target_timestamp_seconds,
-                    has_attempts_remaining,
                     error
                 );
                 last_error = Some(error);
-                if has_attempts_remaining {
-                    await_ic_timer(xrc_retry_backoff_duration(attempt_index)).await;
-                }
             }
         }
     }
@@ -394,13 +384,6 @@ async fn fetch_current_xrc_btc_usd_rate_near_timestamp_with_retry(
         final_error
     );
     Err(final_error)
-}
-
-fn xrc_retry_backoff_duration(attempt_index: u8) -> Duration {
-    let backoff_seconds = XRC_RETRY_INITIAL_BACKOFF_SECS
-        .saturating_mul(XRC_RETRY_BACKOFF_FACTOR.saturating_pow(u32::from(attempt_index)))
-        .min(XRC_RETRY_MAX_BACKOFF_SECS);
-    Duration::from_secs(backoff_seconds)
 }
 
 #[cfg(test)]
@@ -962,50 +945,6 @@ mod tests {
         // then
         assert!(stored_rate_result.is_err());
         assert!(get_xrc_btc_usd_rate(RESPONSE_TIMESTAMP_SECONDS).is_none());
-    }
-
-    /// Given: repeated XRC retry failures
-    /// When: calculating retry backoff durations
-    /// Then: the delay grows exponentially and caps at the maximum
-    #[test]
-    fn should_calculate_capped_exponential_xrc_retry_backoff() {
-        // given
-        const FIRST_ATTEMPT_INDEX: u8 = 0;
-        const SECOND_ATTEMPT_INDEX: u8 = 1;
-        const THIRD_ATTEMPT_INDEX: u8 = 2;
-        const FOURTH_ATTEMPT_INDEX: u8 = 3;
-        const FIFTH_ATTEMPT_INDEX: u8 = 4;
-
-        // when
-        let first_backoff = xrc_retry_backoff_duration(FIRST_ATTEMPT_INDEX);
-        let second_backoff = xrc_retry_backoff_duration(SECOND_ATTEMPT_INDEX);
-        let third_backoff = xrc_retry_backoff_duration(THIRD_ATTEMPT_INDEX);
-        let fourth_backoff = xrc_retry_backoff_duration(FOURTH_ATTEMPT_INDEX);
-        let fifth_backoff = xrc_retry_backoff_duration(FIFTH_ATTEMPT_INDEX);
-
-        // then
-        const EXPECTED_SECOND_BACKOFF_SECS: u64 = 2;
-        const EXPECTED_THIRD_BACKOFF_SECS: u64 = 4;
-        assert_eq!(
-            first_backoff,
-            Duration::from_secs(XRC_RETRY_INITIAL_BACKOFF_SECS)
-        );
-        assert_eq!(
-            second_backoff,
-            Duration::from_secs(EXPECTED_SECOND_BACKOFF_SECS)
-        );
-        assert_eq!(
-            third_backoff,
-            Duration::from_secs(EXPECTED_THIRD_BACKOFF_SECS)
-        );
-        assert_eq!(
-            fourth_backoff,
-            Duration::from_secs(XRC_RETRY_MAX_BACKOFF_SECS)
-        );
-        assert_eq!(
-            fifth_backoff,
-            Duration::from_secs(XRC_RETRY_MAX_BACKOFF_SECS)
-        );
     }
 
     #[test]

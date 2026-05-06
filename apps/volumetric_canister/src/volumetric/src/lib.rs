@@ -9,7 +9,6 @@ pub mod errors;
 pub mod generated;
 pub mod guards;
 pub mod ic;
-mod ic_async_timer;
 pub mod journaling;
 pub mod ledger;
 pub mod locks;
