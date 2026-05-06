@@ -1,17 +1,22 @@
 import type { _SERVICE, StoredXrcBtcUsdRate } from "@volumetric/canister-types";
-import { beforeEach, describe, expect, test, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 
 vi.mock("server-only", () => ({}));
 
 import type { IXrcSnapshotRepository } from "@/lib/repositories/xrc-snapshot/xrc-snapshot-repository.interface";
 import { syncXrcPriceFromCanister } from "./usecase";
 
-const { getCanisterActorMock } = vi.hoisted(() => ({
+const { getCanisterActorMock, logErrorMock } = vi.hoisted(() => ({
   getCanisterActorMock: vi.fn(),
+  logErrorMock: vi.fn().mockResolvedValue(undefined),
 }));
 
 vi.mock("@/lib/canister-server", () => ({
   getCanisterActor: getCanisterActorMock,
+}));
+
+vi.mock("@/lib/telemetry/logs", () => ({
+  logError: logErrorMock,
 }));
 
 function createStoredRate(overrides: Partial<StoredXrcBtcUsdRate> = {}): StoredXrcBtcUsdRate {
@@ -37,6 +42,12 @@ describe("syncXrcPriceFromCanister", () => {
     insertSnapshot.mockReset();
     getLatestSnapshotResponseJson.mockReset();
     getCanisterActorMock.mockReset();
+    logErrorMock.mockClear();
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   test("should insert a row when the canister returns a rate and the DB has no matching XRC timestamp", async () => {
@@ -79,6 +90,45 @@ describe("syncXrcPriceFromCanister", () => {
       skippedReason: "empty_canister_cache",
     });
     expect(insertSnapshot).not.toHaveBeenCalled();
+  });
+
+  test("should log an error when the canister cache is older than 30 minutes", async () => {
+    // given
+    const NOW_MS = 1_700_002_000_000;
+    const STALE_XRC_TIMESTAMP_SECONDS = 1_700_000_000n;
+    vi.setSystemTime(new Date(NOW_MS));
+    const rate = createStoredRate({ xrc_timestamp_seconds: STALE_XRC_TIMESTAMP_SECONDS });
+    const actor = {
+      get_latest_xrc_btc_usd_rate: vi.fn().mockResolvedValue([rate]),
+    } as unknown as _SERVICE;
+    getCanisterActorMock.mockResolvedValue(actor);
+    getLatestSnapshotResponseJson.mockResolvedValue(null);
+
+    // when
+    await syncXrcPriceFromCanister({ repository });
+
+    // then
+    expect(logErrorMock).toHaveBeenCalledTimes(1);
+    expect(logErrorMock.mock.calls[0][0]).toContain("Canister XRC cache stale");
+  });
+
+  test("should not log an error when the canister cache is within 30 minutes", async () => {
+    // given
+    const NOW_MS = 1_700_000_500_000;
+    const FRESH_XRC_TIMESTAMP_SECONDS = 1_700_000_000n;
+    vi.setSystemTime(new Date(NOW_MS));
+    const rate = createStoredRate({ xrc_timestamp_seconds: FRESH_XRC_TIMESTAMP_SECONDS });
+    const actor = {
+      get_latest_xrc_btc_usd_rate: vi.fn().mockResolvedValue([rate]),
+    } as unknown as _SERVICE;
+    getCanisterActorMock.mockResolvedValue(actor);
+    getLatestSnapshotResponseJson.mockResolvedValue(null);
+
+    // when
+    await syncXrcPriceFromCanister({ repository });
+
+    // then
+    expect(logErrorMock).not.toHaveBeenCalled();
   });
 
   test("should skip insert when the latest DB row already matches the XRC timestamp", async () => {
