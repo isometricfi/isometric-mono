@@ -173,10 +173,12 @@
       "platformFeeDesc": "利润的 {fee}%"
     },
     "writeExplainer": {
-      "intro": "您锁定 {amount} BTC，期限 {term}。如果有买家接受，您会立刻赚取 {earnings}。如果 BTC 涨到 {strike} 以上，部分锁定的 BTC 可能会用于支付买方收益。",
-      "ifBelow": "如果 BTC 低于 {strike}：",
+      "intro": "您锁定 {amount} BTC，期限 {term}。如果有买家接受，您会立刻赚取 {earnings}。如果 BTC 涨到行权价以上，部分锁定的 BTC 可能会用于支付买方收益。",
+      "strikeIs": "行权价：",
+      "strikeIsDesc": "比接受时的 BTC 价格高 {percent}%",
+      "ifBelow": "如果 BTC 低于行权价：",
       "ifBelowDesc": "您保留 BTC 并获得收益",
-      "ifRises": "如果 BTC 高于 {strike}：",
+      "ifRises": "如果 BTC 高于行权价：",
       "ifRisesDesc": "您保留收益，但买方将由您的抵押支付，金额与超出行权价的百分比成比例，最多可能损失全部抵押。",
       "platformFee": "平台费用：",
       "platformFeeDesc": "收益的 {fee}%"

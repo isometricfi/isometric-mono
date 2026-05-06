@@ -414,9 +414,10 @@ function ReviewStep({
   const earningsBtc = satsToBtc(model.earningsSats);
   const earningsUsd = earningsBtc * model.btcPrice;
   const strikeDisplay = `$${formatUsd(model.selectedStrikeUsd)}`;
+  const strikeRowValue = `${model.selectedStrikePercent}% · ~${strikeDisplay}`;
 
   const rows: SummaryRow[] = [
-    { label: t("review.strike"), value: strikeDisplay },
+    { label: t("review.strike"), value: strikeRowValue },
     { label: t("review.term"), value: `${model.selectedTermDay} ${termLabel}` },
     {
       label: t("review.collateral"),
@@ -436,11 +437,11 @@ function ReviewStep({
 
   const scenarios: Scenario[] = [
     {
-      condition: tSummary("writeExplainer.ifBelow", { strike: strikeDisplay }),
+      condition: tSummary("writeExplainer.ifBelow"),
       outcome: tSummary("writeExplainer.ifBelowDesc"),
     },
     {
-      condition: tSummary("writeExplainer.ifRises", { strike: strikeDisplay }),
+      condition: tSummary("writeExplainer.ifRises"),
       outcome: tSummary("writeExplainer.ifRisesDesc"),
     },
   ];

@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button";
 import { SlidingNumber } from "@/components/ui/sliding-number";
 import { useConfig, useModal, usePrices } from "@/hooks";
 import { estimateExpiryDate } from "@/lib/expiry";
-import { getStrikeUsd } from "@/lib/options-form";
 import { basisPointsToPercent, formatBtc, formatUsd, roundToN, satsToBtc } from "@/lib/utils";
 
 interface CallWriteOptionSummaryProps {
@@ -36,8 +35,6 @@ export function CallWriteOptionSummary({
   const earningsUsd = btcPrice * earningsBtc;
   const earningsDisplay = formatBtc(earningsSats);
   const amountDisplay = formatBtc(amountSats);
-  const strikeUsd = getStrikeUsd(btcPrice, strikePercent);
-  const strikeDisplay = `$${formatUsd(strikeUsd)}`;
   const termLabel = tForms(term === 1 ? "day" : "days").toLowerCase();
   const expiryDisplay = format(estimateExpiryDate(term), "MMM d, yyyy 'at' HH:mm");
 
@@ -70,18 +67,23 @@ export function CallWriteOptionSummary({
                 <span className="text-muted-foreground">•</span>
                 <p className="text-muted-foreground flex-1">
                   <span className="font-medium text-foreground">
-                    {t("writeExplainer.ifBelow", { strike: strikeDisplay })}
+                    {t("writeExplainer.strikeIs")}
                   </span>{" "}
+                  {t("writeExplainer.strikeIsDesc", { percent: strikePercent })}
+                </p>
+              </div>
+              <div className="flex items-start gap-2">
+                <span className="text-muted-foreground">•</span>
+                <p className="text-muted-foreground flex-1">
+                  <span className="font-medium text-foreground">{t("writeExplainer.ifBelow")}</span>{" "}
                   {t("writeExplainer.ifBelowDesc")}
                 </p>
               </div>
               <div className="flex items-start gap-2">
                 <span className="text-muted-foreground">•</span>
                 <p className="text-muted-foreground flex-1">
-                  <span className="font-medium text-foreground">
-                    {t("writeExplainer.ifRises", { strike: strikeDisplay })}
-                  </span>{" "}
-                  {t("writeExplainer.ifRisesDesc", { strike: strikeDisplay })}
+                  <span className="font-medium text-foreground">{t("writeExplainer.ifRises")}</span>{" "}
+                  {t("writeExplainer.ifRisesDesc")}
                 </p>
               </div>
               <div className="flex items-start gap-2">
