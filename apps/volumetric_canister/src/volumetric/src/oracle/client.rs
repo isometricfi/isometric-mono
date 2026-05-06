@@ -359,11 +359,13 @@ async fn fetch_current_xrc_btc_usd_rate_near_timestamp_with_retry(
             Ok(stored_rate) => return Ok(stored_rate),
             Err(error) => {
                 let attempt_number = attempt_index.saturating_add(1);
+                let has_attempts_remaining = attempt_number < XRC_FRESH_PRICE_MAX_ATTEMPTS;
                 logging::warn!(
-                    "oracle xrc: fresh current fetch attempt {} of {} failed target_ts={} err={}",
+                    "oracle xrc: fresh current fetch attempt {} of {} failed target_ts={} will_retry_immediately={} err={}",
                     attempt_number,
                     XRC_FRESH_PRICE_MAX_ATTEMPTS,
                     target_timestamp_seconds,
+                    has_attempts_remaining,
                     error
                 );
                 last_error = Some(error);
@@ -378,7 +380,7 @@ async fn fetch_current_xrc_btc_usd_rate_near_timestamp_with_retry(
             None,
         )
     });
-    logging::warn!(
+    logging::error!(
         "oracle xrc: fresh current fetch exhausted all attempts target_ts={} err={}",
         target_timestamp_seconds,
         final_error
