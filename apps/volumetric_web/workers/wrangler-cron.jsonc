@@ -18,7 +18,7 @@
     }
   ],
   "triggers": {
-    "crons": ["* * * * *", "*/15 * * * *"]
+    "crons": ["* * * * *", "*/5 * * * *"]
   },
   "env": {
     "dev": {
@@ -38,7 +38,6 @@
     },
     "staging": {
       "name": "volumetric-cron-staging",
-      // Prod-only: omit */15 so cron-worker never runs sync-xrc-price on staging (see FIFTEEN_MINUTE_CRON).
       "triggers": {
         "crons": ["* * * * *"]
       },
@@ -57,9 +56,8 @@
     },
     "production": {
       "name": "volumetric-cron-production",
-      // Includes */15 for XRC BTC/USD snapshot sync (sync-xrc-price); staging omits that schedule.
       "triggers": {
-        "crons": ["* * * * *", "*/15 * * * *"]
+        "crons": ["* * * * *", "*/5 * * * *"]
       },
       "vars": {
         "TURBO_TELEMETRY_DISABLED": "1",

@@ -131,6 +131,15 @@ pub fn get_accept_status(operation_id: OperationId) -> Result<AcceptOffersStatus
                 last_error: wal_entry.last_err,
             })
         }
+        WalStatus::RetryRequired => {
+            let pending_accept = load_accept_journal_entry(accept_receipt.accept_journal_entry_id)?;
+            Ok(AcceptOffersStatus::RetryRequired {
+                receipt: accept_receipt,
+                phase: pending_accept.phase,
+                last_error: wal_entry.last_err,
+                next_attempt_at_seconds: wal_entry.next_attempt_at_seconds,
+            })
+        }
         WalStatus::RecoveryRequired => {
             let pending_accept = load_accept_journal_entry(accept_receipt.accept_journal_entry_id)?;
             Ok(AcceptOffersStatus::RecoveryRequired {

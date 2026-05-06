@@ -84,7 +84,9 @@ pub async fn testing_force_settle(
 }
 
 #[ic_cdk::update]
-pub fn testing_reset_stuck_settling_option(option_id: u64) -> Result<ActiveOption, VolumetricError> {
+pub fn testing_reset_stuck_settling_option(
+    option_id: u64,
+) -> Result<ActiveOption, VolumetricError> {
     is_whitelisted()?;
     usecases::testing_reset_stuck_settling_option_use_case(option_id)
 }

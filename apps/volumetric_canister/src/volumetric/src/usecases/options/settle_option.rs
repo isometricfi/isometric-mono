@@ -15,7 +15,7 @@ use crate::ledger;
 use crate::locks::SettlementLock;
 #[cfg(feature = "testing")]
 use crate::oracle::get_btc_usd_price_cents;
-use crate::oracle::get_btc_usd_price_cents_at_time_seconds;
+use crate::oracle::get_settlement_btc_usd_price_cents;
 use crate::oracle::xrc_timestamp_seconds_for_time_seconds;
 use crate::storage::{
     add_platform_fee, calculate_call_option_payout, calculate_profit_fee, complete_settlement,
@@ -63,6 +63,12 @@ pub enum SettlementStatus {
         receipt: SettlementReceipt,
         result: SettlementWalResult,
     },
+    RetryRequired {
+        receipt: SettlementReceipt,
+        phase: SettlementPhase,
+        last_error: Option<String>,
+        next_attempt_at_seconds: u64,
+    },
     RecoveryRequired {
         receipt: SettlementReceipt,
         phase: SettlementPhase,
@@ -98,27 +104,18 @@ pub async fn settle_expired_options_use_case() -> SettleExpiredOptionsResult {
     let mut errors: Vec<String> = Vec::new();
 
     for (xrc_timestamp_secs, options_in_xrc_bucket) in expired_options_by_xrc_timestamp_secs {
-        // `now_seconds` selects expired options. Pricing uses `expiry_seconds` floored to the XRC
-        // hour. Bucket members share that hour, so `first()` supplies any `expiry_seconds` for one
-        // oracle call; the inner loop applies that price to each option.
-        let Some(first_option_in_xrc_bucket) = options_in_xrc_bucket.first() else {
-            continue;
-        };
-
-        let settlement_price_cents = match get_btc_usd_price_cents_at_time_seconds(
-            first_option_in_xrc_bucket.expiry_seconds,
-        )
-        .await
-        {
-            Ok(price) => price,
-            Err(e) => {
-                errors.push(format!(
-                    "Failed to get oracle price for XRC timestamp {}: {}",
-                    xrc_timestamp_secs, e
-                ));
-                continue;
-            }
-        };
+        // Bucket members share the same expiry hour, so one oracle decision can price them all.
+        let settlement_price_cents =
+            match get_settlement_btc_usd_price_cents(xrc_timestamp_secs).await {
+                Ok(price) => price,
+                Err(e) => {
+                    errors.push(format!(
+                        "Failed to get settlement price for expiry timestamp {}: {}",
+                        xrc_timestamp_secs, e
+                    ));
+                    continue;
+                }
+            };
 
         for option in options_in_xrc_bucket {
             match settle_single_option(option.id, settlement_price_cents).await {
@@ -136,10 +133,9 @@ fn group_expired_options_by_xrc_timestamp_secs(
 ) -> ExpiredOptionsByXrcTimestampSecs {
     let mut options_by_xrc_timestamp_secs = BTreeMap::new();
     for option in options {
+        let xrc_hour_start_seconds = xrc_timestamp_seconds_for_time_seconds(option.expiry_seconds);
         options_by_xrc_timestamp_secs
-            .entry(xrc_timestamp_seconds_for_time_seconds(
-                option.expiry_seconds,
-            ))
+            .entry(xrc_hour_start_seconds)
             .or_insert_with(Vec::new)
             .push(option);
     }
@@ -281,13 +277,21 @@ fn finish_settlement_execution(
                 status: ActiveOptionStatus::Settled,
             })
         }
-        WalExecutionOutcome::SkippedAlreadyInFlight | WalExecutionOutcome::RecoveryRequired(_) => {
-            Err(VolumetricError::from_def(
-                error_codes::INTER_CANISTER_CALL_FAILED,
-                Some("settlement requires manual recovery"),
-                None,
-            ))
-        }
+        WalExecutionOutcome::SkippedAlreadyInFlight => Err(VolumetricError::from_def(
+            error_codes::INTER_CANISTER_CALL_FAILED,
+            Some("settlement is already running"),
+            None,
+        )),
+        WalExecutionOutcome::RetryRequired(_) => Err(VolumetricError::from_def(
+            error_codes::INTER_CANISTER_CALL_FAILED,
+            Some("settlement queued for automatic retry"),
+            None,
+        )),
+        WalExecutionOutcome::RecoveryRequired(_) => Err(VolumetricError::from_def(
+            error_codes::INTER_CANISTER_CALL_FAILED,
+            Some("settlement requires manual recovery"),
+            None,
+        )),
         WalExecutionOutcome::FailedPermanent(message) => Err(VolumetricError::from_def(
             error_codes::INTER_CANISTER_CALL_FAILED,
             Some(&message),
@@ -678,6 +682,15 @@ pub fn get_settlement_status_use_case(
                 last_error: wal_entry.last_err,
             })
         }
+        WalStatus::RetryRequired => {
+            let pending_settlement = load_settlement_journal_entry(settlement_receipt.option_id)?;
+            Ok(SettlementStatus::RetryRequired {
+                receipt: settlement_receipt,
+                phase: pending_settlement.phase,
+                last_error: wal_entry.last_err,
+                next_attempt_at_seconds: wal_entry.next_attempt_at_seconds,
+            })
+        }
         WalStatus::RecoveryRequired => {
             let pending_settlement = load_settlement_journal_entry(settlement_receipt.option_id)?;
             Ok(SettlementStatus::RecoveryRequired {
@@ -710,8 +723,9 @@ pub async fn settle_option_by_id_use_case(
         ));
     }
 
+    let expiry_timestamp_seconds = xrc_timestamp_seconds_for_time_seconds(option.expiry_seconds);
     let settlement_price_cents =
-        get_btc_usd_price_cents_at_time_seconds(option.expiry_seconds).await?;
+        get_settlement_btc_usd_price_cents(expiry_timestamp_seconds).await?;
     queue_settlement_execution(option_id, settlement_price_cents)
 }
 
@@ -1181,19 +1195,23 @@ mod tests {
     #[async_trait(?Send)]
     impl PriceOracle for RecordingOracle {
         async fn get_btc_usd_price_cents(&self) -> Result<u64, VolumetricError> {
-            self.get_btc_usd_price_cents_at_time_seconds(current_time_seconds())
+            self.get_settlement_btc_usd_price_cents(current_time_seconds())
                 .await
         }
 
-        async fn get_btc_usd_price_cents_at_time_seconds(
+        async fn get_accept_btc_usd_price_cents(&self) -> Result<u64, VolumetricError> {
+            self.get_btc_usd_price_cents().await
+        }
+
+        async fn get_settlement_btc_usd_price_cents(
             &self,
-            settlement_time_seconds: u64,
+            expiry_timestamp_seconds: u64,
         ) -> Result<u64, VolumetricError> {
             self.requested_times_seconds
                 .borrow_mut()
-                .push(settlement_time_seconds);
+                .push(expiry_timestamp_seconds);
             self.prices_by_time_seconds
-                .get(&settlement_time_seconds)
+                .get(&expiry_timestamp_seconds)
                 .copied()
                 .ok_or_else(|| {
                     VolumetricError::from_def(
@@ -1245,6 +1263,118 @@ mod tests {
 
     fn test_principal(seed: u8) -> Principal {
         Principal::from_slice(&[seed; 29])
+    }
+
+    fn minimal_active_option_for_bucket_test(option_id: u64, expiry_seconds: u64) -> ActiveOption {
+        ActiveOption {
+            id: option_id,
+            offer_id: option_id,
+            buyer: Principal::anonymous(),
+            writer: Principal::anonymous(),
+            asset: crate::storage::Asset::CkBtc,
+            option_type: OptionType::Call,
+            quantity: 1,
+            entry_price_cents: 1,
+            strike_price_cents: 1,
+            premium_paid: 1,
+            accepted_at_seconds: 0,
+            expiry_seconds,
+            status: ActiveOptionStatus::Active,
+            fill_group_id: None,
+            profit_fee_basis_points: 0,
+        }
+    }
+
+    /// Given: an empty option list
+    /// When: grouping by XRC hour bucket
+    /// Then: the result map is empty
+    #[test]
+    fn should_group_expired_options_into_empty_map_when_input_empty() {
+        // given
+        let options: Vec<ActiveOption> = Vec::new();
+
+        // when
+        let grouped = group_expired_options_by_xrc_timestamp_secs(options);
+
+        // then
+        assert!(grouped.is_empty());
+    }
+
+    /// Given: two expiries in the same UTC hour but at different seconds
+    /// When: grouping by XRC hour bucket
+    /// Then: both options share one bucket keyed at that hour start
+    #[test]
+    fn should_group_expired_options_same_xrc_hour_into_single_bucket() {
+        // given
+        const HOUR_START_SECONDS: u64 = 1_000_000 * 3600;
+        const EXPIRY_A_SECONDS_INSIDE_HOUR: u64 = HOUR_START_SECONDS + 100;
+        const EXPIRY_B_SECONDS_INSIDE_HOUR: u64 = HOUR_START_SECONDS + 3_499;
+
+        let options = vec![
+            minimal_active_option_for_bucket_test(1, EXPIRY_A_SECONDS_INSIDE_HOUR),
+            minimal_active_option_for_bucket_test(2, EXPIRY_B_SECONDS_INSIDE_HOUR),
+        ];
+
+        // when
+        let grouped = group_expired_options_by_xrc_timestamp_secs(options);
+
+        // then
+        assert_eq!(grouped.len(), 1);
+        let bucket = grouped
+            .get(&HOUR_START_SECONDS)
+            .expect("single bucket at hour start");
+        assert_eq!(bucket.len(), 2);
+        let option_ids: Vec<u64> = bucket.iter().map(|option| option.id).collect();
+        assert_eq!(option_ids, vec![1, 2]);
+    }
+
+    /// Given: two expiries in different UTC hours
+    /// When: grouping by XRC hour bucket
+    /// Then: there are two buckets ordered by hour start
+    #[test]
+    fn should_group_expired_options_in_distinct_xrc_hours_into_separate_ordered_buckets() {
+        // given
+        const FIRST_HOUR_START_SECONDS: u64 = 2_000_000 * 3600;
+        const SECOND_HOUR_START_SECONDS: u64 = FIRST_HOUR_START_SECONDS + 3600;
+
+        let options = vec![
+            minimal_active_option_for_bucket_test(10, SECOND_HOUR_START_SECONDS + 60),
+            minimal_active_option_for_bucket_test(20, FIRST_HOUR_START_SECONDS + 60),
+        ];
+
+        // when
+        let grouped = group_expired_options_by_xrc_timestamp_secs(options);
+
+        // then
+        let hour_start_keys: Vec<u64> = grouped.keys().copied().collect();
+        assert_eq!(
+            hour_start_keys,
+            vec![FIRST_HOUR_START_SECONDS, SECOND_HOUR_START_SECONDS]
+        );
+        assert_eq!(grouped[&FIRST_HOUR_START_SECONDS].len(), 1);
+        assert_eq!(grouped[&FIRST_HOUR_START_SECONDS][0].id, 20);
+        assert_eq!(grouped[&SECOND_HOUR_START_SECONDS].len(), 1);
+        assert_eq!(grouped[&SECOND_HOUR_START_SECONDS][0].id, 10);
+    }
+
+    /// Given: an expiry exactly on an hour boundary
+    /// When: grouping by XRC hour bucket
+    /// Then: the bucket key equals that expiry
+    #[test]
+    fn should_use_expiry_seconds_as_bucket_key_when_already_hour_aligned() {
+        // given
+        const HOUR_ALIGNED_EXPIRY_SECONDS: u64 = 99_999 * 3600;
+        let options = vec![minimal_active_option_for_bucket_test(
+            5,
+            HOUR_ALIGNED_EXPIRY_SECONDS,
+        )];
+
+        // when
+        let grouped = group_expired_options_by_xrc_timestamp_secs(options);
+
+        // then
+        assert_eq!(grouped.len(), 1);
+        assert!(grouped.contains_key(&HOUR_ALIGNED_EXPIRY_SECONDS));
     }
 
     fn clear_settlement_journal() {
@@ -1481,21 +1611,23 @@ mod tests {
         }
     }
 
-    /// Given: a valid expired option and a deterministic oracle that records requested times
+    /// Given: a valid expired option and a deterministic oracle that records requested expiries
     /// When: settle_option_by_id_use_case is called after the option expiry
-    /// Then: it requests the XRC price for the option expiry timestamp
+    /// Then: it requests the settlement price for the option expiry hour
     #[tokio::test]
-    async fn test_settle_option_by_id_requests_price_at_option_expiry() {
+    async fn test_settle_option_by_id_requests_price_at_option_expiry_hour() {
         // given
         const OPTION_ID: u64 = 201;
         const OPTION_EXPIRY_SECONDS: u64 = TEST_NOW_SECONDS - 1;
+        let expiry_hour_timestamp_seconds =
+            xrc_timestamp_seconds_for_time_seconds(OPTION_EXPIRY_SECONDS);
         let writer = test_principal(41);
         let buyer = test_principal(42);
         setup_clean_option_state(writer, buyer, TEST_QUANTITY_SATS);
         insert_test_option(OPTION_ID, writer, buyer, OPTION_EXPIRY_SECONDS);
 
         let (oracle, requested_times_seconds) = RecordingOracle::new(BTreeMap::from([(
-            OPTION_EXPIRY_SECONDS,
+            expiry_hour_timestamp_seconds,
             TEST_OTM_SETTLEMENT_PRICE_CENTS,
         )]));
         set_oracle(Rc::new(oracle));
@@ -1509,7 +1641,7 @@ mod tests {
         // then
         assert_eq!(
             *requested_times_seconds.borrow(),
-            vec![OPTION_EXPIRY_SECONDS]
+            vec![expiry_hour_timestamp_seconds]
         );
         let WalPayload::Settlement(settlement_payload) = wal_entry.payload else {
             panic!("settlement WAL entry should contain settlement payload");
@@ -1520,11 +1652,11 @@ mod tests {
         );
     }
 
-    /// Given: expired options with different raw expiries in the same XRC timestamp bucket
+    /// Given: expired options with different raw expiries in the same expiry-hour bucket
     /// When: settle_expired_options_use_case runs
-    /// Then: it fetches one settlement price for the shared XRC timestamp bucket
+    /// Then: it requests one settlement price for the shared expiry-hour bucket
     #[tokio::test]
-    async fn test_settle_expired_options_groups_oracle_fetches_by_xrc_timestamp() {
+    async fn test_settle_expired_options_groups_oracle_fetches_by_expiry_hour() {
         // given
         const FIRST_OPTION_ID: u64 = 301;
         const SECOND_OPTION_ID: u64 = 302;
@@ -1532,6 +1664,8 @@ mod tests {
         const FIRST_EXPIRY_SECONDS: u64 = TEST_NOW_SECONDS - 1;
         const SECOND_EXPIRY_SECONDS: u64 = TEST_NOW_SECONDS - 2;
         const XRC_BUCKET_PRICE_CENTS: u64 = 10_000_000;
+        let expiry_hour_timestamp_seconds =
+            xrc_timestamp_seconds_for_time_seconds(FIRST_EXPIRY_SECONDS);
 
         let writer = test_principal(51);
         let buyer = test_principal(52);
@@ -1541,7 +1675,7 @@ mod tests {
         insert_test_option(THIRD_OPTION_ID, writer, buyer, SECOND_EXPIRY_SECONDS);
 
         let (oracle, requested_times_seconds) = RecordingOracle::new(BTreeMap::from([(
-            FIRST_EXPIRY_SECONDS,
+            expiry_hour_timestamp_seconds,
             XRC_BUCKET_PRICE_CENTS,
         )]));
         set_oracle(Rc::new(oracle));
@@ -1553,7 +1687,7 @@ mod tests {
         assert!(result.errors.is_empty());
         assert_eq!(
             *requested_times_seconds.borrow(),
-            vec![FIRST_EXPIRY_SECONDS]
+            vec![expiry_hour_timestamp_seconds]
         );
         assert_eq!(result.settled.len(), 3);
         assert_eq!(
@@ -1699,6 +1833,59 @@ mod tests {
             retryable_ledger.transfer_call_count(),
             EXPECTED_TRANSFER_CALL_COUNT
         );
+        assert_eq!(
+            get_platform_fees_collected() - platform_fees_before,
+            EXPECTED_PROFIT_FEE_SATS
+        );
+        assert_eq!(
+            settlement_replay_running_total_sats(writer, buyer, platform_fees_before),
+            TEST_QUANTITY_SATS - EXPECTED_SETTLEMENT_TRANSFER_FEES_SATS
+        );
+    }
+
+    /// Given: a settlement WAL enters retry-required after a transient fee transfer failure
+    /// When: the automatic retry timer drains due WAL entries
+    /// Then: settlement is retried through the stored WAL payload and completes once
+    #[tokio::test]
+    async fn test_wal_auto_retry_timer_completes_due_settlement_retry() {
+        // given
+        let writer = test_principal(13);
+        let buyer = test_principal(14);
+        let retryable_ledger = Rc::new(RetryableProfitFeeTransferLedger::new());
+        setup_test_state_with_ledger(writer, buyer, retryable_ledger.clone());
+        let platform_fees_before = get_platform_fees_collected();
+        let prepared_settlement_execution =
+            prepare_settlement_execution(TEST_OPTION_ID, TEST_SETTLEMENT_PRICE_CENTS)
+                .expect("settlement should be prepared");
+
+        let first_outcome = execute_wal_entry_now(prepared_settlement_execution.operation_id).await;
+        let wal_entry_after_first_attempt = get_entry(prepared_settlement_execution.operation_id)
+            .expect("settlement wal should remain after retryable failure");
+
+        const SIX_SECONDS_NS: u64 = 6 * crate::time::NANOS_PER_SECOND;
+        ic::set_runtime(Box::new(RuntimeAt {
+            now_ns: TEST_NOW_NS.saturating_add(SIX_SECONDS_NS),
+        }));
+
+        // when
+        let _ = crate::timers::retry_due_wal_entries_once().await;
+        let settlement_status =
+            get_settlement_status_use_case(prepared_settlement_execution.operation_id)
+                .expect("settlement status should load after auto retry");
+
+        // then
+        assert!(matches!(
+            first_outcome,
+            WalExecutionOutcome::RetryRequired(_)
+        ));
+        assert_eq!(
+            wal_entry_after_first_attempt.status,
+            WalStatus::RetryRequired
+        );
+        assert!(matches!(
+            settlement_status,
+            SettlementStatus::Succeeded { .. }
+        ));
         assert_eq!(
             get_platform_fees_collected() - platform_fees_before,
             EXPECTED_PROFIT_FEE_SATS
@@ -2800,10 +2987,7 @@ mod tests {
 
         // then
         assert_eq!(promoted_count, 1);
-        assert_eq!(
-            wal_entry_after_promotion.status,
-            WalStatus::RecoveryRequired
-        );
+        assert_eq!(wal_entry_after_promotion.status, WalStatus::RetryRequired);
         assert_eq!(replay_outcome, WalExecutionOutcome::Succeeded);
         assert!(matches!(
             settlement_status,

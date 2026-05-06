@@ -28,28 +28,27 @@ pub use api::{
     get_failed_accepts, get_failed_settlements, get_my_offers, get_my_options,
     get_my_written_options, get_offer_by_id, get_open_offers, get_option_audit_report,
     get_pending_accepts, get_pending_settlements, get_pending_settlements_journal,
-    get_recovery_required_wal_entries, get_settlement_by_id, get_settlement_status,
-    recover_wal_operation, settle_expired_options, settle_option_by_id, AcceptOfferItem,
-    AcceptOffersRequest, AuditExpectedTransfer, AuditLedgerAccount, AuditTransferKind,
-    AuditUserBalance, CancelOfferRequest, CreateOfferRequest, CreateOfferResponse,
-    OptionAuditReport, SettleExpiredOptionsResponse, SettlementResult,
+    get_recovery_required_wal_entries, get_retry_required_wal_entries, get_settlement_by_id,
+    get_settlement_status, recover_wal_operation, settle_expired_options, settle_option_by_id,
+    AcceptOfferItem, AcceptOffersRequest, AuditExpectedTransfer, AuditLedgerAccount,
+    AuditTransferKind, AuditUserBalance, CancelOfferRequest, CreateOfferRequest,
+    CreateOfferResponse, OptionAuditReport, SettleExpiredOptionsResponse, SettlementResult,
 };
 pub use api::{
-    add_whitelisted, clear_log_access_token, create_account,
-    fetch_xrc_btc_usd_exchange_rate_snapshot, get_account_info, get_account_nonce,
+    add_whitelisted, clear_log_access_token, create_account, get_account_info, get_account_nonce,
     get_ckbtc_balance, get_config, get_deposit_address, get_failed_withdrawals, get_feature_flags,
-    get_message_to_sign, get_my_pending_withdrawals, get_my_pending_withdrawals_message,
-    get_pending_withdrawals, get_trading_limits, get_user_balance, get_username_update_message,
-    get_withdraw_message, get_withdraw_status, get_withdrawal_by_id, list_users, list_whitelisted,
-    remove_whitelisted, set_feature_flags_config, set_log_access_token, set_trading_limits_config,
+    get_latest_xrc_btc_usd_rate, get_message_to_sign, get_my_pending_withdrawals,
+    get_my_pending_withdrawals_message, get_pending_withdrawals, get_trading_limits,
+    get_user_balance, get_username_update_message, get_withdraw_message, get_withdraw_status,
+    get_withdrawal_by_id, list_users, list_whitelisted, remove_whitelisted,
+    set_feature_flags_config, set_log_access_token, set_trading_limits_config,
     update_ckbtc_balance, update_username, validate_invite_code, withdraw_ckbtc, UserBalanceInfo,
 };
 #[cfg(feature = "testing")]
 pub use api::{
     testing_clear_offers_and_options, testing_expire_option, testing_force_settle,
-    testing_reset_oracle, testing_reset_stuck_settling_option, testing_set_ckbtc_ledger,
-    testing_set_option_expiry_seconds, testing_set_oracle_price_cents,
-    testing_sync_balance_from_ledger, ClearStorageResponse,
+    testing_reset_oracle, testing_set_ckbtc_ledger, testing_set_option_expiry_seconds,
+    testing_set_oracle_price_cents, testing_sync_balance_from_ledger, ClearStorageResponse,
 };
 pub use auth::types::{
     AuthenticatedPayload, CreateProfileRequest, ListMyPendingWithdrawalsRequest,
@@ -57,14 +56,13 @@ pub use auth::types::{
 };
 pub use errors::VolumetricError;
 pub use generated::ckbtc::{Utxo, UtxoOutpoint, UtxoStatus};
-pub use generated::xrc::GetExchangeRateResult;
 pub use journaling::WalExecutionOutcome;
 pub use observability::{http_request, observability_get_metrics, ObservabilityMetrics};
 pub use storage::{
     AcceptPhase, ActiveOption, ActiveOptionStatus, Asset, BtcNetwork, Event, EventData, EventType,
     FeatureFlags, FeeConfig, Offer, OfferStatus, OptionType, PendingAccept, PendingSettlement,
-    PendingWithdrawal, SettlementPhase, TradeRole, TradingLimits, UserBalance, WithdrawalPhase,
-    MINIMUM_QUANTITY_SATS,
+    PendingWithdrawal, SettlementPhase, StoredXrcBtcUsdRate, TradeRole, TradingLimits, UserBalance,
+    WithdrawalPhase, MINIMUM_QUANTITY_SATS,
 };
 pub use usecases::{
     AcceptOffersReceipt, AcceptOffersResult, AcceptOffersStatus, SettlementReceipt,

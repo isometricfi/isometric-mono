@@ -1,15 +1,6 @@
 "use client";
 
-import {
-  Info,
-  Loader2,
-  MoreHorizontal,
-  Pencil,
-  Scale,
-  Trash,
-  TrendingUp,
-  Trophy,
-} from "lucide-react";
+import { Info, Loader2, MoreHorizontal, Pencil, Scale, Trash, Trophy } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -47,7 +38,7 @@ interface OfferCardProps {
     rank: number;
     totalOffers: number;
     isBest: boolean;
-    isLargestAtPremium: boolean;
+    isLargestInBook: boolean;
   } | null;
 }
 
@@ -149,30 +140,27 @@ export function OfferCard({ offer, btcPrice, onCancel, isCancelling, rankInfo }:
         ) : (
           <div className="flex items-center justify-between border-t pt-2">
             <div className="flex items-center gap-2">
-              <Badge variant="secondary">
-                <TrendingUp className="size-3.5" />
-                <span>{t("call")}</span>
-              </Badge>
-
-              {rankInfo &&
-                (rankInfo.isBest ? (
-                  <Badge variant="default">
-                    <Trophy className="size-3" />
-                    {t("bestOffer")}
-                  </Badge>
-                ) : (
-                  <>
-                    <Badge variant="outline" className="text-muted-foreground">
+              {rankInfo && (
+                <>
+                  {rankInfo.isBest ? (
+                    <Badge variant="default">
+                      <Trophy className="size-3" />
+                      {t("bestOffer")}
+                    </Badge>
+                  ) : (
+                    <Badge variant="secondary" className="text-muted-foreground">
+                      <Trophy className="size-3" />
                       {t("rank", { rank: rankInfo.rank })}
                     </Badge>
-                    {rankInfo.isLargestAtPremium && (
-                      <Badge variant="secondary">
-                        <Scale className="size-3" />
-                        {t("largestOffer")}
-                      </Badge>
-                    )}
-                  </>
-                ))}
+                  )}
+                  {rankInfo.isLargestInBook && (
+                    <Badge variant="secondary">
+                      <Scale className="size-3" />
+                      {t("largestOffer")}
+                    </Badge>
+                  )}
+                </>
+              )}
               <Dialog>
                 <DialogTrigger asChild>
                   <Button
@@ -192,14 +180,23 @@ export function OfferCard({ offer, btcPrice, onCancel, isCancelling, rankInfo }:
                     <ol className="list-decimal list-inside text-sm space-y-2 ml-1">
                       <li className="font-medium text-foreground">
                         <span className="font-semibold">{t("lowestPremium")}</span>{" "}
-                        {t("lowestPremiumDesc")}
+                        <span className="text-muted-foreground font-normal">
+                          {t("lowestPremiumDesc")}
+                        </span>
                       </li>
                       <li className="font-medium text-foreground">
                         <span className="font-semibold">{t("earliestCreated")}</span>{" "}
-                        {t("earliestCreatedDesc")}
+                        <span className="text-muted-foreground font-normal">
+                          {t("earliestCreatedDesc")}
+                        </span>
+                      </li>
+                      <li className="font-medium text-foreground">
+                        <span className="font-semibold">{t("largestSize")}</span>{" "}
+                        <span className="text-muted-foreground font-normal">
+                          {t("largestSizeDesc")}
+                        </span>
                       </li>
                     </ol>
-                    <p className="text-sm text-muted-foreground">{t("largestSizeNote")}</p>
                   </div>
                 </DialogContent>
               </Dialog>
