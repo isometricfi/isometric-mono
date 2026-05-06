@@ -602,7 +602,9 @@
     "cancelOffer": "取消报价",
     "remainingBelowMinimum": "剩余低于 {amount} 最小值",
     "insufficientBacking": "仅可用 {available}",
-    "insufficientBackingShort": "可用余额不足"
+    "insufficientBackingShort": "可用余额不足",
+    "backingLimitTitle": "支持额度限制",
+    "backingLimitDescription": "您的可用余额（{available}）低于此报价的大小。买家最多只能成交 {available}。请存入更多 BTC 以完整支持此报价。"
   },
   "Errors": {
     "unauthorizedController": "您无权执行此操作",

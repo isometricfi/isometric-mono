@@ -108,13 +108,29 @@ export function OfferCard({
 
         {isUnderBacked && !belowMinOfferAmount && (
           <div className="-mt-1.5">
-            <Badge variant={"destructive"} className="text-center w-full py-0">
-              {effectiveBelowMin
-                ? t("insufficientBackingShort")
-                : t("insufficientBacking", {
+            <Dialog>
+              <DialogTrigger asChild>
+                <button type="button" className="block w-full cursor-pointer">
+                  <Badge variant={"destructive"} className="text-center w-full py-0">
+                    {effectiveBelowMin
+                      ? t("insufficientBackingShort")
+                      : t("insufficientBacking", {
+                          available: formatBtcWithSymbolBigint(availableBalanceSats ?? BigInt(0)),
+                        })}
+                  </Badge>
+                </button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                  <DialogTitle>{t("backingLimitTitle")}</DialogTitle>
+                </DialogHeader>
+                <p className="text-sm text-muted-foreground">
+                  {t("backingLimitDescription", {
                     available: formatBtcWithSymbolBigint(availableBalanceSats ?? BigInt(0)),
                   })}
-            </Badge>
+                </p>
+              </DialogContent>
+            </Dialog>
           </div>
         )}
 
