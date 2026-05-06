@@ -211,6 +211,11 @@ pub mod error_codes {
         name: "DURATION_NOT_HOUR_MULTIPLE",
         message: "Option duration must be a whole number of hours",
     };
+    pub const BATCH_SIZE_EXCEEDED: ErrorDef = ErrorDef {
+        code: 5030,
+        name: "BATCH_SIZE_EXCEEDED",
+        message: "Batch size exceeds the maximum allowed entries",
+    };
 
     // 9xxx: Internal/generic errors
     pub const INTERNAL_ERROR: ErrorDef = ErrorDef {
