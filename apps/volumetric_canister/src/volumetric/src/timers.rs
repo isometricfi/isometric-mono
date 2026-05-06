@@ -23,7 +23,7 @@ pub fn setup_timers() {
     // Periodically refreshes the ICRC transfer fee cache when the ledger client is idle.
     setup_transfer_fee_refresh_timer();
 
-    // Aligns to 5-minute ticks, then fetches a current BTC/USD snapshot from XRC into stable cache.
+    // Aligns to 5-minute ticks, then fetches a current BTC/USDT snapshot from XRC into stable cache.
     setup_xrc_snapshot_timer();
 
     // Once per day, removes XRC cache entries older than one week.
@@ -86,13 +86,13 @@ async fn refresh_xrc_snapshot_cache() {
     match fetch_and_store_xrc_btc_usd_exchange_rate_snapshot().await {
         Ok(stored_rate) => {
             logging::log!(
-                "XRC snapshot timer (5m): stored BTC/USD rate for timestamp {}",
+                "XRC snapshot timer (5m): stored BTC/USDT rate for timestamp {}",
                 stored_rate.xrc_timestamp_seconds
             );
         }
         Err(error) => {
             logging::warn!(
-                "XRC snapshot timer (5m): failed to refresh BTC/USD rate: {}",
+                "XRC snapshot timer (5m): failed to refresh BTC/USDT rate: {}",
                 error
             );
         }
@@ -104,7 +104,7 @@ fn setup_xrc_rate_cleanup_timer() {
         let deleted_count = cleanup_old_xrc_btc_usd_rates();
         if deleted_count > 0 {
             logging::log!(
-                "XRC snapshot cleanup: deleted {} old BTC/USD rates",
+                "XRC snapshot cleanup: deleted {} old BTC/USDT rates",
                 deleted_count
             );
         }
