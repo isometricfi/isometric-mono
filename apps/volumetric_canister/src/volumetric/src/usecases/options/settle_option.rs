@@ -1164,7 +1164,7 @@ mod tests {
                 .await
         }
 
-        async fn fetch_current_btc_usd_price_cents(&self) -> Result<u64, VolumetricError> {
+        async fn get_accept_btc_usd_price_cents(&self) -> Result<u64, VolumetricError> {
             self.get_btc_usd_price_cents().await
         }
 

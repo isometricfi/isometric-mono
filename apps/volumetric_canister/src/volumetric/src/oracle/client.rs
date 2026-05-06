@@ -1,3 +1,14 @@
+//! BTC/USD price oracle backed by the XRC canister with a stable in-canister cache.
+//!
+//! Three flows, each picks a different primary source:
+//!
+//!   get_btc_usd_price_cents            (testing force-settle) : cache -> fresh XRC -> cache fallback
+//!   get_accept_btc_usd_price_cents     (accept offer)         : fresh XRC -> cache fallback
+//!   get_settlement_btc_usd_price_cents (option settlement)    : historical XRC at expiry -> closest in-window of (fresh, cache)
+//!
+//! Freshness is always checked against the XRC-reported timestamp (not local fetch
+//! time) within a 30-minute window.
+
 use std::cell::RefCell;
 use std::rc::Rc;
 
@@ -27,30 +38,23 @@ const XRC_FRESH_PRICE_MAX_ATTEMPTS: u8 = 5;
 #[async_trait(?Send)]
 pub trait PriceOracle {
     async fn get_btc_usd_price_cents(&self) -> Result<u64, VolumetricError>;
-    async fn fetch_current_btc_usd_price_cents(&self) -> Result<u64, VolumetricError>;
+    async fn get_accept_btc_usd_price_cents(&self) -> Result<u64, VolumetricError>;
     async fn get_settlement_btc_usd_price_cents(
         &self,
         expiry_timestamp_seconds: u64,
     ) -> Result<u64, VolumetricError>;
 }
 
-/// Spot BTC/USD: prefers an in-window latest cache row; otherwise retries fresh XRC,
-/// then falls back to the same in-window cache rule if every fresh attempt fails.
 pub async fn get_btc_usd_price_cents() -> Result<u64, VolumetricError> {
     let oracle = ORACLE.with(|o| Rc::clone(&o.borrow()));
     oracle.get_btc_usd_price_cents().await
 }
 
-/// Current BTC/USD for accept and similar flows: retries fresh XRC, then uses the
-/// latest cached row only if its XRC timestamp is within 30 minutes of now.
-pub async fn fetch_current_btc_usd_price_cents() -> Result<u64, VolumetricError> {
+pub async fn get_accept_btc_usd_price_cents() -> Result<u64, VolumetricError> {
     let oracle = ORACLE.with(|o| Rc::clone(&o.borrow()));
-    oracle.fetch_current_btc_usd_price_cents().await
+    oracle.get_accept_btc_usd_price_cents().await
 }
 
-/// BTC/USD for settlement: first asks XRC for the option-expiry hour. If that
-/// historical quote is unavailable or outside the 30-minute expiry window, falls
-/// back to the current XRC/cache comparison.
 pub async fn get_settlement_btc_usd_price_cents(
     expiry_timestamp_seconds: u64,
 ) -> Result<u64, VolumetricError> {
@@ -315,8 +319,7 @@ fn store_xrc_btc_usd_exchange_rate_result_near_timestamp(
     store_validated_xrc_btc_usd_exchange_rate(exchange_rate)
 }
 
-/// Single XRC call with `timestamp: None` (current rate), then store only if the
-/// returned XRC timestamp is within 30 minutes of `target_timestamp_seconds`.
+/// One fresh XRC call (`timestamp = None`); cached only if within 30 min of target.
 async fn fetch_and_store_current_xrc_btc_usd_rate_near_timestamp(
     target_timestamp_seconds: u64,
 ) -> Result<StoredXrcBtcUsdRate, VolumetricError> {
@@ -328,8 +331,7 @@ async fn fetch_and_store_current_xrc_btc_usd_rate_near_timestamp(
     )
 }
 
-/// Single historical XRC call for `requested_timestamp_seconds`, then store only
-/// if the returned XRC timestamp is within 30 minutes of `target_timestamp_seconds`.
+/// One historical XRC call (`timestamp = Some(...)`); cached only if within 30 min of target.
 async fn fetch_and_store_historical_xrc_btc_usd_rate_near_timestamp(
     requested_timestamp_seconds: u64,
     target_timestamp_seconds: u64,
@@ -345,9 +347,9 @@ async fn fetch_and_store_historical_xrc_btc_usd_rate_near_timestamp(
     )
 }
 
-/// Retries fresh current XRC (`timestamp: None`) up to `XRC_FRESH_PRICE_MAX_ATTEMPTS`
-/// times; returns the first stored rate that passes the 30-minute timestamp window, or
-/// the last error if every attempt fails.
+/// Up to `XRC_FRESH_PRICE_MAX_ATTEMPTS` fresh fetches; returns first in-window hit.
+/// TODO: classify errors so deterministic XRC failures (RateLimited, NotEnoughCycles)
+/// don't burn paid retries.
 async fn fetch_current_xrc_btc_usd_rate_near_timestamp_with_retry(
     target_timestamp_seconds: u64,
 ) -> Result<StoredXrcBtcUsdRate, VolumetricError> {
@@ -409,10 +411,8 @@ fn get_current_cached_xrc_btc_usd_rate(now_seconds: u64) -> Option<StoredXrcBtcU
     })
 }
 
-/// Among optional fresh and nearest-cached rates, picks the stored row whose
-/// `xrc_timestamp_seconds` is closest to `target_timestamp_seconds`, preferring the
-/// earlier timestamp on ties; only considers rows within the 30-minute window of
-/// `target_timestamp_seconds`.
+/// Picks whichever in-window candidate has the XRC timestamp closest to target
+/// (earlier wins ties).
 fn choose_closest_rate_to_timestamp(
     target_timestamp_seconds: u64,
     fresh_rate: Option<StoredXrcBtcUsdRate>,
@@ -441,26 +441,29 @@ fn choose_closest_rate_to_timestamp(
 async fn get_fallback_settlement_btc_usd_price_cents(
     expiry_timestamp_seconds: u64,
 ) -> Result<u64, VolumetricError> {
-    let fresh_rate_result =
-        fetch_current_xrc_btc_usd_rate_near_timestamp_with_retry(expiry_timestamp_seconds).await;
-    if let Err(ref fresh_error) = fresh_rate_result {
-        logging::warn!(
-            "oracle settlement: fresh current XRC failed after retries expiry_ts={} err={}",
-            expiry_timestamp_seconds,
-            fresh_error
-        );
-    }
+    let (fresh_rate, fresh_error) =
+        match fetch_current_xrc_btc_usd_rate_near_timestamp_with_retry(expiry_timestamp_seconds)
+            .await
+        {
+            Ok(stored_rate) => (Some(stored_rate), None),
+            Err(error) => {
+                logging::warn!(
+                    "oracle settlement: fresh current XRC failed after retries expiry_ts={} err={}",
+                    expiry_timestamp_seconds,
+                    error
+                );
+                (None, Some(error))
+            }
+        };
     let cached_rate = get_nearest_xrc_btc_usd_rate_within_seconds(
         expiry_timestamp_seconds,
         PRICE_TIMESTAMP_MAX_DISTANCE_30_MINUTES_SECS,
     );
 
-    if let Some(stored_rate) = choose_closest_rate_to_timestamp(
-        expiry_timestamp_seconds,
-        fresh_rate_result.as_ref().ok().cloned(),
-        cached_rate,
-    ) {
-        if fresh_rate_result.is_err() {
+    if let Some(stored_rate) =
+        choose_closest_rate_to_timestamp(expiry_timestamp_seconds, fresh_rate, cached_rate)
+    {
+        if fresh_error.is_some() {
             logging::warn!(
                 "oracle settlement: using fallback cache price expiry_ts={} chosen_xrc_ts={}",
                 expiry_timestamp_seconds,
@@ -470,23 +473,26 @@ async fn get_fallback_settlement_btc_usd_price_cents(
         return Ok(stored_rate.price_cents);
     }
 
-    match fresh_rate_result {
-        Ok(stored_rate) => Ok(stored_rate.price_cents),
-        Err(error) => {
-            logging::error!(
-                "oracle settlement: no valid fresh or cached fallback rate within window expiry_ts={} err={}",
-                expiry_timestamp_seconds,
-                error
-            );
-            Err(error)
-        }
-    }
+    let error = fresh_error.unwrap_or_else(|| {
+        VolumetricError::from_def(
+            error_codes::INTERNAL_ERROR,
+            Some("settlement fallback selector rejected validated fresh XRC rate"),
+            None,
+        )
+    });
+    logging::error!(
+        "oracle settlement: no valid fresh or cached fallback rate within window expiry_ts={} err={}",
+        expiry_timestamp_seconds,
+        error
+    );
+    Err(error)
 }
 
 struct IcOracle;
 
 #[async_trait(?Send)]
 impl PriceOracle for IcOracle {
+    // Spot: cache -> fresh XRC -> cache fallback.
     async fn get_btc_usd_price_cents(&self) -> Result<u64, VolumetricError> {
         let now_seconds = current_time_seconds();
         if let Some(stored_rate) = get_current_cached_xrc_btc_usd_rate(now_seconds) {
@@ -513,7 +519,9 @@ impl PriceOracle for IcOracle {
         }
     }
 
-    async fn fetch_current_btc_usd_price_cents(&self) -> Result<u64, VolumetricError> {
+    // Accept: fresh XRC -> cache fallback. Cache is never primary; user writes must
+    // price against a current quote.
+    async fn get_accept_btc_usd_price_cents(&self) -> Result<u64, VolumetricError> {
         let now_seconds = current_time_seconds();
         match fetch_current_xrc_btc_usd_rate_near_timestamp_with_retry(now_seconds).await {
             Ok(stored_rate) => Ok(stored_rate.price_cents),
@@ -535,6 +543,9 @@ impl PriceOracle for IcOracle {
         }
     }
 
+    // Settlement: historical XRC at expiry -> fallback picks whichever in-window
+    // candidate of (fresh, cache) is closer to expiry; if only one is in-window, that
+    // one wins; if neither is in-window, returns the fresh-fetch error.
     async fn get_settlement_btc_usd_price_cents(
         &self,
         expiry_timestamp_seconds: u64,
@@ -574,7 +585,7 @@ impl PriceOracle for StubOracle {
         Ok(self.price_cents)
     }
 
-    async fn fetch_current_btc_usd_price_cents(&self) -> Result<u64, VolumetricError> {
+    async fn get_accept_btc_usd_price_cents(&self) -> Result<u64, VolumetricError> {
         Ok(self.price_cents)
     }
 
