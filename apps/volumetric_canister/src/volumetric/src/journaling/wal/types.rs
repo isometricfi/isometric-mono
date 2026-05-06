@@ -80,6 +80,18 @@ pub struct AcceptWalTransfer {
     pub amount_sats: u64,
 }
 
+// Snapshot of an offer that we shrunk or cancelled mid-accept because the writer's
+// remaining available balance could no longer back the offer's `remaining_quantity`.
+// Persisted so a WAL rollback can restore the offer to its pre-resize state.
+#[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct AcceptWalOfferResize {
+    pub offer_id: u64,
+    pub writer: Principal,
+    pub original_total_quantity_sats: u64,
+    pub original_remaining_quantity_sats: u64,
+    pub original_status: OfferStatus,
+}
+
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct AcceptWalPayload {
     pub accept_journal_entry_id: u64,
@@ -91,6 +103,9 @@ pub struct AcceptWalPayload {
     pub created_at_time_ns: u64,
     pub prepared_accepts: Vec<AcceptWalPreparedAccept>,
     pub writer_transfers: Vec<AcceptWalTransfer>,
+    // Default keeps deserialization compatible with WAL entries persisted before this field was added.
+    #[serde(default)]
+    pub writer_offer_resizes: Vec<AcceptWalOfferResize>,
 }
 
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]

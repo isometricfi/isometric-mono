@@ -99,7 +99,7 @@ pub(crate) fn finalize_failed_accept_wal(payload: &AcceptWalPayload, message: &s
         return;
     }
 
-    rollback_prepared_accepts(&payload.prepared_accepts);
+    rollback_prepared_accepts(&payload.prepared_accepts, &payload.writer_offer_resizes);
     add_available(payload.buyer, payload.total_buyer_debit_required_sats);
     fail_accept(payload.accept_journal_entry_id, message.to_string());
 }

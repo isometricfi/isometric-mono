@@ -1,4 +1,4 @@
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use std::mem::size_of;
 
 use candid::Principal;
@@ -7,16 +7,18 @@ use crate::errors::{error_codes, VolumetricError};
 use crate::guards::{validate_trading_limits_for_accept_offer, OfferParams};
 use crate::ic;
 use crate::journaling::{
-    default_policy, enqueue_if_absent, get_entry, AcceptWalPayload, AcceptWalPreparedAccept,
-    AcceptWalTransfer, OperationId, WalEntry, WalKind, WalPayload, WalResult, WalStatus,
+    default_policy, enqueue_if_absent, get_entry, AcceptWalOfferResize, AcceptWalPayload,
+    AcceptWalPreparedAccept, AcceptWalTransfer, OperationId, WalEntry, WalKind, WalPayload,
+    WalResult, WalStatus,
 };
 use crate::ledger;
 use crate::locks::BalanceMutationLock;
 use crate::storage::{
     calculate_premium_fee, calculate_premium_in_sats, create_accept_journal_entry, fail_accept,
-    get_accept, get_active_option, get_balance, get_offer, list_pending_accepts, lock_collateral,
-    next_id, subtract_available, unlock_collateral, update_accept_phase, update_offer, AcceptPhase,
-    AcceptedOffer, ActiveOption, Asset, Config, CounterKey, OfferStatus, OptionType,
+    get_accept, get_active_option, get_balance, get_offer, list_offers_by_writer,
+    list_pending_accepts, lock_collateral, next_id, subtract_available, unlock_collateral,
+    update_accept_phase, update_offer, AcceptPhase, AcceptedOffer, ActiveOption, Asset, Config,
+    CounterKey, OfferStatus, OptionType,
 };
 use crate::time::{calculate_expiry_seconds, current_time_seconds};
 
@@ -215,13 +217,32 @@ pub(super) fn validate_accept_offer_request(
     Ok(())
 }
 
-pub(super) fn rollback_prepared_accepts(prepared_accepts: &[AcceptWalPreparedAccept]) {
+// Restores both the directly-accepted offers (unlocking their collateral) and
+// any sibling offers that were resized while preparing this accept, so the
+// writer's order book matches its original state after a WAL rollback.
+pub(super) fn rollback_prepared_accepts(
+    prepared_accepts: &[AcceptWalPreparedAccept],
+    writer_offer_resizes: &[AcceptWalOfferResize],
+) {
+    restore_resized_offers(writer_offer_resizes);
+
     for prepared_accept in prepared_accepts {
         let _ = unlock_collateral(prepared_accept.writer, prepared_accept.quantity_sats);
 
         if let Some(mut offer_to_restore) = get_offer(prepared_accept.offer_id) {
             offer_to_restore.remaining_quantity = prepared_accept.original_remaining_quantity_sats;
             offer_to_restore.status = prepared_accept.original_status;
+            update_offer(offer_to_restore);
+        }
+    }
+}
+
+fn restore_resized_offers(writer_offer_resizes: &[AcceptWalOfferResize]) {
+    for resize in writer_offer_resizes {
+        if let Some(mut offer_to_restore) = get_offer(resize.offer_id) {
+            offer_to_restore.total_quantity = resize.original_total_quantity_sats;
+            offer_to_restore.remaining_quantity = resize.original_remaining_quantity_sats;
+            offer_to_restore.status = resize.original_status;
             update_offer(offer_to_restore);
         }
     }
@@ -287,12 +308,19 @@ fn prepare_accept_execution(
         accept_journal_entry_id,
     )?;
 
+    // Locks have shifted writer balances; trim each affected writer's other open
+    // offers so the order book never advertises more than the writer can back.
+    let writer_offer_resizes = resize_writer_other_offers_after_lock(
+        &accept_execution_preparation.prepared_accept_executions,
+    );
+
     update_accept_phase(accept_journal_entry_id, AcceptPhase::CollateralLocked);
     debit_buyer_available_balance(
         buyer_principal,
         accept_execution_preparation.total_buyer_debit_required_sats,
         accept_journal_entry_id,
         &locked_collateral_reservations,
+        &writer_offer_resizes,
     )?;
     update_accept_phase(accept_journal_entry_id, AcceptPhase::BuyerDebited);
 
@@ -305,6 +333,7 @@ fn prepare_accept_execution(
         transfer_fee_sats,
         ledger_transfer_created_at_time_ns,
         &accept_execution_preparation.prepared_accept_executions,
+        writer_offer_resizes,
     );
 
     enqueue_if_absent(
@@ -497,6 +526,7 @@ fn build_accept_wal_payload(
     transfer_fee_sats: u64,
     created_at_time_ns: u64,
     prepared_accept_executions: &[PreparedAcceptExecution],
+    writer_offer_resizes: Vec<AcceptWalOfferResize>,
 ) -> AcceptWalPayload {
     AcceptWalPayload {
         accept_journal_entry_id,
@@ -508,6 +538,7 @@ fn build_accept_wal_payload(
         created_at_time_ns,
         prepared_accepts: build_accept_wal_prepared_accepts(prepared_accept_executions),
         writer_transfers: build_accept_wal_transfers(prepared_accept_executions),
+        writer_offer_resizes,
     }
 }
 
@@ -572,7 +603,8 @@ fn lock_collateral_for_offer_acceptances(
         if let Err(error) =
             lock_collateral(prepared_accept_execution.writer, collateral_to_lock_sats)
         {
-            rollback_locked_collateral_states_and_offers(&locked_collateral_reservations);
+            // No resizes have run yet on this code path, so pass an empty slice.
+            rollback_locked_collateral_states_and_offers(&locked_collateral_reservations, &[]);
             fail_accept(
                 accept_journal_entry_id,
                 format!("lock_collateral failed: {:?}", error),
@@ -611,7 +643,10 @@ fn lock_collateral_for_offer_acceptances(
 
 fn rollback_locked_collateral_states_and_offers(
     locked_collateral_reservations: &[LockedCollateralReservation],
+    writer_offer_resizes: &[AcceptWalOfferResize],
 ) {
+    restore_resized_offers(writer_offer_resizes);
+
     for locked_collateral_reservation in locked_collateral_reservations {
         let _ = unlock_collateral(
             locked_collateral_reservation.writer,
@@ -632,9 +667,13 @@ fn debit_buyer_available_balance(
     total_buyer_debit_required_sats: u64,
     accept_journal_entry_id: u64,
     locked_collateral_reservations: &[LockedCollateralReservation],
+    writer_offer_resizes: &[AcceptWalOfferResize],
 ) -> Result<(), VolumetricError> {
     if let Err(error) = subtract_available(buyer_principal, total_buyer_debit_required_sats) {
-        rollback_locked_collateral_states_and_offers(locked_collateral_reservations);
+        rollback_locked_collateral_states_and_offers(
+            locked_collateral_reservations,
+            writer_offer_resizes,
+        );
         fail_accept(
             accept_journal_entry_id,
             format!("subtract_available failed: {:?}", error),
@@ -650,6 +689,74 @@ fn debit_buyer_available_balance(
     }
 
     Ok(())
+}
+
+// After a batch of accepts has locked collateral for each writer, scan that
+// writer's other Open / PartiallyFilled offers and shrink any whose
+// remaining_quantity now exceeds what the writer can back. Offers whose
+// remaining would drop to 0 are cancelled. Returns a snapshot of every offer
+// changed, used both by the WAL rollback path and the in-memory rollback path
+// to put the order book back if the rest of the accept flow fails.
+fn resize_writer_other_offers_after_lock(
+    prepared_accept_executions: &[PreparedAcceptExecution],
+) -> Vec<AcceptWalOfferResize> {
+    let mut writers_in_batch: BTreeSet<Principal> = BTreeSet::new();
+    let mut offer_ids_in_batch: BTreeSet<u64> = BTreeSet::new();
+    for execution in prepared_accept_executions {
+        writers_in_batch.insert(execution.writer);
+        offer_ids_in_batch.insert(execution.offer_id);
+    }
+
+    let mut writer_offer_resizes: Vec<AcceptWalOfferResize> = Vec::new();
+
+    for writer in writers_in_batch {
+        // Read the writer's available balance after lock_collateral has run for
+        // every offer in this batch, so siblings see the post-lock state.
+        let writer_available_sats = get_balance(&writer).available;
+
+        for offer in list_offers_by_writer(writer) {
+            // The offers being accepted in this batch were already mutated by
+            // lock_collateral_for_offer_acceptances; skip them here.
+            if offer_ids_in_batch.contains(&offer.id) {
+                continue;
+            }
+            if !is_offer_status_acceptable_for_acceptance(offer.status) {
+                continue;
+            }
+            if offer.remaining_quantity <= writer_available_sats {
+                continue;
+            }
+
+            let filled_sats = offer.total_quantity.saturating_sub(offer.remaining_quantity);
+
+            let snapshot = AcceptWalOfferResize {
+                offer_id: offer.id,
+                writer,
+                original_total_quantity_sats: offer.total_quantity,
+                original_remaining_quantity_sats: offer.remaining_quantity,
+                original_status: offer.status,
+            };
+
+            let mut resized_offer = offer;
+            if writer_available_sats == 0 {
+                // Writer can no longer back any of this offer; cancel it.
+                resized_offer.status = OfferStatus::Cancelled;
+                resized_offer.remaining_quantity = 0;
+                resized_offer.total_quantity = filled_sats;
+            } else {
+                // Cap the offer to the writer's remaining capacity. Total tracks
+                // filled + new remaining so the displayed fill ratio stays sane.
+                resized_offer.remaining_quantity = writer_available_sats;
+                resized_offer.total_quantity =
+                    filled_sats.saturating_add(writer_available_sats);
+            }
+
+            update_offer(resized_offer);
+            writer_offer_resizes.push(snapshot);
+        }
+    }
+
+    writer_offer_resizes
 }
 
 const OFFER_ID_SIZE: usize = size_of::<u64>();

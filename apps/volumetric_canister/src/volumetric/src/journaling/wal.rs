@@ -9,7 +9,7 @@ pub use store::{
     promote_stale_in_flight_to_recovery_required, WalRetryDrain,
 };
 pub use types::{
-    AcceptWalPayload, AcceptWalPreparedAccept, AcceptWalTransfer, SettlementWalPayload, WalEntry,
-    WalExecutionError, WalExecutionOutcome, WalKind, WalPayload, WalPolicy, WalResult, WalStatus,
-    WithdrawalWalPayload,
+    AcceptWalOfferResize, AcceptWalPayload, AcceptWalPreparedAccept, AcceptWalTransfer,
+    SettlementWalPayload, WalEntry, WalExecutionError, WalExecutionOutcome, WalKind, WalPayload,
+    WalPolicy, WalResult, WalStatus, WithdrawalWalPayload,
 };

@@ -1123,3 +1123,175 @@ fn test_writer_withdraw_fails_when_collateral_is_locked_by_accept() {
     assert_eq!(writer_balance.available, 0);
     assert_eq!(writer_balance.locked_as_writer, TEST_QUANTITY_SATS);
 }
+
+const TEST_SIBLING_OFFER_ID: u64 = 2;
+
+fn enable_partial_filling_for_test() -> FeatureFlags {
+    let prior_feature_flags = Config::feature_flags();
+    Config::set_feature_flags(FeatureFlags {
+        is_partial_filling_enabled: true,
+        ..prior_feature_flags
+    });
+    prior_feature_flags
+}
+
+fn insert_sibling_offer(writer: Principal, total_quantity: u64, remaining_quantity: u64) {
+    let status = if remaining_quantity == total_quantity {
+        OfferStatus::Open
+    } else {
+        OfferStatus::PartiallyFilled
+    };
+    insert_offer(Offer {
+        id: TEST_SIBLING_OFFER_ID,
+        writer,
+        asset: Asset::CkBtc,
+        option_type: OptionType::Call,
+        strike_basis_points: TEST_STRIKE_BPS,
+        premium_basis_points: TEST_PREMIUM_BPS,
+        total_quantity,
+        remaining_quantity,
+        offer_valid_until_seconds: TEST_NOW_SECONDS + TEST_OFFER_VALID_FOR_SECONDS,
+        option_duration_seconds: TEST_DURATION_SECS,
+        status,
+        created_at_seconds: TEST_NOW_SECONDS,
+    });
+}
+
+/// Given: a writer has two open offers each promising the writer's full balance
+/// When: a buyer partially fills the first offer
+/// Then: the second offer is shrunk to the writer's new available balance
+#[test]
+fn test_accept_partial_fill_shrinks_writers_other_open_offer() {
+    // given
+    let writer = test_principal(120);
+    let buyer = test_principal(121);
+    setup_test_state(writer, buyer);
+    let prior_feature_flags = enable_partial_filling_for_test();
+    insert_sibling_offer(writer, TEST_QUANTITY_SATS, TEST_QUANTITY_SATS);
+
+    let partial_quantity_sats = 600_000;
+    let expected_remaining_after_resize = TEST_QUANTITY_SATS - partial_quantity_sats;
+
+    // when
+    let _receipt = accept_offers_use_case(
+        buyer,
+        vec![AcceptOfferItem {
+            offer_id: TEST_OFFER_ID,
+            quantity: partial_quantity_sats,
+        }],
+        130,
+    )
+    .expect("partial accept should succeed");
+
+    // then
+    let resized_sibling = get_offer(TEST_SIBLING_OFFER_ID).expect("sibling offer should exist");
+    assert_eq!(resized_sibling.status, OfferStatus::Open);
+    assert_eq!(resized_sibling.remaining_quantity, expected_remaining_after_resize);
+    assert_eq!(resized_sibling.total_quantity, expected_remaining_after_resize);
+
+    Config::set_feature_flags(prior_feature_flags);
+}
+
+/// Given: a writer has two open offers each promising the writer's full balance
+/// When: a buyer fully fills the first offer
+/// Then: the second offer is cancelled because the writer can no longer back any of it
+#[test]
+fn test_accept_full_fill_cancels_writers_other_open_offer() {
+    // given
+    let writer = test_principal(122);
+    let buyer = test_principal(123);
+    setup_test_state(writer, buyer);
+    insert_sibling_offer(writer, TEST_QUANTITY_SATS, TEST_QUANTITY_SATS);
+
+    // when
+    let _receipt = accept_offers_use_case(buyer, vec![build_test_accept_offer_item()], 131)
+        .expect("full accept should succeed");
+
+    // then
+    let cancelled_sibling = get_offer(TEST_SIBLING_OFFER_ID).expect("sibling offer should exist");
+    assert_eq!(cancelled_sibling.status, OfferStatus::Cancelled);
+    assert_eq!(cancelled_sibling.remaining_quantity, 0);
+    assert_eq!(cancelled_sibling.total_quantity, 0);
+}
+
+/// Given: a writer's other offer is already partially filled and over-promises
+/// When: a buyer partially fills a different offer from the same writer
+/// Then: the partially-filled sibling shrinks while preserving its filled portion
+#[test]
+fn test_accept_resizes_already_partially_filled_sibling() {
+    // given
+    let writer = test_principal(124);
+    let buyer = test_principal(125);
+    setup_test_state(writer, buyer);
+    let prior_feature_flags = enable_partial_filling_for_test();
+
+    let sibling_filled_sats = 100_000;
+    let sibling_remaining_before_resize = TEST_QUANTITY_SATS - sibling_filled_sats;
+    insert_sibling_offer(writer, TEST_QUANTITY_SATS, sibling_remaining_before_resize);
+
+    let partial_quantity_sats = 600_000;
+    let expected_writer_available_after_lock = TEST_QUANTITY_SATS - partial_quantity_sats;
+
+    // when
+    let _receipt = accept_offers_use_case(
+        buyer,
+        vec![AcceptOfferItem {
+            offer_id: TEST_OFFER_ID,
+            quantity: partial_quantity_sats,
+        }],
+        132,
+    )
+    .expect("partial accept should succeed");
+
+    // then
+    let resized_sibling = get_offer(TEST_SIBLING_OFFER_ID).expect("sibling offer should exist");
+    assert_eq!(resized_sibling.status, OfferStatus::PartiallyFilled);
+    assert_eq!(
+        resized_sibling.remaining_quantity,
+        expected_writer_available_after_lock
+    );
+    assert_eq!(
+        resized_sibling.total_quantity,
+        sibling_filled_sats + expected_writer_available_after_lock
+    );
+
+    Config::set_feature_flags(prior_feature_flags);
+}
+
+/// Given: a writer's other offer already fits within the post-lock available balance
+/// When: a buyer partially fills the writer's first offer
+/// Then: the well-sized sibling is left untouched
+#[test]
+fn test_accept_does_not_resize_sibling_already_within_capacity() {
+    // given
+    let writer = test_principal(126);
+    let buyer = test_principal(127);
+    setup_test_state(writer, buyer);
+    let prior_feature_flags = enable_partial_filling_for_test();
+
+    // Sibling is small enough that the writer still backs it after a partial fill.
+    let small_sibling_total = 200_000;
+    insert_sibling_offer(writer, small_sibling_total, small_sibling_total);
+
+    let partial_quantity_sats = 600_000;
+
+    // when
+    let _receipt = accept_offers_use_case(
+        buyer,
+        vec![AcceptOfferItem {
+            offer_id: TEST_OFFER_ID,
+            quantity: partial_quantity_sats,
+        }],
+        133,
+    )
+    .expect("partial accept should succeed");
+
+    // then
+    let untouched_sibling =
+        get_offer(TEST_SIBLING_OFFER_ID).expect("sibling offer should exist");
+    assert_eq!(untouched_sibling.status, OfferStatus::Open);
+    assert_eq!(untouched_sibling.remaining_quantity, small_sibling_total);
+    assert_eq!(untouched_sibling.total_quantity, small_sibling_total);
+
+    Config::set_feature_flags(prior_feature_flags);
+}
