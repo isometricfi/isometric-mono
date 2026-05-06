@@ -9,10 +9,14 @@ const GET_CONFIG_SPAN_NAME = "usecase.config.get_config";
 export async function getConfig(): Promise<ConfigData> {
   return withSpan(GET_CONFIG_SPAN_NAME, async () => {
     const actor = await getCanisterActor();
-    const [rawLimits, rawFeeConfig] = await Promise.all([
+    const [rawLimits, rawFeeConfigResult] = await Promise.all([
       actor.get_trading_limits(),
       actor.get_fee_config(),
     ]);
+    if ("Err" in rawFeeConfigResult) {
+      throw new Error(`get_fee_config failed: ${JSON.stringify(rawFeeConfigResult.Err)}`);
+    }
+    const rawFeeConfig = rawFeeConfigResult.Ok;
     const config = mapConfig(rawLimits, rawFeeConfig);
 
     if (config.termOptions.length === 0) {

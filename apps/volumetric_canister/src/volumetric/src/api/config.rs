@@ -2,7 +2,7 @@ use candid::Principal;
 use ic_cdk::{query, update};
 
 use crate::errors::VolumetricError;
-use crate::guards::{is_whitelisted, no_replicated_call};
+use crate::guards::{is_controller, is_whitelisted, no_replicated_call};
 use crate::storage::{get_platform_fees_collected, Config, FeatureFlags, FeeConfig, TradingLimits};
 use crate::usecases;
 use crate::usecases::{
@@ -16,8 +16,9 @@ use crate::usecases::{
 };
 
 #[query(guard = "no_replicated_call")]
-pub fn get_config() -> Config {
-    Config::get()
+pub fn get_config() -> Result<Config, VolumetricError> {
+    is_whitelisted()?;
+    Ok(Config::get())
 }
 
 #[query(guard = "no_replicated_call")]
@@ -31,18 +32,20 @@ pub fn get_trading_limits() -> TradingLimits {
 }
 
 #[query(guard = "no_replicated_call")]
-pub fn get_fee_config() -> FeeConfig {
-    Config::fee_config()
+pub fn get_fee_config() -> Result<FeeConfig, VolumetricError> {
+    is_whitelisted()?;
+    Ok(Config::fee_config())
 }
 
 #[query(guard = "no_replicated_call")]
-pub fn get_platform_fees_collected_total() -> u64 {
-    get_platform_fees_collected()
+pub fn get_platform_fees_collected_total() -> Result<u64, VolumetricError> {
+    is_whitelisted()?;
+    Ok(get_platform_fees_collected())
 }
 
 #[update]
 pub fn set_feature_flags_config(flags: FeatureFlags) -> Result<(), VolumetricError> {
-    is_whitelisted()?;
+    is_controller()?;
     usecases::set_feature_flags_use_case(flags);
     Ok(())
 }
