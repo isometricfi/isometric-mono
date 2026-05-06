@@ -14,7 +14,7 @@ const TRANSFER_FEE_REFRESH_INTERVAL_SECS: u64 = 60;
 const WAL_MAINTENANCE_SCAN_INTERVAL_5_MINUTES_SECS: u64 = 5 * 60;
 const WAL_AUTO_RETRY_MAX_ENTRIES_PER_SCAN: usize = 20;
 const XRC_SNAPSHOT_INTERVAL_5_MINUTES_SECS: u64 = 5 * 60;
-const SETTLEMENT_INTERVAL_10_MINUTES_SECS: u64 = 10 * 60;
+const SETTLEMENT_INTERVAL_5_MINUTES_SECS: u64 = 5 * 60;
 const ONE_HOUR_SECS: u64 = 60 * 60;
 const ONE_DAY_SECS: u64 = 24 * ONE_HOUR_SECS;
 const ONE_WEEK_SECS: u64 = 7 * ONE_DAY_SECS;
@@ -35,7 +35,7 @@ pub fn setup_timers() {
     // Every five minutes: promote stale in-flight WAL rows to recovery-required, then drain due auto-retries.
     setup_wal_maintenance_scan_timer();
 
-    // Every ten minutes, runs settlement for expired options.
+    // Every five minutes, runs settlement for expired options.
     setup_settlement_timer();
 }
 
@@ -205,28 +205,28 @@ fn rotate_wal_auto_retry_operation_ids_by_time(operation_ids: &mut Vec<Operation
     rotate_wal_auto_retry_operation_ids_for_time(operation_ids, current_time_seconds());
 }
 
-/// Runs every ten minutes to settle all expired options.
+/// Runs every five minutes to settle all expired options.
 fn setup_settlement_timer() {
     ic_cdk_timers::set_timer_interval(
-        Duration::from_secs(SETTLEMENT_INTERVAL_10_MINUTES_SECS),
+        Duration::from_secs(SETTLEMENT_INTERVAL_5_MINUTES_SECS),
         || async {
-            logging::log!("Settlement timer (10m): checking expired options");
+            logging::log!("Settlement timer (5m): checking expired options");
 
             let result = settle_expired_options_use_case().await;
             if result.settled.is_empty() && result.errors.is_empty() {
-                logging::log!("Settlement timer (10m): no expired options settled");
+                logging::log!("Settlement timer (5m): no expired options settled");
                 return;
             }
 
             if !result.settled.is_empty() {
                 logging::log!(
-                    "Settlement timer (10m): settled {} options",
+                    "Settlement timer (5m): settled {} options",
                     result.settled.len()
                 );
             }
             if !result.errors.is_empty() {
                 logging::error!(
-                    "Settlement timer (10m): {} errors: {:?}",
+                    "Settlement timer (5m): {} errors: {:?}",
                     result.errors.len(),
                     result.errors
                 );
