@@ -1,4 +1,4 @@
-use candid::{CandidType, Nat};
+use candid::{CandidType, Nat, Principal};
 use icrc_ledger_types::icrc1::account::Account;
 use serde::{Deserialize, Serialize};
 
@@ -81,6 +81,14 @@ pub fn get_user_balance(address: String) -> Result<UserBalanceInfo, VolumetricEr
     let principal = get_principal_for_wallet(&wallet_key)
         .ok_or_else(|| VolumetricError::from_def(error_codes::PROFILE_NOT_FOUND, None, None))?;
 
+    let result = usecases::get_user_balance_use_case(principal)?;
+    Ok(result.into())
+}
+
+#[ic_cdk::query(guard = "no_replicated_call")]
+pub fn get_user_balance_by_principal(
+    principal: Principal,
+) -> Result<UserBalanceInfo, VolumetricError> {
     let result = usecases::get_user_balance_use_case(principal)?;
     Ok(result.into())
 }

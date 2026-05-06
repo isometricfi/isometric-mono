@@ -610,7 +610,9 @@
     "editOffer": "Edit Offer",
     "cancelling": "Cancelling...",
     "cancelOffer": "Cancel Offer",
-    "remainingBelowMinimum": "Remaining below {amount} min"
+    "remainingBelowMinimum": "Remaining below {amount} min",
+    "insufficientBacking": "Backed: {effective} of {remaining}",
+    "insufficientBackingShort": "Insufficient available balance"
   },
   "Errors": {
     "unauthorizedController": "You are not authorized to perform this action",

@@ -619,6 +619,7 @@ export interface _SERVICE {
   'get_settlement_status' : ActorMethod<[Uint8Array | number[]], Result_22>,
   'get_trading_limits' : ActorMethod<[], TradingLimits>,
   'get_user_balance' : ActorMethod<[string], Result_23>,
+  'get_user_balance_by_principal' : ActorMethod<[Principal], Result_23>,
   'get_username_update_message' : ActorMethod<
     [string, string, bigint],
     Result_9

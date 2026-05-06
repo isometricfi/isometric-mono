@@ -529,6 +529,7 @@ service : (opt BtcNetwork) -> {
   get_settlement_status : (blob) -> (Result_22) query;
   get_trading_limits : () -> (TradingLimits) query;
   get_user_balance : (text) -> (Result_23) query;
+  get_user_balance_by_principal : (principal) -> (Result_23) query;
   get_username_update_message : (text, text, nat64) -> (Result_9) query;
   get_withdraw_message : (text, nat64, nat64) -> (Result_9) query;
   get_withdraw_status : (blob) -> (Result_24) query;

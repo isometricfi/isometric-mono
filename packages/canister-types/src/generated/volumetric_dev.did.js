@@ -728,6 +728,11 @@ export const idlFactory = ({ IDL }) => {
       ),
     'get_trading_limits' : IDL.Func([], [TradingLimits], ['query']),
     'get_user_balance' : IDL.Func([IDL.Text], [Result_23], ['query']),
+    'get_user_balance_by_principal' : IDL.Func(
+        [IDL.Principal],
+        [Result_23],
+        ['query'],
+      ),
     'get_username_update_message' : IDL.Func(
         [IDL.Text, IDL.Text, IDL.Nat64],
         [Result_9],
