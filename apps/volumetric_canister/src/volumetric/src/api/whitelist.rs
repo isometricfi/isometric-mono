@@ -2,7 +2,7 @@ use candid::Principal;
 use ic_cdk::{query, update};
 
 use crate::errors::VolumetricError;
-use crate::guards::{is_controller, no_replicated_call};
+use crate::guards::{is_controller, is_whitelisted, no_replicated_call};
 use crate::usecases;
 
 #[update]
@@ -20,6 +20,6 @@ pub fn remove_whitelisted(principal: Principal) -> Result<(), VolumetricError> {
 
 #[query(guard = "no_replicated_call")]
 pub fn list_whitelisted() -> Result<Vec<Principal>, VolumetricError> {
-    is_controller()?;
+    is_whitelisted()?;
     Ok(usecases::list_whitelisted_use_case())
 }

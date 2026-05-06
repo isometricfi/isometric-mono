@@ -32,7 +32,8 @@ pub use config::{
     set_withdraw_amount_sats_config,
 };
 pub use deposits::{
-    get_ckbtc_balance, get_deposit_address, get_user_balance, update_ckbtc_balance, UserBalanceInfo,
+    get_ckbtc_balance, get_deposit_address, get_user_balance, get_user_balance_by_principal,
+    get_user_balances_by_principals, update_ckbtc_balance, UserBalanceInfo,
 };
 pub use events::{
     cleanup_old_events, get_all_events, get_events_for_principal, get_events_since, get_my_events,

@@ -13,7 +13,7 @@ use crate::storage::{
     ActiveOption, Event, EventData, PendingSettlement, TradeRole,
 };
 
-const MAX_AUDIT_EVENTS: u32 = 10_000;
+const MAX_AUDIT_EVENTS: u32 = 1_000;
 const UNKNOWN_LEDGER_CREATED_AT_TIME_NS: u64 = 0;
 
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]

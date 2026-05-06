@@ -32,6 +32,7 @@ import {
 interface OfferCardProps {
   offer: PortfolioOffer;
   btcPrice: number;
+  availableBalanceSats?: bigint;
   onCancel?: (id: string) => void;
   isCancelling?: boolean;
   rankInfo?: {
@@ -42,7 +43,14 @@ interface OfferCardProps {
   } | null;
 }
 
-export function OfferCard({ offer, btcPrice, onCancel, isCancelling, rankInfo }: OfferCardProps) {
+export function OfferCard({
+  offer,
+  btcPrice,
+  availableBalanceSats,
+  onCancel,
+  isCancelling,
+  rankInfo,
+}: OfferCardProps) {
   const t = useTranslations("OfferCard");
   const remainingSats = offer.remainingQuantity;
   const totalSats = offer.totalQuantity;
@@ -54,6 +62,14 @@ export function OfferCard({ offer, btcPrice, onCancel, isCancelling, rankInfo }:
   const strikePrice = btcPrice > 0 ? btcPrice * (1 + offer.strikeBasisPoints / 10000) : null;
   const premiumSats = (Number(totalSats) * offer.premiumBasisPoints) / 10000;
   const belowMinOfferAmount = remainingSats < minAcceptOfferAmountSats;
+  const effectiveRemainingSats =
+    availableBalanceSats !== undefined && availableBalanceSats < remainingSats
+      ? availableBalanceSats
+      : remainingSats;
+  const isUnderBacked =
+    availableBalanceSats !== undefined && effectiveRemainingSats < remainingSats;
+  const effectiveBelowMin = effectiveRemainingSats < BigInt(minAcceptOfferAmountSats);
+  const showCancelOnly = belowMinOfferAmount || (isUnderBacked && effectiveBelowMin);
 
   return (
     <Card className={cn("overflow-hidden transition-all hover:border-primary/50 relative py-4")}>
@@ -90,6 +106,18 @@ export function OfferCard({ offer, btcPrice, onCancel, isCancelling, rankInfo }:
           </div>
         )}
 
+        {isUnderBacked && !belowMinOfferAmount && (
+          <div className="-mt-1.5">
+            <Badge variant={"destructive"} className="text-center w-full py-0">
+              {effectiveBelowMin
+                ? t("insufficientBackingShort")
+                : t("insufficientBacking", {
+                    available: formatBtcWithSymbolBigint(availableBalanceSats ?? BigInt(0)),
+                  })}
+            </Badge>
+          </div>
+        )}
+
         <div className="flex justify-between text-sm font-medium items-center gap-2">
           <div className="flex items-center gap-1">
             <span className="text-muted-foreground ">{t("strike")} </span>
@@ -116,7 +144,7 @@ export function OfferCard({ offer, btcPrice, onCancel, isCancelling, rankInfo }:
         </div>
 
         {/* Footer: Type & Actions */}
-        {belowMinOfferAmount ? (
+        {showCancelOnly ? (
           <div className="flex items-center justify-between border-t pt-2">
             <Button
               className="w-full"

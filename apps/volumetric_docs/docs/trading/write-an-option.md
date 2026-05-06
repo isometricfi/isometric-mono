@@ -57,7 +57,7 @@ The competitiveness label on the premium step shows where you'd rank by premium.
 
 ## What happens next
 
-Your offer goes live and appears in **Portfolio → Offers**. Creating the offer does **not** lock your BTC.
+Your offer goes live and appears in **Portfolio → Offers**. Creating the offer does **not** lock your BTC, so your open offers can exceed your **available** balance. When that happens, each offer can only fill up to what's available, shown as **Backed: X of Y** (or **Insufficient available balance** if too low to fill at all).
 
 When a buyer accepts (in whole or in part):
 

@@ -294,7 +294,7 @@
     "btcNative": "On-chain",
     "openApp": "Open App",
     "instantSettlement": "Instant settlement",
-    "permissionless": "Non-custodial",
+    "permissionless": "Permissionless",
     "gettingStarted": "Getting Started",
     "threeStepsTitle": "Three steps to get started",
     "earn": "Earn",
@@ -348,7 +348,7 @@
     "problem2Desc": "Hand over ID, proof of address, and a selfie before you can place a single order. Your trading history sits on someone else's server.",
     "problem3Title": "Built for pros",
     "problem3Desc": "Order books, option chains, margin modes, 50-ticker screens. Too much friction for anyone who isn't a full-time trader.",
-    "problemResolution": "Isometric puts Bitcoin options on-chain. Non-custodial, no KYC, and simple enough that you don't need to be a pro.",
+    "problemResolution": "Isometric puts Bitcoin options on-chain. No KYC, and simple enough that you don't need to be a pro.",
     "teamEyebrow": "Who's building this",
     "teamTitle": "Built by Bitcoin natives.",
     "teamLukeRole": "Product Architecture at",
@@ -610,7 +610,9 @@
     "editOffer": "Edit Offer",
     "cancelling": "Cancelling...",
     "cancelOffer": "Cancel Offer",
-    "remainingBelowMinimum": "Remaining below {amount} min"
+    "remainingBelowMinimum": "Remaining below {amount} min",
+    "insufficientBacking": "Only {available} available",
+    "insufficientBackingShort": "Insufficient available balance"
   },
   "Errors": {
     "unauthorizedController": "You are not authorized to perform this action",
@@ -670,40 +672,40 @@
   "Metadata": {
     "title": "On-chain BTC Options · Up to 100x Leverage or 250% APY",
     "siteName": "Isometric",
-    "description": "Leverage BTC up to 100x with capped downside, or earn premium upfront writing covered calls (up to 250% APY). Fully on-chain, self-custody, no KYC, no liquidations.",
-    "keywords": "Bitcoin options, BTC leverage, 100x leverage, BTC yield, BTC APY, on-chain Bitcoin options, no liquidation, self-custody Bitcoin, no KYC, covered calls, Bitcoin premium income",
+    "description": "Leverage BTC up to 100x with capped downside, or earn premium upfront writing covered calls (up to 250% APY). Fully on-chain, no KYC, no liquidations.",
+    "keywords": "Bitcoin options, BTC leverage, 100x leverage, BTC yield, BTC APY, on-chain Bitcoin options, no liquidation, no KYC, covered calls, Bitcoin premium income",
     "ogImageAlt": "Isometric. On-chain BTC options with up to 100x leverage or 250% APY",
     "privacy": {
       "title": "Privacy Policy",
-      "description": "How Isometric handles your data on our on-chain, self-custody BTC options platform.",
+      "description": "How Isometric handles your data on our on-chain BTC options platform.",
       "keywords": "privacy policy, data protection, on-chain privacy, Bitcoin privacy",
       "ogTitle": "Privacy Policy",
       "ogImageAlt": "Isometric Privacy Policy"
     },
     "terms": {
       "title": "Terms of Service",
-      "description": "Terms for trading BTC options on Isometric. Self-custody, on-chain, no KYC.",
+      "description": "Terms for trading BTC options on Isometric. On-chain, no KYC.",
       "keywords": "terms of service, user agreement, Bitcoin options terms, on-chain trading terms",
       "ogTitle": "Terms of Service",
       "ogImageAlt": "Isometric Terms of Service"
     },
     "buy": {
       "title": "Buy BTC Options · Up to 100x Leverage",
-      "description": "Leverage BTC up to 100x with no liquidation risk. Max loss is what you put in, never more. On-chain, self-custody, no KYC.",
+      "description": "Leverage BTC up to 100x with no liquidation risk. Max loss is what you put in, never more. On-chain, no KYC.",
       "keywords": "buy Bitcoin options, BTC leverage, 100x leverage, no liquidation, Bitcoin call options, leveraged BTC trading, on-chain Bitcoin options",
       "ogTitle": "Leverage BTC up to 100x",
       "ogImageAlt": "Buy BTC options with up to 100x leverage on Isometric"
     },
     "write": {
       "title": "Earn Premium on Your BTC · Up to 250% APY",
-      "description": "Put your BTC to work. Earn premium upfront writing covered calls, up to 250% APY. On-chain, self-custody, your keys, no KYC.",
-      "keywords": "BTC yield, BTC APY, earn on Bitcoin, covered calls, write Bitcoin options, on-chain yield, self-custody yield, Bitcoin premium income",
+      "description": "Put your BTC to work. Earn premium upfront writing covered calls, up to 250% APY. On-chain, no KYC.",
+      "keywords": "BTC yield, BTC APY, earn on Bitcoin, covered calls, write Bitcoin options, on-chain yield, Bitcoin premium income",
       "ogTitle": "Earn premium on your BTC, up to 250% APY",
       "ogImageAlt": "Earn premium writing BTC covered calls on Isometric"
     },
     "portfolio": {
       "title": "Portfolio",
-      "description": "Track every BTC position live. Auto-settled on-chain at expiry. Self-custody, no KYC.",
+      "description": "Track every BTC position live. Auto-settled on-chain at expiry. No KYC.",
       "keywords": "BTC portfolio, Bitcoin options tracking, on-chain positions, BTC yield dashboard, covered calls dashboard",
       "ogTitle": "My BTC portfolio on Isometric",
       "ogImageAlt": "Live on-chain BTC options portfolio on Isometric"
@@ -717,7 +719,7 @@
     },
     "share": {
       "title": "Trade BTC options with me on Isometric",
-      "description": "Up to 100x leverage on BTC, or earn premium writing calls. On-chain, self-custody, no KYC. See my stats and start your own.",
+      "description": "Up to 100x leverage on BTC, or earn premium writing calls. On-chain, no KYC. See my stats and start your own.",
       "keywords": "Bitcoin options trading, BTC leverage, BTC APY, on-chain trading, trader stats, join Isometric",
       "ogTitle": "Join me trading BTC options on Isometric",
       "ogImageAlt": "Join me trading BTC options on Isometric"

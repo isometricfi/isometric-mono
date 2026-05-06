@@ -6,7 +6,7 @@ import type * as Preset from '@docusaurus/preset-classic';
 
 const config: Config = {
   title: 'Isometric Docs',
-  tagline: 'On-chain Bitcoin options. Self-custody, no KYC, no liquidations.',
+  tagline: 'On-chain Bitcoin options. No KYC, no liquidations.',
   favicon: 'img/logo.svg',
 
   // Future flags, see https://docusaurus.io/docs/api/docusaurus-config#future
@@ -82,7 +82,7 @@ const config: Config = {
       {
         name: 'keywords',
         content:
-          'Isometric docs, Bitcoin options, BTC options, on-chain Bitcoin options, BTC call options, write Bitcoin options, buy Bitcoin options, covered calls, BTC yield, self-custody Bitcoin, Internet Computer Bitcoin, ckBTC',
+          'Isometric docs, Bitcoin options, BTC options, on-chain Bitcoin options, BTC call options, write Bitcoin options, buy Bitcoin options, covered calls, BTC yield, Internet Computer Bitcoin, ckBTC',
       },
       {name: 'twitter:card', content: 'summary_large_image'},
       {property: 'og:type', content: 'website'},
