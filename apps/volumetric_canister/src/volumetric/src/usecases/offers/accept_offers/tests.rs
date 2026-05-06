@@ -229,7 +229,7 @@ impl PriceOracle for RecordingAcceptOracle {
         Ok(self.record_cache_first_price_cents())
     }
 
-    async fn fetch_current_btc_usd_price_cents(&self) -> Result<u64, VolumetricError> {
+    async fn get_accept_btc_usd_price_cents(&self) -> Result<u64, VolumetricError> {
         self.fresh_call_count
             .set(self.fresh_call_count.get().saturating_add(1));
         match &self.fresh_price_result {

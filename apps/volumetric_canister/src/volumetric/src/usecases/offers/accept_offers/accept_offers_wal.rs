@@ -7,7 +7,7 @@ use crate::journaling::{
     ledger_memo, principal_memo_part, register_retryable_error, u64_memo_part, AcceptWalPayload,
     AcceptWalPreparedAccept, LedgerMemoKind, OperationId, WalExecutionError,
 };
-use crate::oracle::fetch_current_btc_usd_price_cents;
+use crate::oracle::get_accept_btc_usd_price_cents;
 use crate::storage::{
     add_available, add_platform_fee, calculate_strike_price_in_cents, complete_accept, emit_event,
     fail_accept, get_accept, get_active_option, get_fee_recipient, get_offer, insert_active_option,
@@ -139,7 +139,7 @@ async fn load_or_fetch_accept_entry_price_cents(
         return Ok(entry_price_cents);
     }
 
-    let entry_price_cents = fetch_current_btc_usd_price_cents()
+    let entry_price_cents = get_accept_btc_usd_price_cents()
         .await
         .map_err(register_retryable_error)?;
     Ok(entry_price_cents)
