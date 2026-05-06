@@ -85,13 +85,13 @@ async fn refresh_xrc_snapshot_cache() {
     match fetch_and_store_xrc_btc_usd_exchange_rate_snapshot().await {
         Ok(stored_rate) => {
             logging::log!(
-                "XRC snapshot cache: stored BTC/USD rate for timestamp {}",
+                "XRC snapshot timer (5m): stored BTC/USD rate for timestamp {}",
                 stored_rate.xrc_timestamp_seconds
             );
         }
         Err(error) => {
             logging::warn!(
-                "XRC snapshot cache: failed to refresh BTC/USD rate: {}",
+                "XRC snapshot timer (5m): failed to refresh BTC/USD rate: {}",
                 error
             );
         }
@@ -127,20 +127,29 @@ fn setup_wal_maintenance_scan_timer() {
     ic_cdk_timers::set_timer_interval(
         Duration::from_secs(WAL_MAINTENANCE_SCAN_INTERVAL_5_MINUTES_SECS),
         || async {
-            let promoted_entries = promote_stale_in_flight_to_recovery_required();
-            if promoted_entries > 0 {
+            let promoted_stale_in_flight = promote_stale_in_flight_to_recovery_required();
+            let retry_outcome = retry_due_wal_entries_once().await;
+            if promoted_stale_in_flight > 0
+                || retry_outcome.promoted_to_recovery_required > 0
+                || retry_outcome.retried_count > 0
+            {
                 logging::log!(
-                    "WAL maintenance scan: promoted {} stale in-flight entries",
-                    promoted_entries
+                    "WAL maintenance timer (5m): work completed (stale_in_flight_promoted={} retry_queue_promoted_to_recovery={} entries_retried={})",
+                    promoted_stale_in_flight,
+                    retry_outcome.promoted_to_recovery_required,
+                    retry_outcome.retried_count,
                 );
             }
-
-            retry_due_wal_entries_once().await;
         },
     );
 }
 
-pub(crate) async fn retry_due_wal_entries_once() {
+pub(crate) struct WalRetryTickOutcome {
+    pub promoted_to_recovery_required: u64,
+    pub retried_count: usize,
+}
+
+pub(crate) async fn retry_due_wal_entries_once() -> WalRetryTickOutcome {
     let retry_drain = collect_due_retry_required_operation_ids(WAL_AUTO_RETRY_MAX_ENTRIES_PER_SCAN);
     if retry_drain.promoted_to_recovery_required > 0 {
         logging::warn!(
@@ -150,13 +159,13 @@ pub(crate) async fn retry_due_wal_entries_once() {
     }
 
     if retry_drain.operation_ids.is_empty() {
-        return;
+        return WalRetryTickOutcome {
+            promoted_to_recovery_required: retry_drain.promoted_to_recovery_required,
+            retried_count: 0,
+        };
     }
 
-    logging::log!(
-        "WAL auto-retry: retrying {} entries",
-        retry_drain.operation_ids.len()
-    );
+    let retried_count = retry_drain.operation_ids.len();
 
     // WAL iteration order from storage is stable; without varying who runs first, one entry that
     // traps mid-scan can repeatedly prevent later operation_ids from running that tick. Rotating by
@@ -171,6 +180,11 @@ pub(crate) async fn retry_due_wal_entries_once() {
             operation_id,
             outcome
         );
+    }
+
+    WalRetryTickOutcome {
+        promoted_to_recovery_required: retry_drain.promoted_to_recovery_required,
+        retried_count,
     }
 }
 
@@ -193,20 +207,23 @@ fn rotate_wal_auto_retry_operation_ids_by_time(operation_ids: &mut Vec<Operation
 /// Runs hourly to settle all expired options.
 fn setup_settlement_timer() {
     ic_cdk_timers::set_timer_interval(Duration::from_secs(ONE_HOUR_SECS), || async {
-        logging::log!("Settlement cron: checking expired options");
+        logging::log!("Settlement timer (1h): checking expired options");
 
         let result = settle_expired_options_use_case().await;
         if result.settled.is_empty() && result.errors.is_empty() {
-            logging::log!("Settlement cron: no expired options settled");
+            logging::log!("Settlement timer (1h): no expired options settled");
             return;
         }
 
         if !result.settled.is_empty() {
-            logging::log!("Settlement cron: settled {} options", result.settled.len());
+            logging::log!(
+                "Settlement timer (1h): settled {} options",
+                result.settled.len()
+            );
         }
         if !result.errors.is_empty() {
             logging::error!(
-                "Settlement cron: {} errors: {:?}",
+                "Settlement timer (1h): {} errors: {:?}",
                 result.errors.len(),
                 result.errors
             );

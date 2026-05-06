@@ -318,8 +318,16 @@ pub async fn refresh_transfer_fee_cache_if_idle() {
         return;
     }
 
-    if let Err(error) = refresh_transfer_fee_cache().await {
-        ic::log(&format!("transfer fee cache refresh failed: {:?}", error));
+    match refresh_transfer_fee_cache().await {
+        Ok(fee_sats) => {
+            logging::log!(
+                "Transfer fee timer: refreshed ICRC transfer fee cache (fee_sats={})",
+                fee_sats
+            );
+        }
+        Err(error) => {
+            ic::log(&format!("transfer fee cache refresh failed: {:?}", error));
+        }
     }
     clear_transfer_fee_refresh_in_flight();
 }
