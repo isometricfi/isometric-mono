@@ -6,6 +6,8 @@ import { createOtlpTraceConfig } from "@volumetric/telemetry";
 // @ts-ignore OpenNext generates this file during the Cloudflare build.
 import generatedWorker from "./.open-next/worker.js";
 
+// :)
+
 interface CloudflareEnv extends Record<string, unknown> {
   OTEL_EXPORTER_OTLP_HEADERS?: string;
   OTEL_EXPORTER_OTLP_TRACES_ENDPOINT?: string;
