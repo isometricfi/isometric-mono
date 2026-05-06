@@ -19,4 +19,6 @@ When an option expires and settles, it leaves Active and appears in [History](./
 
 Offers you've written that haven't been accepted yet. Cards show the offer's parameters and how much of it has filled.
 
+If your open offers total more than your **available** balance, each affected card shows a **Backed: X of Y** badge: only X of the remaining Y can actually be filled right now. Top up your balance to restore full backing, or cancel the offer.
+
 You can cancel any unfilled portion at any time. Cancelling has no effect on already-accepted portions; those continue as active options until expiry.
