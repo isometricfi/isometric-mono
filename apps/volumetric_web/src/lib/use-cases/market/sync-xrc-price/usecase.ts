@@ -22,9 +22,13 @@ async function alertIfCanisterCacheStale(rate: StoredXrcBtcUsdRate): Promise<voi
     return;
   }
 
-  await logError(
-    `Canister XRC cache stale: xrcTimestampMs=${xrcTimestampMs} cacheAgeMs=${cacheAgeMs} thresholdMs=${STALE_CANISTER_CACHE_ALERT_THRESHOLD_30_MINUTES_MS}`,
-  );
+  try {
+    await logError(
+      `Canister XRC cache stale: xrcTimestampMs=${xrcTimestampMs} cacheAgeMs=${cacheAgeMs} thresholdMs=${STALE_CANISTER_CACHE_ALERT_THRESHOLD_30_MINUTES_MS}`,
+    );
+  } catch (error) {
+    console.error("sync-xrc-price: stale cache telemetry failed", error);
+  }
 }
 
 function storedRateToPersistedResponseJson(rate: StoredXrcBtcUsdRate): string {
