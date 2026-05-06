@@ -1,4 +1,4 @@
-import type { Principal } from "@dfinity/principal";
+import type { Principal } from "@icp-sdk/core/principal";
 
 export function formatSats(amount: bigint | number): string {
   const amountBigInt = typeof amount === "bigint" ? amount : BigInt(amount);

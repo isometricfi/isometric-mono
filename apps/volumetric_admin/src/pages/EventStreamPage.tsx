@@ -1,5 +1,5 @@
 import { Button, Empty, Input, LayerCard, Table, Tabs } from "@cloudflare/kumo";
-import { Principal } from "@dfinity/principal";
+import { Principal } from "@icp-sdk/core/principal";
 import { ArrowsClockwise, ListChecks } from "@phosphor-icons/react";
 import type { Event } from "@volumetric/canister-types";
 import { unwrapResult } from "@volumetric/canister-types";

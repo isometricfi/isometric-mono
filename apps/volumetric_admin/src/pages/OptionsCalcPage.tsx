@@ -11,7 +11,6 @@ import {
   type OptionsCalcResults,
   calculateOptions,
   dollarsToCents,
-  formatBpsDisplay,
   formatDollarsFromCents,
   formatSatsDisplay,
 } from "../lib/options-calc";

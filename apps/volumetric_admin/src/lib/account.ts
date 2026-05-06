@@ -1,4 +1,4 @@
-import type { Principal } from "@dfinity/principal";
+import type { Principal } from "@icp-sdk/core/principal";
 
 const SUBACCOUNT_LENGTH_BYTES = 32;
 

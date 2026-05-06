@@ -1,5 +1,5 @@
 import { Badge, Button, Empty, LayerCard, Table } from "@cloudflare/kumo";
-import { Principal } from "@dfinity/principal";
+import { Principal } from "@icp-sdk/core/principal";
 import { ArrowsClockwise, HandCoins } from "@phosphor-icons/react";
 import type { PendingWithdrawal } from "@volumetric/canister-types";
 import { unwrapResult } from "@volumetric/canister-types";

@@ -1,12 +1,17 @@
 import { describe, expect, test } from "vitest";
+import { loadEnv } from "vite";
 
 import viteConfig from "./vite.config";
 
 describe("vite config", () => {
   test("should define generated canister process env keys for browser-only dependencies", () => {
     // given
+    const mode = "development";
+    const env = loadEnv(mode, process.cwd(), "");
     const EXPECTED_NODE_ENV_REPLACEMENT = JSON.stringify("development");
-    const EXPECTED_DFX_NETWORK_REPLACEMENT = JSON.stringify("local");
+    const EXPECTED_DFX_NETWORK_REPLACEMENT = JSON.stringify(
+      env.DFX_NETWORK ?? (mode === "production" ? "ic" : "local"),
+    );
 
     // when
     const config =

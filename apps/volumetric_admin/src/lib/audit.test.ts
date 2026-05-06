@@ -1,4 +1,4 @@
-import { Principal } from "@dfinity/principal";
+import { Principal } from "@icp-sdk/core/principal";
 import type { AuditExpectedTransfer, OptionAuditReport } from "@volumetric/canister-types";
 import { describe, expect, test } from "vitest";
 

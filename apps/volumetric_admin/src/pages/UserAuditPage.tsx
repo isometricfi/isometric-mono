@@ -1,5 +1,5 @@
 import { Badge, Button, Empty, Input, LayerCard, Table, Text } from "@cloudflare/kumo";
-import { Principal } from "@dfinity/principal";
+import { Principal } from "@icp-sdk/core/principal";
 import { MagnifyingGlass, UserFocus } from "@phosphor-icons/react";
 import type {
   ActiveOption,

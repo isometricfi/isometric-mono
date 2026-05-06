@@ -1,6 +1,7 @@
 import { Button, Empty } from "@cloudflare/kumo";
 import { ArrowsClockwise, Copy, FileCode } from "@phosphor-icons/react";
 import type { Config, FeatureFlags, FeeConfig, TradingLimits } from "@volumetric/canister-types";
+import { unwrapResult } from "@volumetric/canister-types";
 import { JsonBlock, stringifyWithBigInt } from "../components/JsonBlock";
 import { MetricCard } from "../components/MetricCard";
 import { PageShell } from "../components/PageShell";
@@ -26,13 +27,18 @@ export function ConfigSnapshotPage() {
   async function runAudit() {
     await action.run(async () => {
       const { volumetric } = createClients();
-      const [config, feeConfig, tradingLimits, featureFlags] = await Promise.all([
+      const [configResult, feeConfigResult, tradingLimits, featureFlags] = await Promise.all([
         volumetric.get_config(),
         volumetric.get_fee_config(),
         volumetric.get_trading_limits(),
         volumetric.get_feature_flags(),
       ]);
-      return { config, feeConfig, tradingLimits, featureFlags };
+      return {
+        config: unwrapResult(configResult),
+        feeConfig: unwrapResult(feeConfigResult),
+        tradingLimits,
+        featureFlags,
+      };
     });
   }
 

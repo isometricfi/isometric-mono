@@ -1,5 +1,5 @@
-import { Actor, type ActorSubclass, HttpAgent, type Identity } from "@dfinity/agent";
-import { IDL } from "@dfinity/candid";
+import { Actor, type ActorSubclass, HttpAgent, type Identity } from "@icp-sdk/core/agent";
+import { IDL } from "@icp-sdk/core/candid";
 
 import type { LedgerAccount } from "./account";
 

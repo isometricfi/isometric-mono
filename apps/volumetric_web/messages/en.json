@@ -176,9 +176,11 @@
     },
     "writeExplainer": {
       "intro": "When accepted you lock <bold>{amount}</bold> for <bold>{term}</bold> and receive <bold>{earnings}</bold> upfront.",
-      "ifBelow": "BTC below {strike}:",
+      "strikeIs": "Strike:",
+      "strikeIsDesc": "{percent}% above BTC price when accepted",
+      "ifBelow": "BTC below strike:",
       "ifBelowDesc": "Collateral returned, you keep earnings",
-      "ifRises": "BTC above {strike}:",
+      "ifRises": "BTC above strike:",
       "ifRisesDesc": "You keep your earnings, but the buyer is paid from your collateral, proportional to the percentage increase above strike, up to your full collateral.",
       "platformFee": "Platform fee:",
       "platformFeeDesc": "{fee}% of earnings"
@@ -612,7 +614,9 @@
     "cancelOffer": "Cancel Offer",
     "remainingBelowMinimum": "Remaining below {amount} min",
     "insufficientBacking": "Only {available} available",
-    "insufficientBackingShort": "Insufficient available balance"
+    "insufficientBackingShort": "Insufficient available balance",
+    "backingLimitTitle": "Backing limit",
+    "backingLimitDescription": "Your available balance ({available}) is less than this offer's size. Buyers can only fill it up to {available}. Deposit more BTC to back the full amount."
   },
   "Errors": {
     "unauthorizedController": "You are not authorized to perform this action",

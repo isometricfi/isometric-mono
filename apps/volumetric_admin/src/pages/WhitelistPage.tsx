@@ -1,5 +1,5 @@
 import { Button, Empty, LayerCard, Table } from "@cloudflare/kumo";
-import type { Principal } from "@dfinity/principal";
+import type { Principal } from "@icp-sdk/core/principal";
 import { ArrowsClockwise, UsersThree } from "@phosphor-icons/react";
 import type { UserInfo } from "@volumetric/canister-types";
 import { unwrapResult } from "@volumetric/canister-types";

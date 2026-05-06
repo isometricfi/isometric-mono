@@ -1,9 +1,8 @@
 import { Badge, Button, Empty, Input, LayerCard } from "@cloudflare/kumo";
-import { Principal } from "@dfinity/principal";
+import { Principal } from "@icp-sdk/core/principal";
 import { Database, MagnifyingGlass } from "@phosphor-icons/react";
-import { useCallback, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { Eyebrow } from "../components/Eyebrow";
-import { Mono } from "../components/Mono";
 import { PageShell } from "../components/PageShell";
 import { type LedgerAccount } from "../lib/account";
 import {

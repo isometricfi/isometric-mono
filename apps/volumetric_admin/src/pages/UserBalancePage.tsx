@@ -1,5 +1,5 @@
 import { Button, Empty, Input, LayerCard } from "@cloudflare/kumo";
-import { Principal } from "@dfinity/principal";
+import { Principal } from "@icp-sdk/core/principal";
 import { MagnifyingGlass, UserCircle } from "@phosphor-icons/react";
 import type { UserBalanceInfo } from "@volumetric/canister-types";
 import { unwrapResult } from "@volumetric/canister-types";

@@ -1,6 +1,6 @@
-import { Actor, type ActorSubclass, HttpAgent, type Identity } from "@dfinity/agent";
-import { IDL } from "@dfinity/candid";
-import { Principal } from "@dfinity/principal";
+import { Actor, type ActorSubclass, HttpAgent, type Identity } from "@icp-sdk/core/agent";
+import { IDL } from "@icp-sdk/core/candid";
+import { Principal } from "@icp-sdk/core/principal";
 
 import type { LedgerAccount } from "./account";
 
@@ -16,10 +16,27 @@ export type IndexTransfer = {
   spender: Optional<LedgerAccount>;
 };
 
+export type IndexMint = {
+  to: LedgerAccount;
+  fee: Optional<bigint>;
+  memo: Optional<Uint8Array | number[]>;
+  created_at_time: Optional<bigint>;
+  amount: bigint;
+};
+
+export type IndexBurn = {
+  fee: Optional<bigint>;
+  from: LedgerAccount;
+  memo: Optional<Uint8Array | number[]>;
+  created_at_time: Optional<bigint>;
+  amount: bigint;
+  spender: Optional<LedgerAccount>;
+};
+
 export type IndexTransaction = {
-  burn: Optional<unknown>;
+  burn: Optional<IndexBurn>;
   kind: string;
-  mint: Optional<unknown>;
+  mint: Optional<IndexMint>;
   approve: Optional<unknown>;
   fee_collector: Optional<unknown>;
   timestamp: bigint;

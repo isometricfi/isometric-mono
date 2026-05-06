@@ -1,4 +1,4 @@
-import { Badge, Button, Empty, Input, LayerCard, Table, Text } from "@cloudflare/kumo";
+import { Badge, Button, Empty, Input, LayerCard, Table } from "@cloudflare/kumo";
 import {
   CaretDown,
   CaretRight,
@@ -299,7 +299,7 @@ function ExpectedTransferTable({ rows }: { rows: ExpectedTransferAuditRow[] }) {
 }
 
 function RawTransactionsSection({
-  accountsToQuery,
+  accountsToQuery: _accountsToQuery,
   transactions,
 }: {
   accountsToQuery: Map<string, LedgerAccount> | undefined;

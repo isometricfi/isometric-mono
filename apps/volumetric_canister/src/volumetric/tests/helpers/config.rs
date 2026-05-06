@@ -80,7 +80,9 @@ pub fn get_fee_config(env: &TestEnv) -> FeeConfig {
         )
         .expect("Get fee config call failed");
 
-    Decode!(&response, FeeConfig).expect("Failed to decode fee config")
+    let result: Result<FeeConfig, VolumetricError> =
+        Decode!(&response, Result<FeeConfig, VolumetricError>).unwrap();
+    result.expect("Failed to get fee config")
 }
 
 pub fn get_fee_recipient_ledger_balance(env: &TestEnv) -> u64 {
@@ -118,11 +120,13 @@ pub fn get_platform_fees_collected_total(env: &TestEnv) -> u64 {
         .pic
         .query_call(
             env.volumetric_canister,
-            candid::Principal::anonymous(),
+            env.controller,
             "get_platform_fees_collected_total",
             candid::encode_one(()).unwrap(),
         )
         .expect("Get platform fees collected total call failed");
 
-    Decode!(&response, u64).expect("Failed to decode platform fees collected total")
+    let result: Result<u64, VolumetricError> =
+        Decode!(&response, Result<u64, VolumetricError>).unwrap();
+    result.expect("Failed to get platform fees collected total")
 }

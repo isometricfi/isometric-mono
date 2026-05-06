@@ -1,5 +1,5 @@
 import { Badge, Button, Empty, LayerCard, Table } from "@cloudflare/kumo";
-import { Principal } from "@dfinity/principal";
+import { Principal } from "@icp-sdk/core/principal";
 import { ArrowsClockwise, Copy, Scales } from "@phosphor-icons/react";
 import { unwrapResult } from "@volumetric/canister-types";
 import { MetricCard } from "../components/MetricCard";
@@ -107,7 +107,7 @@ export function SolvencyPage() {
       const canisterPrincipal = Principal.fromText(volumetricCanisterId);
 
       const [
-        platformFeesCollectedSats,
+        platformFeesCollectedResult,
         balanceResults,
         ledgerDefaultAccountSats,
         userSubaccountLedgerBalances,
@@ -131,6 +131,8 @@ export function SolvencyPage() {
         ),
         ckBtcLedger.icrc1_fee(),
       ]);
+
+      const platformFeesCollectedSats = unwrapResult(platformFeesCollectedResult);
 
       const totalOnChainCkbtcHeldSats =
         ledgerDefaultAccountSats +

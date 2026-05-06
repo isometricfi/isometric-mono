@@ -1,6 +1,7 @@
 import { Button, Empty, Input } from "@cloudflare/kumo";
 import { ArrowsClockwise, Calculator } from "@phosphor-icons/react";
 import type { ActiveOption, FeeConfig } from "@volumetric/canister-types";
+import { unwrapResult } from "@volumetric/canister-types";
 import { useState } from "react";
 import { PageShell } from "../components/PageShell";
 import {
@@ -46,11 +47,12 @@ export function PayoutPredictorPage() {
     await action.run(async () => {
       const { volumetric, ckBtcLedger } = createClients();
 
-      const [activeOptions, feeConfig, icrc1TransferFeeSats] = await Promise.all([
+      const [activeOptions, feeConfigResult, icrc1TransferFeeSats] = await Promise.all([
         volumetric.get_active_options(),
         volumetric.get_fee_config(),
         ckBtcLedger.icrc1_fee(),
       ]);
+      const feeConfig = unwrapResult(feeConfigResult);
 
       const settlementPriceCents = BigInt(Math.round(priceDollars * 100));
 

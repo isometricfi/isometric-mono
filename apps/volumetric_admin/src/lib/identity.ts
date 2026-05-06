@@ -1,5 +1,5 @@
-import type { Identity } from "@dfinity/agent";
-import { Ed25519KeyIdentity } from "@dfinity/identity";
+import type { Identity } from "@icp-sdk/core/agent";
+import { Ed25519KeyIdentity } from "@icp-sdk/core/identity";
 
 const HEX_BYTE_LENGTH = 2;
 
@@ -10,10 +10,7 @@ export function getWhitelistedIdentity(): Identity {
   }
 
   const privateKeyBytes = hexToBytes(privateKeyHex);
-  const privateKey = new ArrayBuffer(privateKeyBytes.byteLength);
-  new Uint8Array(privateKey).set(privateKeyBytes);
-
-  return Ed25519KeyIdentity.fromSecretKey(privateKey);
+  return Ed25519KeyIdentity.fromSecretKey(privateKeyBytes);
 }
 
 export function getWhitelistedPrincipalText(): string {

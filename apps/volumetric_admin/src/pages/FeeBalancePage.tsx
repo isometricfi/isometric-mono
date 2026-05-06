@@ -1,6 +1,7 @@
 import { Button, Empty } from "@cloudflare/kumo";
-import type { Principal } from "@dfinity/principal";
+import type { Principal } from "@icp-sdk/core/principal";
 import { ArrowsClockwise, Wallet } from "@phosphor-icons/react";
+import { unwrapResult } from "@volumetric/canister-types";
 import { MetricCard } from "../components/MetricCard";
 import { PageShell } from "../components/PageShell";
 import { defaultAccount } from "../lib/account";
@@ -25,7 +26,7 @@ export function FeeBalancePage() {
   async function runAudit() {
     await action.run(async () => {
       const { volumetric, ckBtcLedger } = createClients();
-      const feeConfig = await volumetric.get_fee_config();
+      const feeConfig = unwrapResult(await volumetric.get_fee_config());
       const feeRecipientAccount = defaultAccount(feeConfig.fee_recipient);
       const feeRecipientLedgerBalanceSats = await ckBtcLedger.icrc1_balance_of(feeRecipientAccount);
 

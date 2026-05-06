@@ -56,9 +56,9 @@ export function FeeReconciliationPage() {
   async function runAudit() {
     await action.run(async () => {
       const { volumetric, ckBtcIndex, ckBtcLedger } = createClients();
-      const feeConfig = await volumetric.get_fee_config();
+      const feeConfig = unwrapResult(await volumetric.get_fee_config());
       const feeRecipientAccount = defaultAccount(feeConfig.fee_recipient);
-      const [platformFeesCollectedSats, feeTransactionsPage, feeRecipientLedgerBalanceSats] =
+      const [platformFeesCollectedResult, feeTransactionsPage, feeRecipientLedgerBalanceSats] =
         await Promise.all([
           volumetric.get_platform_fees_collected_total(),
           getAllAccountTransactions({
@@ -76,6 +76,8 @@ export function FeeReconciliationPage() {
           volumetric.get_option_audit_report(optionId).then(unwrapResult),
         ),
       );
+
+      const platformFeesCollectedSats = unwrapResult(platformFeesCollectedResult);
 
       return {
         feeConfig,

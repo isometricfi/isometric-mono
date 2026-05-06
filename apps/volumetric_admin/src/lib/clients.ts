@@ -1,4 +1,4 @@
-import type { ActorSubclass } from "@dfinity/agent";
+import type { ActorSubclass } from "@icp-sdk/core/agent";
 import type { _SERVICE as VolumetricService } from "@volumetric/canister-types";
 import { useMemo } from "react";
 import type { LedgerAccount } from "./account";

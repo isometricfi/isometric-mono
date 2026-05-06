@@ -62,7 +62,7 @@ pub use testing::{
     testing_set_option_expiry_seconds, testing_set_oracle_price_cents,
     testing_sync_balance_from_ledger, ClearStorageResponse,
 };
-pub use whitelist::{add_whitelisted, list_whitelisted, remove_whitelisted};
+pub use whitelist::{add_whitelisted, hello, list_whitelisted, remove_whitelisted};
 pub use withdrawals::{
     get_failed_withdrawals, get_my_pending_withdrawals, get_my_pending_withdrawals_message,
     get_pending_withdrawals, get_withdraw_message, get_withdraw_status, get_withdrawal_by_id,

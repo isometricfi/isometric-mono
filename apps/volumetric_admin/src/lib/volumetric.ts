@@ -1,4 +1,4 @@
-import { type ActorSubclass, type Identity } from "@dfinity/agent";
+import { type ActorSubclass, type Identity } from "@icp-sdk/core/agent";
 import { type _SERVICE, createActor } from "@volumetric/canister-types";
 
 export function createVolumetricClient({
