@@ -42,6 +42,12 @@ pub enum AcceptOffersStatus {
         receipt: AcceptOffersReceipt,
         result: AcceptOffersResult,
     },
+    RetryRequired {
+        receipt: AcceptOffersReceipt,
+        phase: AcceptPhase,
+        last_error: Option<String>,
+        next_attempt_at_seconds: u64,
+    },
     RecoveryRequired {
         receipt: AcceptOffersReceipt,
         phase: AcceptPhase,

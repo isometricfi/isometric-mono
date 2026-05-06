@@ -176,6 +176,12 @@ export const idlFactory = ({ IDL }) => {
       'receipt' : AcceptOffersReceipt,
       'phase' : AcceptPhase,
     }),
+    'RetryRequired' : IDL.Record({
+      'last_error' : IDL.Opt(IDL.Text),
+      'receipt' : AcceptOffersReceipt,
+      'phase' : AcceptPhase,
+      'next_attempt_at_seconds' : IDL.Nat64,
+    }),
     'Succeeded' : IDL.Record({
       'result' : AcceptOffersResult,
       'receipt' : AcceptOffersReceipt,
@@ -417,6 +423,12 @@ export const idlFactory = ({ IDL }) => {
       'receipt' : SettlementReceipt,
       'phase' : SettlementPhase,
     }),
+    'RetryRequired' : IDL.Record({
+      'last_error' : IDL.Opt(IDL.Text),
+      'receipt' : SettlementReceipt,
+      'phase' : SettlementPhase,
+      'next_attempt_at_seconds' : IDL.Nat64,
+    }),
     'Succeeded' : IDL.Record({
       'result' : SettlementWalResult,
       'receipt' : SettlementReceipt,
@@ -512,6 +524,7 @@ export const idlFactory = ({ IDL }) => {
     'SucceededAlready' : IDL.Null,
     'RecoveryRequired' : IDL.Text,
     'FailedPermanent' : IDL.Text,
+    'RetryRequired' : IDL.Text,
     'Succeeded' : IDL.Null,
     'SkippedAlreadyInFlight' : IDL.Null,
   });
@@ -682,6 +695,11 @@ export const idlFactory = ({ IDL }) => {
     'get_pending_withdrawals' : IDL.Func([], [Result_15], ['query']),
     'get_platform_fees_collected_total' : IDL.Func([], [IDL.Nat64], ['query']),
     'get_recovery_required_wal_entries' : IDL.Func(
+        [IDL.Nat32],
+        [Result_18],
+        ['query'],
+      ),
+    'get_retry_required_wal_entries' : IDL.Func(
         [IDL.Nat32],
         [Result_18],
         ['query'],

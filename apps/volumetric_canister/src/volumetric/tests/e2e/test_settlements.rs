@@ -1486,6 +1486,7 @@ fn test_settle_option_by_id_status_transitions_from_pending_to_terminal() {
     assert!(matches!(
         initial_status,
         SettlementStatus::Pending { .. }
+            | SettlementStatus::RetryRequired { .. }
             | SettlementStatus::RecoveryRequired { .. }
             | SettlementStatus::Succeeded { .. }
             | SettlementStatus::Failed { .. }

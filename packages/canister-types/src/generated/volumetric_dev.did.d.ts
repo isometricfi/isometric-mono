@@ -27,6 +27,14 @@ export type AcceptOffersStatus = {
     }
   } |
   {
+    'RetryRequired' : {
+      'last_error' : [] | [string],
+      'receipt' : AcceptOffersReceipt,
+      'phase' : AcceptPhase,
+      'next_attempt_at_seconds' : bigint,
+    }
+  } |
+  {
     'Succeeded' : {
       'result' : AcceptOffersResult,
       'receipt' : AcceptOffersReceipt,
@@ -411,6 +419,14 @@ export type SettlementStatus = {
     }
   } |
   {
+    'RetryRequired' : {
+      'last_error' : [] | [string],
+      'receipt' : SettlementReceipt,
+      'phase' : SettlementPhase,
+      'next_attempt_at_seconds' : bigint,
+    }
+  } |
+  {
     'Succeeded' : {
       'result' : SettlementWalResult,
       'receipt' : SettlementReceipt,
@@ -484,6 +500,7 @@ export interface VolumetricError {
 export type WalExecutionOutcome = { 'SucceededAlready' : null } |
   { 'RecoveryRequired' : string } |
   { 'FailedPermanent' : string } |
+  { 'RetryRequired' : string } |
   { 'Succeeded' : null } |
   { 'SkippedAlreadyInFlight' : null };
 export interface WalletProof { 'signature' : string, 'address' : string }
@@ -582,6 +599,7 @@ export interface _SERVICE {
   'get_pending_withdrawals' : ActorMethod<[], Result_15>,
   'get_platform_fees_collected_total' : ActorMethod<[], bigint>,
   'get_recovery_required_wal_entries' : ActorMethod<[number], Result_18>,
+  'get_retry_required_wal_entries' : ActorMethod<[number], Result_18>,
   'get_settlement_by_id' : ActorMethod<[bigint], Result_19>,
   'get_settlement_status' : ActorMethod<[Uint8Array | number[]], Result_20>,
   'get_trading_limits' : ActorMethod<[], TradingLimits>,

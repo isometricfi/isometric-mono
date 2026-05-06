@@ -28,9 +28,10 @@ pub use api::{
     get_failed_accepts, get_failed_settlements, get_my_offers, get_my_options,
     get_my_written_options, get_offer_by_id, get_open_offers, get_pending_accepts,
     get_pending_settlements, get_pending_settlements_journal, get_recovery_required_wal_entries,
-    get_settlement_by_id, get_settlement_status, recover_wal_operation, settle_expired_options,
-    settle_option_by_id, AcceptOfferItem, AcceptOffersRequest, CancelOfferRequest,
-    CreateOfferRequest, CreateOfferResponse, SettleExpiredOptionsResponse, SettlementResult,
+    get_retry_required_wal_entries, get_settlement_by_id, get_settlement_status,
+    recover_wal_operation, settle_expired_options, settle_option_by_id, AcceptOfferItem,
+    AcceptOffersRequest, CancelOfferRequest, CreateOfferRequest, CreateOfferResponse,
+    SettleExpiredOptionsResponse, SettlementResult,
 };
 pub use api::{
     add_whitelisted, clear_log_access_token, create_account, get_account_info, get_account_nonce,

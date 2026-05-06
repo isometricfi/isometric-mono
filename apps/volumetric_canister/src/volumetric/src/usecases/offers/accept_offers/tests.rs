@@ -752,7 +752,7 @@ async fn test_retryable_accept_failure_remains_pending_for_retry() {
                 .expect("accept WAL task should complete");
             assert!(matches!(
                 wal_execution_outcome,
-                crate::journaling::WalExecutionOutcome::RecoveryRequired(_)
+                crate::journaling::WalExecutionOutcome::RetryRequired(_)
             ));
 
             get_accept_status(receipt.operation_id)
@@ -762,7 +762,7 @@ async fn test_retryable_accept_failure_remains_pending_for_retry() {
 
     // then
     match accept_status {
-        AcceptOffersStatus::RecoveryRequired {
+        AcceptOffersStatus::RetryRequired {
             phase, last_error, ..
         } => {
             assert_eq!(phase, AcceptPhase::BuyerDebited);
@@ -770,7 +770,7 @@ async fn test_retryable_accept_failure_remains_pending_for_retry() {
                 .as_ref()
                 .is_some_and(|message| message.contains("transfer failed")));
         }
-        other => panic!("expected recovery-required accept status, got {:?}", other),
+        other => panic!("expected retry-required accept status, got {:?}", other),
     }
 
     let final_offer = get_offer(TEST_OFFER_ID).expect("offer should still exist");
