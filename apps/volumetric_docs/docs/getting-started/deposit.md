@@ -12,15 +12,15 @@ Two ways to deposit:
 - **From your connected wallet.** The deposit panel can send BTC straight from the wallet you signed in with.
 - **From any other wallet.** Each account has a unique BTC deposit address. Copy it from the deposit panel and send to it from any wallet.
 
-The app watches your address automatically. You don't need to refresh or paste a transaction hash.
+The app watches your address automatically.
 
 ## Confirmations
 
-Bitcoin deposits require **4 network confirmations**. This typically takes around 40 minutes. While waiting, the deposit panel shows the live confirmation count. You can close the app; the deposit will keep confirming in the background.
+Bitcoin deposits require **4 network confirmations**. This typically takes around 40 minutes. While waiting, the deposit panel shows the live confirmation count. You can close the app. The deposit will keep confirming in the background.
 
 ## Minimum deposit
 
-**0.0005 BTC** (50,000 sats). Anything below this is ignored.
+**₿0.00002** (2k sats). We recommend depositing at least **₿0.00051** (51k sats) as the minimum withdrawal amount is **₿0.000501** (50.1k sats).
 
 ## Available vs deposited
 

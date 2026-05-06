@@ -606,7 +606,7 @@
     "earliestCreated": "Earliest Created:",
     "earliestCreatedDesc": "At the same premium, the oldest offer wins (FIFO).",
     "largestSize": "Largest Size:",
-    "largestSizeDesc": "Buyers can't combine offers. A buyer needing more size than the cheapest can provide walks up to bigger offers, even at higher premiums.",
+    "largestSizeDesc": "Each buyer fills from one offer at a time. If they need more size than the cheapest offer has, they'll skip it and take a bigger one, even at a higher premium.",
     "editOffer": "Edit Offer",
     "cancelling": "Cancelling...",
     "cancelOffer": "Cancel Offer",

@@ -54,12 +54,12 @@ You put in **0.1 BTC** on a **7-day**, **+10% strike** call with BTC at $100,000
 - Max loss: 0.1 BTC.
 - Breakeven at expiry: $111,675.
 
-| BTC at expiry | Outcome | Your net result |
-|---|---|---|
-| $95,000 | Expires worthless | **−0.1 BTC** |
-| $111,675 | Breakeven | **0.00 BTC** |
-| $115,000 | Pays out | **+0.19 BTC** |
-| $130,000 | Pays out | **+0.93 BTC** |
-| $200,000 | Large move, payout near max | **+2.9 BTC** |
+| BTC at expiry | % above strike | Your net result | Net USD value |
+|---|---|---|---|
+| $95,000 | n/a (under) | **−0.1 BTC** | ~−$9,500 |
+| $111,675 | 1.5% | **0.00 BTC** | $0 |
+| $115,000 | 4.5% | **+0.19 BTC** | ~$21,850 |
+| $130,000 | 18% | **+0.93 BTC** | ~$120,900 |
+| $150,000 | 36% | **+1.68 BTC** | ~$251,700 |
 
 The bigger the move above strike, the bigger your payout. Below strike, your loss is fixed at what you put in. Profits are subject to a [20% platform fee](/trading/fees).

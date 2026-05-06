@@ -148,7 +148,7 @@ export function OfferCard({ offer, btcPrice, onCancel, isCancelling, rankInfo }:
                       {t("bestOffer")}
                     </Badge>
                   ) : (
-                    <Badge variant="secondary" className="text-muted-foreground">
+                    <Badge variant="secondary">
                       <Trophy className="size-3" />
                       {t("rank", { rank: rankInfo.rank })}
                     </Badge>

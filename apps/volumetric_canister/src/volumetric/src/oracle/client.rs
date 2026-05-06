@@ -1,4 +1,4 @@
-//! BTC/USD price oracle backed by the XRC canister with a stable in-canister cache.
+//! BTC/USDT price oracle backed by the XRC canister with a stable in-canister cache.
 //!
 //! Three flows, each picks a different primary source:
 //!
@@ -31,7 +31,7 @@ const XRC_CYCLES: u128 = 1_000_000_000;
 const SECONDS_PER_HOUR: u64 = 3_600;
 const CENTS_DECIMALS: u32 = 2;
 const BTC_SYMBOL: &str = "BTC";
-const USD_SYMBOL: &str = "USD";
+const USDT_SYMBOL: &str = "USDT";
 const PRICE_TIMESTAMP_MAX_DISTANCE_30_MINUTES_SECS: u64 = 30 * 60;
 const XRC_FRESH_PRICE_MAX_ATTEMPTS: u8 = 5;
 
@@ -80,8 +80,8 @@ fn btc_usd_exchange_rate_request(timestamp: Option<u64>) -> GetExchangeRateReque
             class: AssetClass::Cryptocurrency,
         },
         quote_asset: Asset {
-            symbol: USD_SYMBOL.to_string(),
-            class: AssetClass::FiatCurrency,
+            symbol: USDT_SYMBOL.to_string(),
+            class: AssetClass::Cryptocurrency,
         },
         timestamp,
     }
@@ -124,8 +124,8 @@ fn validate_exchange_rate_assets(exchange_rate: &ExchangeRate) -> Result<(), Vol
         ));
     }
 
-    if exchange_rate.quote_asset.symbol != USD_SYMBOL
-        || !matches!(&exchange_rate.quote_asset.class, AssetClass::FiatCurrency)
+    if exchange_rate.quote_asset.symbol != USDT_SYMBOL
+        || !matches!(&exchange_rate.quote_asset.class, AssetClass::Cryptocurrency)
     {
         return Err(VolumetricError::from_def(
             error_codes::INTER_CANISTER_CALL_FAILED,
@@ -669,8 +669,8 @@ mod tests {
             rate: overrides.rate.unwrap_or(TEST_RATE),
             timestamp: overrides.timestamp.unwrap_or(TEST_TIMESTAMP_SECS),
             quote_asset: overrides.quote_asset.unwrap_or_else(|| Asset {
-                symbol: USD_SYMBOL.to_string(),
-                class: AssetClass::FiatCurrency,
+                symbol: USDT_SYMBOL.to_string(),
+                class: AssetClass::Cryptocurrency,
             }),
             base_asset: overrides.base_asset.unwrap_or_else(|| Asset {
                 symbol: BTC_SYMBOL.to_string(),
@@ -720,7 +720,7 @@ mod tests {
         assert_eq!(rounded, 14 * 3600);
     }
 
-    /// Given: an accept flow needs a fresh current BTC/USD price
+    /// Given: an accept flow needs a fresh current BTC/USDT price
     /// When: building the XRC request for the current snapshot
     /// Then: the request omits timestamp so XRC returns the current rate
     #[test]
@@ -734,10 +734,10 @@ mod tests {
         // then
         assert_eq!(request.timestamp, None);
         assert_eq!(request.base_asset.symbol, BTC_SYMBOL);
-        assert_eq!(request.quote_asset.symbol, USD_SYMBOL);
+        assert_eq!(request.quote_asset.symbol, USDT_SYMBOL);
     }
 
-    /// Given: a settlement flow needs the BTC/USD price for an expiry hour
+    /// Given: a settlement flow needs the BTC/USDT price for an expiry hour
     /// When: building the historical XRC request for that expiry
     /// Then: the request includes the hour-aligned expiry timestamp
     #[test]
@@ -751,7 +751,7 @@ mod tests {
         // then
         assert_eq!(request.timestamp, Some(EXPIRY_TIMESTAMP_SECONDS));
         assert_eq!(request.base_asset.symbol, BTC_SYMBOL);
-        assert_eq!(request.quote_asset.symbol, USD_SYMBOL);
+        assert_eq!(request.quote_asset.symbol, USDT_SYMBOL);
     }
 
     /// Given: a cached rate whose XRC timestamp is within the freshness window
@@ -962,7 +962,7 @@ mod tests {
 
     #[test]
     fn test_rate_to_cents() {
-        // given: BTC at $100,000 with 9 decimals
+        // given: BTC at 100,000 USDT with 9 decimals
         let rate = 100_000_000_000_000u64;
         let decimals = 9u32;
 
@@ -1013,7 +1013,7 @@ mod tests {
     }
 
     #[test]
-    fn should_accept_matching_btc_usd_response_for_requested_timestamp() {
+    fn should_accept_matching_btc_usdt_response_for_requested_timestamp() {
         // given
         let exchange_rate = make_exchange_rate(ExchangeRateOverrides::default());
 
@@ -1076,7 +1076,7 @@ mod tests {
         assert!(result.is_err());
     }
 
-    /// Given: a successful BTC/USD exchange rate response matching the expected timestamp
+    /// Given: a successful BTC/USDT exchange rate response matching the expected timestamp
     /// When: storing the result
     /// Then: the rate is persisted and returned with the converted price in cents
     #[test]
