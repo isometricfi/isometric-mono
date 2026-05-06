@@ -7,7 +7,7 @@ keywords: [connect wallet, Isometric account, Bitcoin options sign in, no KYC, s
 
 # Connect an account
 
-Isometric uses your existing wallet for signing. There's no separate password to remember.
+Isometric uses your existing BTC wallet for signing. There's no separate password to remember.
 
 ## Connecting a wallet
 

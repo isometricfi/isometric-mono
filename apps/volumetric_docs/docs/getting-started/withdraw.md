@@ -19,7 +19,7 @@ BTC is sent to the wallet you signed in with.
 
 ## Minimum withdrawal
 
-**0.0005 BTC** (50,000 sats).
+**₿0.000501** (50.1k sats).
 
 ## Bitcoin network fee
 
@@ -27,4 +27,4 @@ A Bitcoin network fee is deducted from the amount you withdraw.
 
 ## Timing
 
-Withdrawals submit immediately. It can take up to a minute for the Bitcoin transaction to broadcast, after which it confirms on the Bitcoin network in the usual blocks. You can leave the app while it processes.
+Withdrawals submit immediately. It can take up to 3 minutes for the Bitcoin transaction to broadcast, after which it confirms on the Bitcoin network in the usual blocks. You can leave the app while it processes.

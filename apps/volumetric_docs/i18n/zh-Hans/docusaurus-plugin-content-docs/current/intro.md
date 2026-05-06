@@ -6,7 +6,7 @@ title: Isometric
 
 # Isometric
 
-Isometric 是一个比特币看涨期权应用。自我托管，无 KYC，无强制平仓。
+Isometric 是一个比特币看涨期权应用。
 
 市场有两端。
 
