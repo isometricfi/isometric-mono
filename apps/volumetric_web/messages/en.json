@@ -611,7 +611,7 @@
     "cancelling": "Cancelling...",
     "cancelOffer": "Cancel Offer",
     "remainingBelowMinimum": "Remaining below {amount} min",
-    "insufficientBacking": "Backed: {effective} of {remaining}",
+    "insufficientBacking": "Only {available} available",
     "insufficientBackingShort": "Insufficient available balance"
   },
   "Errors": {

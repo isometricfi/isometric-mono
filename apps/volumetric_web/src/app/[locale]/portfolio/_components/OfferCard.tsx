@@ -112,8 +112,7 @@ export function OfferCard({
               {effectiveBelowMin
                 ? t("insufficientBackingShort")
                 : t("insufficientBacking", {
-                    effective: formatBtcWithSymbolBigint(effectiveRemainingSats),
-                    remaining: formatBtcWithSymbolBigint(remainingSats),
+                    available: formatBtcWithSymbolBigint(availableBalanceSats ?? BigInt(0)),
                   })}
             </Badge>
           </div>
