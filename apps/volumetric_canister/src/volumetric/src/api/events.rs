@@ -2,7 +2,7 @@ use candid::Principal;
 use ic_cdk::api::msg_caller;
 
 use crate::errors::VolumetricError;
-use crate::guards::{is_controller, is_whitelisted, no_replicated_call};
+use crate::guards::{is_whitelisted, no_replicated_call};
 use crate::storage::{
     clear_events as storage_clear_events, get_all_events as storage_get_all_events,
     get_events_by_principal, get_events_since as storage_get_events_since, Event,
@@ -51,13 +51,13 @@ pub fn get_all_events(
 
 #[ic_cdk::update]
 pub fn cleanup_old_events() -> Result<u64, VolumetricError> {
-    is_controller()?;
+    is_whitelisted()?;
     let result = cleanup_old_events_use_case();
     Ok(result.deleted_count)
 }
 
 #[ic_cdk::update]
 pub fn clear_all_events() -> Result<u64, VolumetricError> {
-    is_controller()?;
+    is_whitelisted()?;
     Ok(storage_clear_events())
 }

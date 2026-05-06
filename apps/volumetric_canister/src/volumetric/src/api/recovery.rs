@@ -1,5 +1,5 @@
 use crate::errors::VolumetricError;
-use crate::guards::{is_controller, is_whitelisted, no_replicated_call};
+use crate::guards::{is_whitelisted, no_replicated_call};
 use crate::journaling::{
     execute_wal_entry_now, list_entries_by_status, OperationId, WalExecutionOutcome, WalStatus,
 };
@@ -25,7 +25,7 @@ pub fn get_recovery_required_wal_entries(limit: u32) -> Result<Vec<OperationId>,
 
 #[ic_cdk::query(guard = "no_replicated_call")]
 pub fn get_retry_required_wal_entries(limit: u32) -> Result<Vec<OperationId>, VolumetricError> {
-    is_controller()?;
+    is_whitelisted()?;
 
     let retry_limit = normalize_wal_query_limit_entries(limit);
     if retry_limit == 0 {
