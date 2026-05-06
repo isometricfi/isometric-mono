@@ -6,7 +6,7 @@ use crate::auth::{
     build_challenge_context, build_challenge_message, ensure_challenge_fresh, verify_btc_signature,
 };
 use crate::errors::{error_codes, VolumetricError};
-use crate::guards::{is_controller, is_whitelisted, no_replicated_call};
+use crate::guards::{is_whitelisted, no_replicated_call};
 use crate::journaling::OperationId;
 use crate::storage::{
     get_accept, get_active_option, get_principal_for_wallet, get_settlement, increment_nonce,
@@ -129,36 +129,36 @@ pub fn get_active_options() -> Vec<ActiveOption> {
 
 #[ic_cdk::query(guard = "no_replicated_call")]
 pub fn get_pending_accepts() -> Result<Vec<PendingAccept>, VolumetricError> {
-    is_controller()?;
+    is_whitelisted()?;
     Ok(list_pending_accepts())
 }
 
 #[ic_cdk::query(guard = "no_replicated_call")]
 pub fn get_failed_accepts() -> Result<Vec<PendingAccept>, VolumetricError> {
-    is_controller()?;
+    is_whitelisted()?;
     Ok(list_failed_accepts())
 }
 
 #[ic_cdk::query(guard = "no_replicated_call")]
 pub fn get_accept_by_id(id: u64) -> Result<Option<PendingAccept>, VolumetricError> {
-    is_controller()?;
+    is_whitelisted()?;
     Ok(get_accept(id))
 }
 
 #[ic_cdk::query(guard = "no_replicated_call")]
 pub fn get_pending_settlements_journal() -> Result<Vec<PendingSettlement>, VolumetricError> {
-    is_controller()?;
+    is_whitelisted()?;
     Ok(list_pending_settlements_journal())
 }
 
 #[ic_cdk::query(guard = "no_replicated_call")]
 pub fn get_failed_settlements() -> Result<Vec<PendingSettlement>, VolumetricError> {
-    is_controller()?;
+    is_whitelisted()?;
     Ok(list_failed_settlements())
 }
 
 #[ic_cdk::query(guard = "no_replicated_call")]
 pub fn get_settlement_by_id(option_id: u64) -> Result<Option<PendingSettlement>, VolumetricError> {
-    is_controller()?;
+    is_whitelisted()?;
     Ok(get_settlement(option_id))
 }

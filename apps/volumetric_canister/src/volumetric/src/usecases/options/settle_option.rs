@@ -31,6 +31,7 @@ use crate::usecases::balances::transfer_ckbtc;
 
 type ExpiredOptionsByXrcTimestampSecs = BTreeMap<u64, Vec<ActiveOption>>;
 
+#[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct SettlementResult {
     pub option_id: u64,
     pub settlement_price_cents: u64,
@@ -776,6 +777,40 @@ pub fn testing_expire_option_use_case(option_id: u64) -> Result<ActiveOption, Vo
     }
 
     option.expiry_seconds = 0;
+    update_active_option(option.clone());
+
+    Ok(option)
+}
+
+#[cfg(feature = "testing")]
+pub async fn testing_settle_option_with_price_use_case(
+    option_id: u64,
+    price_cents: u64,
+) -> Result<SettlementResult, VolumetricError> {
+    settle_single_option(option_id, price_cents).await
+}
+
+#[cfg(feature = "testing")]
+pub fn testing_reset_stuck_settling_option_use_case(
+    option_id: u64,
+) -> Result<ActiveOption, VolumetricError> {
+    let mut option = get_active_option(option_id).ok_or_else(|| {
+        VolumetricError::from_def(
+            error_codes::OPTION_NOT_FOUND,
+            Some(&format!("id: {}", option_id)),
+            None,
+        )
+    })?;
+
+    if option.status != ActiveOptionStatus::Settling {
+        return Err(VolumetricError::from_def(
+            error_codes::OPTION_ALREADY_SETTLED,
+            Some("option is not in Settling status"),
+            None,
+        ));
+    }
+
+    option.status = ActiveOptionStatus::Active;
     update_active_option(option.clone());
 
     Ok(option)

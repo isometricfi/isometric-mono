@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 
 use self::storage::collect_observability_storage_counts;
 use crate::errors::VolumetricError;
-use crate::guards::{is_controller, no_replicated_call};
+use crate::guards::{is_whitelisted, no_replicated_call};
 use crate::storage::get_log_access_token_hash;
 
 const OBSERVABILITY_METRICS_PATH: &str = "/observability/metrics";
@@ -38,7 +38,7 @@ pub struct ObservabilityMetrics {
 
 #[ic_cdk::query(guard = "no_replicated_call")]
 pub fn observability_get_metrics() -> Result<ObservabilityMetrics, VolumetricError> {
-    is_controller()?;
+    is_whitelisted()?;
     Ok(observability_collect_metrics())
 }
 
@@ -46,7 +46,7 @@ pub fn observability_get_metrics() -> Result<ObservabilityMetrics, VolumetricErr
 pub fn http_request(request: HttpRequest) -> HttpResponse {
     match request.path() {
         OBSERVABILITY_METRICS_PATH => {
-            if is_controller().is_err() {
+            if is_whitelisted().is_err() {
                 return observability_plain_text_response(403, "forbidden");
             }
             observability_serve_metrics_response()

@@ -1,4 +1,5 @@
 pub mod accounts;
+pub mod audit;
 pub mod config;
 pub mod deposits;
 pub mod events;
@@ -16,6 +17,10 @@ pub use accounts::{
     create_account, get_account_info, get_account_nonce, get_message_to_sign,
     get_username_update_message, list_users, resolve_invite_code, update_username,
     validate_invite_code,
+};
+pub use audit::{
+    get_option_audit_report, AuditExpectedTransfer, AuditLedgerAccount, AuditTransferKind,
+    AuditUserBalance, OptionAuditReport,
 };
 pub use config::{
     clear_log_access_token, get_config, get_feature_flags, get_trading_limits,
@@ -52,8 +57,9 @@ pub use settlement::{
 #[cfg(feature = "testing")]
 pub use testing::{
     testing_clear_offers_and_options, testing_expire_option, testing_force_settle,
-    testing_reset_oracle, testing_set_ckbtc_ledger, testing_set_option_expiry_seconds,
-    testing_set_oracle_price_cents, testing_sync_balance_from_ledger, ClearStorageResponse,
+    testing_reset_oracle, testing_reset_stuck_settling_option, testing_set_ckbtc_ledger,
+    testing_set_option_expiry_seconds, testing_set_oracle_price_cents,
+    testing_sync_balance_from_ledger, ClearStorageResponse,
 };
 pub use whitelist::{add_whitelisted, list_whitelisted, remove_whitelisted};
 pub use withdrawals::{
