@@ -53,11 +53,9 @@ pub async fn fetch_current_btc_usd_price_cents() -> Result<u64, VolumetricError>
     oracle.fetch_current_btc_usd_price_cents().await
 }
 
-/// BTC/USD for settlement: retries fresh current XRC (`timestamp: None`) against the
-/// option expiry, reads the nearest cached rate within 30 minutes of expiry, then
-/// returns the price whose XRC timestamp is closest to expiry. If all fresh attempts
-/// fail but a valid cached candidate exists, that cache path can still succeed. If
-/// neither yields a rate within the expiry window, returns an error.
+/// BTC/USD for settlement: first asks XRC for the option-expiry hour. If that
+/// historical quote is unavailable or outside the 30-minute expiry window, falls
+/// back to the current XRC/cache comparison.
 pub async fn get_settlement_btc_usd_price_cents(
     expiry_timestamp_seconds: u64,
 ) -> Result<u64, VolumetricError> {
@@ -335,6 +333,23 @@ async fn fetch_and_store_current_xrc_btc_usd_rate_near_timestamp(
     )
 }
 
+/// Single historical XRC call for `requested_timestamp_seconds`, then store only
+/// if the returned XRC timestamp is within 30 minutes of `target_timestamp_seconds`.
+async fn fetch_and_store_historical_xrc_btc_usd_rate_near_timestamp(
+    requested_timestamp_seconds: u64,
+    target_timestamp_seconds: u64,
+) -> Result<StoredXrcBtcUsdRate, VolumetricError> {
+    let result = call_xrc_get_exchange_rate(btc_usd_exchange_rate_request(Some(
+        requested_timestamp_seconds,
+    )))
+    .await?;
+    store_xrc_btc_usd_exchange_rate_result_near_timestamp(
+        result,
+        target_timestamp_seconds,
+        PRICE_TIMESTAMP_MAX_DISTANCE_30_MINUTES_SECS,
+    )
+}
+
 /// Retries fresh current XRC (`timestamp: None`) up to `XRC_FRESH_PRICE_MAX_ATTEMPTS`
 /// times; returns the first stored rate that passes the 30-minute timestamp window, or
 /// the last error if every attempt fails.
@@ -438,6 +453,51 @@ fn choose_closest_rate_to_timestamp(
         })
 }
 
+async fn get_fallback_settlement_btc_usd_price_cents(
+    expiry_timestamp_seconds: u64,
+) -> Result<u64, VolumetricError> {
+    let fresh_rate_result =
+        fetch_current_xrc_btc_usd_rate_near_timestamp_with_retry(expiry_timestamp_seconds).await;
+    if let Err(ref fresh_error) = fresh_rate_result {
+        logging::warn!(
+            "oracle settlement: fresh current XRC failed after retries expiry_ts={} err={}",
+            expiry_timestamp_seconds,
+            fresh_error
+        );
+    }
+    let cached_rate = get_nearest_xrc_btc_usd_rate_within_seconds(
+        expiry_timestamp_seconds,
+        PRICE_TIMESTAMP_MAX_DISTANCE_30_MINUTES_SECS,
+    );
+
+    if let Some(stored_rate) = choose_closest_rate_to_timestamp(
+        expiry_timestamp_seconds,
+        fresh_rate_result.as_ref().ok().cloned(),
+        cached_rate,
+    ) {
+        if fresh_rate_result.is_err() {
+            logging::warn!(
+                "oracle settlement: using fallback cache price expiry_ts={} chosen_xrc_ts={}",
+                expiry_timestamp_seconds,
+                stored_rate.xrc_timestamp_seconds
+            );
+        }
+        return Ok(stored_rate.price_cents);
+    }
+
+    match fresh_rate_result {
+        Ok(stored_rate) => Ok(stored_rate.price_cents),
+        Err(error) => {
+            logging::error!(
+                "oracle settlement: no valid fresh or cached fallback rate within window expiry_ts={} err={}",
+                expiry_timestamp_seconds,
+                error
+            );
+            Err(error)
+        }
+    }
+}
+
 struct IcOracle;
 
 #[async_trait(?Send)]
@@ -494,45 +554,20 @@ impl PriceOracle for IcOracle {
         &self,
         expiry_timestamp_seconds: u64,
     ) -> Result<u64, VolumetricError> {
-        let fresh_rate_result =
-            fetch_current_xrc_btc_usd_rate_near_timestamp_with_retry(expiry_timestamp_seconds)
-                .await;
-        if let Err(ref fresh_error) = fresh_rate_result {
-            logging::warn!(
-                "oracle settlement: fresh current XRC failed after retries expiry_ts={} err={}",
-                expiry_timestamp_seconds,
-                fresh_error
-            );
-        }
-        let cached_rate = get_nearest_xrc_btc_usd_rate_within_seconds(
+        match fetch_and_store_historical_xrc_btc_usd_rate_near_timestamp(
             expiry_timestamp_seconds,
-            PRICE_TIMESTAMP_MAX_DISTANCE_30_MINUTES_SECS,
-        );
-
-        if let Some(stored_rate) = choose_closest_rate_to_timestamp(
             expiry_timestamp_seconds,
-            fresh_rate_result.as_ref().ok().cloned(),
-            cached_rate.clone(),
-        ) {
-            if fresh_rate_result.is_err() {
-                logging::warn!(
-                    "oracle settlement: using price from fresh-vs-cache comparison expiry_ts={} chosen_xrc_ts={}",
-                    expiry_timestamp_seconds,
-                    stored_rate.xrc_timestamp_seconds
-                );
-            }
-            return Ok(stored_rate.price_cents);
-        }
-
-        match fresh_rate_result {
+        )
+        .await
+        {
             Ok(stored_rate) => Ok(stored_rate.price_cents),
-            Err(error) => {
-                logging::error!(
-                    "oracle settlement: no valid fresh or cached rate within window expiry_ts={} err={}",
+            Err(historical_error) => {
+                logging::warn!(
+                    "oracle settlement: historical XRC unavailable; using fallback expiry_ts={} err={}",
                     expiry_timestamp_seconds,
-                    error
+                    historical_error
                 );
-                Err(error)
+                get_fallback_settlement_btc_usd_price_cents(expiry_timestamp_seconds).await
             }
         }
     }
@@ -706,6 +741,23 @@ mod tests {
         assert_eq!(request.quote_asset.symbol, USD_SYMBOL);
     }
 
+    /// Given: a settlement flow needs the BTC/USD price for an expiry hour
+    /// When: building the historical XRC request for that expiry
+    /// Then: the request includes the hour-aligned expiry timestamp
+    #[test]
+    fn should_build_historical_btc_usd_request_with_expiry_timestamp() {
+        // given
+        const EXPIRY_TIMESTAMP_SECONDS: u64 = TEST_TIMESTAMP_SECS;
+
+        // when
+        let request = btc_usd_exchange_rate_request(Some(EXPIRY_TIMESTAMP_SECONDS));
+
+        // then
+        assert_eq!(request.timestamp, Some(EXPIRY_TIMESTAMP_SECONDS));
+        assert_eq!(request.base_asset.symbol, BTC_SYMBOL);
+        assert_eq!(request.quote_asset.symbol, USD_SYMBOL);
+    }
+
     /// Given: a cached rate whose XRC timestamp is within the freshness window
     /// When: checking freshness for the current price
     /// Then: the cached rate is considered fresh
@@ -850,6 +902,66 @@ mod tests {
 
         // then
         assert!(selected_rate.is_none());
+    }
+
+    /// Given: a historical XRC response inside the 30-minute settlement window
+    /// When: storing the result for a settlement expiry
+    /// Then: the rate is persisted and returned with the converted price in cents
+    #[test]
+    fn should_store_historical_exchange_rate_result_inside_settlement_window() {
+        // given
+        crate::storage::xrc_rates::clear_xrc_btc_usd_rates();
+        ic::set_runtime(Box::new(MockRuntime));
+        const EXPIRY_TIMESTAMP_SECONDS: u64 = TEST_TIMESTAMP_SECS;
+        const RESPONSE_TIMESTAMP_SECONDS: u64 =
+            EXPIRY_TIMESTAMP_SECONDS + PRICE_TIMESTAMP_MAX_DISTANCE_30_MINUTES_SECS;
+        let result: GetExchangeRateResult = Ok(make_exchange_rate(ExchangeRateOverrides {
+            timestamp: Some(RESPONSE_TIMESTAMP_SECONDS),
+            ..Default::default()
+        }));
+
+        // when
+        let stored_rate = store_xrc_btc_usd_exchange_rate_result_near_timestamp(
+            result,
+            EXPIRY_TIMESTAMP_SECONDS,
+            PRICE_TIMESTAMP_MAX_DISTANCE_30_MINUTES_SECS,
+        )
+        .expect("historical response inside settlement window should store");
+
+        // then
+        assert_eq!(stored_rate.price_cents, TEST_PRICE_CENTS);
+        assert_eq!(
+            stored_rate.xrc_timestamp_seconds,
+            RESPONSE_TIMESTAMP_SECONDS
+        );
+        assert!(get_xrc_btc_usd_rate(RESPONSE_TIMESTAMP_SECONDS).is_some());
+    }
+
+    /// Given: a historical XRC response outside the 30-minute settlement window
+    /// When: storing the result for a settlement expiry
+    /// Then: the rate is rejected and not persisted
+    #[test]
+    fn should_reject_historical_exchange_rate_result_outside_settlement_window() {
+        // given
+        crate::storage::xrc_rates::clear_xrc_btc_usd_rates();
+        const EXPIRY_TIMESTAMP_SECONDS: u64 = TEST_TIMESTAMP_SECS;
+        const RESPONSE_TIMESTAMP_SECONDS: u64 =
+            EXPIRY_TIMESTAMP_SECONDS + PRICE_TIMESTAMP_MAX_DISTANCE_30_MINUTES_SECS + 1;
+        let result: GetExchangeRateResult = Ok(make_exchange_rate(ExchangeRateOverrides {
+            timestamp: Some(RESPONSE_TIMESTAMP_SECONDS),
+            ..Default::default()
+        }));
+
+        // when
+        let stored_rate_result = store_xrc_btc_usd_exchange_rate_result_near_timestamp(
+            result,
+            EXPIRY_TIMESTAMP_SECONDS,
+            PRICE_TIMESTAMP_MAX_DISTANCE_30_MINUTES_SECS,
+        );
+
+        // then
+        assert!(stored_rate_result.is_err());
+        assert!(get_xrc_btc_usd_rate(RESPONSE_TIMESTAMP_SECONDS).is_none());
     }
 
     /// Given: repeated XRC retry failures
