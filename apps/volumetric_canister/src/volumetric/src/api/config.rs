@@ -2,7 +2,7 @@ use candid::Principal;
 use ic_cdk::{query, update};
 
 use crate::errors::VolumetricError;
-use crate::guards::{is_controller, is_whitelisted, no_replicated_call};
+use crate::guards::{is_whitelisted, no_replicated_call};
 use crate::storage::{get_platform_fees_collected, Config, FeatureFlags, FeeConfig, TradingLimits};
 use crate::usecases;
 use crate::usecases::{
@@ -153,13 +153,13 @@ pub fn set_fee_recipient_config(recipient: Principal) -> Result<(), VolumetricEr
 
 #[update]
 pub fn set_log_access_token(token: String) -> Result<(), VolumetricError> {
-    is_controller()?;
+    is_whitelisted()?;
     set_log_access_token_use_case(token)
 }
 
 #[update]
 pub fn clear_log_access_token() -> Result<(), VolumetricError> {
-    is_controller()?;
+    is_whitelisted()?;
     usecases::clear_log_access_token_use_case();
     Ok(())
 }

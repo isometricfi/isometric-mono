@@ -31,6 +31,7 @@ use crate::usecases::balances::transfer_ckbtc;
 
 type ExpiredOptionsByXrcTimestampSecs = BTreeMap<u64, Vec<ActiveOption>>;
 
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct SettlementResult {
     pub option_id: u64,
     pub settlement_price_cents: u64,
