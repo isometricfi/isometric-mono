@@ -612,7 +612,9 @@
     "cancelOffer": "Cancel Offer",
     "remainingBelowMinimum": "Remaining below {amount} min",
     "insufficientBacking": "Only {available} available",
-    "insufficientBackingShort": "Insufficient available balance"
+    "insufficientBackingShort": "Insufficient available balance",
+    "backingLimitTitle": "Backing limit",
+    "backingLimitDescription": "Your available balance ({available}) is less than this offer's size. Buyers can only fill it up to {available}. Deposit more BTC to back the full amount."
   },
   "Errors": {
     "unauthorizedController": "You are not authorized to perform this action",
