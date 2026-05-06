@@ -59,4 +59,4 @@ pub use withdrawals::{
     get_pending_withdrawals, get_withdraw_message, get_withdraw_status, get_withdrawal_by_id,
     withdraw_ckbtc,
 };
-pub use xrc_snapshot::fetch_xrc_btc_usd_exchange_rate_snapshot;
+pub use xrc_snapshot::get_latest_xrc_btc_usd_rate;
