@@ -224,6 +224,9 @@ pub(super) fn rollback_prepared_accepts(
     prepared_accepts: &[AcceptWalPreparedAccept],
     writer_offer_resizes: &[AcceptWalOfferResize],
 ) {
+    // Resizes touch no collateral, so they can be restored before or after
+    // unlock_collateral; restoring first keeps siblings consistent with the
+    // writer's eventual restored available balance.
     restore_resized_offers(writer_offer_resizes);
 
     for prepared_accept in prepared_accepts {
@@ -700,14 +703,14 @@ fn debit_buyer_available_balance(
 fn resize_writer_other_offers_after_lock(
     prepared_accept_executions: &[PreparedAcceptExecution],
 ) -> Vec<AcceptWalOfferResize> {
-    let mut writers_in_batch: BTreeSet<Principal> = BTreeSet::new();
-    let mut offer_ids_in_batch: BTreeSet<u64> = BTreeSet::new();
+    let mut writers_in_batch = BTreeSet::new();
+    let mut offer_ids_in_batch = BTreeSet::new();
     for execution in prepared_accept_executions {
         writers_in_batch.insert(execution.writer);
         offer_ids_in_batch.insert(execution.offer_id);
     }
 
-    let mut writer_offer_resizes: Vec<AcceptWalOfferResize> = Vec::new();
+    let mut writer_offer_resizes = Vec::new();
 
     for writer in writers_in_batch {
         // Read the writer's available balance after lock_collateral has run for

@@ -9,12 +9,13 @@ use icrc_ledger_types::icrc2::approve::ApproveArgs;
 use tokio::sync::oneshot;
 use tokio::task;
 
-use super::accept_offers::validate_accept_offer_request;
+use super::accept_offers::{rollback_prepared_accepts, validate_accept_offer_request};
 use super::*;
 use crate::errors::{error_codes, VolumetricError};
 use crate::ic::{self, IcRuntime};
 use crate::journaling::{
-    get_entry, ledger_memo, principal_memo_part, u64_memo_part, LedgerMemoKind, WalPayload,
+    get_entry, ledger_memo, principal_memo_part, u64_memo_part, AcceptWalOfferResize,
+    AcceptWalPreparedAccept, LedgerMemoKind, WalPayload,
 };
 use crate::ledger::{self, LedgerClient, TESTING_CKBTC_TRANSFER_FEE_SATS};
 use crate::oracle::{set_oracle, PriceOracle, StubOracle};
@@ -1299,4 +1300,109 @@ fn test_accept_does_not_resize_sibling_already_within_capacity() {
     assert_eq!(untouched_sibling.total_quantity, small_sibling_total);
 
     Config::set_feature_flags(prior_feature_flags);
+}
+
+/// Given: an accept has locked collateral, transitioned an offer to Processing,
+///        and shrunk + cancelled sibling offers from the same writer
+/// When: rollback_prepared_accepts runs (e.g. WAL transfer permanently failed)
+/// Then: collateral is released and every touched offer is restored to its
+///       pre-accept totals and status
+#[test]
+fn test_rollback_prepared_accepts_restores_collateral_and_resized_siblings() {
+    // given
+    let writer = test_principal(140);
+    let buyer = test_principal(141);
+    setup_test_state(writer, buyer);
+
+    // Simulate the state right before rollback: writer's full balance is locked
+    // for the in-flight accept, the accepted offer is Processing with 0 left,
+    // one sibling was shrunk to 0.4 BTC, and another sibling was cancelled.
+    set_balance(
+        writer,
+        UserBalance {
+            available: 0,
+            locked_as_writer: TEST_QUANTITY_SATS,
+        },
+    );
+
+    let mut accepted_offer = get_offer(TEST_OFFER_ID).expect("accepted offer should exist");
+    accepted_offer.status = OfferStatus::Processing;
+    accepted_offer.remaining_quantity = 0;
+    update_offer(accepted_offer);
+
+    let shrunk_sibling_id = TEST_SIBLING_OFFER_ID;
+    insert_sibling_offer(writer, 400_000, 400_000);
+
+    let cancelled_sibling_id = 3;
+    insert_offer(Offer {
+        id: cancelled_sibling_id,
+        writer,
+        asset: Asset::CkBtc,
+        option_type: OptionType::Call,
+        strike_basis_points: TEST_STRIKE_BPS,
+        premium_basis_points: TEST_PREMIUM_BPS,
+        total_quantity: 0,
+        remaining_quantity: 0,
+        offer_valid_until_seconds: TEST_NOW_SECONDS + TEST_OFFER_VALID_FOR_SECONDS,
+        option_duration_seconds: TEST_DURATION_SECS,
+        status: OfferStatus::Cancelled,
+        created_at_seconds: TEST_NOW_SECONDS,
+    });
+
+    let prepared_accepts = vec![AcceptWalPreparedAccept {
+        offer_id: TEST_OFFER_ID,
+        writer,
+        asset: Asset::CkBtc,
+        option_type: OptionType::Call,
+        strike_basis_points: TEST_STRIKE_BPS,
+        quantity_sats: TEST_QUANTITY_SATS,
+        premium_sats: 0,
+        premium_to_writer_sats: 0,
+        premium_fee_sats: 0,
+        option_id: 1,
+        expiry_seconds: TEST_NOW_SECONDS + TEST_DURATION_SECS,
+        original_remaining_quantity_sats: TEST_QUANTITY_SATS,
+        original_status: OfferStatus::Open,
+        profit_fee_basis_points: 0,
+    }];
+
+    let writer_offer_resizes = vec![
+        AcceptWalOfferResize {
+            offer_id: shrunk_sibling_id,
+            writer,
+            original_total_quantity_sats: TEST_QUANTITY_SATS,
+            original_remaining_quantity_sats: TEST_QUANTITY_SATS,
+            original_status: OfferStatus::Open,
+        },
+        AcceptWalOfferResize {
+            offer_id: cancelled_sibling_id,
+            writer,
+            original_total_quantity_sats: TEST_QUANTITY_SATS,
+            original_remaining_quantity_sats: TEST_QUANTITY_SATS,
+            original_status: OfferStatus::Open,
+        },
+    ];
+
+    // when
+    rollback_prepared_accepts(&prepared_accepts, &writer_offer_resizes);
+
+    // then
+    let writer_balance = get_balance(&writer);
+    assert_eq!(writer_balance.available, TEST_QUANTITY_SATS);
+    assert_eq!(writer_balance.locked_as_writer, 0);
+
+    let restored_accepted = get_offer(TEST_OFFER_ID).expect("accepted offer should exist");
+    assert_eq!(restored_accepted.status, OfferStatus::Open);
+    assert_eq!(restored_accepted.remaining_quantity, TEST_QUANTITY_SATS);
+
+    let restored_shrunk = get_offer(shrunk_sibling_id).expect("shrunk sibling should exist");
+    assert_eq!(restored_shrunk.status, OfferStatus::Open);
+    assert_eq!(restored_shrunk.remaining_quantity, TEST_QUANTITY_SATS);
+    assert_eq!(restored_shrunk.total_quantity, TEST_QUANTITY_SATS);
+
+    let restored_cancelled =
+        get_offer(cancelled_sibling_id).expect("cancelled sibling should exist");
+    assert_eq!(restored_cancelled.status, OfferStatus::Open);
+    assert_eq!(restored_cancelled.remaining_quantity, TEST_QUANTITY_SATS);
+    assert_eq!(restored_cancelled.total_quantity, TEST_QUANTITY_SATS);
 }
