@@ -50,12 +50,16 @@ When BTC has been moving hard, every strike looks reachable. Premiums rise acros
 
 ## How offers fill
 
-Writers post offers at a strike, term, and premium. Buyers shop by strike and term, and the **lowest-priced matching offer fills first**. It's a best-price market: the cheapest writer wins the buyer.
+Writers post offers at a strike, term, and premium. Buyers shop by strike and term. For a given strike and term, offers are ranked in this order:
+
+1. **Lowest premium first.** The cheapest writer wins.
+2. **Oldest offer first** at the same premium (FIFO).
+3. **Largest offer wins big buyers.** Each buyer fills from one offer at a time. If they need more size than the cheapest offer has, they skip it and take the next offer big enough, even if its premium is higher.
 
 This means:
 
-- **As a writer**, you're competing on price. The write flow shows your offer's competitiveness against other open offers at the same (strike, term). Undercut to fill faster; hold higher to earn more per fill, if it fills at all.
-- **As a buyer**, you're not negotiating. You take the best offer the market currently has at the (strike, term) you want.
+- **As a writer**, you compete on price first. The write flow shows your offer's competitiveness against other open offers at the same (strike, term). Undercut to fill faster, or hold a higher premium with a bigger offer to capture buyers who are too big for the cheapest offer.
+- **As a buyer**, you're not negotiating. The app picks the cheapest offer that has enough size for what you're putting in.
 
 When buyer demand piles up, writers can hold higher premiums. When writers crowd in, premiums get bid down and buyers get better leverage at the same strike and term.
 
