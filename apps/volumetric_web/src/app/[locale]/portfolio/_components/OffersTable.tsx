@@ -6,6 +6,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import {
   getOfferRank,
   type PortfolioOffer,
+  useAccount,
   useCancelOffer,
   useOptions,
   usePortfolio,
@@ -18,10 +19,12 @@ export function OffersTable() {
   const { data: priceData } = usePrices();
   const { data: portfolio, isLoading } = usePortfolio();
   const { data: optionsData } = useOptions();
+  const { data: accountData } = useAccount();
   const cancelOfferMutation = useCancelOffer();
   const t = useTranslations("Portfolio");
 
   const currentBtcPrice = priceData?.btc ?? 0;
+  const availableBalanceSats = accountData?.balance?.available;
 
   if (isLoading) {
     return (
@@ -79,6 +82,7 @@ export function OffersTable() {
             key={offer.id.toString()}
             offer={offer}
             btcPrice={currentBtcPrice}
+            availableBalanceSats={availableBalanceSats}
             onCancel={(id) => cancelOfferMutation.mutate(id)}
             isCancelling={
               cancelOfferMutation.isPending &&

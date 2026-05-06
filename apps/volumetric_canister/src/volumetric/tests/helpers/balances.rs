@@ -11,7 +11,7 @@ pub fn get_user_balance(env: &TestEnv, address: &str) -> Result<UserBalanceInfo,
         .pic
         .query_call(
             env.volumetric_canister,
-            candid::Principal::anonymous(),
+            env.controller,
             "get_user_balance",
             candid::encode_one(address.to_string()).unwrap(),
         )

@@ -2,13 +2,42 @@ import type { ActiveOption, Offer } from "@volumetric/canister-types";
 import type { OptionOffer, OptionsData, StrikeBucket, TermGroup } from "@/types/options";
 import { basisPointsToPercent, roundToN, secondsToDays, secondsToISOString } from "./utils";
 
-export function groupOffersByTermAndStrike(offers: Offer[]): OptionsData {
+export function groupOffersByTermAndStrike(
+  offers: Offer[],
+  balancesByWriter?: Map<string, bigint>,
+): OptionsData {
   const termMap = new Map<number, Map<number, OptionOffer[]>>();
 
-  for (const offer of offers) {
+  // FIFO allocation across each writer's available balance: older offers are
+  // backed first, mirroring the buyer matcher's tiebreaker (premium-amount.ts).
+  const sortedOffers = [...offers].sort(
+    (a, b) => Number(a.created_at_seconds) - Number(b.created_at_seconds),
+  );
+  const remainingByWriter = new Map<string, bigint>();
+  if (balancesByWriter) {
+    for (const [writer, available] of balancesByWriter) {
+      remainingByWriter.set(writer, available);
+    }
+  }
+
+  for (const offer of sortedOffers) {
     const termDays = secondsToDays(offer.option_duration_seconds);
     const strikePercent = basisPointsToPercent(offer.strike_basis_points);
-    const transformedOffer = transformOffer(offer);
+    const writerKey = offer.writer.toText();
+
+    let effectiveRemaining = offer.remaining_quantity;
+    if (balancesByWriter) {
+      const writerAvailable = remainingByWriter.get(writerKey) ?? BigInt(0);
+      effectiveRemaining =
+        offer.remaining_quantity < writerAvailable ? offer.remaining_quantity : writerAvailable;
+      remainingByWriter.set(writerKey, writerAvailable - effectiveRemaining);
+    }
+
+    if (effectiveRemaining <= BigInt(0)) {
+      continue;
+    }
+
+    const transformedOffer = transformOffer(offer, effectiveRemaining);
 
     if (!termMap.has(termDays)) {
       termMap.set(termDays, new Map());
@@ -120,11 +149,11 @@ export function groupActiveOptionsByTermAndStrike(options: ActiveOption[]): Opti
   return { termGroups };
 }
 
-function transformOffer(offer: Offer): OptionOffer {
+function transformOffer(offer: Offer, effectiveRemaining: bigint): OptionOffer {
   return {
     id: offer.id.toString(),
     writerId: offer.writer.toText(),
-    amountSats: Number(offer.remaining_quantity),
+    amountSats: Number(effectiveRemaining),
     premium: basisPointsToPercent(offer.premium_basis_points),
     strikePercent: basisPointsToPercent(offer.strike_basis_points),
     termDays: secondsToDays(offer.option_duration_seconds),
