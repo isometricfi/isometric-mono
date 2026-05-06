@@ -82,5 +82,3 @@ pub async fn testing_force_settle(
     is_whitelisted()?;
     usecases::testing_force_settle_option_use_case(option_id).await
 }
-
-
