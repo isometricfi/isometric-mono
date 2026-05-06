@@ -108,12 +108,12 @@ export default async function TermsPage({ params }: { params: Promise<{ locale: 
               not a liquidity provider and liquidity providers are independent third parties.
             </p>
             <p>
-              To access the Interface, you must use a non-custodial wallet software, which allows
-              you to interact with public blockchains. Your relationship with that non-custodial
-              wallet provider is governed by the applicable terms of service. We do not have custody
-              or control over the contents of your wallet and have no ability to retrieve or
-              transfer its contents. By connecting your wallet to our Interface, you agree to be
-              bound by this Agreement and all of the terms incorporated herein by reference.
+              To access the Interface, you must use a blockchain wallet, which allows you to
+              interact with public blockchains. Your relationship with that wallet provider is
+              governed by the applicable terms of service. We do not have custody or control over
+              the contents of your wallet and have no ability to retrieve or transfer its contents.
+              By connecting your wallet to our Interface, you agree to be bound by this Agreement
+              and all of the terms incorporated herein by reference.
             </p>
 
             <h3 className="text-xl font-medium mt-6">1.2 Third-Party Services and Content</h3>
@@ -260,13 +260,13 @@ export default async function TermsPage({ params }: { params: Promise<{ locale: 
               we do not conduct a suitability review of any trades you submit.
             </p>
 
-            <h3 className="text-xl font-medium mt-6">4.3 Non-Custodial and No Fiduciary Duties</h3>
+            <h3 className="text-xl font-medium mt-6">4.3 No Fiduciary Duties</h3>
             <p>
-              Each of the Products is a purely non-custodial application, meaning we do not ever
-              have custody, possession, or control of your digital assets at any time. It further
-              means you are solely responsible for the custody of the cryptographic private keys to
-              the digital asset wallets you hold and you should never share your wallet credentials
-              or seed phrase with anyone. We accept no responsibility for, or liability to you, in
+              Each of the Products operates as a smart contract protocol. We do not ever have
+              custody, possession, or control of your digital assets at any time. It further means
+              you are solely responsible for the custody of the cryptographic private keys to the
+              digital asset wallets you hold and you should never share your wallet credentials or
+              seed phrase with anyone. We accept no responsibility for, or liability to you, in
               connection with your use of a wallet and make no representations or warranties
               regarding how any of our Products will operate with any specific wallet. Likewise, you
               are solely responsible for any associated wallet and we are not liable for any acts or
@@ -548,8 +548,8 @@ export default async function TermsPage({ params }: { params: Promise<{ locale: 
               customers or users. We will make commercially reasonable efforts to provide notice to
               you of any such claim, suit, or proceeding, provided that we have sufficient contact
               information to do so; you acknowledge that, because the Products are accessed through
-              non-custodial wallets and we do not collect direct contact information from you, we
-              may be unable to provide such notice, and our inability to do so will not affect your
+              blockchain wallets and we do not collect direct contact information from you, we may
+              be unable to provide such notice, and our inability to do so will not affect your
               indemnification obligations under this Section. We reserve the right to assume the
               exclusive defense and control of any matter which is subject to indemnification under
               this section, and you agree to cooperate with any reasonable requests assisting our

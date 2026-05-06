@@ -3,7 +3,7 @@ slug: /
 sidebar_position: 1
 title: Isometric
 description: Isometric is an on-chain Bitcoin call options app. Earn premium on your BTC by writing options, or take leveraged BTC positions with capped downside.
-keywords: [Bitcoin options, BTC call options, on-chain options, self-custody, no KYC]
+keywords: [Bitcoin options, BTC call options, on-chain options, no KYC]
 ---
 
 # Isometric
