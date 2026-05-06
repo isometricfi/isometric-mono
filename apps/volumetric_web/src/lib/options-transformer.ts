@@ -8,29 +8,16 @@ export function groupOffersByTermAndStrike(
 ): OptionsData {
   const termMap = new Map<number, Map<number, OptionOffer[]>>();
 
-  // FIFO allocation across each writer's available balance: older offers are
-  // backed first, mirroring the buyer matcher's tiebreaker (premium-amount.ts).
-  const sortedOffers = [...offers].sort(
-    (a, b) => Number(a.created_at_seconds) - Number(b.created_at_seconds),
-  );
-  const remainingByWriter = new Map<string, bigint>();
-  if (balancesByWriter) {
-    for (const [writer, available] of balancesByWriter) {
-      remainingByWriter.set(writer, available);
-    }
-  }
-
-  for (const offer of sortedOffers) {
+  for (const offer of offers) {
     const termDays = secondsToDays(offer.option_duration_seconds);
     const strikePercent = basisPointsToPercent(offer.strike_basis_points);
     const writerKey = offer.writer.toText();
 
     let effectiveRemaining = offer.remaining_quantity;
     if (balancesByWriter) {
-      const writerAvailable = remainingByWriter.get(writerKey) ?? BigInt(0);
+      const writerAvailable = balancesByWriter.get(writerKey) ?? BigInt(0);
       effectiveRemaining =
         offer.remaining_quantity < writerAvailable ? offer.remaining_quantity : writerAvailable;
-      remainingByWriter.set(writerKey, writerAvailable - effectiveRemaining);
     }
 
     if (effectiveRemaining <= BigInt(0)) {
