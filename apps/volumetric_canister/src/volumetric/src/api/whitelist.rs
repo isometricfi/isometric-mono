@@ -5,7 +5,7 @@ use crate::errors::VolumetricError;
 use crate::guards::{is_controller, is_whitelisted, no_replicated_call};
 use crate::usecases;
 
-const HELLO_RESPONSE: &str = "hello";
+const HELLO_RESPONSE: &str = "hello world live";
 
 #[query(guard = "no_replicated_call")]
 pub fn hello() -> Result<String, VolumetricError> {
