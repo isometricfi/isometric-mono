@@ -41,8 +41,8 @@ pub use api::{
     get_user_balance, get_user_balance_by_principal, get_user_balances_by_principals,
     get_username_update_message, get_withdraw_message, get_withdraw_status, get_withdrawal_by_id,
     list_users, list_whitelisted, remove_whitelisted, set_feature_flags_config,
-    set_log_access_token, set_trading_limits_config,
-    update_ckbtc_balance, update_username, validate_invite_code, withdraw_ckbtc, UserBalanceInfo,
+    set_log_access_token, set_trading_limits_config, update_ckbtc_balance, update_username,
+    validate_invite_code, withdraw_ckbtc, UserBalanceInfo,
 };
 #[cfg(feature = "testing")]
 pub use api::{
