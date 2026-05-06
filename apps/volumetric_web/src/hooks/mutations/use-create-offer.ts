@@ -7,12 +7,12 @@ import { unwrapResult } from "@volumetric/canister-types";
 import { useState } from "react";
 import { signBitcoinPaymentMessage } from "@/lib/bitcoin/sign-payment-message";
 import { computeExpiresAtSeconds } from "@/lib/use-cases/_shared/wallet-proof";
+import { OFFER_VALID_UNTIL_DEFAULT_OFFSET_SECONDS } from "@/lib/use-cases/options/create-offer/offer-valid-until-policy";
 import type { Output as CreateOfferOutput } from "@/lib/use-cases/options/create-offer/schema";
 import { trpcClient } from "@/trpc/react";
 import { useBtcAddress } from "../queries/use-btc-address";
 import { useCanister } from "../use-canister";
 
-const TEN_YEARS_SECONDS = BigInt(86400) * BigInt(365 * 10);
 const SECONDS_PER_DAY = 86400;
 const PERCENT_TO_BASIS_POINTS = 100;
 
@@ -55,7 +55,7 @@ export function useCreateOffer() {
       const optionDurationSeconds = BigInt(termDays * SECONDS_PER_DAY);
 
       const nowSeconds = BigInt(Math.floor(Date.now() / 1000));
-      const offerValidUntilSeconds = nowSeconds + TEN_YEARS_SECONDS;
+      const offerValidUntilSeconds = nowSeconds + OFFER_VALID_UNTIL_DEFAULT_OFFSET_SECONDS;
       const expiresAtSeconds = computeExpiresAtSeconds();
 
       const message = unwrapResult(

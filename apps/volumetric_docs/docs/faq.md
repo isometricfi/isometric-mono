@@ -13,11 +13,11 @@ Bitcoin deposits require 4 network confirmations before they credit. This typica
 
 ## What's the minimum deposit?
 
-**0.0005 BTC** (50,000 sats). Anything smaller will not credit.
+**₿0.00002** (2k sats). We recommend depositing at least **₿0.00051** (51k sats) as the minimum withdrawal amount is **₿0.000501** (50.1k sats).
 
 ## What's the minimum withdrawal?
 
-**0.0005 BTC** (50,000 sats). The Bitcoin network fee is also deducted from the amount you withdraw.
+**₿0.000501** (50.1k sats). The Bitcoin network fee is also deducted from the amount you withdraw.
 
 ## Does writing an offer lock my BTC?
 
@@ -64,9 +64,6 @@ See [Fees](/trading/fees) for worked examples.
 
 - Offer size: 0.0004 BTC to 1 BTC.
 - Option purchase: 500 sats to 1 BTC.
-- Term: 1 to 14 days.
-- Strike: 2% to 15% above the current price.
-- Premium (writer): 0.25% to 6% in 0.25% steps.
 - Up to 5 open offers per term as a writer.
 
 ## Are puts supported?
@@ -83,4 +80,4 @@ It's a comparison of your premium against other open offers at the same strike a
 
 ## Do I need KYC?
 
-No. Isometric is permissionless. Connect a wallet, deposit BTC, trade.
+No. Isometric is permissionless. Connect a wallet, deposit BTC, trade. Check our [terms of service](https://isometric.fi/terms) for restricted regions.

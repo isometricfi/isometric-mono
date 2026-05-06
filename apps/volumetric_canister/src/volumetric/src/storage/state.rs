@@ -42,7 +42,7 @@ pub enum MemoryIndex {
     ReservedTimestampSecondsMigrationMemory = 15,
     /// Hashed bearer token for protected HTTP log access.
     LogAccessTokenHashMemory = 16,
-    /// Cached BTC/USD rates fetched from the XRC.
+    /// Cached BTC/USDT rates fetched from the XRC (legacy rows may be USD-priced).
     XrcBtcUsdRatesMemory = 17,
 }
 

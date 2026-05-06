@@ -3,6 +3,8 @@ import { z } from "zod";
 
 const SIGNING_WINDOW_SECONDS = 300;
 
+export const CHALLENGE_MAX_LIFETIME_SECONDS = 600;
+
 export const walletProofInputSchema = z.object({
   address: z.string().min(1),
   signature: z.string().min(1),
