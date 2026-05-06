@@ -47,9 +47,7 @@ The review screen shows strike, term, amount, premium, APY, competitiveness, and
 
 ## What happens next
 
-Your offer goes live and appears in **Portfolio → Offers**. Creating the offer does **not** lock your BTC.
-
-Because BTC isn't locked at offer creation, your open offers can total more than your **available** balance (for example, after another offer fills or you withdraw). When that happens, each offer is shown as filling only up to your remaining available balance, with a **Backed: X of Y** badge so you can see how much of it is actually buyable. If an offer's backing falls below the minimum fill size, it shows as **Insufficient available balance** and can only be cancelled until you top up.
+Your offer goes live and appears in **Portfolio → Offers**. Creating the offer does **not** lock your BTC, so your open offers can exceed your **available** balance. When that happens, each offer can only fill up to what's available, shown as **Backed: X of Y** (or **Insufficient available balance** if too low to fill at all).
 
 When a buyer accepts (in whole or in part):
 
