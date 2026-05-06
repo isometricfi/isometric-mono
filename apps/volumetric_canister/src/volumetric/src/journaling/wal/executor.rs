@@ -365,6 +365,7 @@ mod tests {
                 created_at_time_ns: TEST_NOW_NS,
                 prepared_accepts: Vec::new(),
                 writer_transfers: Vec::new(),
+                writer_offer_resizes: Vec::new(),
             }),
             max_retries: 20,
             backoff_secs: 5,

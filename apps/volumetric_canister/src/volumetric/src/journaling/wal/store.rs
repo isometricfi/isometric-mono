@@ -379,6 +379,7 @@ mod tests {
             created_at_time_ns,
             prepared_accepts: Vec::new(),
             writer_transfers: Vec::new(),
+            writer_offer_resizes: Vec::new(),
         })
     }
 
