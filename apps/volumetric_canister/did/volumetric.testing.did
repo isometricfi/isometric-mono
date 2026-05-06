@@ -352,9 +352,8 @@ type Result_3 = variant { Ok : nat64; Err : VolumetricError };
 type Result_30 = variant { Ok : SettlementReceipt; Err : VolumetricError };
 type Result_31 = variant { Ok : ClearStorageResponse; Err : VolumetricError };
 type Result_32 = variant { Ok : ActiveOption; Err : VolumetricError };
-type Result_33 = variant { Ok : SettlementResult_1; Err : VolumetricError };
-type Result_34 = variant { Ok : vec UtxoStatus; Err : VolumetricError };
-type Result_35 = variant { Ok : WithdrawReceipt; Err : VolumetricError };
+type Result_33 = variant { Ok : vec UtxoStatus; Err : VolumetricError };
+type Result_34 = variant { Ok : WithdrawReceipt; Err : VolumetricError };
 type Result_4 = variant { Ok : ProfileInfo; Err : VolumetricError };
 type Result_5 = variant { Ok : CreateOfferResponse; Err : VolumetricError };
 type Result_6 = variant { Ok : opt PendingAccept; Err : VolumetricError };
@@ -378,14 +377,6 @@ type SettlementReceipt = record { operation_id : blob; option_id : nat64 };
 type SettlementResult = record {
   status : ActiveOptionStatus;
   payout_to_buyer : nat64;
-  option_id : nat64;
-  settlement_price_cents : nat64;
-  payout_to_writer : nat64;
-};
-type SettlementResult_1 = record {
-  status : ActiveOptionStatus;
-  payout_to_buyer : nat64;
-  profit_fee : nat64;
   option_id : nat64;
   settlement_price_cents : nat64;
   payout_to_writer : nat64;
@@ -590,14 +581,12 @@ service : (opt BtcNetwork) -> {
   testing_expire_option : (nat64) -> (Result_32);
   testing_force_settle : (nat64) -> (Result_30);
   testing_reset_oracle : () -> (Result_1);
-  testing_reset_stuck_settling_option : (nat64) -> (Result_32);
   testing_set_ckbtc_ledger : (principal) -> (Result_1);
   testing_set_option_expiry_seconds : (nat64, nat64) -> (Result_32);
   testing_set_oracle_price_cents : (nat64) -> (Result_1);
-  testing_settle_option_with_price : (nat64, nat64) -> (Result_33);
   testing_sync_balance_from_ledger : (text) -> (Result_3);
-  update_ckbtc_balance : (text) -> (Result_34);
+  update_ckbtc_balance : (text) -> (Result_33);
   update_username : (AuthenticatedPayload_5) -> (Result_4);
   validate_invite_code : (text, text) -> (bool) query;
-  withdraw_ckbtc : (AuthenticatedPayload_6) -> (Result_35);
+  withdraw_ckbtc : (AuthenticatedPayload_6) -> (Result_34);
 }

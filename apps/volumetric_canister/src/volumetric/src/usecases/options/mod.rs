@@ -13,6 +13,5 @@ pub use settle_option::{
 #[cfg(feature = "testing")]
 pub use settle_option::{
     testing_expire_option_use_case, testing_force_settle_option_use_case,
-    testing_reset_stuck_settling_option_use_case, testing_set_option_expiry_use_case,
-    testing_settle_option_with_price_use_case,
+    testing_set_option_expiry_use_case,
 };

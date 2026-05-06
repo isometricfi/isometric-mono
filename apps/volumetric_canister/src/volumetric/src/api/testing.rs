@@ -83,19 +83,4 @@ pub async fn testing_force_settle(
     usecases::testing_force_settle_option_use_case(option_id).await
 }
 
-#[ic_cdk::update]
-pub fn testing_reset_stuck_settling_option(
-    option_id: u64,
-) -> Result<ActiveOption, VolumetricError> {
-    is_whitelisted()?;
-    usecases::testing_reset_stuck_settling_option_use_case(option_id)
-}
 
-#[ic_cdk::update]
-pub async fn testing_settle_option_with_price(
-    option_id: u64,
-    price_cents: u64,
-) -> Result<usecases::SettlementResult, VolumetricError> {
-    is_whitelisted()?;
-    usecases::testing_settle_option_with_price_use_case(option_id, price_cents).await
-}
