@@ -462,11 +462,15 @@
     "offers": "报价",
     "loadingOptions": "正在加载期权...",
     "noOptionsAvailable": "没有可用期权",
+    "noActiveOptions": "没有活跃期权",
     "beFirstToWrite": "成为第一个卖出期权的人！",
     "expires": "到期",
     "strike": "行权价",
     "liquidity": "流动性",
-    "daysShort": "天"
+    "daysShort": "天",
+    "orders": "挂单",
+    "active": "活跃",
+    "positions": "持仓"
   },
   "ShareSummary": {
     "title": "邀请他人",
