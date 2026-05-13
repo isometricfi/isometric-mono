@@ -108,8 +108,8 @@ describe("mapConfig", () => {
     const result = mapConfig(limits, makeValidFeeConfig());
 
     // then
-    expect(result.termOptions).toEqual([3, 7]);
-    expect(result.minTermDays).toBe(3);
+    expect(result.termOptions).toEqual([1, 3, 7]);
+    expect(result.minTermDays).toBe(1);
     expect(result.maxTermDays).toBe(7);
   });
 
