@@ -52,7 +52,7 @@ describe("mapConfig", () => {
       canisterId: undefined,
       icHost: "https://ic0.app",
       termOptions: [3, 7],
-      strikePercentOptions: [2, 3, 5, 8],
+      strikePercentOptions: [1, 2, 3, 5, 8],
       premium: { min: 1, max: 50, step: 0.1 },
       minCreateOfferAmountSats: 10_000,
       maxCreateOfferAmountSats: 1_000_000,
@@ -101,7 +101,10 @@ describe("mapConfig", () => {
   test("should include days whose exact seconds fit a sub-day minimum", () => {
     // given
     const limits = makeValidLimits({
-      option_duration_seconds: { min: BigInt(3_600), max: BigInt(30 * SECONDS_PER_DAY) },
+      option_duration_seconds: {
+        min: BigInt(3_600),
+        max: BigInt(30 * SECONDS_PER_DAY),
+      },
     });
 
     // when
