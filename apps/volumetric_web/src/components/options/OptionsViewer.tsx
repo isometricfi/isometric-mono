@@ -3,7 +3,7 @@
 import { format } from "date-fns";
 import { AnimatePresence, motion } from "framer-motion";
 import { Atom, BookOpen, ChevronDown, ChevronRight, User } from "lucide-react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatedToggle, type ToggleOption } from "@/components/navigation/AnimatedToggle";
 import { useAccount, useActiveOptions, useConfig, useOptions, usePrices } from "@/hooks";
@@ -237,6 +237,7 @@ interface OptionsViewerProps {
 
 export function OptionsViewer({ mode }: OptionsViewerProps) {
   const t = useTranslations("OptionsViewer");
+  const locale = useLocale();
   const { data: ordersData, isLoading: isLoadingOrders } = useOptions();
   const { data: activeData, isLoading: isLoadingActive } = useActiveOptions();
   const { data: priceData } = usePrices();
@@ -306,7 +307,8 @@ export function OptionsViewer({ mode }: OptionsViewerProps) {
             <div className="flex items-center justify-between text-sm text-muted-foreground">
               {dataset === "orders" && currentTermGroup ? (
                 <span>
-                  {t("expires")} {formatOrdersHeadlineSettlesOnMonthDayUtc(currentTermGroup.term)}
+                  {t("expires")}{" "}
+                  {formatOrdersHeadlineSettlesOnMonthDayUtc(currentTermGroup.term, locale)}
                 </span>
               ) : (
                 <span />
@@ -369,13 +371,14 @@ export function OptionsViewer({ mode }: OptionsViewerProps) {
 // UTC calendar day + term: same headline for every client. TermGroup.expiryDate is min offer listing TTL.
 function formatOrdersHeadlineSettlesOnMonthDayUtc(
   termDays: number,
+  locale: string,
   now: Date = new Date(),
 ): string {
   const y = now.getUTCFullYear();
   const m = now.getUTCMonth();
   const d = now.getUTCDate();
   const settlesUtc = new Date(Date.UTC(y, m, d + termDays));
-  return new Intl.DateTimeFormat("en-US", {
+  return new Intl.DateTimeFormat(locale, {
     month: "short",
     day: "numeric",
     timeZone: "UTC",
