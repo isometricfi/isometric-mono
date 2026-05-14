@@ -15,22 +15,6 @@ import { Card, CardContent } from "../ui/card";
 
 type Dataset = "orders" | "active";
 
-// UTC calendar day + term: same headline for every client. TermGroup.expiryDate is min offer listing TTL.
-function formatOrdersHeadlineSettlesOnMonthDayUtc(
-  termDays: number,
-  now: Date = new Date(),
-): string {
-  const y = now.getUTCFullYear();
-  const m = now.getUTCMonth();
-  const d = now.getUTCDate();
-  const settlesUtc = new Date(Date.UTC(y, m, d + termDays));
-  return new Intl.DateTimeFormat("en-US", {
-    month: "short",
-    day: "numeric",
-    timeZone: "UTC",
-  }).format(settlesUtc);
-}
-
 function formatExpiresAt(iso: string): string {
   const d = new Date(iso);
   const ms = d.getTime() - Date.now();
@@ -380,4 +364,20 @@ export function OptionsViewer({ mode }: OptionsViewerProps) {
       </CardContent>
     </Card>
   );
+}
+
+// UTC calendar day + term: same headline for every client. TermGroup.expiryDate is min offer listing TTL.
+function formatOrdersHeadlineSettlesOnMonthDayUtc(
+  termDays: number,
+  now: Date = new Date(),
+): string {
+  const y = now.getUTCFullYear();
+  const m = now.getUTCMonth();
+  const d = now.getUTCDate();
+  const settlesUtc = new Date(Date.UTC(y, m, d + termDays));
+  return new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+    timeZone: "UTC",
+  }).format(settlesUtc);
 }
