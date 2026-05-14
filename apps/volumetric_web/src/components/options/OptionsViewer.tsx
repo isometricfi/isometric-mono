@@ -1,5 +1,6 @@
 "use client";
 
+import { addDays, format, startOfDay } from "date-fns";
 import { AnimatePresence, motion } from "framer-motion";
 import { Atom, BookOpen, ChevronDown, ChevronRight, User } from "lucide-react";
 import { useTranslations } from "next-intl";
@@ -22,7 +23,7 @@ function formatExpiresAt(iso: string): string {
   if (minutes < 60) return `${minutes}m`;
   const hours = Math.round(minutes / 60);
   if (hours < 24) return `${hours}h`;
-  return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  return format(d, "MMM d");
 }
 
 interface StrikeRowProps {
@@ -280,13 +281,6 @@ export function OptionsViewer({ mode }: OptionsViewerProps) {
     setExpandedStrikePercent((prev) => (prev === strikePercent ? null : strikePercent));
   };
 
-  const formatExpiryDate = (dateStr: string) => {
-    return new Date(dateStr).toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-    });
-  };
-
   return (
     <Card>
       <CardContent className="space-y-4">
@@ -312,7 +306,8 @@ export function OptionsViewer({ mode }: OptionsViewerProps) {
             <div className="flex items-center justify-between text-sm text-muted-foreground">
               {dataset === "orders" && currentTermGroup ? (
                 <span>
-                  {t("expires")} {formatExpiryDate(currentTermGroup.expiryDate)}
+                  {t("expires")}{" "}
+                  {format(addDays(startOfDay(new Date()), currentTermGroup.term), "MMM d")}
                 </span>
               ) : (
                 <span />
