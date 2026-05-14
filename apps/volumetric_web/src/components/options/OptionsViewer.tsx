@@ -1,6 +1,6 @@
 "use client";
 
-import { addDays, format, startOfDay } from "date-fns";
+import { format } from "date-fns";
 import { AnimatePresence, motion } from "framer-motion";
 import { Atom, BookOpen, ChevronDown, ChevronRight, User } from "lucide-react";
 import { useTranslations } from "next-intl";
@@ -14,6 +14,22 @@ import type { ViewerMode } from "@/types/ui";
 import { Card, CardContent } from "../ui/card";
 
 type Dataset = "orders" | "active";
+
+// UTC calendar day + term: same headline for every client. TermGroup.expiryDate is min offer listing TTL.
+function formatOrdersHeadlineSettlesOnMonthDayUtc(
+  termDays: number,
+  now: Date = new Date(),
+): string {
+  const y = now.getUTCFullYear();
+  const m = now.getUTCMonth();
+  const d = now.getUTCDate();
+  const settlesUtc = new Date(Date.UTC(y, m, d + termDays));
+  return new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+    timeZone: "UTC",
+  }).format(settlesUtc);
+}
 
 function formatExpiresAt(iso: string): string {
   const d = new Date(iso);
@@ -306,8 +322,7 @@ export function OptionsViewer({ mode }: OptionsViewerProps) {
             <div className="flex items-center justify-between text-sm text-muted-foreground">
               {dataset === "orders" && currentTermGroup ? (
                 <span>
-                  {t("expires")}{" "}
-                  {format(addDays(startOfDay(new Date()), currentTermGroup.term), "MMM d")}
+                  {t("expires")} {formatOrdersHeadlineSettlesOnMonthDayUtc(currentTermGroup.term)}
                 </span>
               ) : (
                 <span />
