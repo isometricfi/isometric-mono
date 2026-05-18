@@ -27,12 +27,15 @@ export default function sitemap(): MetadataRoute.Sitemap {
         changeFrequency: route.changeFrequency,
         priority: route.priority,
         alternates: {
-          languages: Object.fromEntries(
-            routing.locales.map((l) => [
-              l,
-              `${BASE_URL}${getPathname({ href: route.pathname, locale: l })}`,
-            ]),
-          ),
+          languages: {
+            ...Object.fromEntries(
+              routing.locales.map((locale) => [
+                locale,
+                `${BASE_URL}${getPathname({ href: route.pathname, locale })}`,
+              ]),
+            ),
+            "x-default": `${BASE_URL}${getPathname({ href: route.pathname, locale: routing.defaultLocale })}`,
+          },
         },
       };
     }),

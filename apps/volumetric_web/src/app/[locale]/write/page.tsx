@@ -7,7 +7,7 @@ export async function generateMetadata({
 }: {
   params: Promise<{ locale: string }>;
 }): Promise<Metadata> {
-  return generatePageMetadata({ params }, "Metadata.write");
+  return generatePageMetadata({ params }, "Metadata.write", "/write");
 }
 
 export default function WritePage() {

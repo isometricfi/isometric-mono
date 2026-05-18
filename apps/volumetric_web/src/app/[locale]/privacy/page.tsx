@@ -9,7 +9,7 @@ export async function generateMetadata({
 }: {
   params: Promise<{ locale: string }>;
 }): Promise<Metadata> {
-  return generatePageMetadata({ params }, "Metadata.privacy");
+  return generatePageMetadata({ params }, "Metadata.privacy", "/privacy");
 }
 
 export default async function PrivacyPage({ params }: { params: Promise<{ locale: string }> }) {

@@ -13,6 +13,7 @@ const LANDING_PAGE_PATH_PREFIXES = ["/privacy", "/terms"] as const;
 const LOCALE_PATH_PREFIXES = routing.locales.map((locale) => `/${locale}`);
 const HOMEPAGE_PATH = "/";
 const APP_DEFAULT_PATH = "/buy";
+const HTTPS_PROTOCOL = "https:";
 
 // Dynamic Labs SDK uses multiple domains (need both root and wildcard)
 const DYNAMIC_CSP_SOURCES = [
@@ -103,6 +104,13 @@ function applyHostRouting(request: NextRequest): NextResponse | null {
   const pathname = request.nextUrl.pathname;
   const search = request.nextUrl.search;
 
+  const requestProtocol = request.headers.get("x-forwarded-proto");
+  if (requestHost === landingPageHost && requestProtocol === "http") {
+    const target = request.nextUrl.clone();
+    target.protocol = HTTPS_PROTOCOL;
+    return NextResponse.redirect(target, 308);
+  }
+
   if (requestHost === landingPageHost && isAppPath(pathname)) {
     const target = new URL(`https://${appHost}${pathname}${search}`);
     return NextResponse.redirect(target, 308);
@@ -111,7 +119,7 @@ function applyHostRouting(request: NextRequest): NextResponse | null {
   if (requestHost === appHost) {
     if (pathname === HOMEPAGE_PATH) {
       const target = new URL(`https://${appHost}${APP_DEFAULT_PATH}${search}`);
-      return NextResponse.redirect(target, 302);
+      return NextResponse.redirect(target, 308);
     }
     if (isLandingPagePath(pathname) && pathname !== HOMEPAGE_PATH) {
       const target = new URL(`https://${landingPageHost}${pathname}${search}`);
