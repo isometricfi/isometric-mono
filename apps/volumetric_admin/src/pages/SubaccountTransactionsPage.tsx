@@ -2,13 +2,11 @@ import { Badge, Button, Empty, Input, LayerCard } from "@cloudflare/kumo";
 import { Principal } from "@icp-sdk/core/principal";
 import { Database, MagnifyingGlass } from "@phosphor-icons/react";
 import { useMemo, useState } from "react";
+import { CopyButton } from "../components/CopyButton";
 import { Eyebrow } from "../components/Eyebrow";
 import { PageShell } from "../components/PageShell";
-import { type LedgerAccount } from "../lib/account";
-import {
-  type AccountTransaction,
-  getAllAccountTransactions,
-} from "../lib/ckbtc-index";
+import type { LedgerAccount } from "../lib/account";
+import { type AccountTransaction, getAllAccountTransactions } from "../lib/ckbtc-index";
 import { useCreateCanisterClients } from "../lib/clients";
 import { useConnection } from "../lib/connection-context";
 import { bytesToHex, formatSats, principalText } from "../lib/format";
@@ -188,26 +186,42 @@ function TransactionTable({ transactions }: { transactions: AccountTransaction[]
                 <td className="px-3 py-2">
                   <Badge variant="neutral">{kind}</Badge>
                 </td>
-                <td className="whitespace-nowrap px-3 py-2 text-right">
-                  {formatSats(amount)}
-                </td>
+                <td className="whitespace-nowrap px-3 py-2 text-right">{formatSats(amount)}</td>
                 <td
                   className="max-w-[200px] truncate px-3 py-2"
                   title={fromAccount ? accountLabel(fromAccount) : ""}
                 >
-                  {fromAccount ? accountLabel(fromAccount) : "—"}
+                  {fromAccount ? (
+                    <CopyButton value={accountLabel(fromAccount)}>
+                      <span>{accountLabel(fromAccount)}</span>
+                    </CopyButton>
+                  ) : (
+                    "—"
+                  )}
                 </td>
                 <td
                   className="max-w-[200px] truncate px-3 py-2"
                   title={toAccount ? accountLabel(toAccount) : ""}
                 >
-                  {toAccount ? accountLabel(toAccount) : "—"}
+                  {toAccount ? (
+                    <CopyButton value={accountLabel(toAccount)}>
+                      <span>{accountLabel(toAccount)}</span>
+                    </CopyButton>
+                  ) : (
+                    "—"
+                  )}
                 </td>
                 <td
                   className="max-w-[160px] truncate px-3 py-2"
                   title={memo ? bytesToHex(memo) : ""}
                 >
-                  {memo ? bytesToHex(memo) : "—"}
+                  {memo ? (
+                    <CopyButton value={bytesToHex(memo)}>
+                      <span>{bytesToHex(memo)}</span>
+                    </CopyButton>
+                  ) : (
+                    "—"
+                  )}
                 </td>
                 <td className="whitespace-nowrap px-3 py-2">
                   {formatTimestamp(tx.transaction.timestamp)}

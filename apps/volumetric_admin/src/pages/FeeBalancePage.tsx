@@ -58,7 +58,12 @@ export function FeeBalancePage() {
     >
       {action.data ? (
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-          <MetricCard label="Fee recipient" value={shortPrincipal(action.data.feeRecipient)} mono />
+          <MetricCard
+            label="Fee recipient"
+            value={shortPrincipal(action.data.feeRecipient)}
+            mono
+            copyValue={action.data.feeRecipient.toText()}
+          />
           <MetricCard
             label="ckBTC balance"
             value={formatSats(action.data.feeRecipientLedgerBalanceSats)}

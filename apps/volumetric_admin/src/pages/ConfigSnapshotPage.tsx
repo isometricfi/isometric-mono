@@ -88,11 +88,13 @@ export function ConfigSnapshotPage() {
               label="ckBTC ledger"
               value={shortPrincipal(action.data.config.ckbtc_ledger)}
               mono
+              copyValue={action.data.config.ckbtc_ledger.toText()}
             />
             <MetricCard
               label="Fee recipient"
               value={shortPrincipal(action.data.feeConfig.fee_recipient)}
               mono
+              copyValue={action.data.feeConfig.fee_recipient.toText()}
             />
             <MetricCard
               label="Premium fee"

@@ -5,14 +5,14 @@ import { MetricCard } from "../components/MetricCard";
 import { PageShell } from "../components/PageShell";
 import {
   BPS_DENOMINATOR,
+  calculateOptions,
   DEFAULT_CKBTC_TRANSFER_FEE_SATS,
   DEFAULT_PREMIUM_FEE_BPS,
   DEFAULT_PROFIT_FEE_BPS,
-  type OptionsCalcResults,
-  calculateOptions,
   dollarsToCents,
   formatDollarsFromCents,
   formatSatsDisplay,
+  type OptionsCalcResults,
 } from "../lib/options-calc";
 
 const DEFAULT_ENTRY_PRICE = "79514";
@@ -42,7 +42,9 @@ export function OptionsCalcPage() {
 
   const [premiumFeeBps, setPremiumFeeBps] = useState(DEFAULT_PREMIUM_FEE_BPS.toString());
   const [profitFeeBps, setProfitFeeBps] = useState(DEFAULT_PROFIT_FEE_BPS.toString());
-  const [transferFeeSats, setTransferFeeSats] = useState(DEFAULT_CKBTC_TRANSFER_FEE_SATS.toString());
+  const [transferFeeSats, setTransferFeeSats] = useState(
+    DEFAULT_CKBTC_TRANSFER_FEE_SATS.toString(),
+  );
 
   const [results, setResults] = useState<OptionsCalcResults | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -88,11 +90,7 @@ export function OptionsCalcPage() {
       statusText={error ?? "Enter values and click Calculate"}
       error={error}
       action={
-        <Button
-          variant="primary"
-          icon={<Equals />}
-          onClick={handleCalculate}
-        >
+        <Button variant="primary" icon={<Equals />} onClick={handleCalculate}>
           Calculate
         </Button>
       }
@@ -296,14 +294,16 @@ function CalcResults({ results }: { results: OptionsCalcResults }) {
 function CalcSteps({ results }: { results: OptionsCalcResults }) {
   const { grossPremiumSats, grossBuyerPayoutSats } = results;
 
-  const settlementTransferFeeTotal = grossBuyerPayoutSats > 0n
-    ? DEFAULT_CKBTC_TRANSFER_FEE_SATS * 2n
-    : 0n;
+  const settlementTransferFeeTotal =
+    grossBuyerPayoutSats > 0n ? DEFAULT_CKBTC_TRANSFER_FEE_SATS * 2n : 0n;
 
   return (
     <LayerCard className="rounded-none border vol-hairline p-5">
       <div className="space-y-3 font-mono text-sm text-kumo-default">
-        <StepLine label="A. Strike" value={`Entry + Entry × Strike bps ÷ ${BPS_DENOMINATOR} = Strike`} />
+        <StepLine
+          label="A. Strike"
+          value={`Entry + Entry × Strike bps ÷ ${BPS_DENOMINATOR} = Strike`}
+        />
         <StepLine
           label="B. Gross premium (sats)"
           value={`Q × Premium bps ÷ ${BPS_DENOMINATOR} = ${grossPremiumSats.toLocaleString()} sats`}
@@ -321,14 +321,22 @@ function CalcSteps({ results }: { results: OptionsCalcResults }) {
           />
         )}
         {grossBuyerPayoutSats > 0n && (
-          <StepLine label="G. Profit fee (sats)" value="Gross buyer payout × Profit fee bps ÷ 10,000" />
+          <StepLine
+            label="G. Profit fee (sats)"
+            value="Gross buyer payout × Profit fee bps ÷ 10,000"
+          />
         )}
-        <StepLine label="H. Writer from collateral" value="Q − Gross buyer payout = writer remainder" />
+        <StepLine
+          label="H. Writer from collateral"
+          value="Q − Gross buyer payout = writer remainder"
+        />
         <StepLine
           label="  Settlement transfer fees"
-          value={grossBuyerPayoutSats > 0n
-            ? `2 × ckBTC transfer fee = ${settlementTransferFeeTotal.toLocaleString()} sats`
-            : "No payout → no transfer"}
+          value={
+            grossBuyerPayoutSats > 0n
+              ? `2 × ckBTC transfer fee = ${settlementTransferFeeTotal.toLocaleString()} sats`
+              : "No payout → no transfer"
+          }
         />
         <StepLine
           label="  Writer returned (net)"

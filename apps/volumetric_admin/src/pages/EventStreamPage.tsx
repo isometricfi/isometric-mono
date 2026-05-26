@@ -4,6 +4,7 @@ import { ArrowsClockwise, ListChecks } from "@phosphor-icons/react";
 import type { Event } from "@volumetric/canister-types";
 import { unwrapResult } from "@volumetric/canister-types";
 import { useState } from "react";
+import { CopyButton } from "../components/CopyButton";
 import { MetricCard } from "../components/MetricCard";
 import { Mono } from "../components/Mono";
 import { PageShell } from "../components/PageShell";
@@ -210,7 +211,9 @@ function EventsTable({ events }: { events: Event[] }) {
                 <Mono className="text-sm">{eventTypeLabel(event.event_type)}</Mono>
               </Table.Cell>
               <Table.Cell>
-                <Mono className="text-sm">{shortPrincipal(event.principal)}</Mono>
+                <CopyButton value={event.principal.toText()}>
+                  <Mono className="text-sm">{shortPrincipal(event.principal)}</Mono>
+                </CopyButton>
               </Table.Cell>
               <Table.Cell>
                 <Mono className="text-sm">{formatSeconds(event.timestamp_seconds)}</Mono>

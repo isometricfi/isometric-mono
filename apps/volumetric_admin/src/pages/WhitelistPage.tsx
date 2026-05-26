@@ -3,6 +3,7 @@ import type { Principal } from "@icp-sdk/core/principal";
 import { ArrowsClockwise, UsersThree } from "@phosphor-icons/react";
 import type { UserInfo } from "@volumetric/canister-types";
 import { unwrapResult } from "@volumetric/canister-types";
+import { CopyButton } from "../components/CopyButton";
 import { Eyebrow } from "../components/Eyebrow";
 import { MetricCard } from "../components/MetricCard";
 import { Mono } from "../components/Mono";
@@ -86,7 +87,9 @@ export function WhitelistPage() {
                       {action.data.whitelist.map((principal) => (
                         <Table.Row key={principal.toText()}>
                           <Table.Cell>
-                            <Mono className="text-sm">{principal.toText()}</Mono>
+                            <CopyButton value={principal.toText()}>
+                              <Mono className="text-sm">{principal.toText()}</Mono>
+                            </CopyButton>
                           </Table.Cell>
                         </Table.Row>
                       ))}
@@ -117,13 +120,17 @@ export function WhitelistPage() {
                       {action.data.users.map((user) => (
                         <Table.Row key={user.principal.toText()}>
                           <Table.Cell>
-                            <Mono className="text-sm">{shortPrincipal(user.principal)}</Mono>
+                            <CopyButton value={user.principal.toText()}>
+                              <Mono className="text-sm">{shortPrincipal(user.principal)}</Mono>
+                            </CopyButton>
                           </Table.Cell>
                           <Table.Cell>
                             <Mono className="text-sm">{user.username[0] ?? "—"}</Mono>
                           </Table.Cell>
                           <Table.Cell>
-                            <Mono className="text-sm">{shortenAddress(user.address)}</Mono>
+                            <CopyButton value={user.address}>
+                              <Mono className="text-sm">{shortenAddress(user.address)}</Mono>
+                            </CopyButton>
                           </Table.Cell>
                         </Table.Row>
                       ))}

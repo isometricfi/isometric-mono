@@ -2,6 +2,7 @@ import { Badge, Button, Empty, LayerCard, Table } from "@cloudflare/kumo";
 import { ArrowsClockwise, Stack } from "@phosphor-icons/react";
 import type { PendingSettlement } from "@volumetric/canister-types";
 import { unwrapResult } from "@volumetric/canister-types";
+import { CopyButton } from "../components/CopyButton";
 import { MetricCard } from "../components/MetricCard";
 import { Mono } from "../components/Mono";
 import { PageShell } from "../components/PageShell";
@@ -147,10 +148,14 @@ function PendingSettlementsTable({
                   <Mono className="text-sm">{phaseLabel(entry.phase)}</Mono>
                 </Table.Cell>
                 <Table.Cell>
-                  <Mono className="text-sm">{shortPrincipal(entry.buyer)}</Mono>
+                  <CopyButton value={entry.buyer.toText()}>
+                    <Mono className="text-sm">{shortPrincipal(entry.buyer)}</Mono>
+                  </CopyButton>
                 </Table.Cell>
                 <Table.Cell>
-                  <Mono className="text-sm">{shortPrincipal(entry.writer)}</Mono>
+                  <CopyButton value={entry.writer.toText()}>
+                    <Mono className="text-sm">{shortPrincipal(entry.writer)}</Mono>
+                  </CopyButton>
                 </Table.Cell>
                 <Table.Cell>
                   <Mono>{formatSats(entry.payout_to_buyer)}</Mono>

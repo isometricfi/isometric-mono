@@ -4,6 +4,7 @@ import { MagnifyingGlass, UserCircle } from "@phosphor-icons/react";
 import type { UserBalanceInfo } from "@volumetric/canister-types";
 import { unwrapResult } from "@volumetric/canister-types";
 import { useState } from "react";
+import { CopyButton } from "../components/CopyButton";
 import { Eyebrow } from "../components/Eyebrow";
 import { MetricCard } from "../components/MetricCard";
 import { Mono } from "../components/Mono";
@@ -143,21 +144,28 @@ export function UserBalancePage() {
               value={formatSats(action.data.drift)}
               tone={driftTone}
             />
-            <MetricCard label="Principal" value={shortPrincipal(action.data.principalText)} mono />
+            <MetricCard
+              label="Principal"
+              value={shortPrincipal(action.data.principalText)}
+              mono
+              copyValue={action.data.principalText}
+            />
           </div>
           <LayerCard className="rounded-none border vol-hairline p-4">
             <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
               <div>
                 <Eyebrow>Principal</Eyebrow>
-                <Mono className="mt-1 block break-all text-sm">
-                  {action.data.principalText}
-                </Mono>
+                <CopyButton value={action.data.principalText}>
+                  <Mono className="mt-1 block break-all text-sm">{action.data.principalText}</Mono>
+                </CopyButton>
               </div>
               <div>
                 <Eyebrow>Deposit subaccount</Eyebrow>
-                <Mono className="mt-1 block break-all text-sm">
-                  {action.data.derivedSubaccountHex}
-                </Mono>
+                <CopyButton value={action.data.derivedSubaccountHex}>
+                  <Mono className="mt-1 block break-all text-sm">
+                    {action.data.derivedSubaccountHex}
+                  </Mono>
+                </CopyButton>
               </div>
             </div>
           </LayerCard>

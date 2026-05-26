@@ -12,6 +12,7 @@ import {
 import type { OptionAuditReport } from "@volumetric/canister-types";
 import { unwrapResult } from "@volumetric/canister-types";
 import { useCallback, useMemo, useState } from "react";
+import { CopyButton } from "../components/CopyButton";
 import { Eyebrow } from "../components/Eyebrow";
 import { MetricCard } from "../components/MetricCard";
 import { Mono } from "../components/Mono";
@@ -236,8 +237,18 @@ function OptionSummary({ report }: { report: OptionAuditReport | null }) {
       <MetricCard label="Premium %" value={formatOptionalValue(premiumPercent)} />
       <MetricCard label="Term" value={formatOptionalValue(termDays)} />
       <MetricCard label="Premium paid" value={formatSats(option?.premium_paid ?? 0n)} />
-      <MetricCard label="Buyer" value={option ? shortPrincipal(option.buyer) : "unknown"} mono />
-      <MetricCard label="Writer" value={option ? shortPrincipal(option.writer) : "unknown"} mono />
+      <MetricCard
+        label="Buyer"
+        value={option ? shortPrincipal(option.buyer) : "unknown"}
+        mono
+        copyValue={option ? option.buyer.toText() : undefined}
+      />
+      <MetricCard
+        label="Writer"
+        value={option ? shortPrincipal(option.writer) : "unknown"}
+        mono
+        copyValue={option ? option.writer.toText() : undefined}
+      />
       <MetricCard label="Option events" value={report.option_events.length.toString()} />
       <MetricCard label="Expected transfers" value={report.expected_transfers.length.toString()} />
     </div>
@@ -318,19 +329,13 @@ function RawTransactionsSection({
 
   return (
     <LayerCard>
-      <button
-        type="button"
-        onClick={toggle}
-        className="flex w-full items-center gap-2 text-left"
-      >
+      <button type="button" onClick={toggle} className="flex w-full items-center gap-2 text-left">
         {showRawTransactions ? (
           <CaretDown size={14} className="text-kumo-subtle" />
         ) : (
           <CaretRight size={14} className="text-kumo-subtle" />
         )}
-        <Eyebrow>
-          Raw ckBTC index transactions ({transactions.length})
-        </Eyebrow>
+        <Eyebrow>Raw ckBTC index transactions ({transactions.length})</Eyebrow>
       </button>
 
       {showRawTransactions ? (
@@ -359,20 +364,50 @@ function RawTransactionsSection({
                 const memo = transfer?.memo[0] ?? mint?.memo[0] ?? burn?.memo[0] ?? null;
 
                 return (
-                  <tr key={tx.id.toString()} className="border-b vol-hairline hover:bg-kumo-surface-hover">
+                  <tr
+                    key={tx.id.toString()}
+                    className="border-b vol-hairline hover:bg-kumo-surface-hover"
+                  >
                     <td className="px-2 py-1 whitespace-nowrap">{tx.id.toString()}</td>
                     <td className="px-2 py-1">
                       <Badge variant="neutral">{kind}</Badge>
                     </td>
                     <td className="px-2 py-1 text-right whitespace-nowrap">{formatSats(amount)}</td>
-                    <td className="max-w-[200px] truncate px-2 py-1" title={fromAccount ? accountKey(fromAccount) : ""}>
-                      {fromAccount ? formatAccount(fromAccount) : "—"}
+                    <td
+                      className="max-w-[200px] truncate px-2 py-1"
+                      title={fromAccount ? accountKey(fromAccount) : ""}
+                    >
+                      {fromAccount ? (
+                        <CopyButton value={accountKey(fromAccount)}>
+                          <span>{formatAccount(fromAccount)}</span>
+                        </CopyButton>
+                      ) : (
+                        "—"
+                      )}
                     </td>
-                    <td className="max-w-[200px] truncate px-2 py-1" title={toAccount ? accountKey(toAccount) : ""}>
-                      {toAccount ? formatAccount(toAccount) : "—"}
+                    <td
+                      className="max-w-[200px] truncate px-2 py-1"
+                      title={toAccount ? accountKey(toAccount) : ""}
+                    >
+                      {toAccount ? (
+                        <CopyButton value={accountKey(toAccount)}>
+                          <span>{formatAccount(toAccount)}</span>
+                        </CopyButton>
+                      ) : (
+                        "—"
+                      )}
                     </td>
-                    <td className="max-w-[160px] truncate px-2 py-1" title={memo ? bytesToHex(memo) : ""}>
-                      {memo ? bytesToHex(memo) : "—"}
+                    <td
+                      className="max-w-[160px] truncate px-2 py-1"
+                      title={memo ? bytesToHex(memo) : ""}
+                    >
+                      {memo ? (
+                        <CopyButton value={bytesToHex(memo)}>
+                          <span>{bytesToHex(memo)}</span>
+                        </CopyButton>
+                      ) : (
+                        "—"
+                      )}
                     </td>
                     <td className="px-2 py-1 whitespace-nowrap">
                       {formatTimestamp(tx.transaction.timestamp)}

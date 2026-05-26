@@ -67,9 +67,7 @@ export function calculateOptions(inputs: OptionsCalcInputs): OptionsCalcResults 
 
   const writerCollateralRemainderSats = optionSizeSats - grossBuyerPayoutSats;
 
-  const settlementTransferFeeSats = grossBuyerPayoutSats > 0n
-    ? ckbtcTransferFeeSats * 2n
-    : 0n;
+  const settlementTransferFeeSats = grossBuyerPayoutSats > 0n ? ckbtcTransferFeeSats * 2n : 0n;
 
   const writerReturnedSats = writerCollateralRemainderSats - settlementTransferFeeSats;
 

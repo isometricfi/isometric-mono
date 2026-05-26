@@ -1,5 +1,5 @@
-import { describe, expect, test } from "vitest";
 import { loadEnv } from "vite";
+import { describe, expect, test } from "vitest";
 
 import viteConfig from "./vite.config";
 

@@ -14,6 +14,7 @@ import type {
 } from "@volumetric/canister-types";
 import { unwrapResult } from "@volumetric/canister-types";
 import { type ReactNode, useState } from "react";
+import { CopyButton } from "../components/CopyButton";
 import { Eyebrow } from "../components/Eyebrow";
 import { MetricCard } from "../components/MetricCard";
 import { Mono } from "../components/Mono";
@@ -204,11 +205,17 @@ function UserSummary({ data }: { data: UserAuditData }) {
   return (
     <>
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4 xl:grid-cols-6">
-        <MetricCard label="Principal" value={shortPrincipal(data.resolvedUser.principal)} mono />
+        <MetricCard
+          label="Principal"
+          value={shortPrincipal(data.resolvedUser.principal)}
+          mono
+          copyValue={data.resolvedUser.principal.toText()}
+        />
         <MetricCard
           label="Address"
           value={shortenAddress(data.resolvedUser.address ?? "unknown")}
           mono
+          copyValue={data.resolvedUser.address ?? undefined}
         />
         <MetricCard label="Book available" value={formatSats(bookAvailable)} />
         <MetricCard label="Book locked" value={formatSats(bookLocked)} />
@@ -275,7 +282,9 @@ function DetailRow({ label, value }: { label: string; value: string }) {
   return (
     <div>
       <Eyebrow>{label}</Eyebrow>
-      <Mono className="mt-1 block break-all text-sm">{value}</Mono>
+      <CopyButton value={value}>
+        <Mono className="mt-1 block break-all text-sm">{value}</Mono>
+      </CopyButton>
     </div>
   );
 }
@@ -303,9 +312,11 @@ function OptionsTable({ title, options }: { title: string; options: ActiveOption
               </Table.Cell>
               <Table.Cell>{variantLabel(option.status)}</Table.Cell>
               <Table.Cell>
-                <Mono className="text-sm">
-                  {shortPrincipal(isBoughtOptionsTable ? option.writer : option.buyer)}
-                </Mono>
+                <CopyButton value={(isBoughtOptionsTable ? option.writer : option.buyer).toText()}>
+                  <Mono className="text-sm">
+                    {shortPrincipal(isBoughtOptionsTable ? option.writer : option.buyer)}
+                  </Mono>
+                </CopyButton>
               </Table.Cell>
               <Table.Cell>
                 <Mono>{formatSats(option.quantity)}</Mono>

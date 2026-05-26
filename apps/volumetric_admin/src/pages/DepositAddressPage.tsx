@@ -4,6 +4,7 @@ import { Database, MagnifyingGlass } from "@phosphor-icons/react";
 import type { DepositInfo, UserBalanceInfo } from "@volumetric/canister-types";
 import { unwrapResult } from "@volumetric/canister-types";
 import { useState } from "react";
+import { CopyButton } from "../components/CopyButton";
 import { MetricCard } from "../components/MetricCard";
 import { Mono } from "../components/Mono";
 import { PageShell } from "../components/PageShell";
@@ -134,7 +135,9 @@ export function DepositAddressPage() {
                   BTC deposit address
                 </span>
                 <Mono className="text-[13px] text-kumo-strong">
-                  {action.data.depositInfo.btc_address}
+                  <CopyButton value={action.data.depositInfo.btc_address}>
+                    {action.data.depositInfo.btc_address}
+                  </CopyButton>
                 </Mono>
               </div>
               {action.data.uncreditedSats > 0n ? (
@@ -150,11 +153,20 @@ export function DepositAddressPage() {
                   Derived subaccount
                 </span>
                 <Mono className="text-[13px] text-kumo-strong">
-                  {bytesToHex(action.data.depositInfo.account.subaccount[0] ?? new Uint8Array())}
+                  <CopyButton
+                    value={bytesToHex(
+                      action.data.depositInfo.account.subaccount[0] ?? new Uint8Array(),
+                    )}
+                  >
+                    {bytesToHex(action.data.depositInfo.account.subaccount[0] ?? new Uint8Array())}
+                  </CopyButton>
                 </Mono>
               </div>
               <Mono className="text-sm text-kumo-subtle">
-                owner {shortPrincipal(action.data.depositInfo.account.owner)}
+                owner{" "}
+                <CopyButton value={action.data.depositInfo.account.owner.toText()}>
+                  {shortPrincipal(action.data.depositInfo.account.owner)}
+                </CopyButton>
               </Mono>
             </LayerCard>
           </div>

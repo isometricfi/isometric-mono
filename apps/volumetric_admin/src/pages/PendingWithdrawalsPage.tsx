@@ -3,6 +3,7 @@ import { Principal } from "@icp-sdk/core/principal";
 import { ArrowsClockwise, HandCoins } from "@phosphor-icons/react";
 import type { PendingWithdrawal } from "@volumetric/canister-types";
 import { unwrapResult } from "@volumetric/canister-types";
+import { CopyButton } from "../components/CopyButton";
 import { MetricCard } from "../components/MetricCard";
 import { Mono } from "../components/Mono";
 import { PageShell } from "../components/PageShell";
@@ -152,10 +153,14 @@ function WithdrawalsTable({ rows }: { rows: WithdrawalRow[] }) {
                 <StatusChip status={status} />
               </Table.Cell>
               <Table.Cell>
-                <Mono className="text-sm">{shortPrincipal(withdrawal.principal)}</Mono>
+                <CopyButton value={withdrawal.principal.toText()}>
+                  <Mono className="text-sm">{shortPrincipal(withdrawal.principal)}</Mono>
+                </CopyButton>
               </Table.Cell>
               <Table.Cell>
-                <Mono className="text-sm">{shortenAddress(withdrawal.btc_address)}</Mono>
+                <CopyButton value={withdrawal.btc_address}>
+                  <Mono className="text-sm">{shortenAddress(withdrawal.btc_address)}</Mono>
+                </CopyButton>
               </Table.Cell>
               <Table.Cell>
                 <Mono>{formatSats(withdrawal.amount)}</Mono>

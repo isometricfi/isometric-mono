@@ -1,7 +1,8 @@
 import { Badge, Button, Empty, LayerCard, Table } from "@cloudflare/kumo";
 import { Principal } from "@icp-sdk/core/principal";
-import { ArrowsClockwise, Copy, Scales } from "@phosphor-icons/react";
+import { ArrowsClockwise, Scales } from "@phosphor-icons/react";
 import { unwrapResult } from "@volumetric/canister-types";
+import { CopyableField } from "../components/CopyableField";
 import { MetricCard } from "../components/MetricCard";
 import { Mono } from "../components/Mono";
 import { PageShell } from "../components/PageShell";
@@ -475,21 +476,5 @@ function SolvencyLegend({ ledgerTransferFeeSats }: { ledgerTransferFeeSats: bigi
         </li>
       </ul>
     </LayerCard>
-  );
-}
-
-function CopyableField({ ariaLabel, value }: { ariaLabel: string; value: string }) {
-  return (
-    <div className="flex max-w-md items-start gap-1.5">
-      <Mono className="min-w-0 flex-1 break-all text-sm">{value}</Mono>
-      <Button
-        type="button"
-        variant="secondary"
-        size="sm"
-        icon={<Copy />}
-        onClick={() => void navigator.clipboard.writeText(value)}
-        aria-label={`Copy ${ariaLabel}`}
-      />
-    </div>
   );
 }

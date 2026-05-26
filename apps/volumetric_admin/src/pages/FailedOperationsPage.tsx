@@ -6,6 +6,7 @@ import type {
   PendingWithdrawal,
 } from "@volumetric/canister-types";
 import { unwrapResult } from "@volumetric/canister-types";
+import { CopyButton } from "../components/CopyButton";
 import { Eyebrow } from "../components/Eyebrow";
 import { MetricCard } from "../components/MetricCard";
 import { Mono } from "../components/Mono";
@@ -130,10 +131,14 @@ function FailedSettlementsSection({ entries }: { entries: PendingSettlement[] })
                     <Mono className="text-sm">{extractPhaseReason(entry.phase)}</Mono>
                   </Table.Cell>
                   <Table.Cell>
-                    <Mono className="text-sm">{shortPrincipal(entry.buyer)}</Mono>
+                    <CopyButton value={entry.buyer.toText()}>
+                      <Mono className="text-sm">{shortPrincipal(entry.buyer)}</Mono>
+                    </CopyButton>
                   </Table.Cell>
                   <Table.Cell>
-                    <Mono className="text-sm">{shortPrincipal(entry.writer)}</Mono>
+                    <CopyButton value={entry.writer.toText()}>
+                      <Mono className="text-sm">{shortPrincipal(entry.writer)}</Mono>
+                    </CopyButton>
                   </Table.Cell>
                   <Table.Cell>
                     <Mono>{formatSats(entry.payout_to_buyer)}</Mono>
@@ -181,7 +186,9 @@ function FailedAcceptsSection({ entries }: { entries: PendingAccept[] }) {
                     </Mono>
                   </Table.Cell>
                   <Table.Cell>
-                    <Mono className="text-sm">{shortPrincipal(entry.buyer)}</Mono>
+                    <CopyButton value={entry.buyer.toText()}>
+                      <Mono className="text-sm">{shortPrincipal(entry.buyer)}</Mono>
+                    </CopyButton>
                   </Table.Cell>
                   <Table.Cell>
                     <Mono className="text-sm">{extractPhaseReason(entry.phase)}</Mono>
@@ -232,7 +239,9 @@ function FailedWithdrawalsSection({ entries }: { entries: PendingWithdrawal[] })
                     </Mono>
                   </Table.Cell>
                   <Table.Cell>
-                    <Mono className="text-sm">{shortPrincipal(entry.principal)}</Mono>
+                    <CopyButton value={entry.principal.toText()}>
+                      <Mono className="text-sm">{shortPrincipal(entry.principal)}</Mono>
+                    </CopyButton>
                   </Table.Cell>
                   <Table.Cell>
                     <Mono>{formatSats(entry.amount)}</Mono>
@@ -241,7 +250,9 @@ function FailedWithdrawalsSection({ entries }: { entries: PendingWithdrawal[] })
                     <Mono className="text-sm">{extractPhaseReason(entry.phase)}</Mono>
                   </Table.Cell>
                   <Table.Cell>
-                    <Mono className="text-sm">{entry.btc_address}</Mono>
+                    <CopyButton value={entry.btc_address}>
+                      <Mono className="text-sm">{entry.btc_address}</Mono>
+                    </CopyButton>
                   </Table.Cell>
                 </Table.Row>
               ))}

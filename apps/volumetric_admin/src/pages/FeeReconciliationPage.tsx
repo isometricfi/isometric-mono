@@ -2,6 +2,7 @@ import { Button, Empty, InputArea, LayerCard, Table, Text } from "@cloudflare/ku
 import { ArrowsClockwise, Coins } from "@phosphor-icons/react";
 import type { Event, FeeConfig, OptionAuditReport } from "@volumetric/canister-types";
 import { unwrapResult } from "@volumetric/canister-types";
+import { CopyButton } from "../components/CopyButton";
 import { Eyebrow } from "../components/Eyebrow";
 import { MetricCard } from "../components/MetricCard";
 import { Mono } from "../components/Mono";
@@ -127,6 +128,7 @@ export function FeeReconciliationPage() {
             label="Fee recipient"
             value={shortPrincipal(action.data.feeConfig.fee_recipient)}
             mono
+            copyValue={action.data.feeConfig.fee_recipient.toText()}
           />
           <MetricCard
             label="Premium fee"
@@ -234,9 +236,11 @@ function FeeTransactionTable({
                   <Mono className="text-sm">{formatContextOptionIds(transactionContexts)}</Mono>
                 </Table.Cell>
                 <Table.Cell>
-                  <Mono className="text-sm">
-                    {transfer ? shortPrincipal(transfer.from.owner) : "—"}
-                  </Mono>
+                  <CopyButton value={transfer ? transfer.from.owner.toText() : ""}>
+                    <Mono className="text-sm">
+                      {transfer ? shortPrincipal(transfer.from.owner) : "—"}
+                    </Mono>
+                  </CopyButton>
                 </Table.Cell>
                 <Table.Cell>
                   <Text size="sm">
