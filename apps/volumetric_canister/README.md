@@ -1,6 +1,6 @@
 # volumetric_canister
 
-Rust canister for the Volumetric project on the Internet Computer.
+Rust canister for the Isometric project on the Internet Computer.
 
 ## Prerequisites
 

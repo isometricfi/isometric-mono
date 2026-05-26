@@ -1,4 +1,4 @@
-# Volumetric Bot
+# Isometric Bot
 
 ## Cloudflare Worker mode
 

@@ -1,4 +1,4 @@
-# Volumetric Canister Integration Tests
+# Isometric Canister Integration Tests
 
 Integration tests using PocketIC to run real canister WASM in a simulated IC environment.
 
@@ -38,7 +38,7 @@ tests/
 
 | Component | Status | Notes |
 |-----------|--------|-------|
-| Volumetric canister | **Real WASM** | Your compiled `volumetric.wasm` |
+| Isometric canister | **Real WASM** | Your compiled `volumetric.wasm` |
 | ICRC-1 Ledger | **Real WASM** | Official `ic-icrc1-ledger.wasm.gz` |
 | Wallet signatures | **Real** | BIP-137 Bitcoin message signing |
 | Balance sync | **Real** | Mints on ledger → canister reads ledger |

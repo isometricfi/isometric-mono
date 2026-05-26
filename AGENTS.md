@@ -1,4 +1,4 @@
-# Volumetric Monorepo
+# Isometric Monorepo
 
 Monorepo using pnpm workspaces and Turborepo.
 

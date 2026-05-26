@@ -1,6 +1,6 @@
-# Volumetric monorepo
+# Isometric monorepo
 
-Volumetric runs decentralized BTC/USD call options on the Internet Computer: writers post ckBTC collateral, buyers pay premium in ckBTC, and settlement uses an on-chain oracle. Product mechanics and math live in [docs/product-overview.md](docs/product-overview.md).
+Isometric runs decentralized BTC/USD call options on the Internet Computer: writers post ckBTC collateral, buyers pay premium in ckBTC, and settlement uses an on-chain oracle. Product mechanics and math live in [docs/product-overview.md](docs/product-overview.md).
 
 ## Layout
 
