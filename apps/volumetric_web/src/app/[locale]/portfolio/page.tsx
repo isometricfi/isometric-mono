@@ -7,7 +7,7 @@ export async function generateMetadata({
 }: {
   params: Promise<{ locale: string }>;
 }): Promise<Metadata> {
-  return generatePageMetadata({ params }, "Metadata.portfolio");
+  return generatePageMetadata({ params }, "Metadata.portfolio", "/portfolio");
 }
 
 export default function PortfolioPage() {

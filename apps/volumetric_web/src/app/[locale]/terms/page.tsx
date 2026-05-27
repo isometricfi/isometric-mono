@@ -8,7 +8,7 @@ export async function generateMetadata({
 }: {
   params: Promise<{ locale: string }>;
 }): Promise<Metadata> {
-  return generatePageMetadata({ params }, "Metadata.terms");
+  return generatePageMetadata({ params }, "Metadata.terms", "/terms");
 }
 
 export default async function TermsPage({ params }: { params: Promise<{ locale: string }> }) {

@@ -7,7 +7,7 @@ export async function generateMetadata({
 }: {
   params: Promise<{ locale: string }>;
 }): Promise<Metadata> {
-  return generatePageMetadata({ params }, "Metadata.buy");
+  return generatePageMetadata({ params }, "Metadata.buy", "/buy");
 }
 
 export default function BuyPage() {

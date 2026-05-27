@@ -14,7 +14,7 @@ export async function generateMetadata({
 }: {
   params: Promise<{ locale: string }>;
 }): Promise<Metadata> {
-  return generatePageMetadata({ params }, "Metadata");
+  return generatePageMetadata({ params }, "Metadata", "/");
 }
 
 export default function Home() {

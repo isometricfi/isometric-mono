@@ -7,7 +7,7 @@ export async function generateMetadata({
 }: {
   params: Promise<{ locale: string }>;
 }): Promise<Metadata> {
-  return generatePageMetadata({ params }, "Metadata.history");
+  return generatePageMetadata({ params }, "Metadata.history", "/history");
 }
 
 export default function HistoryPage() {
