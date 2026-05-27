@@ -1,110 +1,97 @@
-# Isometric Canister Integration Tests
+# Isometric Canister Tests
 
-Integration tests using PocketIC to run real canister WASM in a simulated IC environment.
+PocketIC integration tests for the Isometric canister. The tests run real canister wasm in a simulated Internet Computer environment.
 
-## Test Files (where `#[test]` functions live)
+## Layout
 
-```
+Test entry points:
+
+```text
 tests/
-├── e2e.rs                      # Entry point for e2e tests
+├── e2e.rs
 ├── e2e/
-│   ├── test_accounts.rs        # Account creation tests
-│   ├── test_offers.rs          # Offer creation tests
-│   ├── test_accepts.rs         # Offer acceptance tests
-│   └── test_settlements.rs     # Settlement tests
-└── integration_smoke.rs        # Basic infrastructure tests
+│   ├── test_accounts.rs
+│   ├── test_offers.rs
+│   ├── test_accepts.rs
+│   └── test_settlements.rs
+└── integration_smoke.rs
 ```
 
-## Support Files (helpers, no tests)
+Support modules:
 
-```
+```text
 tests/
-├── common/                 # Test infrastructure (PocketIC setup, utilities)
-│   ├── env.rs              # TestEnv: creates PocketIC with volumetric + ledger canisters
-│   ├── wallets.rs          # Bitcoin wallet generation and message signing
-│   ├── ledger.rs           # ICRC-1 ledger helpers (mint, transfer, balance)
-│   ├── minter.rs           # Mock UTXO helpers (unused)
-│   └── fixtures.rs         # Test data constants
-│
-└── helpers/                # Domain-specific helpers (call canister endpoints)
-    ├── accounts.rs         # create_account with wallet proof
-    ├── balances.rs         # mint_and_sync_balance, get_user_balance
-    ├── config.rs           # whitelist_controller, configure_test_ledger, set_oracle_price
-    ├── offers.rs           # create_offer, accept_offers, get_open_offers
-    └── settlement.rs       # get_pending_settlements, settle_option_by_id
+├── common/
+│   ├── env.rs
+│   ├── wallets.rs
+│   ├── ledger.rs
+│   ├── minter.rs
+│   └── fixtures.rs
+└── helpers/
+    ├── accounts.rs
+    ├── balances.rs
+    ├── config.rs
+    ├── offers.rs
+    └── settlement.rs
 ```
 
-## What's Real vs Mocked
+## Coverage
 
-| Component | Status | Notes |
-|-----------|--------|-------|
-| Isometric canister | **Real WASM** | Your compiled `volumetric.wasm` |
-| ICRC-1 Ledger | **Real WASM** | Official `ic-icrc1-ledger.wasm.gz` |
-| Wallet signatures | **Real** | BIP-137 Bitcoin message signing |
-| Balance sync | **Real** | Mints on ledger → canister reads ledger |
-| Minter canister | **Stub** | Just a Principal ID, no WASM |
-| Bitcoin/UTXOs | **Unused** | `minter.rs` has dead code |
+| Component | Status |
+|-----------|--------|
+| Isometric canister | Real `volumetric.wasm` |
+| ICRC-1 ledger | Official ledger wasm |
+| Wallet signatures | Real BIP-137 signing |
+| Balance sync | Ledger mint plus canister sync |
+| Minter canister | Stub principal for tests that do not call minter methods |
+| Bitcoin network | Not used in PocketIC tests |
 
-## Running Tests
+## Run Tests
+
+From `apps/volumetric_canister`:
 
 ```bash
-# Build canister first (required)
 make build
-
-# Run all e2e tests
 cargo test --test e2e
-
-# Run specific test module
-cargo test --test e2e test_settlements
-
-# Run single test with output
-cargo test --test e2e test_create_account -- --nocapture
-
-# Run smoke tests
 cargo test --test integration_smoke
 ```
 
-## Test Pattern
+Run a specific test:
 
-Tests follow given/when/then structure:
+```bash
+cargo test --test e2e test_create_account -- --nocapture
+```
+
+## Test Style
+
+Tests use given/when/then sections:
 
 ```rust
 #[test]
 fn test_example() {
-    // given - setup environment and state
+    // given
     let env = create_test_env();
     whitelist_controller(&env);
     configure_test_ledger(&env);
-    
-    let wallet = generate_wallet(100);
-    let profile = create_account(&env, &wallet).expect("Account failed");
-    mint_and_sync_balance(&env, &profile, 10_000_000).expect("Mint failed");
 
-    // when - perform action
-    let result = create_offer(&env, &wallet, ...);
+    // when
+    let result = create_offer(&env, &wallet, request);
 
-    // then - assert outcomes
+    // then
     assert!(result.is_ok());
 }
 ```
 
-## Key Helpers
+## Helpers
 
-### Environment Setup
-- `create_test_env()` - Creates PocketIC with volumetric + ledger canisters
-- `whitelist_controller(&env)` - Whitelists the test controller
-- `configure_test_ledger(&env)` - Points canister to test ledger
+| Helper | Purpose |
+|--------|---------|
+| `create_test_env()` | Create PocketIC with Isometric and ledger canisters |
+| `whitelist_controller(&env)` | Whitelist the test controller |
+| `configure_test_ledger(&env)` | Point the canister to the test ledger |
+| `generate_wallet(seed)` | Create a deterministic Bitcoin testnet4 wallet |
+| `mint_and_sync_balance(&env, &profile, amount)` | Mint tokens and sync internal balance |
+| `env.advance_time_secs(seconds)` | Advance simulated time |
+| `set_oracle_price(&env, price_cents)` | Set testing oracle price through `testing_set_oracle_price_cents` |
 
-### Wallet & Auth
-- `generate_wallet(seed)` - Deterministic Bitcoin testnet4 wallet
-- Helpers automatically sign messages with wallet proof
-
-### Balances
-- `mint_and_sync_balance(&env, &profile, amount)` - Mint tokens + sync internal state
-- `get_user_balance(&env, &address)` - Query user's balance
-
-### Time Control
-- `env.advance_time_secs(seconds)` - Advance simulated time (triggers timers)
-
-### Oracle
-- `set_oracle_price(&env, price_cents)` - Calls the canister update **`testing_set_oracle_price_cents`** (requires a wasm built with `--features testing`; see `did/volumetric.testing.did` for the full testing-only Candid)
+Testing-only methods require wasm built with `--features testing`. See `did/volumetric.testing.did` for the testing interface.
