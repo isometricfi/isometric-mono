@@ -1,36 +1,51 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Isometric Web
 
-## Getting Started
+Next.js app for the Isometric protocol. It connects wallets, displays markets, submits canister calls, syncs protocol events, and runs on Cloudflare Workers through OpenNext.
 
-First, run the development server:
+Product behavior belongs in the docs site: <https://docs.isometric.fi>.
+
+## Setup
+
+Install dependencies from the repository root:
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+pnpm install
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Create local environment variables:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+cp apps/volumetric_web/.env.example apps/volumetric_web/.env.local
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Set at least `CANISTER_ID`, `IC_HOST`, `NEXT_PUBLIC_BASE_URL`, and `NEXT_PUBLIC_DYNAMIC_ENVIRONMENT_ID` for local app work. Cloudflare D1, cron, email, and telemetry variables are only needed for those features.
 
-## Learn More
+## Development
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+pnpm --filter @volumetric/web dev
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Open <http://localhost:4200>.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Commands
 
-## Deploy on Vercel
+| Command | Description |
+|---------|-------------|
+| `pnpm --filter @volumetric/web dev` | Start the local Next.js server |
+| `pnpm --filter @volumetric/web build` | Build the app |
+| `pnpm --filter @volumetric/web test` | Run Vitest |
+| `pnpm --filter @volumetric/web lint` | Run Biome checks |
+| `pnpm --filter @volumetric/web cf:preview` | Build and preview through OpenNext Cloudflare |
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Deployment
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Cloudflare deployment commands live in `package.json`:
+
+```bash
+pnpm --filter @volumetric/web cf:deploy-all:dev
+pnpm --filter @volumetric/web cf:deploy-all:stage
+pnpm --filter @volumetric/web cf:deploy-all:prod
+```
+
+Remote deploys require Cloudflare credentials and the environment variables configured in `wrangler.jsonc`.

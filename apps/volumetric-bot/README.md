@@ -1,144 +1,93 @@
 # Isometric Bot
 
-## Cloudflare Worker mode
+Automation bot for Isometric market operations and race-condition testing. It can run as a local Node process or as Cloudflare Workers.
 
-This package runs independent Workers from the same codebase:
+## Modes
 
-- `volumetric-bot-1` (`--env bot1`)
-- `volumetric-bot-2` (`--env bot2`)
-- `volumetric-bot-3` (`--env bot3`)
-- `volumetric-bot-4` (`--env bot4`)
+| Mode | Description |
+|------|-------------|
+| Node | Runs `src/index.ts` locally and reads `.env` |
+| Worker | Runs `src/worker.ts` on Cloudflare and reads `wrangler.toml`, `.dev.vars.*`, and Cloudflare secrets |
 
-Both use a service binding to `volumetric-web-dev` for tRPC calls (`NEXT_APP`), so worker mode does not use public `TRPC_URL`.
+Worker mode defines four environments: `bot1`, `bot2`, `bot3`, and `bot4`. Each Worker uses the `NEXT_APP` service binding for tRPC calls to `volumetric-web-dev`.
 
-## Config quick reference
+## Setup
 
-- `pn bot` (Node mode) reads `./.env`
-- `wrangler dev --env botX` reads `wrangler.toml` + `./.dev.vars.botX`
-- `wrangler deploy --env botX` reads `wrangler.toml` + Cloudflare secrets
-- Deploy does not read `./.dev.vars.botX`
-
-Store values here:
-
-- Public/non-secret: `wrangler.toml` (`[env.botX.vars]`)
-- Local worker secrets: `.dev.vars.botX`
-- Deployed worker secrets: `wrangler secret put ... --env botX`
-- Local node secrets: `.env`
-
-### 1) Authenticate Wrangler
+Install dependencies from the repository root:
 
 ```bash
-npx wrangler whoami
+pnpm install
 ```
 
-If needed:
+For Node mode:
 
 ```bash
-npx wrangler login
+cp apps/volumetric-bot/.env.example apps/volumetric-bot/.env
 ```
 
-### 2) Configure secrets
-
-For local worker development, copy `.dev.vars.example` to `.dev.vars.bot1` (or `.dev.vars.botX`) and set real values.
-
-Set required secrets per worker environment:
+For local Worker mode, copy `.dev.vars.example` to the bot environment you want to run:
 
 ```bash
-npx wrangler secret put BOT_PRIVATE_KEY_WIF --env bot1
-npx wrangler secret put CANISTER_ID --env bot1
-
-npx wrangler secret put BOT_PRIVATE_KEY_WIF --env bot2
-npx wrangler secret put CANISTER_ID --env bot2
-
-npx wrangler secret put BOT_PRIVATE_KEY_WIF --env bot3
-npx wrangler secret put CANISTER_ID --env bot3
-
-npx wrangler secret put BOT_PRIVATE_KEY_WIF --env bot4
-npx wrangler secret put CANISTER_ID --env bot4
+cp apps/volumetric-bot/.dev.vars.example apps/volumetric-bot/.dev.vars.bot1
 ```
 
-Optional telemetry secrets (if exporting OTLP traces/logs):
+Required secrets:
+
+- `BOT_PRIVATE_KEY_WIF`
+- `CANISTER_ID`
+
+Optional telemetry variables are documented in `.env.example` and `.dev.vars.example`.
+
+## Development
+
+Run the Node bot:
 
 ```bash
-npx wrangler secret put OTEL_EXPORTER_OTLP_HEADERS --env bot1
-npx wrangler secret put OTEL_EXPORTER_OTLP_HEADERS --env bot2
-npx wrangler secret put OTEL_EXPORTER_OTLP_HEADERS --env bot3
-npx wrangler secret put OTEL_EXPORTER_OTLP_HEADERS --env bot4
+pnpm --filter @volumetric/bot bot
 ```
 
-Non-secret vars are in `wrangler.toml` per env (`BTC_NETWORK`, `IC_HOST`, `BOT_NAME`).
-
-`INTERVAL_MS` applies to Node loop mode only and is not used for Worker cron scheduling.
-
-Optional telemetry vars (can be set in `.dev.vars.*` locally, or Wrangler vars for deployed workers):
-
-- `OTEL_SERVICE_NAME`
-- `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT`
-- `OTEL_EXPORTER_OTLP_LOGS_ENDPOINT`
-
-### 3) Run locally
+Run a Worker locally:
 
 ```bash
-pnpm --filter @volumetric/bot worker:dev
+pnpm --filter @volumetric/bot worker:dev:bot1
 ```
 
-### 4) Deploy
+## Commands
+
+| Command | Description |
+|---------|-------------|
+| `pnpm --filter @volumetric/bot bot` | Run Node mode |
+| `pnpm --filter @volumetric/bot worker:dev:bot1` | Run Worker mode locally for `bot1` |
+| `pnpm --filter @volumetric/bot worker:deploy:bot1` | Deploy `bot1` |
+| `pnpm --filter @volumetric/bot worker:deploy:all` | Deploy all bot Workers |
+| `pnpm --filter @volumetric/bot worker:tail:bot1` | Tail `bot1` logs |
+| `pnpm --filter @volumetric/bot test` | Run tests |
+| `pnpm --filter @volumetric/bot typecheck` | Run TypeScript checks |
+
+## Worker Secrets
+
+Set deployed Worker secrets with Wrangler:
 
 ```bash
-pnpm --filter @volumetric/bot worker:deploy:bot1
-pnpm --filter @volumetric/bot worker:deploy:bot2
-pnpm --filter @volumetric/bot worker:deploy:bot3
-pnpm --filter @volumetric/bot worker:deploy:bot4
+pnpm --filter @volumetric/bot exec wrangler secret put BOT_PRIVATE_KEY_WIF --env bot1
+pnpm --filter @volumetric/bot exec wrangler secret put CANISTER_ID --env bot1
 ```
 
-### Endpoints
+Repeat for `bot2`, `bot3`, and `bot4` as needed.
+
+## Endpoints
 
 - `GET /health`
 - `POST /run?action=create`
 - `POST /run?action=accept`
 
-All workers are configured with the same cron schedule to exercise race conditions.
+## Race Testing
 
-## Race-condition verification runbook (3-4 bots)
+Use multiple Workers to verify concurrent acceptance behavior:
 
-### Goal
-
-Verify every bot selects the same top offer ID for acceptance, and only one bot succeeds per race wave.
-
-### Preconditions
-
-- Each bot wallet is set and funded.
-- All bot environments use the same canister and service binding.
-- Existing market has at least one valid offer with `termDays <= 3`.
-
-### Step 1) Capture baseline balances
-
-For each bot wallet address, capture account balance before the wave.
-
-### Step 2) Start tails in parallel
-
-```bash
-pnpm --filter @volumetric/bot worker:tail:bot1
-pnpm --filter @volumetric/bot worker:tail:bot2
-pnpm --filter @volumetric/bot worker:tail:bot3
-pnpm --filter @volumetric/bot worker:tail:bot4
-```
-
-### Step 3) Trigger concurrent accept wave
-
-Send concurrent requests to each worker `POST /run?action=accept`.
-
-### Step 4) Validate race outcome
-
-- Confirm each bot logs the same `selected_offer_id`.
-- Confirm only one bot logs `Offer accepted` for that offer ID.
-- Confirm other bots fail or skip safely with no duplicate fill.
-
-### Step 5) Validate balances
-
-- Winner bot balance should reflect premium and fees.
-- Non-winning bots should have no unexpected deduction.
-
-### Step 6) Repeat a second wave
-
-Repeat Step 3 to Step 5 to verify behavior remains stable on subsequent runs.
+- Fund each bot wallet.
+- Point every bot to the same canister and service binding.
+- Ensure the market has at least one valid offer.
+- Tail all bot logs.
+- Trigger `POST /run?action=accept` on each Worker at the same time.
+- Confirm every bot selects the same offer ID and only one bot accepts it.

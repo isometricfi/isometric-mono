@@ -1,43 +1,81 @@
-# Isometric monorepo
+# Isometric
 
-Isometric runs decentralized BTC/USD call options on the Internet Computer: writers post ckBTC collateral, buyers pay premium in ckBTC, and settlement uses an on-chain oracle. Product mechanics and math live in [docs/product-overview.md](docs/product-overview.md).
+Isometric is an on-chain Bitcoin options protocol built on the Internet Computer. Writers post ckBTC collateral, buyers pay premiums in ckBTC, and options settle from an on-chain price source.
 
-## Layout
+- App: <https://isometric.fi>
+- Docs: <https://docs.isometric.fi>
 
-| Path | Role |
-|------|------|
-| `apps/volumetric_web` | Next.js app (wallet via Dynamic, Cloudflare Workers deployment) |
-| `apps/volumetric_canister` | Rust canister (`make` targets in that directory) |
+## Repository
+
+| Path | Description |
+|------|-------------|
+| `apps/volumetric_web` | Next.js web app deployed on Cloudflare Workers |
+| `apps/volumetric_canister` | Rust Internet Computer canister |
 | `apps/volumetric_docs` | Docusaurus docs site |
-| `apps/volumetric-bot` | Bot / automation tooling |
-| `packages/canister-types` | Generated Candid bindings for TypeScript |
+| `apps/volumetric-bot` | Automation bot for market operations and testing |
+| `packages/canister-types` | Generated TypeScript bindings for canister calls |
 | `packages/telemetry` | Shared OpenTelemetry helpers |
 
 ## Prerequisites
 
-- **pnpm** — version pinned in root `package.json` (`packageManager` field). Run `corepack enable` if your shell does not pick it up.
-- **Node.js** — use an LTS release compatible with Next.js in `apps/volumetric_web`.
+- Node.js 22 or newer
+- pnpm 10.25.0, via `corepack enable`
+- Rust, `dfx`, `candid-extractor`, and `ic-wasm` for canister work
 
-Canister work needs `dfx`, Rust with `wasm32-unknown-unknown`, and the tooling listed in [apps/volumetric_canister/README.md](apps/volumetric_canister/README.md).
+The canister README has the full backend toolchain notes: [apps/volumetric_canister/README.md](apps/volumetric_canister/README.md).
 
-## Root commands
+## Quick Start
 
-Install dependencies from the repo root:
+Install dependencies from the repository root:
 
 ```bash
 pnpm install
 ```
 
-| Script | What it runs |
-|--------|----------------|
-| `pnpm dev` | Turborepo `dev` across workspaces |
-| `pnpm build` | Turborepo `build` |
-| `pnpm test` | Turborepo `test` |
-| `pnpm lint` | Biome check |
-| `pnpm format` | Biome format write |
+Run the web app:
 
-The web app dev server uses port **4200** (`pnpm dev` filters through Turbo; run `pnpm --filter @volumetric/web dev` if you only want the frontend).
+```bash
+pnpm --filter @volumetric/web dev
+```
+
+The web app runs on <http://localhost:4200>. The docs site runs on <http://localhost:3333> with:
+
+```bash
+pnpm --filter volumetric_docs dev
+```
+
+## Commands
+
+| Command | Description |
+|---------|-------------|
+| `pnpm dev` | Run workspace development tasks |
+| `pnpm build` | Build workspaces with Turborepo |
+| `pnpm test` | Run workspace tests |
+| `pnpm lint` | Run Biome checks |
+| `pnpm format` | Format files with Biome |
+
+Run canister commands from `apps/volumetric_canister`:
+
+```bash
+make build
+make test
+make deploy TARGET=local
+```
+
+## Documentation
+
+Product guides, trading mechanics, risk notes, and technical protocol docs live at <https://docs.isometric.fi>.
 
 ## Contributing
 
-Conventions, commits, and stack notes are in [AGENTS.md](AGENTS.md). After changing the canister API, run `make generate` from `apps/volumetric_canister` (see that Makefile for full targets).
+Open an issue before large changes. Keep pull requests focused and include tests for behavior changes.
+
+After changing the canister API, run `make generate` from `apps/volumetric_canister` to update TypeScript bindings.
+
+## License
+
+See [LICENSE](LICENSE) for license terms.
+
+## Disclaimer
+
+This software is provided as-is. Isometric is experimental software and does not provide financial advice. Use it at your own risk.
