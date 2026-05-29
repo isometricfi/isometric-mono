@@ -671,6 +671,7 @@
     "email": "Email",
     "telegram": "Telegram",
     "x": "X (Twitter)",
+    "github": "GitHub",
     "copyright": "© {year} Isometric. All rights reserved."
   },
   "Metadata": {

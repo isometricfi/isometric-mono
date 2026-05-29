@@ -1,6 +1,6 @@
 "use client";
 
-import { Book, FileText, Mail, MessageCircleQuestionMark, Shield } from "lucide-react";
+import { Book, FileText, Github, Mail, MessageCircleQuestionMark, Shield } from "lucide-react";
 import Image from "next/image";
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/routing";
@@ -122,6 +122,17 @@ export function Footer() {
                   >
                     <XIcon className="size-4" />
                     {t("x")}
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href={SOCIAL_LINKS.github}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center gap-2"
+                  >
+                    <Github className="size-4" />
+                    {t("github")}
                   </a>
                 </li>
               </ul>
