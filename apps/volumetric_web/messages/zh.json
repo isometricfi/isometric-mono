@@ -665,6 +665,7 @@
     "email": "电子邮件",
     "telegram": "Telegram",
     "x": "X (Twitter)",
+    "github": "GitHub",
     "copyright": "© {year} Isometric。保留所有权利。"
   },
   "Metadata": {

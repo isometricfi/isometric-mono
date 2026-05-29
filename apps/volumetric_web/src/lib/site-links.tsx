@@ -17,6 +17,7 @@ export function TelegramIcon({ className }: { className?: string }) {
 export const SOCIAL_LINKS = {
   telegram: "https://t.me/isometricfi",
   x: "https://x.com/isometricfi",
+  github: "https://github.com/isometricfi/isometric-mono",
   email: "mailto:support@isometric.fi",
 };
 
