@@ -68,8 +68,9 @@ generate-external-types:
 	curl -sL "https://raw.githubusercontent.com/dfinity/ic/master/rs/bitcoin/ckbtc/minter/ckbtc_minter.did" -o did/ckbtc_minter.did
 	curl -sL "https://raw.githubusercontent.com/dfinity/exchange-rate-canister/main/src/xrc/xrc.did" -o did/xrc.did
 	@echo "Generating Rust types..."
-	didc bind did/ckbtc_minter.did --target rs > src/volumetric/src/generated/ckbtc.rs
-	didc bind did/xrc.did --target rs > src/volumetric/src/generated/xrc.rs
+	didc bind did/ckbtc_minter.did --target rs --config did/rust-types.toml > src/volumetric/src/generated/ckbtc.rs
+	didc bind did/xrc.did --target rs --config did/rust-types.toml > src/volumetric/src/generated/xrc.rs
+	rustfmt --edition 2021 src/volumetric/src/generated/ckbtc.rs src/volumetric/src/generated/xrc.rs
 	@echo "Generated types updated in src/volumetric/src/generated/"
 
 deploy:

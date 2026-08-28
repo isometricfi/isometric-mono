@@ -1,7 +1,6 @@
 use candid::{encode_one, CandidType, Decode, Principal};
 use flate2::read::GzDecoder;
-use ic_management_canister_types::CanisterSettings;
-use pocket_ic::PocketIc;
+use pocket_ic::{CanisterSettings, PocketIc};
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::io::Read;
