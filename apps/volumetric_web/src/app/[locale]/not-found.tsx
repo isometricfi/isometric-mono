@@ -35,7 +35,7 @@ export default function NotFound() {
           <OpenAppLink path="/buy">
             <Button size="lg">
               <Compass className="size-4" />
-              {t("openApp")}
+              {t("openV1Demo")}
             </Button>
           </OpenAppLink>
         </div>

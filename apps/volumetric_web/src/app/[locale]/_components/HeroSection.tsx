@@ -1,15 +1,13 @@
-import { Sparkles } from "lucide-react";
+import { ArrowUpRight, Sparkles } from "lucide-react";
 import Image from "next/image";
 import { useTranslations } from "next-intl";
 import { OpenAppLink } from "@/components/marketing/OpenAppLink";
 import { WaitlistForm } from "@/components/marketing/WaitlistForm";
 import { Button } from "@/components/ui/button";
-import { isWaitlistMode } from "@/lib/site-links";
 import { HeroBgCanvas } from "./HeroBgCanvas";
 
 export function HeroSection() {
   const t = useTranslations("Landing");
-  const waitlistMode = isWaitlistMode();
 
   return (
     <div className="relative flex min-h-[94vh] flex-col items-center justify-center py-20 md:py-24">
@@ -20,7 +18,7 @@ export function HeroSection() {
             <div className="flex justify-center md:justify-start mb-6">
               <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-md bg-primary/10 text-primary text-sm font-medium tracking-wide">
                 <Sparkles className="size-4" />
-                {t("publicBeta")}
+                {t("v2ComingSoon")}
               </span>
             </div>
 
@@ -32,15 +30,18 @@ export function HeroSection() {
             <h2 className="font-semibold text-base md:text-lg lg:text-xl text-muted-foreground sm:max-w-xl mx-auto md:mx-0 max-w-[210px] ">
               {t("subheadline")}
             </h2>
-            {waitlistMode ? (
-              <div className="mt-8 flex justify-center md:justify-start">
-                <WaitlistForm size="lg" />
+            <div className="mt-8 flex flex-col items-center gap-3 md:items-start">
+              <WaitlistForm size="lg" />
+              <div className="flex flex-col items-center gap-2 md:items-start">
+                <Button size="lg" className="gap-2" asChild>
+                  <OpenAppLink path="/buy">
+                    {t("openV1Demo")}
+                    <ArrowUpRight className="size-4" />
+                  </OpenAppLink>
+                </Button>
+                <p className="text-xs text-muted-foreground">{t("v1DemoNote")}</p>
               </div>
-            ) : (
-              <OpenAppLink path="/buy">
-                <Button className="mt-8">{t("openApp")}</Button>
-              </OpenAppLink>
-            )}
+            </div>
           </div>
 
           <div className="relative mx-auto w-full max-w-[300px] sm:max-w-[340px] md:max-w-[380px]">

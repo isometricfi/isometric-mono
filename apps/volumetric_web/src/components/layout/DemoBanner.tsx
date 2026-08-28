@@ -4,14 +4,25 @@ import { useMutation } from "@tanstack/react-query";
 import { RotateCcw } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
+import { usePathname } from "@/i18n/routing";
 import { resetDemoSession } from "@/lib/demo/demo-canister-browser";
+
+const DEMO_ROUTE_PREFIXES = ["/buy", "/write", "/portfolio", "/history", "/s"] as const;
 
 export function DemoBanner() {
   const t = useTranslations("DemoMode");
+  const pathname = usePathname();
   const resetMutation = useMutation({
     mutationFn: resetDemoSession,
     onSuccess: () => window.location.reload(),
   });
+
+  const isDemoRoute = DEMO_ROUTE_PREFIXES.some(
+    (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
+  );
+  if (!isDemoRoute) {
+    return null;
+  }
 
   return (
     <aside

@@ -16,9 +16,10 @@
     "buy": "Buy",
     "portfolio": "Portfolio",
     "history": "History",
-    "openApp": "Open App",
+    "openV1Demo": "Open V1 Demo",
     "connect": "Connect",
-    "beta": "Beta"
+    "v1Demo": "V1 Demo",
+    "v2OnBase": "V2 · Base"
   },
   "Settings": {
     "title": "Settings",
@@ -288,7 +289,7 @@
     "page": "Page {current} of {total}"
   },
   "Landing": {
-    "publicBeta": "Public Beta",
+    "v2ComingSoon": "V2 · Built on Base",
     "headline": "Bitcoin options.",
     "headlineHighlight": "For everyone.",
     "subheadline": "Earn premium on your Bitcoin, or leverage its next move.",
@@ -303,7 +304,8 @@
     "leverageTitle": "Limited downside, big upside",
     "leverageDescription": "Pick a price and timeframe. If BTC clears your target before expiry, your position pays out. Up to 100x leverage.",
     "btcNative": "On-chain",
-    "openApp": "Open App",
+    "openV1Demo": "Open V1 Demo",
+    "v1DemoNote": "The original product, formerly live on ICP.",
     "instantSettlement": "Instant settlement",
     "permissionless": "Permissionless",
     "gettingStarted": "Getting Started",
@@ -327,7 +329,7 @@
     "chainAbstraction": "Chain Abstraction",
     "nativeBitcoin": "Native Bitcoin.",
     "smartContractPower": "Smart contract power.",
-    "chainAbstractionDescription": "Isometric uses ckBTC, backed by the Internet Computer's native Bitcoin integration. IC nodes collectively sign Bitcoin withdrawals with threshold ECDSA, so no single node holds the key and no bridge custodian controls the BTC.",
+    "chainAbstractionDescription": "Isometric V1 ran live on ICP using ckBTC, backed by the Internet Computer's native Bitcoin integration. IC nodes collectively sign Bitcoin withdrawals with threshold ECDSA, so no single node holds the key and no bridge custodian controls the BTC.",
     "learnMore": "Learn more",
     "bitcoin": "Bitcoin",
     "yourBtc": "Your BTC",
@@ -347,7 +349,7 @@
     "price": "PRICE",
     "profit": "PROFIT",
     "roi": "ROI",
-    "builtOnIcp": "Built on ICP",
+    "builtOnIcp": "V1 · Formerly live on ICP",
     "nativeBtc": "Native BTC",
     "onChain": "On-chain",
     "problemEyebrow": "The problem",
@@ -366,12 +368,10 @@
     "teamLukeBio": "Frontend and product. DeFi builder since 2021.",
     "teamDylanRole": "Engineering at",
     "teamDylanBio": "Full-stack engineer. Bitcoin, TypeScript, ICP, Rust",
-    "finalCtaTitle": "Trade Bitcoin options in minutes.",
-    "finalCtaSubtitle": "Connect a wallet, deposit BTC, and take your first position. No signup. No KYC.",
-    "waitlistTitle": "Get early access",
-    "waitlistSubtitle": "We're launching soon. Drop your email and we'll let you know the moment it's live.",
+    "waitlistTitle": "Get early access to V2",
+    "waitlistSubtitle": "We are building Isometric V2 on Base with an all-new interface. Join the waitlist for launch updates.",
     "waitlistEmailPlaceholder": "you@example.com",
-    "waitlistSubmit": "Notify me",
+    "waitlistSubmit": "Join V2 waitlist",
     "waitlistSubmitting": "Saving…",
     "waitlistSuccess": "You're on the list. We'll be in touch.",
     "waitlistAlready": "You're already on the list.",
@@ -658,7 +658,7 @@
     "code": "404",
     "heading": "This page expired worthless.",
     "description": "Whatever you were looking for isn't here.",
-    "openApp": "Open the app"
+    "openV1Demo": "Open V1 Demo"
   },
   "AppError": {
     "title": "Error",

@@ -6,15 +6,13 @@ import { useTranslations } from "next-intl";
 import { OpenAppLink } from "@/components/marketing/OpenAppLink";
 import { WaitlistForm } from "@/components/marketing/WaitlistForm";
 import { Button } from "@/components/ui/button";
-import { isWaitlistMode } from "@/lib/site-links";
 import { FinalCtaBgCanvas } from "./FinalCtaBgCanvas";
 
 export function FinalCtaSection() {
   const t = useTranslations("Landing");
-  const waitlistMode = isWaitlistMode();
 
   return (
-    <section className="relative py-20 md:py-32" id={waitlistMode ? "waitlist" : undefined}>
+    <section className="relative py-20 md:py-32" id="waitlist">
       <div className="mx-auto max-w-4xl">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -27,23 +25,20 @@ export function FinalCtaSection() {
           <div className="pointer-events-none absolute inset-x-0 -top-20 h-40 bg-primary/10 blur-3xl" />
           <div className="relative">
             <h2 className="text-3xl md:text-5xl font-bold tracking-tight leading-[1.1] mb-4">
-              {waitlistMode ? t("waitlistTitle") : t("finalCtaTitle")}
+              {t("waitlistTitle")}
             </h2>
             <p className="text-muted-foreground text-base md:text-lg mb-8 max-w-xl mx-auto">
-              {waitlistMode ? t("waitlistSubtitle") : t("finalCtaSubtitle")}
+              {t("waitlistSubtitle")}
             </p>
-            {waitlistMode ? (
-              <div className="flex justify-center">
-                <WaitlistForm size="lg" />
-              </div>
-            ) : (
-              <OpenAppLink path="/buy">
-                <Button size="lg" className="gap-2">
-                  {t("openApp")}
+            <div className="flex flex-col items-center gap-4">
+              <WaitlistForm size="lg" />
+              <Button size="lg" className="gap-2" asChild>
+                <OpenAppLink path="/buy">
+                  {t("openV1Demo")}
                   <ArrowRight className="size-4" />
-                </Button>
-              </OpenAppLink>
-            )}
+                </OpenAppLink>
+              </Button>
+            </div>
           </div>
         </motion.div>
       </div>

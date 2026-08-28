@@ -72,8 +72,7 @@
         "NEXT_PUBLIC_TAWK_EMBED_URL": "https://embed.tawk.to/69a303f652cbb51c37094784/1jiicevko",
         "NEXT_PUBLIC_APP_HOST": "staging.isometric.fi",
         "NEXT_PUBLIC_APP_URL": "https://staging.isometric.fi",
-        "NEXT_PUBLIC_LANDING_PAGE_HOST": "isometric.fi",
-        "NEXT_PUBLIC_WAITLIST_MODE": "true"
+        "NEXT_PUBLIC_LANDING_PAGE_HOST": "isometric.fi"
       },
       "services": [
         {
@@ -104,8 +103,7 @@
         "NEXT_PUBLIC_TAWK_EMBED_URL": "https://embed.tawk.to/69a303f652cbb51c37094784/1jiicevko",
         "NEXT_PUBLIC_APP_HOST": "app.isometric.fi",
         "NEXT_PUBLIC_APP_URL": "https://app.isometric.fi",
-        "NEXT_PUBLIC_LANDING_PAGE_HOST": "isometric.fi",
-        "NEXT_PUBLIC_WAITLIST_MODE": "true"
+        "NEXT_PUBLIC_LANDING_PAGE_HOST": "isometric.fi"
       },
       "services": [
         {
