@@ -287,7 +287,8 @@
     "page": "第 {current} 页，共 {total} 页"
   },
   "Landing": {
-    "v2ComingSoon": "V2 · 构建于 Base",
+    "comingSoon": "即将推出",
+    "v2BuiltOnBase": "V2 构建于 Base",
     "headline": "比特币期权，",
     "headlineHighlight": "简单易懂。",
     "subheadline": "在你的比特币上赚取权利金，或对其下一步走势加杠杆。",
