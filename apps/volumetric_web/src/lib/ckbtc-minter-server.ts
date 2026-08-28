@@ -1,7 +1,3 @@
-import { Actor } from "@icp-sdk/core/agent";
-import type { IDL } from "@icp-sdk/core/candid";
-import { getSharedAgent } from "./canister-server";
-
 export type RetrieveBtcStatusV2 =
   | { Signing: null }
   | { Confirmed: { txid: Uint8Array | number[] } }
@@ -17,69 +13,8 @@ export interface CkbtcMinterService {
   retrieve_btc_status_v2: (arg: { block_index: bigint }) => Promise<RetrieveBtcStatusV2>;
 }
 
-const ckbtcMinterIdl: IDL.InterfaceFactory = ({ IDL: idl }) => {
-  const TxidBlob = idl.Vec(idl.Nat8);
-  const ReimbursementReason = idl.Variant({
-    CallFailed: idl.Null,
-    TaintedDestination: idl.Record({
-      kyt_provider: idl.Principal,
-      kyt_fee: idl.Nat64,
-    }),
-  });
-  const Account = idl.Record({
-    owner: idl.Principal,
-    subaccount: idl.Opt(idl.Vec(idl.Nat8)),
-  });
-  const ReimbursementRequest = idl.Record({
-    account: Account,
-    amount: idl.Nat64,
-    reason: ReimbursementReason,
-  });
-  const ReimbursedDeposit = idl.Record({
-    account: Account,
-    mint_block_index: idl.Nat64,
-    amount: idl.Nat64,
-    reason: ReimbursementReason,
-  });
-  const RetrieveBtcStatusV2 = idl.Variant({
-    Signing: idl.Null,
-    Confirmed: idl.Record({ txid: TxidBlob }),
-    Sending: idl.Record({ txid: TxidBlob }),
-    AmountTooLow: idl.Null,
-    WillReimburse: ReimbursementRequest,
-    Unknown: idl.Null,
-    Submitted: idl.Record({ txid: TxidBlob }),
-    Reimbursed: ReimbursedDeposit,
-    Pending: idl.Null,
-  });
-  return idl.Service({
-    retrieve_btc_status_v2: idl.Func(
-      [idl.Record({ block_index: idl.Nat64 })],
-      [RetrieveBtcStatusV2],
-      ["query"],
-    ),
-  });
-};
-
-let cachedActor: CkbtcMinterService | null = null;
-
 export async function getCkbtcMinterActor(): Promise<CkbtcMinterService> {
-  if (cachedActor) {
-    return cachedActor;
-  }
-
-  const canisterId = process.env.CKBTC_MINTER_CANISTER_ID;
-  if (!canisterId) {
-    throw new Error("CKBTC_MINTER_CANISTER_ID environment variable is not set");
-  }
-
-  const agent = await getSharedAgent();
-  cachedActor = Actor.createActor<CkbtcMinterService>(ckbtcMinterIdl, {
-    agent,
-    canisterId,
-  });
-
-  return cachedActor;
+  throw new Error("ckBTC minter calls are disabled in demo mode");
 }
 
 export function bytesToHex(bytes: Uint8Array | number[]): string {

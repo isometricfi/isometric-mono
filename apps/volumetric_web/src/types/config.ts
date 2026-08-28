@@ -5,8 +5,6 @@ export interface FeeConfig {
 }
 
 export interface ConfigData {
-  canisterId: string | undefined;
-  icHost: string;
   termOptions: number[];
   strikePercentOptions: number[];
   premium: {

@@ -1,4 +1,10 @@
 {
+  "DemoMode": {
+    "title": "Demo mode.",
+    "description": "All balances and trades are simulated. No funds or transactions are sent.",
+    "reset": "Reset demo",
+    "resetting": "Resetting..."
+  },
   "PauseMode": {
     "title": "Trading is currently paused",
     "description": "Creating new offers, buying options, and withdrawals are paused for now. Your open positions are unaffected.",
@@ -187,8 +193,11 @@
     }
   },
   "Deposit": {
-    "title": "Deposit BTC",
-    "description": "Deposit BTC to make and accept offers",
+    "title": "Add demo BTC",
+    "description": "Add simulated BTC to test offers and options",
+    "addingDemoBalance": "Adding demo balance",
+    "updatingDemoBalance": "This only updates your private demo session",
+    "simulationNotice": "This action does not use your wallet balance and cannot move real Bitcoin.",
     "wallet": "Wallet",
     "depositAddress": "Deposit Address",
     "fetchingInfo": "Fetching deposit information...",
@@ -203,24 +212,24 @@
     "depositInitiated": "Deposit initiated",
     "depositInBlocks": "Your deposit will be accounted in 4 blocks (~40min)",
     "transactionId": "Transaction ID",
-    "depositComplete": "Deposit complete",
-    "balanceUpdated": "Your balance has been updated",
+    "depositComplete": "Demo balance added",
+    "balanceUpdated": "Your simulated balance has been updated. No transaction was sent.",
     "transactionCancelled": "Transaction was cancelled",
     "failedToSend": "Failed to send",
     "failedToSync": "Failed to sync deposit"
   },
   "Withdraw": {
-    "title": "Withdraw BTC",
-    "description": "Withdraw deposited BTC to your wallet",
+    "title": "Withdraw demo BTC",
+    "description": "Remove simulated BTC from your demo balance",
     "destination": "Destination",
     "lockedInOptions": "{amount} locked in active options",
     "signMessage": "Sign message",
-    "approveWithdrawal": "Approve the withdrawal in your wallet",
-    "processingWithdrawal": "Processing withdrawal",
+    "approveWithdrawal": "Approve the demo action in your wallet",
+    "processingWithdrawal": "Updating demo balance",
     "mayTakeMoment": "This may take a moment",
     "withdrawalSubmitted": "Request successful",
-    "btcOnWay": "Your BTC is on its way to your wallet",
-    "arrivesInMinutes": "Your withdraw will broadcast in 2-5 minutes",
+    "btcOnWay": "Your simulated balance has been updated",
+    "arrivesInMinutes": "No Bitcoin transaction was broadcast",
     "failedToWithdraw": "Failed to withdraw"
   },
   "PendingWithdrawals": {

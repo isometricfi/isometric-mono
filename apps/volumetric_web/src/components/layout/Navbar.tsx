@@ -1,13 +1,9 @@
 "use client";
 
-import { useDynamicContext } from "@dynamic-labs/sdk-react-core";
 import { MenuIcon, Sparkles } from "lucide-react";
 import Image from "next/image";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
-import { useDynamicConfig } from "@/app/providers/dynamic-provider";
-import { SettingsDropdown } from "@/components/layout/SettingsDropdown";
-import { SystemSettings } from "@/components/layout/SystemSettings";
 import { OpenAppLink } from "@/components/marketing/OpenAppLink";
 import { Button } from "@/components/ui/button";
 import { Drawer, DrawerContent, DrawerTitle, DrawerTrigger } from "@/components/ui/drawer";
@@ -19,8 +15,6 @@ import { Badge } from "../ui/badge";
 
 export function Navbar() {
   const pathname = usePathname();
-  const { primaryWallet } = useDynamicContext();
-  const { isConfigured } = useDynamicConfig();
   const isLandingPage = pathname === "/";
   const hideAppNav = isWaitlistMode() && isLandingPage;
   const t = useTranslations("Navbar");
@@ -93,11 +87,6 @@ export function Navbar() {
                       )}
                     </>
                   )}
-                  {!primaryWallet && (
-                    <div className="mt-4 pt-4 border-t">
-                      <SystemSettings showHeading={false} />
-                    </div>
-                  )}
                 </div>
               </DrawerContent>
             </Drawer>
@@ -121,34 +110,21 @@ export function Navbar() {
                     {t("buy")}
                   </Button>
                 </Link>
-                {primaryWallet && (
-                  <Link href="/portfolio">
-                    <Button
-                      variant="ghost"
-                      className={cn(pathname === "/portfolio" && "font-bold")}
-                    >
-                      {t("portfolio")}
-                    </Button>
-                  </Link>
-                )}
+                <Link href="/portfolio">
+                  <Button variant="ghost" className={cn(pathname === "/portfolio" && "font-bold")}>
+                    {t("portfolio")}
+                  </Button>
+                </Link>
               </>
             )}
           </div>
           <div className="flex items-center gap-3 justify-center md:justify-end -mr-1">
-            {!primaryWallet && (
-              <div className="md:flex hidden">
-                <SettingsDropdown />
-              </div>
-            )}
-
             {hideAppNav ? null : isLandingPage ? (
               <Button asChild>
                 <OpenAppLink path="/write">{t("openApp")}</OpenAppLink>
               </Button>
-            ) : isConfigured ? (
-              <ConnectButton />
             ) : (
-              <Button disabled>{t("connect")}</Button>
+              <ConnectButton />
             )}
           </div>
         </div>

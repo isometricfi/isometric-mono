@@ -1,6 +1,5 @@
 "use client";
 
-import { useDynamicContext } from "@dynamic-labs/sdk-react-core";
 import { format } from "date-fns";
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowLeft, ArrowRight } from "lucide-react";
@@ -62,7 +61,6 @@ export function BuyCallFlow({ open, onOpenChange, onRequestDeposit }: BuyCallFlo
   const tCommon = useTranslations("Common");
   const tOfferResult = useTranslations("OfferResult");
   const [stepIndex, setStepIndex] = useState(0);
-  const { primaryWallet, setShowAuthFlow } = useDynamicContext();
   const { data: config } = useConfig();
   const model = useCallOptionBuyFormModel();
 
@@ -95,10 +93,6 @@ export function BuyCallFlow({ open, onOpenChange, onRequestDeposit }: BuyCallFlo
   })();
 
   const handleSlideConfirm = () => {
-    if (!primaryWallet) {
-      setShowAuthFlow(true);
-      return;
-    }
     if (model.needDepositMore) {
       onRequestDeposit();
       return;
@@ -194,7 +188,7 @@ export function BuyCallFlow({ open, onOpenChange, onRequestDeposit }: BuyCallFlo
             <div className="flex-1">
               <SlideToConfirm
                 label={model.getButtonText()}
-                disabled={!!primaryWallet && !model.needDepositMore && model.isSubmitDisabled}
+                disabled={!model.needDepositMore && model.isSubmitDisabled}
                 isProcessing={isOfferProcessing}
                 onConfirm={handleSlideConfirm}
               />

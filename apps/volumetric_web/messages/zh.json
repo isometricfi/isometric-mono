@@ -1,4 +1,10 @@
 {
+  "DemoMode": {
+    "title": "演示模式。",
+    "description": "所有余额和交易均为模拟，不会发送资金或交易。",
+    "reset": "重置演示",
+    "resetting": "正在重置..."
+  },
   "PauseMode": {
     "title": "交易当前已暂停",
     "description": "目前无法创建新报价、买入期权或提款。您的未平仓头寸不受影响。",
@@ -185,8 +191,11 @@
     }
   },
   "Deposit": {
-    "title": "存入 BTC",
-    "description": "存入 BTC 以创建和接受报价",
+    "title": "添加演示 BTC",
+    "description": "添加模拟 BTC 以测试报价和期权",
+    "addingDemoBalance": "正在添加演示余额",
+    "updatingDemoBalance": "此操作只会更新您的私人演示会话",
+    "simulationNotice": "此操作不会使用您的钱包余额，也无法转移真实比特币。",
     "wallet": "钱包",
     "depositAddress": "存入地址",
     "fetchingInfo": "正在获取存入信息...",
@@ -201,24 +210,24 @@
     "depositInitiated": "存入已启动",
     "depositInBlocks": "您的存入将在 4 个区块后计入（约 40 分钟）",
     "transactionId": "交易 ID",
-    "depositComplete": "存入完成",
-    "balanceUpdated": "您的余额已更新",
+    "depositComplete": "演示余额已添加",
+    "balanceUpdated": "您的模拟余额已更新，未发送任何交易。",
     "transactionCancelled": "交易已取消",
     "failedToSend": "发送失败",
     "failedToSync": "同步存入失败"
   },
   "Withdraw": {
-    "title": "提取 BTC",
-    "description": "将存入的 BTC 提取到您的钱包",
+    "title": "提取演示 BTC",
+    "description": "从演示余额中移除模拟 BTC",
     "destination": "目标地址",
     "lockedInOptions": "{amount} 锁定在活跃期权中",
     "signMessage": "签署消息",
-    "approveWithdrawal": "在您的钱包中批准提取",
-    "processingWithdrawal": "正在处理提取",
+    "approveWithdrawal": "在您的钱包中批准演示操作",
+    "processingWithdrawal": "正在更新演示余额",
     "mayTakeMoment": "可能需要片刻",
     "withdrawalSubmitted": "请求成功",
-    "btcOnWay": "您的 BTC 正在发送到您的钱包",
-    "arrivesInMinutes": "您的提款将在 2-5 分钟内广播",
+    "btcOnWay": "您的模拟余额已更新",
+    "arrivesInMinutes": "未广播任何比特币交易",
     "failedToWithdraw": "提取失败"
   },
   "PendingWithdrawals": {

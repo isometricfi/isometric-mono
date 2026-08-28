@@ -1,21 +1,22 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
+import { listActiveOptions } from "@/lib/use-cases/options/list-active-options/usecase";
+import { listOptions } from "@/lib/use-cases/options/list-options/usecase";
 import { DEFAULT_MIN_ACCEPT_OFFER_AMOUNT_SATS } from "@/lib/utils";
-import { useTRPC } from "@/trpc/react";
 import type { OptionOffer, OptionsData } from "@/types/options";
 import { useConfig } from "./use-config";
 
 const OPTIONS_STALE_TIME_30_SECONDS_MS = 30_000;
 
 export function useOptions() {
-  const trpc = useTRPC();
   const { data: config } = useConfig();
   const minAcceptOfferAmountSats =
     config?.minAcceptOfferAmountSats ?? DEFAULT_MIN_ACCEPT_OFFER_AMOUNT_SATS;
 
   return useQuery({
-    ...trpc.options.listOptions.queryOptions(),
+    queryKey: ["options"],
+    queryFn: listOptions,
     staleTime: OPTIONS_STALE_TIME_30_SECONDS_MS,
     select: (data) => {
       const filteredTermGroups = data.termGroups
@@ -43,10 +44,9 @@ export function useOptions() {
 }
 
 export function useActiveOptions() {
-  const trpc = useTRPC();
-
   return useQuery({
-    ...trpc.options.listActiveOptions.queryOptions(),
+    queryKey: ["active-options"],
+    queryFn: listActiveOptions,
     staleTime: OPTIONS_STALE_TIME_30_SECONDS_MS,
   });
 }

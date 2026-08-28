@@ -1,17 +1,13 @@
 "use client";
 
-import { isBitcoinWallet } from "@dynamic-labs/bitcoin";
-import { useDynamicContext } from "@dynamic-labs/sdk-react-core";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { unwrapResult } from "@volumetric/canister-types";
 import { useState } from "react";
-import { signBitcoinPaymentMessage } from "@/lib/bitcoin/sign-payment-message";
+import { DEMO_USER_SIGNATURE } from "@/lib/demo/demo-canister-browser";
 import { computeExpiresAtSeconds } from "@/lib/use-cases/_shared/wallet-proof";
 import { OFFER_VALID_UNTIL_DEFAULT_OFFSET_SECONDS } from "@/lib/use-cases/options/create-offer/offer-valid-until-policy";
 import type { Output as CreateOfferOutput } from "@/lib/use-cases/options/create-offer/schema";
-import { trpcClient } from "@/trpc/react";
+import { createOffer } from "@/lib/use-cases/options/create-offer/usecase";
 import { useBtcAddress } from "../queries/use-btc-address";
-import { useCanister } from "../use-canister";
 
 const SECONDS_PER_DAY = 86400;
 const PERCENT_TO_BASIS_POINTS = 100;
@@ -26,8 +22,6 @@ export interface CreateOfferParams {
 }
 
 export function useCreateOffer() {
-  const { primaryWallet } = useDynamicContext();
-  const canister = useCanister();
   const address = useBtcAddress("payment");
   const queryClient = useQueryClient();
 
@@ -40,14 +34,9 @@ export function useCreateOffer() {
       premiumPercent,
       termDays,
     }: CreateOfferParams): Promise<CreateOfferOutput> => {
-      if (!canister || !address) {
-        throw new Error("Wallet not connected");
+      if (!address) {
+        throw new Error("Demo account not ready");
       }
-      if (!primaryWallet || !isBitcoinWallet(primaryWallet)) {
-        throw new Error("Bitcoin wallet not connected");
-      }
-
-      setStep("signing");
 
       const quantity = BigInt(quantitySats);
       const strikeBasisPoints = Math.round(strikePercent * PERCENT_TO_BASIS_POINTS);
@@ -58,28 +47,11 @@ export function useCreateOffer() {
       const offerValidUntilSeconds = nowSeconds + OFFER_VALID_UNTIL_DEFAULT_OFFSET_SECONDS;
       const expiresAtSeconds = computeExpiresAtSeconds();
 
-      const message = unwrapResult(
-        await canister.get_create_offer_message(
-          address,
-          quantity,
-          strikeBasisPoints,
-          premiumBasisPoints,
-          optionDurationSeconds,
-          offerValidUntilSeconds,
-          expiresAtSeconds,
-        ),
-      );
-      const signature = await signBitcoinPaymentMessage(primaryWallet, message);
-
-      if (!signature) {
-        throw new Error("Failed to sign message");
-      }
-
       setStep("submitting");
 
-      return trpcClient.options.createOffer.mutate({
+      return createOffer({
         address,
-        signature,
+        signature: DEMO_USER_SIGNATURE,
         expiresAtSeconds: expiresAtSeconds.toString(),
         quantity: quantity.toString(),
         strikeBasisPoints,
@@ -90,9 +62,9 @@ export function useCreateOffer() {
     },
     onSuccess: () => {
       setStep("success");
-      queryClient.invalidateQueries({ queryKey: [["options"]] });
-      queryClient.invalidateQueries({ queryKey: [["account"]] });
-      queryClient.invalidateQueries({ queryKey: [["portfolio"]] });
+      queryClient.invalidateQueries({ queryKey: ["options"] });
+      queryClient.invalidateQueries({ queryKey: ["account"] });
+      queryClient.invalidateQueries({ queryKey: ["portfolio"] });
     },
     onError: () => {
       setStep("error");

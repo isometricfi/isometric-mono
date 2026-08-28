@@ -5,7 +5,6 @@ import { Agentation } from "agentation";
 import { ModalProvider } from "@/components/layout/ModalProvider";
 import { Toaster } from "@/components/ui/sonner";
 import { TRPCProvider, trpcClient } from "@/trpc/react";
-import { DynamicProvider } from "./providers/dynamic-provider";
 
 const AGENTATION_ENDPOINT = "http://localhost:4747";
 
@@ -37,11 +36,9 @@ export default function Providers({ children }: { children: React.ReactNode }) {
     <QueryClientProvider client={queryClient}>
       <TRPCProvider trpcClient={trpcClient} queryClient={queryClient}>
         <Toaster position="top-center" />
-        <DynamicProvider>
-          {children}
-          <ModalProvider />
-          {process.env.NODE_ENV === "development" && <Agentation endpoint={AGENTATION_ENDPOINT} />}
-        </DynamicProvider>
+        {children}
+        <ModalProvider />
+        {process.env.NODE_ENV === "development" && <Agentation endpoint={AGENTATION_ENDPOINT} />}
       </TRPCProvider>
     </QueryClientProvider>
   );

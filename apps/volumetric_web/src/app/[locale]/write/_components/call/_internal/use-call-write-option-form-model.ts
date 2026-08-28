@@ -1,4 +1,3 @@
-import { useDynamicContext } from "@dynamic-labs/sdk-react-core";
 import { useTranslations } from "next-intl";
 import { useEffect, useMemo, useState } from "react";
 import {
@@ -32,7 +31,6 @@ const DEFAULT_STRIKE_PERCENT = 5;
 const DEFAULT_TERM_DAYS = 7;
 
 export function useCallWriteOptionFormModel() {
-  const { primaryWallet } = useDynamicContext();
   const { data: priceData } = usePrices();
   const { data: config } = useConfig();
   const { data: accountData, isPending: isAccountPending } = useAccount();
@@ -102,9 +100,8 @@ export function useCallWriteOptionFormModel() {
     [selectedStrikeOffers, premiumPercent, amountSats],
   );
 
-  const isWalletConnected = !!primaryWallet;
-  const isBalanceLoading = isWalletConnected && isAccountPending;
-  const needDepositMore = isWalletConnected && availableBalanceSats < minCreateOfferAmountSats;
+  const isBalanceLoading = isAccountPending;
+  const needDepositMore = availableBalanceSats < minCreateOfferAmountSats;
   const isValidAmount =
     amountSats >= minCreateOfferAmountSats && amountSats <= maxCreateOfferAmountSats;
 
@@ -189,7 +186,6 @@ export function useCallWriteOptionFormModel() {
   };
 
   const getButtonText = () => {
-    if (!isWalletConnected) return t("connectWallet");
     if (needDepositMore) {
       return t("depositMoreToCreateOffers", {
         minBtc: formatBtcWithSymbol(minCreateOfferAmountSats),
@@ -228,7 +224,7 @@ export function useCallWriteOptionFormModel() {
     handleStrikeUsdChange,
     handleSubmit,
     isBalanceLoading,
-    isSubmitDisabled: !isWalletConnected || !isValidAmount || createOffer.isPending,
+    isSubmitDisabled: !isValidAmount || createOffer.isPending,
     minCreateOfferAmountSats,
     maxCreateOfferAmountSats,
     needDepositMore,

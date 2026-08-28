@@ -1,9 +1,5 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
-import { useTRPC } from "@/trpc/react";
-import { useBtcAddress } from "./use-btc-address";
-
 export type PendingWithdrawalStatus = "broadcasting" | "pending";
 
 export interface PendingWithdrawal {
@@ -17,20 +13,9 @@ export interface PendingWithdrawal {
 }
 
 export function usePendingWithdrawals() {
-  const trpc = useTRPC();
-  const userAddress = useBtcAddress("payment");
-
-  const query = useQuery({
-    ...trpc.account.getPendingWithdrawals.queryOptions({ address: userAddress ?? "" }),
-    enabled: !!userAddress,
-    refetchInterval: 15_000,
-  });
-
-  const withdrawals: PendingWithdrawal[] = query.data?.pendingWithdrawals ?? [];
-
   return {
-    withdrawals,
-    isLoading: query.isLoading,
-    hasPending: withdrawals.length > 0,
+    withdrawals: [] as PendingWithdrawal[],
+    isLoading: false,
+    hasPending: false,
   };
 }

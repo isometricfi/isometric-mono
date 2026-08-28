@@ -1,6 +1,6 @@
 # Isometric Web
 
-Next.js app for the Isometric protocol. It connects wallets, displays markets, submits canister calls, syncs protocol events, and runs on Cloudflare Workers through OpenNext.
+Next.js demo app for Isometric. It uses an automatic demo account and keeps simulated trading state in the browser.
 
 Product behavior belongs in the docs site: <https://docs.isometric.fi>.
 
@@ -18,7 +18,7 @@ Create local environment variables:
 cp apps/volumetric_web/.env.example apps/volumetric_web/.env.local
 ```
 
-Set at least `CANISTER_ID`, `IC_HOST`, `NEXT_PUBLIC_BASE_URL`, and `NEXT_PUBLIC_DYNAMIC_ENVIRONMENT_ID` for local app work. Cloudflare D1, cron, email, and telemetry variables are only needed for those features.
+Set `NEXT_PUBLIC_BASE_URL` for local app work. Cloudflare D1 is only needed for landing-page features such as the waitlist.
 
 ## Development
 

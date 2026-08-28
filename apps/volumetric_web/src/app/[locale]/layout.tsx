@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import Script from "next/script";
 import { NextIntlClientProvider } from "next-intl";
 import { getMessages, getTranslations, setRequestLocale } from "next-intl/server";
+import { DemoBanner } from "@/components/layout/DemoBanner";
 import { Footer } from "@/components/layout/Footer";
 import { Navbar } from "@/components/layout/Navbar";
 import { PreferencesHydrator } from "@/components/layout/PreferencesHydrator";
@@ -26,6 +27,8 @@ const geistMono = Geist_Mono({
 
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || "https://isometric.fi";
 const TAWK_EMBED_URL = process.env.NEXT_PUBLIC_TAWK_EMBED_URL;
+
+export const dynamic = "force-dynamic";
 
 export function generateStaticParams() {
   return routing.locales.map((locale) => ({ locale }));
@@ -151,6 +154,7 @@ export default async function LocaleLayout({
             <CaptureInviteCodeFromQuery />
             <Providers>
               <div className="flex min-h-screen flex-col px-4">
+                <DemoBanner />
                 <Navbar />
                 <main className="flex-1">{children}</main>
                 <Footer />

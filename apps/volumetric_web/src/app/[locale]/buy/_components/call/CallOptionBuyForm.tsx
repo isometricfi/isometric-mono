@@ -1,6 +1,5 @@
 "use client";
 
-import { useDynamicContext } from "@dynamic-labs/sdk-react-core";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { BtcUsdAmountSection } from "@/components/options/BtcUsdAmountSection";
@@ -15,7 +14,6 @@ import { useCallOptionBuyFormModel } from "./_internal/use-call-option-buy-form-
 import { CallBuyOptionSummary } from "./CallBuyOptionSummary";
 
 export function CallOptionBuyForm() {
-  const { primaryWallet, setShowAuthFlow } = useDynamicContext();
   const [depositModalOpen, setDepositModalOpen] = useState(false);
   const t = useTranslations("Forms");
   const {
@@ -84,16 +82,10 @@ export function CallOptionBuyForm() {
           strikePercent={strikePercent}
         />
         <Button
-          onClick={
-            !primaryWallet
-              ? () => setShowAuthFlow(true)
-              : needDepositMore
-                ? () => setDepositModalOpen(true)
-                : handleSubmit
-          }
+          onClick={needDepositMore ? () => setDepositModalOpen(true) : handleSubmit}
           className="w-full text-base font-semibold"
           size="lg"
-          disabled={primaryWallet ? (needDepositMore ? false : isSubmitDisabled) : false}
+          disabled={needDepositMore ? false : isSubmitDisabled}
         >
           {getButtonText()}
         </Button>

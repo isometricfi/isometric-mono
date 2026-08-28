@@ -36,16 +36,12 @@
       "vars": {
         "TURBO_TELEMETRY_DISABLED": "1",
         "DO_NOT_TRACK": "1",
-        "IC_HOST": "https://ic0.app",
         "NEXT_PUBLIC_BASE_URL": "https://dev.isometric.fi",
-        "NEXT_PUBLIC_DYNAMIC_ENVIRONMENT_ID": "9d34253b-1be6-45d1-b781-c26f0feea824",
         "OTEL_SERVICE_NAME": "volumetric-web-dev",
         "OTEL_EXPORTER_OTLP_TRACES_ENDPOINT": "https://otlp-gateway-prod-eu-central-0.grafana.net/otlp/v1/traces",
         "OTEL_EXPORTER_OTLP_LOGS_ENDPOINT": "https://otlp-gateway-prod-eu-central-0.grafana.net/otlp/v1/logs",
         "MEMPOOL_API_URL": "https://mempool.space/testnet/api",
-        "NEXT_PUBLIC_MEMPOOL_URL": "https://mempool.space",
-        "CANISTER_ID": "4dqqd-aqaaa-aaaae-qgbta-cai",
-        "CKBTC_MINTER_CANISTER_ID": "ml52i-qqaaa-aaaar-qaaba-cai"
+        "NEXT_PUBLIC_MEMPOOL_URL": "https://mempool.space"
       },
       "services": [
         {
@@ -67,16 +63,12 @@
       "vars": {
         "TURBO_TELEMETRY_DISABLED": "1",
         "DO_NOT_TRACK": "1",
-        "IC_HOST": "https://ic0.app",
         "NEXT_PUBLIC_BASE_URL": "https://staging.isometric.fi",
-        "NEXT_PUBLIC_DYNAMIC_ENVIRONMENT_ID": "37dc9ae9-e6ad-4dc7-b196-1c5f02b0938b",
         "OTEL_SERVICE_NAME": "volumetric-web-stage",
         "OTEL_EXPORTER_OTLP_TRACES_ENDPOINT": "https://otlp-gateway-prod-eu-central-0.grafana.net/otlp/v1/traces",
         "OTEL_EXPORTER_OTLP_LOGS_ENDPOINT": "https://otlp-gateway-prod-eu-central-0.grafana.net/otlp/v1/logs",
         "MEMPOOL_API_URL": "https://luminex.mempool.space/api",
         "NEXT_PUBLIC_MEMPOOL_URL": "https://mempool.space",
-        "CANISTER_ID": "5optx-3iaaa-aaaae-qjwsa-cai",
-        "CKBTC_MINTER_CANISTER_ID": "mqygn-kiaaa-aaaar-qaadq-cai",
         "NEXT_PUBLIC_TAWK_EMBED_URL": "https://embed.tawk.to/69a303f652cbb51c37094784/1jiicevko",
         "NEXT_PUBLIC_APP_HOST": "staging.isometric.fi",
         "NEXT_PUBLIC_APP_URL": "https://staging.isometric.fi",
@@ -103,16 +95,12 @@
       "vars": {
         "TURBO_TELEMETRY_DISABLED": "1",
         "DO_NOT_TRACK": "1",
-        "IC_HOST": "https://ic0.app",
         "NEXT_PUBLIC_BASE_URL": "https://isometric.fi",
-        "NEXT_PUBLIC_DYNAMIC_ENVIRONMENT_ID": "37dc9ae9-e6ad-4dc7-b196-1c5f02b0938b",
         "OTEL_SERVICE_NAME": "volumetric-web-prod",
         "OTEL_EXPORTER_OTLP_TRACES_ENDPOINT": "https://otlp-gateway-prod-eu-central-0.grafana.net/otlp/v1/traces",
         "OTEL_EXPORTER_OTLP_LOGS_ENDPOINT": "https://otlp-gateway-prod-eu-central-0.grafana.net/otlp/v1/logs",
         "MEMPOOL_API_URL": "https://luminex.mempool.space/api",
         "NEXT_PUBLIC_MEMPOOL_URL": "https://mempool.space",
-        "CANISTER_ID": "ro56e-yyaaa-aaaae-qkaia-cai",
-        "CKBTC_MINTER_CANISTER_ID": "mqygn-kiaaa-aaaar-qaadq-cai",
         "NEXT_PUBLIC_TAWK_EMBED_URL": "https://embed.tawk.to/69a303f652cbb51c37094784/1jiicevko",
         "NEXT_PUBLIC_APP_HOST": "app.isometric.fi",
         "NEXT_PUBLIC_APP_URL": "https://app.isometric.fi",

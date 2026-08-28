@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, test, vi } from "vitest";
+import { describe, expect, test } from "vitest";
 import { mapConfig } from "./mapper";
 
 const SECONDS_PER_DAY = 86_400;
@@ -32,15 +32,9 @@ function makeValidFeeConfig(overrides: Record<string, unknown> = {}) {
   };
 }
 
-afterEach(() => {
-  vi.unstubAllEnvs();
-});
-
 describe("mapConfig", () => {
   test("should map all fields with default 3-7 day range", () => {
     // given
-    delete process.env.CANISTER_ID;
-    delete process.env.IC_HOST;
     const limits = makeValidLimits();
     const feeConfig = makeValidFeeConfig();
 
@@ -49,8 +43,6 @@ describe("mapConfig", () => {
 
     // then
     expect(result).toEqual({
-      canisterId: undefined,
-      icHost: "https://ic0.app",
       termOptions: [3, 7],
       strikePercentOptions: [1, 2, 3, 5, 8],
       premium: { min: 1, max: 50, step: 0.1 },
@@ -150,18 +142,5 @@ describe("mapConfig", () => {
   test("should throw Zod error for invalid limits", () => {
     // given / when / then
     expect(() => mapConfig({ option_duration_seconds: "bad" }, makeValidFeeConfig())).toThrow();
-  });
-
-  test("should use env vars when set", () => {
-    // given
-    vi.stubEnv("CANISTER_ID", "rrkah-fqaaa-aaaaa-aaaaq-cai");
-    vi.stubEnv("IC_HOST", "https://custom.example.com");
-
-    // when
-    const result = mapConfig(makeValidLimits(), makeValidFeeConfig());
-
-    // then
-    expect(result.canisterId).toBe("rrkah-fqaaa-aaaaa-aaaaq-cai");
-    expect(result.icHost).toBe("https://custom.example.com");
   });
 });

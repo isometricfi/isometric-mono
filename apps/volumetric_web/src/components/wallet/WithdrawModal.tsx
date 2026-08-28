@@ -1,17 +1,16 @@
 "use client";
 
-import { useDynamicContext } from "@dynamic-labs/sdk-react-core";
 import { AnimatePresence, motion } from "framer-motion";
 import { CheckCircle2, CircleArrowUp, FileSignature, Send, XCircle } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { useMediaQuery } from "react-responsive";
 import { AmountInput } from "@/components/options/AmountInput";
 import { FlowStepper, type FlowStepperStep } from "@/components/options/MobileFlowParts";
 import { AlertDialog, AlertDialogContent, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Drawer, DrawerContent, DrawerTitle } from "@/components/ui/drawer";
-import { useAccount, useWithdraw, type WithdrawStep } from "@/hooks";
+import { useAccount, useBtcAddress, useConfig, useWithdraw, type WithdrawStep } from "@/hooks";
 import { getNiceErrorMessage } from "@/lib/error-message";
 import {
   formatBtcBigint,
@@ -22,7 +21,7 @@ import {
 import { Badge } from "../ui/badge";
 import { Skeleton } from "../ui/skeleton";
 
-const MIN_WITHDRAW_SATS = BigInt(50_100);
+const DEFAULT_MIN_WITHDRAW_SATS = BigInt(50_000);
 
 export function WithdrawModal({
   open,
@@ -32,8 +31,9 @@ export function WithdrawModal({
   onOpenChange: (open: boolean) => void;
 }) {
   const isMobile = useMediaQuery({ query: "(max-width: 768px)" });
-  const { primaryWallet } = useDynamicContext();
+  const demoAddress = useBtcAddress("payment");
   const { data: accountData, isLoading: isAccountLoading } = useAccount();
+  const { data: config } = useConfig();
   const withdraw = useWithdraw();
   const t = useTranslations("Withdraw");
   const tCommon = useTranslations("Common");
@@ -42,22 +42,18 @@ export function WithdrawModal({
   const profile = accountData?.profile;
   const lockedSats = balance?.locked ?? BigInt(0);
   const availableSats = balance?.available ?? BigInt(0);
-  const destinationAddress = profile?.address ?? primaryWallet?.address ?? "";
+  const destinationAddress = profile?.address ?? demoAddress;
 
   const [amountBtc, setAmountBtc] = useState("");
 
-  const minWithdrawSats = MIN_WITHDRAW_SATS;
+  const minWithdrawSats = BigInt(config?.minWithdrawAmountSats ?? DEFAULT_MIN_WITHDRAW_SATS);
 
-  const enteredAmountSats = useMemo(() => parseBtcToSatsBigint(amountBtc), [amountBtc]);
+  const enteredAmountSats = parseBtcToSatsBigint(amountBtc);
   const isBelowMinimum = enteredAmountSats < minWithdrawSats;
-
-  const canWithdraw = useMemo(() => {
-    const sats = parseBtcToSatsBigint(amountBtc);
-    if (sats < minWithdrawSats) return false;
-    if (sats > BigInt(availableSats)) return false;
-    if (!destinationAddress) return false;
-    return true;
-  }, [amountBtc, availableSats, destinationAddress, minWithdrawSats]);
+  const canWithdraw =
+    enteredAmountSats >= minWithdrawSats &&
+    enteredAmountSats <= availableSats &&
+    destinationAddress.length > 0;
 
   const step: WithdrawStep = withdraw.step;
   const isProcessing = step === "signing" || step === "submitting";

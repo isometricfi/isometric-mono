@@ -1,6 +1,5 @@
 "use client";
 
-import { useDynamicContext } from "@dynamic-labs/sdk-react-core";
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 import { useTranslations } from "next-intl";
@@ -59,7 +58,6 @@ export function WriteCallFlow({ open, onOpenChange, onRequestDeposit }: WriteCal
   const tCommon = useTranslations("Common");
   const tOfferResult = useTranslations("OfferResult");
   const [stepIndex, setStepIndex] = useState(0);
-  const { primaryWallet, setShowAuthFlow } = useDynamicContext();
   const { data: config } = useConfig();
   const model = useCallWriteOptionFormModel();
 
@@ -90,10 +88,6 @@ export function WriteCallFlow({ open, onOpenChange, onRequestDeposit }: WriteCal
       : true;
 
   const handleSlideConfirm = () => {
-    if (!primaryWallet) {
-      setShowAuthFlow(true);
-      return;
-    }
     if (model.needDepositMore) {
       onRequestDeposit();
       return;
@@ -193,7 +187,7 @@ export function WriteCallFlow({ open, onOpenChange, onRequestDeposit }: WriteCal
             <div className="flex-1">
               <SlideToConfirm
                 label={model.getButtonText()}
-                disabled={!!primaryWallet && !model.needDepositMore && model.isSubmitDisabled}
+                disabled={!model.needDepositMore && model.isSubmitDisabled}
                 isProcessing={isOfferProcessing}
                 onConfirm={handleSlideConfirm}
               />

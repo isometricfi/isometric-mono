@@ -1,7 +1,6 @@
 "use client";
 
-import { useDynamicContext } from "@dynamic-labs/sdk-react-core";
-import { HelpCircle, TrendingUp, Wallet, Zap } from "lucide-react";
+import { HelpCircle, TrendingUp, Zap } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { BTCPriceChart } from "@/components/options/BTCPriceChart";
@@ -25,9 +24,7 @@ export function BuyOptionsView() {
   const [depositModalOpen, setDepositModalOpen] = useState(false);
   const { openModal } = useModal();
   const { isProMode } = useProMode();
-  const { primaryWallet, setShowAuthFlow } = useDynamicContext();
   const { data: pauseModeData } = usePauseMode();
-  const isConnected = !!primaryWallet;
   const handleRequestDeposit = () => {
     setFlowOpen(false);
     setDepositModalOpen(true);
@@ -87,19 +84,16 @@ export function BuyOptionsView() {
             <div className="relative">
               <BTCPriceChart mode="buyer" showStrikeOverlay={false} termDaysOverride={14} />
               <Button
-                onClick={() => (isConnected ? setFlowOpen(true) : setShowAuthFlow(true))}
+                onClick={() => setFlowOpen(true)}
                 size={"lg"}
                 className="absolute bottom-5 right-4.5 md:flex hidden"
               >
-                {isConnected ? <TrendingUp className="size-5" /> : <Wallet className="size-5" />}
-                {isConnected ? t("buyCta") : t("connectToBuyCta")}
+                <TrendingUp className="size-5" />
+                {t("buyCta")}
               </Button>
-              <Button
-                onClick={() => (isConnected ? setFlowOpen(true) : setShowAuthFlow(true))}
-                className="w-full mt-5 md:hidden"
-              >
-                {isConnected ? <TrendingUp className="size-5" /> : <Wallet className="size-5" />}
-                {isConnected ? t("buyCta") : t("connectToBuyCta")}
+              <Button onClick={() => setFlowOpen(true)} className="w-full mt-5 md:hidden">
+                <TrendingUp className="size-5" />
+                {t("buyCta")}
               </Button>
             </div>
             <OptionsViewer mode="buyer" />

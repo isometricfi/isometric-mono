@@ -18,7 +18,7 @@
     }
   ],
   "triggers": {
-    "crons": ["* * * * *", "*/5 * * * *"]
+    "crons": ["* * * * *"]
   },
   "env": {
     "dev": {
@@ -57,7 +57,7 @@
     "production": {
       "name": "volumetric-cron-production",
       "triggers": {
-        "crons": ["* * * * *", "*/5 * * * *"]
+        "crons": ["* * * * *"]
       },
       "vars": {
         "TURBO_TELEMETRY_DISABLED": "1",

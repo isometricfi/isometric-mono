@@ -1,16 +1,12 @@
 "use client";
 
-import { isBitcoinWallet } from "@dynamic-labs/bitcoin";
-import { useDynamicContext } from "@dynamic-labs/sdk-react-core";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { unwrapResult } from "@volumetric/canister-types";
 import { useState } from "react";
-import { signBitcoinPaymentMessage } from "@/lib/bitcoin/sign-payment-message";
+import { DEMO_USER_SIGNATURE } from "@/lib/demo/demo-canister-browser";
 import { computeExpiresAtSeconds } from "@/lib/use-cases/_shared/wallet-proof";
 import type { Output as AcceptOffersOutput } from "@/lib/use-cases/options/accept-offers/schema";
-import { trpcClient } from "@/trpc/react";
+import { acceptOffers } from "@/lib/use-cases/options/accept-offers/usecase";
 import { useBtcAddress } from "../queries/use-btc-address";
-import { useCanister } from "../use-canister";
 
 export type AcceptOfferStep = "idle" | "signing" | "submitting" | "success" | "error";
 
@@ -20,8 +16,6 @@ export interface AcceptOfferParams {
 }
 
 export function useAcceptOffer() {
-  const { primaryWallet } = useDynamicContext();
-  const canister = useCanister();
   const address = useBtcAddress("payment");
   const queryClient = useQueryClient();
 
@@ -32,40 +26,25 @@ export function useAcceptOffer() {
       offerId,
       quantitySats,
     }: AcceptOfferParams): Promise<AcceptOffersOutput> => {
-      if (!canister || !address) {
-        throw new Error("Wallet not connected");
-      }
-      if (!primaryWallet || !isBitcoinWallet(primaryWallet)) {
-        throw new Error("Bitcoin wallet not connected");
+      if (!address) {
+        throw new Error("Demo account not ready");
       }
 
-      setStep("signing");
-
-      const items = [{ offer_id: BigInt(offerId), quantity: BigInt(quantitySats) }];
       const expiresAtSeconds = computeExpiresAtSeconds();
-      const message = unwrapResult(
-        await canister.get_accept_offers_message(address, items, expiresAtSeconds),
-      );
-      const signature = await signBitcoinPaymentMessage(primaryWallet, message);
-
-      if (!signature) {
-        throw new Error("Failed to sign message");
-      }
-
       setStep("submitting");
 
-      return trpcClient.options.acceptOffers.mutate({
+      return acceptOffers({
         address,
-        signature,
+        signature: DEMO_USER_SIGNATURE,
         expiresAtSeconds: expiresAtSeconds.toString(),
         items: [{ offerId, quantity: quantitySats.toString() }],
       });
     },
     onSuccess: () => {
       setStep("success");
-      queryClient.invalidateQueries({ queryKey: [["options"]] });
-      queryClient.invalidateQueries({ queryKey: [["account"]] });
-      queryClient.invalidateQueries({ queryKey: [["portfolio"]] });
+      queryClient.invalidateQueries({ queryKey: ["options"] });
+      queryClient.invalidateQueries({ queryKey: ["account"] });
+      queryClient.invalidateQueries({ queryKey: ["portfolio"] });
     },
     onError: () => {
       setStep("error");

@@ -5,7 +5,6 @@ import {
   getEventsForPrincipal,
   getEventsSince,
 } from "@/lib/use-cases/events/get-events/usecase";
-import { syncEventsFromCanister } from "@/lib/use-cases/events/sync-events/usecase";
 import { publicProcedure, router } from "../init";
 
 export const eventsRouter = router({
@@ -24,6 +23,4 @@ export const eventsRouter = router({
       }),
     )
     .query(({ input }) => getEventsForPrincipal(input.principal, input.afterId, input.limit)),
-
-  syncAll: publicProcedure.mutation(() => syncEventsFromCanister()),
 });

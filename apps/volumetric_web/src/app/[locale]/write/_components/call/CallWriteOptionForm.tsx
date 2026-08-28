@@ -1,6 +1,5 @@
 "use client";
 
-import { useDynamicContext } from "@dynamic-labs/sdk-react-core";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { BtcUsdAmountSection } from "@/components/options/BtcUsdAmountSection";
@@ -16,7 +15,6 @@ import { CallWriteOptionSummary } from "./CallWriteOptionSummary";
 import { WriteEarningsSection } from "./WriteEarningsSection";
 
 export function CallWriteOptionForm() {
-  const { primaryWallet, setShowAuthFlow } = useDynamicContext();
   const [depositModalOpen, setDepositModalOpen] = useState(false);
   const t = useTranslations("Forms");
   const {
@@ -104,16 +102,10 @@ export function CallWriteOptionForm() {
         />
 
         <Button
-          onClick={
-            !primaryWallet
-              ? () => setShowAuthFlow(true)
-              : needDepositMore
-                ? () => setDepositModalOpen(true)
-                : handleSubmit
-          }
+          onClick={needDepositMore ? () => setDepositModalOpen(true) : handleSubmit}
           className="w-full text-base"
           size="default"
-          disabled={primaryWallet ? (needDepositMore ? false : isSubmitDisabled) : false}
+          disabled={needDepositMore ? false : isSubmitDisabled}
         >
           {getButtonText()}
         </Button>

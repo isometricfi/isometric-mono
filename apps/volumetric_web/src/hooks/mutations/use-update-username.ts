@@ -1,23 +1,17 @@
 "use client";
 
-import { isBitcoinWallet } from "@dynamic-labs/bitcoin";
-import { useDynamicContext } from "@dynamic-labs/sdk-react-core";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { unwrapResult } from "@volumetric/canister-types";
-import { signBitcoinPaymentMessage } from "@/lib/bitcoin/sign-payment-message";
+import { DEMO_USER_SIGNATURE } from "@/lib/demo/demo-canister-browser";
 import { computeExpiresAtSeconds } from "@/lib/use-cases/_shared/wallet-proof";
 import type { Output as UpdateUsernameOutput } from "@/lib/use-cases/account/update-username/schema";
-import { trpcClient } from "@/trpc/react";
+import { updateUsername } from "@/lib/use-cases/account/update-username/usecase";
 import { useBtcAddress } from "../queries/use-btc-address";
-import { useCanister } from "../use-canister";
 
 export interface UpdateUsernameParams {
   username: string;
 }
 
 export function useUpdateUsername() {
-  const { primaryWallet } = useDynamicContext();
-  const canister = useCanister();
   const address = useBtcAddress("payment");
   const queryClient = useQueryClient();
 
@@ -25,35 +19,24 @@ export function useUpdateUsername() {
     mutationFn: async ({ username }: UpdateUsernameParams): Promise<UpdateUsernameOutput> => {
       const trimmed = username.trim();
 
-      if (!canister || !address) {
-        throw new Error("Wallet not connected");
-      }
-      if (!primaryWallet || !isBitcoinWallet(primaryWallet)) {
-        throw new Error("Bitcoin wallet not connected");
+      if (!address) {
+        throw new Error("Demo account not ready");
       }
       if (!trimmed) {
         throw new Error("Enter a username");
       }
 
       const expiresAtSeconds = computeExpiresAtSeconds();
-      const message = unwrapResult(
-        await canister.get_username_update_message(address, trimmed, expiresAtSeconds),
-      );
-      const signature = await signBitcoinPaymentMessage(primaryWallet, message);
 
-      if (!signature) {
-        throw new Error("Failed to sign message");
-      }
-
-      return trpcClient.account.updateUsername.mutate({
+      return updateUsername({
         address,
-        signature,
+        signature: DEMO_USER_SIGNATURE,
         expiresAtSeconds: expiresAtSeconds.toString(),
         username: trimmed,
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [["account"]] });
+      queryClient.invalidateQueries({ queryKey: ["account"] });
     },
   });
 }

@@ -1,11 +1,9 @@
 "use client";
 
-import { useDynamicContext } from "@dynamic-labs/sdk-react-core";
 import { History, PencilLine, Zap } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { AnimatedToggle } from "@/components/navigation/AnimatedToggle";
 import { Button } from "@/components/ui/button";
-import { ConnectButton } from "@/components/wallet/ConnectButton";
 import { useAccount } from "@/hooks";
 import { Link } from "@/i18n/routing";
 import { usePortfolioTab } from "@/stores/preferences-store";
@@ -13,22 +11,9 @@ import { OffersTable } from "./OffersTable";
 import { OptionsTable } from "./OptionsTable";
 
 export function PortfolioView() {
-  const { primaryWallet } = useDynamicContext();
   const { data: account, isFetched } = useAccount();
   const { portfolioTab, setPortfolioTab } = usePortfolioTab();
   const t = useTranslations("Portfolio");
-
-  if (!primaryWallet) {
-    return (
-      <div className="flex flex-col items-center justify-center gap-4">
-        <div className="text-center space-y-2">
-          <h1 className="md:text-3xl text-xl font-bold">{t("title")}</h1>
-        </div>
-        <p className="text-muted-foreground">{t("connectToView")}</p>
-        <ConnectButton />
-      </div>
-    );
-  }
 
   if (isFetched && !account?.profile) {
     return (

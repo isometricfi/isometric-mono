@@ -26,7 +26,6 @@ export {
   type CreateOfferStep,
   useCreateOffer,
 } from "./mutations/use-create-offer";
-export { useSyncDeposit } from "./mutations/use-sync-deposit";
 export { type UpdateUsernameParams, useUpdateUsername } from "./mutations/use-update-username";
 export {
   useWithdraw,
@@ -67,10 +66,7 @@ export {
 } from "./queries/use-pending-withdrawals";
 export { usePortfolio } from "./queries/use-portfolio";
 export { usePrices } from "./queries/use-prices";
-export { useWalletBalance } from "./queries/use-wallet-balance";
 // internal (for message signing)
 export { useCanister } from "./use-canister";
-// account flow
-export { type EnsureAccountStep, useEnsureAccount } from "./use-ensure-account";
 // modal
 export { useModal } from "./use-modal";

@@ -1,16 +1,12 @@
 "use client";
 
-import { isBitcoinWallet } from "@dynamic-labs/bitcoin";
-import { useDynamicContext } from "@dynamic-labs/sdk-react-core";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { unwrapResult } from "@volumetric/canister-types";
 import { useState } from "react";
-import { signBitcoinPaymentMessage } from "@/lib/bitcoin/sign-payment-message";
+import { DEMO_USER_SIGNATURE } from "@/lib/demo/demo-canister-browser";
 import { computeExpiresAtSeconds } from "@/lib/use-cases/_shared/wallet-proof";
 import type { Output as WithdrawOutput } from "@/lib/use-cases/account/withdraw/schema";
-import { trpcClient } from "@/trpc/react";
+import { withdraw } from "@/lib/use-cases/account/withdraw/usecase";
 import { useBtcAddress } from "../queries/use-btc-address";
-import { useCanister } from "../use-canister";
 
 export type WithdrawStep = "idle" | "signing" | "submitting" | "success" | "error";
 
@@ -19,8 +15,6 @@ export interface WithdrawParams {
 }
 
 export function useWithdraw() {
-  const { primaryWallet } = useDynamicContext();
-  const canister = useCanister();
   const address = useBtcAddress("payment");
   const queryClient = useQueryClient();
 
@@ -28,41 +22,26 @@ export function useWithdraw() {
 
   const mutation = useMutation<WithdrawOutput, Error, WithdrawParams>({
     mutationFn: async ({ amountSats }: WithdrawParams): Promise<WithdrawOutput> => {
-      if (!canister || !address) {
-        throw new Error("Wallet not connected");
-      }
-      if (!primaryWallet || !isBitcoinWallet(primaryWallet)) {
-        throw new Error("Bitcoin wallet not connected");
+      if (!address) {
+        throw new Error("Demo account not ready");
       }
       if (amountSats <= BigInt(0)) {
         throw new Error("Enter an amount");
       }
 
-      setStep("signing");
-
       const expiresAtSeconds = computeExpiresAtSeconds();
-      const message = unwrapResult(
-        await canister.get_withdraw_message(address, amountSats, expiresAtSeconds),
-      );
-      const signature = await signBitcoinPaymentMessage(primaryWallet, message);
-
-      if (!signature) {
-        throw new Error("Failed to sign message");
-      }
-
       setStep("submitting");
 
-      return trpcClient.account.withdraw.mutate({
+      return withdraw({
         address,
-        signature,
+        signature: DEMO_USER_SIGNATURE,
         expiresAtSeconds: expiresAtSeconds.toString(),
         amount: amountSats.toString(),
       });
     },
     onSuccess: () => {
       setStep("success");
-      queryClient.invalidateQueries({ queryKey: [["account"]] });
-      queryClient.invalidateQueries({ queryKey: [["account", "getPendingWithdrawals"]] });
+      queryClient.invalidateQueries({ queryKey: ["account"] });
     },
     onError: () => {
       setStep("error");

@@ -196,19 +196,6 @@ export function PrivacyContentEN() {
             .
           </li>
           <li>
-            <strong>Dynamic</strong> as a wallet connection provider. When you connect a wallet,
-            Dynamic processes data necessary to facilitate the connection. See{" "}
-            <a
-              href="https://www.dynamic.xyz/legal/privacy-policy"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="underline"
-            >
-              Dynamic&apos;s privacy policy
-            </a>
-            .
-          </li>
-          <li>
             <strong>The Internet Computer Protocol</strong>, a decentralized blockchain network on
             which the Protocol&apos;s smart contracts are deployed. Public on-chain data is recorded
             on the blockchain and is beyond our control.
@@ -539,19 +526,6 @@ export function PrivacyContentZH() {
               className="underline"
             >
               Cloudflare的隐私政策
-            </a>
-            。
-          </li>
-          <li>
-            <strong>Dynamic</strong>
-            ，作为非托管钱包连接提供商。当您连接钱包时，Dynamic会处理为促成连接所需的数据。请参阅
-            <a
-              href="https://www.dynamic.xyz/legal/privacy-policy"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="underline"
-            >
-              Dynamic的隐私政策
             </a>
             。
           </li>

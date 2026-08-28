@@ -1,4 +1,3 @@
-import { useDynamicContext } from "@dynamic-labs/sdk-react-core";
 import { useTranslations } from "next-intl";
 import { useEffect, useMemo, useState } from "react";
 import {
@@ -31,7 +30,6 @@ import {
 const DEFAULT_STRIKE_PERCENT = 5;
 
 export function useCallOptionBuyFormModel() {
-  const { primaryWallet } = useDynamicContext();
   const { data } = useOptions();
   const { data: account, isPending: isAccountPending } = useAccount();
   const { data: priceData } = usePrices();
@@ -192,12 +190,12 @@ export function useCallOptionBuyFormModel() {
     acceptOffer.reset();
   };
 
-  const isWalletConnected = !!primaryWallet;
-  const isBalanceLoading = isWalletConnected && isAccountPending;
+  const isBalanceLoading = isAccountPending;
   const depositMinSats = minPremiumAmountSats;
-  const needDepositMore =
-    isWalletConnected &&
-    shouldRequireDepositForPremiumPurchase(availableBalanceSats, minPremiumAmountSats);
+  const needDepositMore = shouldRequireDepositForPremiumPurchase(
+    availableBalanceSats,
+    minPremiumAmountSats,
+  );
   const hasInsufficientLiquidity = amountSats > maxPremiumAmountSats && maxPremiumAmountSats > 0;
   const isBelowMinimum = amountSats > 0 && amountSats < minPremiumAmountSats;
   const isValidAmount =
@@ -205,7 +203,6 @@ export function useCallOptionBuyFormModel() {
   const leverage = amountSats > 0 && quantitySats > 0 ? quantitySats / amountSats : 0;
 
   const getButtonText = () => {
-    if (!isWalletConnected) return t("connectWallet");
     if (needDepositMore) {
       return t("depositMoreToBuyOptions", {
         minBtc: formatBtcWithSymbol(depositMinSats),
@@ -228,7 +225,7 @@ export function useCallOptionBuyFormModel() {
     handleStrikeUsdChange,
     handleSubmit,
     isBalanceLoading,
-    isSubmitDisabled: !isWalletConnected || !isValidAmount || !bestOffer || acceptOffer.isPending,
+    isSubmitDisabled: !isValidAmount || !bestOffer || acceptOffer.isPending,
     leverage,
     depositMinSats,
     needDepositMore,

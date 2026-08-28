@@ -6,7 +6,6 @@ export interface Env {
 }
 
 const EVERY_MINUTE_CRON = "* * * * *";
-const EVERY_FIVE_MINUTES_CRON = "*/5 * * * *";
 
 async function callCronEndpoint(env: Env, path: string): Promise<unknown> {
   const res = await env.NEXT_APP.fetch(`https://dummy${path}`, {
@@ -15,48 +14,21 @@ async function callCronEndpoint(env: Env, path: string): Promise<unknown> {
       Authorization: `Bearer ${env.CRON_SECRET}`,
     },
   });
+  if (!res.ok) {
+    throw new Error(`Cron endpoint ${path} failed with status ${res.status}`);
+  }
   return res.json();
 }
 
 const worker: ExportedHandler<Env> = {
   async scheduled(event, env, ctx) {
-    if (event.cron === EVERY_FIVE_MINUTES_CRON) {
-      ctx.waitUntil(
-        callCronEndpoint(env, "/api/cron/sync-xrc-price")
-          .then((data) => console.log("XRC price sync result:", data))
-          .catch((err) => console.error("XRC price sync failed:", err)),
-      );
-      return;
-    }
-
     if (event.cron !== EVERY_MINUTE_CRON) {
       return;
     }
-
-    ctx.waitUntil(
-      callCronEndpoint(env, "/api/cron/sync-events")
-        .then((data) => console.log("Cron sync result:", data))
-        .catch((err) => console.error("Cron sync failed:", err)),
-    );
-    ctx.waitUntil(
-      callCronEndpoint(env, "/api/cron/sync-deposits")
-        .then((data) => console.log("Deposit sync result:", data))
-        .catch((err) => console.error("Deposit sync failed:", err)),
-    );
-    ctx.waitUntil(
-      callCronEndpoint(env, "/api/cron/sync-withdrawals")
-        .then((data) => console.log("Withdrawal sync result:", data))
-        .catch((err) => console.error("Withdrawal sync failed:", err)),
-    );
     ctx.waitUntil(
       callCronEndpoint(env, "/api/cron/sync-market-data")
         .then((data) => console.log("Market data sync result:", data))
         .catch((err) => console.error("Market data sync failed:", err)),
-    );
-    ctx.waitUntil(
-      callCronEndpoint(env, "/api/cron/ship-canister-logs")
-        .then((data) => console.log("Canister log ship result:", data))
-        .catch((err) => console.error("Canister log ship failed:", err)),
     );
   },
 };

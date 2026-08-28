@@ -54,8 +54,6 @@ export function mapConfig(rawLimits: unknown, rawFeeConfig: unknown): ConfigData
   const maxTermDays = termOptions[termOptions.length - 1] ?? 0;
 
   return {
-    canisterId: process.env.CANISTER_ID,
-    icHost: process.env.IC_HOST || "https://ic0.app",
     termOptions,
     strikePercentOptions: STRIKE_PERCENT_OPTIONS,
     premium: {

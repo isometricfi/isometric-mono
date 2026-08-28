@@ -1,7 +1,6 @@
 "use client";
 
-import { useDynamicContext } from "@dynamic-labs/sdk-react-core";
-import { HelpCircle, PencilLine, PiggyBank, Wallet } from "lucide-react";
+import { HelpCircle, PencilLine, PiggyBank } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { BTCPriceChart } from "@/components/options/BTCPriceChart";
@@ -25,16 +24,11 @@ export function WriteOptionsView() {
   const [depositModalOpen, setDepositModalOpen] = useState(false);
   const { openModal } = useModal();
   const { isProMode } = useProMode();
-  const { primaryWallet, setShowAuthFlow } = useDynamicContext();
   const { data: pauseModeData } = usePauseMode();
-  const isConnected = !!primaryWallet;
-  const handleCtaClick = () => (isConnected ? setFlowOpen(true) : setShowAuthFlow(true));
   const handleRequestDeposit = () => {
     setFlowOpen(false);
     setDepositModalOpen(true);
   };
-  const ctaLabel = isConnected ? t("writeCta") : t("connectToWriteCta");
-
   const isPutDisabled = optionType === "put";
 
   if (pauseModeData?.paused) {
@@ -89,16 +83,16 @@ export function WriteOptionsView() {
             <div className="relative">
               <BTCPriceChart mode="writer" showStrikeOverlay={false} termDaysOverride={14} />
               <Button
-                onClick={handleCtaClick}
+                onClick={() => setFlowOpen(true)}
                 size={"lg"}
                 className="absolute bottom-5 right-4.5 md:flex hidden"
               >
-                {isConnected ? <PencilLine className="size-4" /> : <Wallet className="size-4" />}
-                {ctaLabel}
+                <PencilLine className="size-4" />
+                {t("writeCta")}
               </Button>
-              <Button onClick={handleCtaClick} className="w-full mt-5 md:hidden">
-                {isConnected ? <PencilLine className="size-4" /> : <Wallet className="size-4" />}
-                {ctaLabel}
+              <Button onClick={() => setFlowOpen(true)} className="w-full mt-5 md:hidden">
+                <PencilLine className="size-4" />
+                {t("writeCta")}
               </Button>
             </div>
             <OptionsViewer mode="writer" />

@@ -1,16 +1,16 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { useTRPC } from "@/trpc/react";
+import { getHistory } from "@/lib/use-cases/history/get-history/usecase";
 import { useAccount } from "./use-account";
 
 export function useHistory() {
-  const trpc = useTRPC();
   const { data: account, isLoading: isAccountLoading } = useAccount();
   const principal = account?.profile?.principal;
 
   const query = useQuery({
-    ...trpc.history.getHistory.queryOptions({ principal: principal ?? "" }),
+    queryKey: ["history", principal],
+    queryFn: () => getHistory(principal ?? ""),
     enabled: !!principal,
   });
 

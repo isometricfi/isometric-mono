@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { useTRPC } from "@/trpc/react";
+import { getConfig } from "@/lib/use-cases/config/get-config/usecase";
 import type { ConfigData } from "@/types/config";
 
 export function generatePremiumValues(config: ConfigData | undefined): number[] {
@@ -17,9 +17,9 @@ export function generatePremiumValues(config: ConfigData | undefined): number[] 
 }
 
 export function useConfig() {
-  const trpc = useTRPC();
   return useQuery({
-    ...trpc.config.getConfig.queryOptions(),
+    queryKey: ["config"],
+    queryFn: getConfig,
     staleTime: 300000,
   });
 }

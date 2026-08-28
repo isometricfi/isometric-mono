@@ -1,6 +1,5 @@
 "use client";
 
-import { useDynamicContext } from "@dynamic-labs/sdk-react-core";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   ArrowLeft,
@@ -8,7 +7,6 @@ import {
   CircleArrowDown,
   CircleArrowUp,
   History,
-  LogOut,
   Settings,
   Sparkles,
 } from "lucide-react";
@@ -39,11 +37,9 @@ function shortenAddress(address: string) {
 export function AccountPanel({
   open,
   onOpenChange,
-  onDisconnect,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onDisconnect: () => void;
 }) {
   const isMobile = useMediaQuery({ query: "(max-width: 768px)" });
 
@@ -61,20 +57,13 @@ export function AccountPanel({
         )}
       >
         <DrawerTitle className="sr-only">Account</DrawerTitle>
-        <AccountPanelContent onDisconnect={onDisconnect} onClose={() => onOpenChange(false)} />
+        <AccountPanelContent onClose={() => onOpenChange(false)} />
       </DrawerContent>
     </Drawer>
   );
 }
 
-function AccountPanelContent({
-  onDisconnect,
-  onClose,
-}: {
-  onDisconnect: () => void;
-  onClose: () => void;
-}) {
-  const { primaryWallet } = useDynamicContext();
+function AccountPanelContent({ onClose }: { onClose: () => void }) {
   const { data: priceData } = usePrices();
   const { data: accountData, isLoading: isLoadingBalance } = useAccount();
   const updateUsername = useUpdateUsername();
@@ -97,7 +86,7 @@ function AccountPanelContent({
   const availableBtc = Number(available) / 100_000_000;
   const availableUsd = availableBtc * btcPrice;
 
-  const connectedAddress = profile?.address ?? primaryWallet?.address ?? null;
+  const connectedAddress = profile?.address ?? null;
   const addressLabel = connectedAddress ? shortenAddress(connectedAddress) : null;
   const displayName = profile?.username ?? tCommon("wallet");
   const avatarSeed = connectedAddress ?? displayName;
@@ -332,17 +321,6 @@ function AccountPanelContent({
           ) : null}
         </AnimatePresence>
       </div>
-
-      {!showSettings && (
-        <Button
-          variant="outline"
-          className="w-full mt-auto"
-          onClick={onDisconnect}
-          aria-label={t("disconnect")}
-        >
-          {t("disconnect")} <LogOut className="size-4" />
-        </Button>
-      )}
 
       <DepositModal open={showDepositModal} onOpenChange={setShowDepositModal} />
 
