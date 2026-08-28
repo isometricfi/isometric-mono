@@ -1,0 +1,4 @@
+[didc.rust]
+target = "custom"
+template = "did/rust-types.hbs"
+candid_crate = "candid"

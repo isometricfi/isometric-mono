@@ -40,6 +40,6 @@ pub fn generate_wallet(seed: u64) -> TestWallet {
 #[allow(dead_code)]
 pub fn sign_message(wallet: &TestWallet, message: &str) -> String {
     let wif = wallet.private_key.to_wif();
-    bip322::sign_simple_encoded(&wallet.address, message, &wif)
+    bip322::sign_simple_encoded(&wallet.address, message, &[wif], None)
         .expect("failed to produce BIP-322 signature")
 }

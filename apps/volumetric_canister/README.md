@@ -10,6 +10,7 @@ Product mechanics and trading guides live at <https://docs.isometric.fi>.
 - Rust with the `wasm32-unknown-unknown` target
 - Docker for reproducible builds
 - `candid-extractor`, installed with `cargo install candid-extractor`
+- [`didc 0.6.2`](https://github.com/dfinity/candid/releases/tag/didc-v0.6.2)
 - `ic-wasm`, installed with `cargo install ic-wasm`
 
 ## Quick Start

@@ -7,21 +7,20 @@ edition = "2021"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-candid = "0.10"
-ic-cdk = "0.19"
+candid = "0.10.35"
+ic-cdk = "0.20.2"
 ic-cdk-timers = "1.0.0"
 ic-stable-structures = "0.7.2"
-icrc-ledger-types = "0.1"
-serde = { version = "1.0", features = ["derive"] }
-serde_bytes = "0.11"
-thiserror = "2.0"
-ciborium = "0.2"
-sha2 = "0.10"
-bip322 = "0.0.10"
-bitcoin = "0.32"
-base64 = "0.22"
-getrandom = { version = "0.2", features = ["custom"] }
-async-trait = "0.1.89"
+icrc-ledger-types = "0.2.0"
+serde = { version = "1.0.229", features = ["derive"] }
+serde_bytes = "0.11.19"
+thiserror = "2.0.20"
+ciborium = "0.2.2"
+sha2 = "0.11.0"
+bip322 = "0.0.11"
+bitcoin = "0.32.102"
+base64 = "0.23.1"
+async-trait = "0.1.92"
 ic-metrics-encoder = "1.1.2"
 ic-http-types = "0.1.0"
 scopeguard = "1.2.0"
@@ -32,8 +31,7 @@ debug = ["logging/debug"]
 testing = []
 
 [dev-dependencies]
-ic-management-canister-types = "0.5.0"
-pocket-ic = "11.0"
-hex = "0.4"
-flate2 = "1.0"
-tokio = { version = "1.49.0", features = ["macros", "rt", "sync"] }
+pocket-ic = "15.0.0"
+hex = "0.4.3"
+flate2 = "1.1.10"
+tokio = { version = "1.53.1", features = ["macros", "rt", "sync"] }

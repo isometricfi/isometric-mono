@@ -52,6 +52,8 @@ type AcceptedOffer = record {
   premium_to_writer : nat64;
   platform_fee : nat64;
 };
+// [Account](https://github.com/dfinity/ICRC-1/blob/main/standards/ICRC-3/README.md#value)
+// representation of ledgers supporting the ICRC-1 standard.
 type Account = record { owner : principal; subaccount : opt blob };
 type ActiveOption = record {
   id : nat64;
@@ -70,7 +72,16 @@ type ActiveOption = record {
   premium_paid : nat64;
   strike_price_cents : nat64;
 };
-type ActiveOptionStatus = variant { Active; Settling; Expired; Settled };
+type ActiveOptionStatus = variant {
+  // Option is live, awaiting expiry for settlement
+  Active;
+  // Transient state during settlement to prevent race conditions across await points
+  Settling;
+  // Option expired without settlement (should not normally occur, settlement auto-runs)
+  Expired;
+  // Option has been settled with payouts distributed
+  Settled;
+};
 type Asset = variant { CkBtc };
 type AuditExpectedTransfer = record {
   to : Account;
@@ -263,10 +274,15 @@ type Offer = record {
   option_duration_seconds : nat64;
 };
 type OfferStatus = variant {
+  // Offer is available for buyers to accept
   Open;
+  // Some quantity has been filled but more remains available
   PartiallyFilled;
+  // All quantity has been accepted, no more available
   Filled;
+  // Writer cancelled the offer, no longer accepting
   Cancelled;
+  // Transient state during accept_offers to prevent race conditions across await points
   Processing;
 };
 type OptionAuditReport = record {
@@ -441,10 +457,18 @@ type UserInfo = record {
 };
 type Utxo = record { height : nat32; value : nat64; outpoint : UtxoOutpoint };
 type UtxoOutpoint = record { txid : blob; vout : nat32 };
+// The result of an [update_balance] call.
 type UtxoStatus = variant {
+  // The minter ignored this UTXO because UTXO's value is too small to pay
+  // the check fees.
   ValueTooSmall : Utxo;
+  // The Bitcoin checker considered this UTXO to be tainted.
   Tainted : Utxo;
+  // The UTXO passed the Bitcoin check, and ckBTC has been minted.
   Minted : record { minted_amount : nat64; block_index : nat64; utxo : Utxo };
+  // The UTXO passed the Bitcoin check, but the minter failed to mint ckBTC
+  // because the Ledger was unavailable. Retrying the [update_balance] call
+  // should eventually advance the UTXO to the [Minted] state.
   Checked : Utxo;
 };
 type VolumetricError = record {

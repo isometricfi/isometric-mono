@@ -133,28 +133,12 @@ fn parse_address(address: &str, network: Network) -> Result<Address, VolumetricE
     })
 }
 
-// Delegates to the `bip322` crate for P2WPKH and P2TR witnesses. P2SH-P2WPKH
-// is intentionally rejected here: `bip322` 0.0.10's `verify_full_p2wpkh`
-// branch for P2SH addresses destructures `AddressData::P2sh { script_hash: _ }`
-// and never checks that `hash160(new_p2wpkh(witness_pubkey.wpubkey_hash()))`
-// equals the address's script_hash. A forged witness carrying any attacker
-// pubkey + a matching self-consistent ECDSA signature would otherwise verify
-// against arbitrary P2SH-P2WPKH addresses. The outer dispatcher falls through
-// to `try_verify_bip137`, whose P2SH-P2WPKH branch derives the redeem script
-// from the recovered pubkey and enforces the script_hash equality.
+// `bip322` 0.0.11 verifies that P2SH-P2WPKH witnesses match the supplied address.
 fn try_verify_bip322_simple(
     btc_address: &Address,
     message: &str,
     signature_base64: &str,
 ) -> Result<(), String> {
-    if matches!(btc_address.to_address_data(), AddressData::P2sh { .. }) {
-        return Err(
-            "P2SH-P2WPKH is not verified via BIP-322 (bip322 crate skips script_hash check); \
-             BIP-137 path handles this address type safely"
-                .into(),
-        );
-    }
-
     bip322::verify_simple_encoded(&btc_address.to_string(), message, signature_base64)
         .map_err(|e| format!("{}", e))
 }
@@ -1441,21 +1425,51 @@ mod tests {
         assert!(result.is_err());
     }
 
-    /// Given: a victim P2SH-P2WPKH address `A_v` owned by key `K_v`, and an unrelated
-    ///        attacker key `K_a`; the attacker builds a BIP-322 simple witness
-    ///        `[DER(sig_A) || 0x01, pub_A]` where `sig_A` signs the BIP-143 P2WPKH
-    ///        sighash that the bip322 crate will compute in its `is_p2sh=true` branch
-    ///        (script_code = `p2wpkh(hash160(pub_A))`, prevout = `create_to_spend(A_v, msg).txid:0`)
-    /// When: the forged witness is submitted against `A_v`
-    /// Then: `verify_btc_signature_on_network` rejects it
-    ///
-    /// Documents a pre-dispatch security check that bypasses the `bip322` crate's
-    /// `verify_full_p2wpkh(is_p2sh=true)` path. That path destructures
-    /// `AddressData::P2sh { script_hash: _ }` and never enforces
-    /// `hash160(new_p2wpkh(pub_A.wpubkey_hash())) == script_hash`, so a foreign key
-    /// can authenticate against any P2SH-P2WPKH address. The volumetric canister
-    /// must therefore skip BIP-322 for P2SH addresses and rely on the BIP-137
-    /// branch, which derives the expected script hash from the recovered pubkey.
+    /// Given: a valid BIP-322 signature for a P2SH-P2WPKH address
+    /// When: the verifier checks the signature
+    /// Then: the signature verifies through the BIP-322 path
+    #[test]
+    fn verify_accepts_bip322_p2sh_p2wpkh_signature() {
+        // given
+        const SIGNER_SECRET: [u8; 32] = [39u8; 32];
+        const MESSAGE: &str = "valid nested segwit signature";
+
+        let secp = Secp256k1::new();
+        let secret_key = SecretKey::from_slice(&SIGNER_SECRET).unwrap();
+        let private_key = PrivateKey {
+            compressed: true,
+            network: Network::Bitcoin.into(),
+            inner: secret_key,
+        };
+        let compressed_public_key =
+            CompressedPublicKey::from_private_key(&secp, &private_key).unwrap();
+        let address = Address::p2shwpkh(&compressed_public_key, Network::Bitcoin);
+        let signature = bip322::sign_simple_encoded(
+            &address.to_string(),
+            MESSAGE,
+            &[private_key.to_wif()],
+            None,
+        )
+        .unwrap();
+
+        // when
+        let result = verify_btc_signature_on_network(
+            &address.to_string(),
+            MESSAGE,
+            &signature,
+            Network::Bitcoin,
+        );
+
+        // then
+        assert!(
+            result.is_ok(),
+            "valid P2SH-P2WPKH signature failed: {result:?}"
+        );
+    }
+
+    /// Given: a forged BIP-322 witness signed by a key that does not own the P2SH-P2WPKH address
+    /// When: the dependency and canister verifiers check the witness
+    /// Then: both verifiers reject the witness
     #[test]
     fn verify_rejects_bip322_forged_witness_against_p2sh_p2wpkh_address() {
         use bitcoin::consensus::serialize;
@@ -1521,23 +1535,13 @@ mod tests {
             );
         };
 
-        // Sanity check: the forgery is accepted by the bip322 crate on its own,
-        // confirming the construction is valid and this test actually exercises
-        // the bypass. If the upstream crate ever starts rejecting this input,
-        // the canister-level pre-dispatch below may no longer be needed.
+        // when
         let bip322_direct_result = bip322::verify_simple_encoded(
             &victim_p2sh_address.to_string(),
             message,
             &forged_signature_base64,
         );
-        assert!(
-            bip322_direct_result.is_ok(),
-            "bip322 crate should accept the forgery (documents the bypass): {:?}",
-            bip322_direct_result
-        );
-
-        // when
-        let result = verify_btc_signature_on_network(
+        let canister_result = verify_btc_signature_on_network(
             &victim_p2sh_address.to_string(),
             message,
             &forged_signature_base64,
@@ -1546,7 +1550,11 @@ mod tests {
 
         // then
         assert!(
-            result.is_err(),
+            bip322_direct_result.is_err(),
+            "bip322 must reject a witness signed by a foreign key"
+        );
+        assert!(
+            canister_result.is_err(),
             "verifier must reject a BIP-322 witness signed by a foreign key on a P2SH-P2WPKH address"
         );
     }
