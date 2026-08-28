@@ -131,6 +131,36 @@ describe("demo canister", () => {
     expect(result).toHaveProperty("Err");
   });
 
+  test("should create an offer at the one-percent strike shown in the demo", async () => {
+    // given
+    const QUANTITY_SATS = 100_000n;
+    const ONE_PERCENT_STRIKE_BASIS_POINTS = 100;
+    const PREMIUM_BASIS_POINTS = 10;
+    const OPTION_DURATION_SECONDS = 259_200n;
+    const store = createMemoryStore();
+    const actor = createDemoCanisterActor(store);
+    await createAccount(actor);
+
+    // when
+    const result = await actor.create_offer({
+      data: {
+        asset: { CkBtc: null },
+        option_type: { Call: null },
+        quantity: QUANTITY_SATS,
+        strike_basis_points: ONE_PERCENT_STRIKE_BASIS_POINTS,
+        premium_basis_points: PREMIUM_BASIS_POINTS,
+        option_duration_seconds: OPTION_DURATION_SECONDS,
+        offer_valid_until_seconds: futureSeconds(),
+        expires_at_seconds: futureSeconds(),
+      },
+      wallet_proof: { address: USER_ADDRESS, signature: USER_SIGNATURE },
+    });
+
+    // then
+    const receipt = unwrapResult(result);
+    expect(receipt.offer.strike_basis_points).toBe(ONE_PERCENT_STRIKE_BASIS_POINTS);
+  });
+
   test("should retry a state update after a storage conflict", async () => {
     // given
     const store = createConflictOnceStore();

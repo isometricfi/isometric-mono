@@ -1,12 +1,10 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { ArrowRight, TrendingUp, Zap } from "lucide-react";
+import { TrendingUp, Zap } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
-import { OpenAppLink } from "@/components/marketing/OpenAppLink";
 import { AnimatedToggle } from "@/components/navigation/AnimatedToggle";
-import { Button } from "@/components/ui/button";
 
 export function HowItWorksSection() {
   const t = useTranslations("Landing");
@@ -96,22 +94,6 @@ export function HowItWorksSection() {
             </motion.div>
           ))}
         </div>
-
-        {/* cta */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.3 }}
-          viewport={{ once: true }}
-          className="flex justify-center mt-16"
-        >
-          <Button size="lg" className="gap-2" asChild>
-            <OpenAppLink path="/buy">
-              {t("openV1Demo")}
-              <ArrowRight className="size-4" />
-            </OpenAppLink>
-          </Button>
-        </motion.div>
       </div>
     </section>
   );

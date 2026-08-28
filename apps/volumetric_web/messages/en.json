@@ -1,7 +1,7 @@
 {
   "DemoMode": {
-    "title": "Demo mode.",
-    "description": "All balances and trades are simulated. No funds or transactions are sent.",
+    "title": "V1 demo mode.",
+    "description": "V1 is no longer live and is now in demo mode while we build V2 on Base. All balances and trades are simulated.",
     "reset": "Reset demo",
     "resetting": "Resetting..."
   },
@@ -304,8 +304,6 @@
     "leverageTitle": "Limited downside, big upside",
     "leverageDescription": "Pick a price and timeframe. If BTC clears your target before expiry, your position pays out. Up to 100x leverage.",
     "btcNative": "On-chain",
-    "openV1Demo": "Open V1 Demo",
-    "v1DemoNote": "The original product, formerly live on ICP.",
     "instantSettlement": "Instant settlement",
     "permissionless": "Permissionless",
     "gettingStarted": "Getting Started",

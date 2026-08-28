@@ -1,11 +1,8 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { ArrowRight } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { OpenAppLink } from "@/components/marketing/OpenAppLink";
 import { WaitlistForm } from "@/components/marketing/WaitlistForm";
-import { Button } from "@/components/ui/button";
 import { FinalCtaBgCanvas } from "./FinalCtaBgCanvas";
 
 export function FinalCtaSection() {
@@ -30,14 +27,8 @@ export function FinalCtaSection() {
             <p className="text-muted-foreground text-base md:text-lg mb-8 max-w-xl mx-auto">
               {t("waitlistSubtitle")}
             </p>
-            <div className="flex flex-col items-center gap-4">
+            <div className="flex justify-center">
               <WaitlistForm size="lg" />
-              <Button size="lg" className="gap-2" asChild>
-                <OpenAppLink path="/buy">
-                  {t("openV1Demo")}
-                  <ArrowRight className="size-4" />
-                </OpenAppLink>
-              </Button>
             </div>
           </div>
         </motion.div>

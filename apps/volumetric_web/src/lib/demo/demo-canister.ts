@@ -29,7 +29,7 @@ const DEMO_TRADING_LIMITS: TradingLimits = {
   create_offer_quantity_sats: { min: 40_000n, max: 100_000_000n },
   accept_offer_quantity_sats: { min: 40_000n, max: 100_000_000n },
   premium_basis_points: { min: 10, max: 300 },
-  strike_basis_points: { min: 300, max: 800 },
+  strike_basis_points: { min: 100, max: 800 },
   option_duration_seconds: { min: 3n * SECONDS_PER_DAY, max: 7n * SECONDS_PER_DAY },
   deposit_amount_sats: 50_000n,
   withdraw_amount_sats: 50_000n,

@@ -1,13 +1,12 @@
-import { ArrowUpRight, Sparkles } from "lucide-react";
+import { Sparkles } from "lucide-react";
 import Image from "next/image";
 import { useTranslations } from "next-intl";
-import { OpenAppLink } from "@/components/marketing/OpenAppLink";
 import { WaitlistForm } from "@/components/marketing/WaitlistForm";
-import { Button } from "@/components/ui/button";
 import { HeroBgCanvas } from "./HeroBgCanvas";
 
 export function HeroSection() {
   const t = useTranslations("Landing");
+  const tDemo = useTranslations("DemoMode");
 
   return (
     <div className="relative flex min-h-[94vh] flex-col items-center justify-center py-20 md:py-24">
@@ -32,15 +31,10 @@ export function HeroSection() {
             </h2>
             <div className="mt-8 flex flex-col items-center gap-3 md:items-start">
               <WaitlistForm size="lg" />
-              <div className="flex flex-col items-center gap-2 md:items-start">
-                <Button size="lg" className="gap-2" asChild>
-                  <OpenAppLink path="/buy">
-                    {t("openV1Demo")}
-                    <ArrowUpRight className="size-4" />
-                  </OpenAppLink>
-                </Button>
-                <p className="text-xs text-muted-foreground">{t("v1DemoNote")}</p>
-              </div>
+              <p className="max-w-md rounded-md border border-border/70 bg-background/70 px-4 py-3 text-sm text-muted-foreground">
+                <strong className="font-semibold text-foreground">{tDemo("title")}</strong>{" "}
+                {tDemo("description")}
+              </p>
             </div>
           </div>
 

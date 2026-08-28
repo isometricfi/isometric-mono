@@ -1,7 +1,7 @@
 {
   "DemoMode": {
-    "title": "演示模式。",
-    "description": "所有余额和交易均为模拟，不会发送资金或交易。",
+    "title": "V1 演示模式。",
+    "description": "V1 已停止正式运行，并在我们于 Base 上构建 V2 期间转为演示模式。所有余额和交易均为模拟。",
     "reset": "重置演示",
     "resetting": "正在重置..."
   },
@@ -288,8 +288,6 @@
   },
   "Landing": {
     "v2ComingSoon": "V2 · 构建于 Base",
-    "openV1Demo": "打开 V1 演示",
-    "v1DemoNote": "原版产品，曾在 ICP 上正式运行。",
     "headline": "比特币期权，",
     "headlineHighlight": "简单易懂。",
     "subheadline": "在你的比特币上赚取权利金，或对其下一步走势加杠杆。",

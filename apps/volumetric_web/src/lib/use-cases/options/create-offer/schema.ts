@@ -5,7 +5,7 @@ import { offerValidUntilAcceptableRange } from "./offer-valid-until-policy";
 const NUMERIC_STRING = /^\d+$/;
 const MIN_OFFER_QUANTITY_SATS = 40_000n;
 const MAX_OFFER_QUANTITY_SATS = 100_000_000n;
-const MIN_STRIKE_BASIS_POINTS = 300;
+const MIN_STRIKE_BASIS_POINTS = 100;
 const MAX_STRIKE_BASIS_POINTS = 800;
 const MIN_PREMIUM_BASIS_POINTS = 10;
 const MAX_PREMIUM_BASIS_POINTS = 300;
