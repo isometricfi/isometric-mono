@@ -18,8 +18,7 @@
     "history": "History",
     "openV1Demo": "Open V1 Demo",
     "connect": "Connect",
-    "v1Demo": "V1 Demo",
-    "v2OnBase": "V2 · Base"
+    "v1Demo": "V1 Demo"
   },
   "Settings": {
     "title": "Settings",
@@ -289,8 +288,8 @@
     "page": "Page {current} of {total}"
   },
   "Landing": {
-    "comingSoon": "Coming soon",
-    "v2BuiltOnBase": "V2 built on Base",
+    "comingSoonToBase": "Coming soon to Base",
+    "v1Notice": "V1 is no longer live while we migrate to an improved version built on Base.",
     "headline": "Bitcoin options.",
     "headlineHighlight": "For everyone.",
     "subheadline": "Earn premium on your Bitcoin, or leverage its next move.",
@@ -370,7 +369,7 @@
     "waitlistTitle": "Get early access to V2",
     "waitlistSubtitle": "We are building Isometric V2 on Base with an all-new interface. Join the waitlist for launch updates.",
     "waitlistEmailPlaceholder": "you@example.com",
-    "waitlistSubmit": "Join V2 waitlist",
+    "waitlistSubmit": "Join waitlist",
     "waitlistSubmitting": "Saving…",
     "waitlistSuccess": "You're on the list. We'll be in touch.",
     "waitlistAlready": "You're already on the list.",

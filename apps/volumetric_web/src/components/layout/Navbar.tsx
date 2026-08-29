@@ -32,9 +32,11 @@ export function Navbar() {
                 className="min-w-[32px] min-h-[32px]"
               />
               <span className="md:block hidden">Isometric</span>{" "}
-              <Badge variant={"soft"} className="md:flex hidden">
-                <Sparkles /> {isLandingPage ? t("v2OnBase") : t("v1Demo")}
-              </Badge>
+              {!isLandingPage && (
+                <Badge variant={"soft"} className="md:flex hidden">
+                  <Sparkles /> {t("v1Demo")}
+                </Badge>
+              )}
             </Link>
             {!isLandingPage && (
               <Drawer open={open} onOpenChange={setOpen}>
@@ -82,12 +84,14 @@ export function Navbar() {
               </Drawer>
             )}
           </div>
-          <Badge
-            variant={"soft"}
-            className="md:hidden absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none"
-          >
-            {isLandingPage ? t("v2OnBase") : t("v1Demo")}
-          </Badge>
+          {!isLandingPage && (
+            <Badge
+              variant={"soft"}
+              className="md:hidden absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none"
+            >
+              {t("v1Demo")}
+            </Badge>
+          )}
           <div className="hidden md:flex items-center gap-0.5 justify-center">
             {!isLandingPage && (
               <>

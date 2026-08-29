@@ -1,4 +1,3 @@
-import { Sparkles } from "lucide-react";
 import Image from "next/image";
 import { useTranslations } from "next-intl";
 import { WaitlistForm } from "@/components/marketing/WaitlistForm";
@@ -6,7 +5,6 @@ import { HeroBgCanvas } from "./HeroBgCanvas";
 
 export function HeroSection() {
   const t = useTranslations("Landing");
-  const tDemo = useTranslations("DemoMode");
 
   return (
     <div className="relative flex min-h-[94vh] flex-col items-center justify-center py-20 md:py-24">
@@ -15,13 +13,8 @@ export function HeroSection() {
         <div className="grid grid-cols-1 items-center gap-12 md:grid-cols-[1.1fr_1fr] md:gap-10 lg:gap-16">
           <div className="text-center md:text-left">
             <div className="flex justify-center md:justify-start mb-6">
-              <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-md bg-primary/10 text-primary text-sm font-medium tracking-wide">
-                <Sparkles className="size-4" />
-                <strong className="font-bold uppercase tracking-[0.14em]">{t("comingSoon")}</strong>
-                <span aria-hidden="true" className="text-primary/50">
-                  ·
-                </span>
-                <span>{t("v2BuiltOnBase")}</span>
+              <span className="inline-flex items-center px-4 py-1.5 rounded-md bg-primary/10 text-primary text-sm font-medium tracking-wide">
+                {t("comingSoonToBase")}
               </span>
             </div>
 
@@ -36,8 +29,7 @@ export function HeroSection() {
             <div className="mt-8 flex flex-col items-center gap-3 md:items-start">
               <WaitlistForm size="lg" />
               <p className="max-w-md rounded-md border border-border/70 bg-background/70 px-4 py-3 text-sm text-muted-foreground">
-                <strong className="font-semibold text-foreground">{tDemo("title")}</strong>{" "}
-                {tDemo("description")}
+                {t("v1Notice")}
               </p>
             </div>
           </div>

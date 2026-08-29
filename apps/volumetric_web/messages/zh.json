@@ -18,8 +18,7 @@
     "history": "历史记录",
     "openV1Demo": "打开 V1 演示",
     "connect": "连接",
-    "v1Demo": "V1 演示",
-    "v2OnBase": "V2 · Base"
+    "v1Demo": "V1 演示"
   },
   "Settings": {
     "title": "设置",
@@ -287,8 +286,8 @@
     "page": "第 {current} 页，共 {total} 页"
   },
   "Landing": {
-    "comingSoon": "即将推出",
-    "v2BuiltOnBase": "V2 构建于 Base",
+    "comingSoonToBase": "即将登陆 Base",
+    "v1Notice": "V1 已停止运行，我们正在迁移到基于 Base 构建的升级版本。",
     "headline": "比特币期权，",
     "headlineHighlight": "简单易懂。",
     "subheadline": "在你的比特币上赚取权利金，或对其下一步走势加杠杆。",
@@ -368,7 +367,7 @@
     "waitlistTitle": "抢先体验 V2",
     "waitlistSubtitle": "我们正在 Base 上构建采用全新界面的 Isometric V2。加入候补名单，获取上线通知。",
     "waitlistEmailPlaceholder": "you@example.com",
-    "waitlistSubmit": "加入 V2 候补名单",
+    "waitlistSubmit": "加入候补名单",
     "waitlistSubmitting": "保存中…",
     "waitlistSuccess": "已加入候补名单，我们会与你联系。",
     "waitlistAlready": "你已在候补名单中。",
