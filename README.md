@@ -2,8 +2,8 @@
 
 Isometric is an on-chain Bitcoin options protocol built on the Internet Computer. Writers post ckBTC collateral, buyers pay premiums in ckBTC, and options settle from an on-chain price source.
 
-- App: <https://isometric.fi>
-- Docs: <https://docs.isometric.fi>
+- Legacy app: <https://legacy.isometric.fi>
+- Docs target after the approved move: <https://legacy-docs.isometric.fi>
 
 ## Repository
 
@@ -64,7 +64,12 @@ make deploy TARGET=local
 
 ## Documentation
 
-Product guides, trading mechanics, risk notes, and technical protocol docs live at <https://docs.isometric.fi>.
+After the approved move, product guides, trading mechanics, risk notes, and technical protocol docs
+will use <https://legacy-docs.isometric.fi>.
+
+The legacy docs domain is prepared for a later move. See the [docs deployment notes](apps/volumetric_docs/README.md#deployment)
+before publishing. Production domain resources are owned by `isometric-base`; do not apply this
+repo's outdated `infra/cloudflare/prod` configuration.
 
 ## Contributing
 

@@ -22,7 +22,7 @@ export const SOCIAL_LINKS = {
 };
 
 export const RESOURCE_LINKS = {
-  docs: "https://docs.isometric.fi",
+  docs: "https://legacy-docs.isometric.fi",
 };
 
 export const LEGAL_LINKS = {

@@ -78,4 +78,4 @@ title: FAQ
 
 ## 我需要 KYC 吗？
 
-不需要。Isometric 是无需许可的。连接钱包，存入 BTC，开始交易。请查阅我们的[服务条款](https://isometric.fi/terms)了解受限地区。
+不需要。Isometric 是无需许可的。连接钱包，存入 BTC，开始交易。请查阅我们的[服务条款](https://legacy.isometric.fi/terms)了解受限地区。

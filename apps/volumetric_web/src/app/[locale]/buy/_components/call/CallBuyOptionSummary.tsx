@@ -7,6 +7,7 @@ import { SlidingNumber } from "@/components/ui/sliding-number";
 import { useConfig, useModal, usePrices } from "@/hooks";
 import { estimateExpiryDate } from "@/lib/expiry";
 import { getStrikeUsd } from "@/lib/options-form";
+import { RESOURCE_LINKS } from "@/lib/site-links";
 import { basisPointsToPercent, formatBtc, formatUsd, satsToBtc } from "@/lib/utils";
 
 interface CallBuyOptionSummaryProps {
@@ -102,7 +103,7 @@ export function CallBuyOptionSummary({
           </div>
         </div>
         <Button asChild variant="outline" size="sm" className="w-full">
-          <a href="https://docs.isometric.fi/" target="_blank" rel="noopener noreferrer">
+          <a href={RESOURCE_LINKS.docs} target="_blank" rel="noopener noreferrer">
             {t("viewDocs")}
           </a>
         </Button>

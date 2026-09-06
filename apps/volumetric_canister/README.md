@@ -2,7 +2,7 @@
 
 Rust canister for the Isometric protocol on the Internet Computer. It manages accounts, covered option offers, acceptance, settlement, balances, and protocol configuration.
 
-Product mechanics and trading guides live at <https://docs.isometric.fi>.
+Product mechanics and trading guides live at <https://legacy-docs.isometric.fi>.
 
 ## Prerequisites
 
