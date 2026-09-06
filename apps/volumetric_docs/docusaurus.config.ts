@@ -5,7 +5,7 @@ import type * as Preset from '@docusaurus/preset-classic';
 // This runs in Node.js - Don't use client-side code here (browser APIs, JSX...)
 
 const config: Config = {
-  title: 'Isometric Docs',
+  title: 'Isometric legacy docs',
   tagline: 'On-chain Bitcoin options. No KYC, no liquidations.',
   favicon: 'img/logo.svg',
 
@@ -15,7 +15,7 @@ const config: Config = {
   },
 
   // Set the production url of your site here
-  url: 'https://docs.isometric.fi',
+  url: 'https://legacy-docs.isometric.fi',
   // Set the /<baseUrl>/ pathname under which your site is served
   baseUrl: '/',
 
@@ -86,7 +86,7 @@ const config: Config = {
       },
       {name: 'twitter:card', content: 'summary_large_image'},
       {property: 'og:type', content: 'website'},
-      {property: 'og:site_name', content: 'Isometric Docs'},
+      {property: 'og:site_name', content: 'Isometric legacy docs'},
     ],
     colorMode: {
       defaultMode: 'dark',
@@ -94,7 +94,7 @@ const config: Config = {
       respectPrefersColorScheme: true,
     },
     navbar: {
-      title: 'Isometric',
+      title: 'Isometric legacy docs',
       logo: {
         alt: 'Isometric Logo',
         src: 'img/logo.svg',
@@ -114,8 +114,13 @@ const config: Config = {
           label: 'Technical',
         },
         {
-          href: 'https://isometric.fi',
+          href: 'https://legacy.isometric.fi',
           label: 'Open app',
+          position: 'right',
+        },
+        {
+          href: 'https://docs.isometric.fi',
+          label: 'Current docs',
           position: 'right',
         },
         {
@@ -161,11 +166,11 @@ const config: Config = {
           ],
         },
         {
-          title: 'Isometric',
+          title: 'Isometric legacy docs',
           items: [
-            {label: 'App', href: 'https://isometric.fi'},
-            {label: 'Privacy', href: 'https://isometric.fi/privacy'},
-            {label: 'Terms', href: 'https://isometric.fi/terms'},
+            {label: 'App', href: 'https://legacy.isometric.fi'},
+            {label: 'Privacy', href: 'https://legacy.isometric.fi/privacy'},
+            {label: 'Terms', href: 'https://legacy.isometric.fi/terms'},
           ],
         },
       ],

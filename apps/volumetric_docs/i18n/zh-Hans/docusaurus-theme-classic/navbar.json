@@ -1,11 +1,15 @@
 {
   "title": {
-    "message": "Isometric",
+    "message": "Isometric 旧版文档",
     "description": "The title in the navbar"
   },
   "logo.alt": {
     "message": "Isometric 徽标",
     "description": "The alt text of navbar logo"
+  },
+  "item.label.Current docs": {
+    "message": "当前文档",
+    "description": "Navbar item with label Current docs"
   },
   "item.label.Documentation": {
     "message": "文档",

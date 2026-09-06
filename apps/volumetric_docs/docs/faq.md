@@ -80,4 +80,4 @@ It's a comparison of your premium against other open offers at the same strike a
 
 ## Do I need KYC?
 
-No. Isometric is permissionless. Connect a wallet, deposit BTC, trade. Check our [terms of service](https://isometric.fi/terms) for restricted regions.
+No. Isometric is permissionless. Connect a wallet, deposit BTC, trade. Check our [terms of service](https://legacy.isometric.fi/terms) for restricted regions.

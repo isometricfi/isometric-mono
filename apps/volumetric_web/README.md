@@ -2,7 +2,7 @@
 
 Next.js demo app for Isometric. It uses an automatic demo account and keeps simulated trading state in the browser.
 
-Product behavior belongs in the docs site: <https://docs.isometric.fi>.
+Product behavior belongs in the docs site: <https://legacy-docs.isometric.fi>.
 
 ## Setup
 
